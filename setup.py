@@ -27,7 +27,7 @@ setup(
     include_package_data=True,
     url="https://github.com/brainglobe/brainglobe",
     author="TBC",
-    author_email="TBC",
+    author_email="adam.tyson@ucl.ac.uk",
     classifiers=["Development Status :: 3 - Alpha",],
     zip_safe=False,
 )

@@ -1,0 +1,36 @@
+{
+   "name":"some_creature_brain_som_res",
+   "citation":"fancyauthoretal_2020",
+   "atlas_link":"www.organization.com",
+   "affine":[
+
+   ],
+   "brain":"average_brain.nii",
+   "regions":"brain_regions.nii",
+   "additional_filtered":"additional_file.nii",
+   "meshes":{
+      "macro":"meshformacro1.stl",
+      "sub1":"meshformacro1.stl",
+      "sub2":"meshformacro1.stl"
+   },
+   "remote_utl":"www.wherewegrabthisfrom.com",
+   "regions_name":{
+      "macro":{
+         "label":1,
+         "children":{
+            "sub1":{
+               "label":2,
+               "children":{
+
+               }
+            },
+            "sub2":{
+               "label":3,
+               "children":{
+
+               }
+            }
+         }
+      }
+   }
+}

@@ -1,2 +1,2 @@
 # brainglobe
-Package defining the core Atlas class of brainglobe
+A lightweight python module to interact with atlases for systems neuroscience

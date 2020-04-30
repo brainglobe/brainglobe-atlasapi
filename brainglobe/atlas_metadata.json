@@ -8,8 +8,8 @@
    
    "brain":{
       "file": "average_brain.nii",
-      "dims": "[x, y, z], # volume dimension"
-      "resolution": "[x, y, z], # resolution along each direction"
+      "dims": "[x, y, z] # volume dimension",
+      "resolution": "[x, y, z], # resolution along each direction",
    },
       
    

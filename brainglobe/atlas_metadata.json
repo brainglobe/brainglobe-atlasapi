@@ -5,15 +5,25 @@
    "affine":[
 
    ],
-   "brain":"average_brain.nii",
+   
+   "brain":{
+      "file": "average_brain.nii",
+      "dims": [x, y, z], # volume dimension
+      "resolution": [x, y, z], # resolution along each direction
+   },
+      
+   
    "regions":"brain_regions.nii",
    "additional_filtered":"additional_file.nii",
    "meshes":{
-      "macro":"meshformacro1.stl",
-      "sub1":"meshformacro1.stl",
-      "sub2":"meshformacro1.stl"
+      "macro": "meshformacro1.stl",
+      "sub1": "meshforsub1.stl",
+      "sub2": "meshforsub2.stl"
    },
-   "remote_utl":"www.wherewegrabthisfrom.com",
+   "remote_url":"www.wherewegrabthisfrom.com",
+   
+   
+   
    "regions_name":{
       "macro":{
          "label":1,

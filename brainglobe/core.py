@@ -1,34 +1,51 @@
-from brainio import brainio
-import json
+from .utils import open_json, read_tiff, make_hemispheres_stack
 from pathlib import Path
 
 
-# Either a dictionary subclass or a loop to set json keys as properties, as you guys prefer
-class Atlas(dict):
+class Atlas():
     def __init__(self, path):
         self.root = Path(path)
+        self.metadata = open_json(self.root / "atlas_metadata.json")
 
-        if path.is_dir():
-            with open(self.root / "atlas_metadata.json", "r") as f:
-                atlas_metadata = json.load(f)
-        else:
-            raise TypeError(f"{path} is not a valid folder")
+        for attr in ["name", "shape", "resolution"]:
+            self.__setattr__(attr, self.metadata[attr])
 
-        super().__init__(**atlas_metadata)
+        self.structures = open_json(self.root / "structures.json")
 
-    def _get_element_path(self, element_name):
-        """Get the path to an 'element' of the atlas (i.e. the average brain,
-        the atlas, or the hemispheres atlas)
+        self._reference = None
+        self._annotated = None
+        self._hemispheres = None
 
-        :param str element_name: The name of the item to retrieve
-        :return: The path to that atlas element on the filesystem
-        :rtype: str
-        """
+    @property
+    def reference(self):
+        if self._reference is None:
+            self._reference = read_tiff(self.root / "reference.tiff")
+        return self._reference
 
-        return self.base_folder / self["data_files"][element_name]
+    @property
+    def annotated(self):
+        if self._annotated is None:
+            self._annotated = read_tiff(self.root / "annotated.tiff")
+        return self._annotated
 
-    def get_data_from_element(self, element_name):
-        """ This can be easily changed to a different loading API if needed.
-        """
-        full_path = self.base_folder / self[element_name]
-        return brainio.load(full_path)
+    @property
+    def hemispheres(self):
+        if self._hemispheres is None:
+            # If reference is symmetric generate hemispheres block:
+            if self.metadata["symmetric"]:
+                self._hemispheres = make_hemispheres_stack(self.shape)
+            else:
+                self._hemispheres = read_tiff(self.root / "hemispheres.tiff")
+        return self._hemispheres
+
+    def get_point_hemisphere(self, point):
+        pass
+
+    def get_point_region(self, point):
+        pass
+
+    def get_region_mesh(self, region_id):
+        pass
+
+    def get_brain_mesh(self):
+        pass

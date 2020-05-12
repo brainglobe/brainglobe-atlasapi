@@ -1,16 +1,17 @@
-from .utils import open_json, read_tiff, make_hemispheres_stack
+from .utils import make_hemispheres_stack
+from .file_io import load_json, read_tiff
 from pathlib import Path
 
 
 class Atlas():
     def __init__(self, path):
         self.root = Path(path)
-        self.metadata = open_json(self.root / "atlas_metadata.json")
+        self.metadata = load_json(self.root / "atlas_metadata.json")
 
         for attr in ["name", "shape", "resolution"]:
             self.__setattr__(attr, self.metadata[attr])
 
-        self.structures = open_json(self.root / "structures.json")
+        self.structures = load_json(self.root / "structures.json")
 
         self._reference = None
         self._annotated = None

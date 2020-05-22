@@ -34,10 +34,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import pytest
-import mock
 from numpy import allclose
 
-from brainatlas_api.simple_tree import SimpleTree
+from structures.brainatlas_api.simple_tree import SimpleTree
 
 
 @pytest.fixture

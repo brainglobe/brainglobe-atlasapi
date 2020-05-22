@@ -1,9 +1,7 @@
 from brainatlas_api.utils import open_json, read_tiff, make_hemispheres_stack
 from pathlib import Path
-from brainatlas_api.structure_tree import StructureTree
+from structures.brainatlas_api.structure_tree import StructureTree
 from brainatlas_api.obj_utils import read_obj
-
-import pymesh
 
 
 class MeshDictionary(dict):
@@ -43,6 +41,7 @@ class MeshDictionary(dict):
 
 class Atlas():
     """ Base class to handle atlases in brainglobe.
+
         Parameters
         ----------
         path : str or Path object
@@ -53,21 +52,25 @@ class Atlas():
         self.root = Path(path)
         self.metadata = open_json(self.root / "atlas_metadata.json")
 
-        for attr in ["name", "shape", "resolution"]:
-            self.__setattr__(attr, self.metadata[attr])
-
+        # Class for structures:
         structures_list = open_json(self.root / "structures.json")
         self.structures = StructureTree(structures_list)
+
+        # Cached loading of meshes:
+        self.region_meshes_dict = MeshDictionary(self.root / "meshes")
+
+        for attr in ["name", "shape", "resolution"]:
+            self.__setattr__(attr, self.metadata[attr])
 
         self._reference = None
         self._annotated = None
         self._hemispheres = None
-        self.acronym_to_id_map = self.structures.get_id_acronym_map()
 
+        # Dictionaries to map acronyms to ids...:
+        self.acronym_to_id_map = self.structures.get_id_acronym_map()
+        # ...and viceversa:
         self.id_to_acronym_map = {v: k for k, v in
                                   self.acronym_to_id_map.items()}
-
-        self.region_meshes_dict = MeshDictionary(self.root / "meshes")
 
     @property
     def reference(self):
@@ -100,13 +103,13 @@ class Atlas():
     def get_region_name_from_coords(self, coords):
         region_id = self.get_region_id_from_coords(coords)
 
-        return self.acronym_map[region_id]
+        return self.id_to_acronym_map[region_id]
 
     def get_mesh_from_id(self, region_id):
         return self.region_meshes_dict[region_id]
 
     def get_mesh_from_name(self, region_name):
-        region_id = self.acronym_map[region_name]
+        region_id = self.acronym_to_id_map[region_name]
         return self.get_mesh_from_id(region_id)
 
     def get_brain_mesh(self):

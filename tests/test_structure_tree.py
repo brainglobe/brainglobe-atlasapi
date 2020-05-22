@@ -40,18 +40,33 @@ from numpy import allclose
 import sys
 import pandas as pd
 
-from brainatlas_api.structure_tree import StructureTree
+from structures.brainatlas_api.structure_tree import StructureTree
 
 if sys.version_info > (3,):
     long = int
 
 @pytest.fixture
 def nodes():
-    structs_file = Path(__file__).parent / "assets" / "structures.json"
-    with open(structs_file) as f:
-        list = json.load(f)
+    list = [{'acronym': 'root',
+              'graph_order': 0,
+              'id': 997,
+              'name': 'root',
+              'structure_id_path': [997],
+              'rgb_triplet': [255, 255, 255]},
+             {'acronym': 'grey',
+              'graph_order': 1,
+              'id': 8,
+              'name': 'Basic cell groups and regions',
+              'structure_id_path': [997, 8],
+              'rgb_triplet': [191, 218, 227]},
+             {'acronym': 'CH',
+              'graph_order': 2,
+              'id': 567,
+              'name': 'Cerebrum',
+              'structure_id_path': [997, 8, 567],
+              'rgb_triplet': [176, 240, 255]}]
 
-    return list[:5]
+    return list
 
 @pytest.fixture
 def tree(nodes):
@@ -61,57 +76,57 @@ def tree(nodes):
 def test_get_structures_by_id(tree):
     
     obtained = tree.get_structures_by_id([1, 2])
-    assert( len(obtained) == 2 ) 
+    assert(len(obtained) == 2)
     
     
 def test_get_structures_by_name(tree):
     
     obtained = tree.get_structures_by_name(['root'])
-    assert( len(obtained) == 1 )
+    assert(len(obtained) == 1)
     
     
 def test_get_structures_by_acronym(tree):
 
-    obtained = tree.get_structures_by_acronym(['root', 'grey', 'CH', 'CTX', 'CTXpl'])
-    assert( len(obtained) == 5)
+    obtained = tree.get_structures_by_acronym(['root', 'grey', 'CH'])
+    assert(len(obtained) == 3)
     
     
 def test_get_colormap(tree):
     
     obtained = tree.get_colormap()
-    assert( allclose(obtained[997], [255, 255, 255]) )
-    assert( allclose(obtained[567], [176, 240, 255]) )
+    assert(allclose(obtained[997], [255, 255, 255]))
+    assert(allclose(obtained[567], [176, 240, 255]))
     
     
 def test_get_name_map(tree):
     
     obtained = tree.get_name_map()
-    assert( obtained[997] == 'root' )
-    assert( obtained[567] == 'Cerebrum' )
+    assert(obtained[997] == 'root')
+    assert(obtained[567] == 'Cerebrum')
     
     
 def test_get_id_acronym_map(tree):
     
     obtained = tree.get_id_acronym_map()
-    assert( obtained['root'] == 997 )
+    assert(obtained['root'] == 997)
     
 
 def test_get_ancestor_id_map(tree):
 
     obtained = tree.get_ancestor_id_map()
-    assert( set(obtained[695]) == set([695, 688, 567, 8, 997]) )
+    assert(set(obtained[567]) == {567, 8, 997})
     
 
 def test_structure_descends_from(tree):
     
-    assert( tree.structure_descends_from(567, 8) )
-    assert( not tree.structure_descends_from(8, 567) )
+    assert(tree.structure_descends_from(567, 8))
+    assert(not tree.structure_descends_from(8, 567))
     
     
 def test_has_overlaps(tree):
     
     obtained = tree.has_overlaps([567, 8])
-    assert( obtained == set([8]) )
+    assert(obtained == {8})
 
 
 @pytest.mark.parametrize('inp,out', [('990099', [153, 0, 153]), 
@@ -139,14 +154,14 @@ def test_path_to_list(inp, out):
 
 def test_export_label_description(tree):
     exp = pd.DataFrame({
-        'IDX': [997, 8, 567, 688, 695],
-        '-R-': [255, 191, 176, 176, 112],
-        '-G-': [255, 218, 240, 255, 255],
-        '-B-': [255, 227, 255, 184, 112],
-        '-A-': [1.0, 1.0, 1.0, 1.0, 1.0],
-        'VIS': [1, 1, 1, 1, 1],
-        'MSH': [1, 1, 1, 1, 1],
-        'LABEL': ['root', 'grey', 'CH', 'CTX', 'CTXpl']
+        'IDX': [997, 8, 567],
+        '-R-': [255, 191, 176],
+        '-G-': [255, 218, 240],
+        '-B-': [255, 227, 255],
+        '-A-': [1.0, 1.0, 1.0],
+        'VIS': [1, 1, 1],
+        'MSH': [1, 1, 1],
+        'LABEL': ['root', 'grey', 'CH']
     }).loc[:, ('IDX', '-R-', '-G-', '-B-', '-A-', 'VIS', 'MSH', 'LABEL')]
 
     obt = tree.export_label_description()

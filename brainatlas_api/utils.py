@@ -1,6 +1,22 @@
 import json
 import tifffile
 import numpy as np
+import requests
+from tqdm.auto import tqdm
+
+
+def retrieve_over_http(url, output_file_path):
+    response = requests.get(url, stream=True)
+
+    try:
+        with tqdm.wrapattr(open(output_file_path, "wb"), "write", miniters=1,
+                           total=int(response.headers.get('content-length', 0)),
+                           desc=output_file_path.name) as fout:
+            for chunk in response.iter_content(chunk_size=16384):
+                fout.write(chunk)
+
+    except requests.exceptions.ConnectionError:
+        output_file_path.unlink()
 
 def open_json(path):
     with open(path, "r") as f:

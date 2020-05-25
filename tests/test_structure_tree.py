@@ -34,13 +34,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import pytest
-import json
-from pathlib import Path
 from numpy import allclose
 import sys
 import pandas as pd
 
-from structures.brainatlas_api.structure_tree import StructureTree
+from brainatlas_api.structures.structure_tree import StructureTree
 
 if sys.version_info > (3,):
     long = int
@@ -48,19 +46,16 @@ if sys.version_info > (3,):
 @pytest.fixture
 def nodes():
     list = [{'acronym': 'root',
-              'graph_order': 0,
               'id': 997,
               'name': 'root',
               'structure_id_path': [997],
               'rgb_triplet': [255, 255, 255]},
              {'acronym': 'grey',
-              'graph_order': 1,
               'id': 8,
               'name': 'Basic cell groups and regions',
               'structure_id_path': [997, 8],
               'rgb_triplet': [191, 218, 227]},
              {'acronym': 'CH',
-              'graph_order': 2,
               'id': 567,
               'name': 'Cerebrum',
               'structure_id_path': [997, 8, 567],

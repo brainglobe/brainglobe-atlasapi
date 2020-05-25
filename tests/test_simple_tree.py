@@ -36,7 +36,7 @@
 import pytest
 from numpy import allclose
 
-from structures.brainatlas_api.simple_tree import SimpleTree
+from brainatlas_api.structures.simple_tree import SimpleTree
 
 
 @pytest.fixture

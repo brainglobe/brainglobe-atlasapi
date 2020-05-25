@@ -19,7 +19,7 @@ class BrainGlobeAtlas(Atlas):
         interm_dir_path : str or Path object
         """
 
-    _atlas_name = None
+    atlas_name = None
     _remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}.tar.gz"
     def __init__(self, brainglobe_path=None, interm_dir_path=None):
 
@@ -32,19 +32,19 @@ class BrainGlobeAtlas(Atlas):
                 else self.brainglobe_path
 
         try:
-            super().__init__(self.brainglobe_path / self._atlas_name)
+            super().__init__(self.brainglobe_path / self.atlas_name)
 
         except FileNotFoundError:
-            warnings.warn(f"{self._atlas_name} not found. Downloading...")
+            warnings.warn(f"{self.atlas_name} not found. Downloading...")
             self.download_extract_file()
 
-            super().__init__(self.brainglobe_path / self._atlas_name)
+            super().__init__(self.brainglobe_path / self.atlas_name)
 
     @property
     def remote_url(self):
         """ Format complete url for download.
         """
-        return self._remote_url_base.format(self._atlas_name)
+        return self._remote_url_base.format(self.atlas_name)
 
     def download_extract_file(self):
         """ Download and extract atlas from remote url.
@@ -66,4 +66,8 @@ class BrainGlobeAtlas(Atlas):
 
 
 class TestAtlas(BrainGlobeAtlas):
-    _atlas_name = "test"
+    atlas_name = "test"
+
+
+class FishAtlas(BrainGlobeAtlas):
+    atlas_name = "fishatlas"

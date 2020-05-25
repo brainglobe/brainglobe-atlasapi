@@ -4,4 +4,4 @@ import tempfile
 
 @pytest.fixture(scope="module")
 def atlas_path():
-    return TestAtlas(brainglobe_path=tempfile.mkdtemp()).root
+    return TestAtlas(brainglobe_path=tempfile.mkdtemp()).root_dir

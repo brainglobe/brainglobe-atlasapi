@@ -1,11 +1,15 @@
 from pathlib import Path
-from brainatlas_api.core import Atlas
 import urllib
 import shutil
 import tarfile
 import warnings
 
-DEFAULT_PATH = Path.home() / ".brainglobe"
+from brainatlas_api import DEFAULT_PATH
+from brainatlas_api.core import Atlas
+from brainatlas_api.utils import check_internet_connection
+
+
+
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
 class BrainGlobeAtlas(Atlas):
@@ -49,12 +53,22 @@ class BrainGlobeAtlas(Atlas):
     def download_extract_file(self):
         """ Download and extract atlas from remote url.
         """
+        check_internet_connection()
+
+        # Get path to folder where data will be saved
         destination_path = self.interm_dir_path / COMPRESSED_FILENAME
 
-        with urllib.request.urlopen(self.remote_url) as response:
-            with open(destination_path, "wb") as outfile:
-                shutil.copyfileobj(response, outfile)
+        # Try to download atlas data
+        try:
+            with urllib.request.urlopen(self.remote_url) as response:
+                with open(destination_path, "wb") as outfile:
+                    shutil.copyfileobj(response, outfile)
+        except urllib.error.HTTPError as e:
+            raise FileNotFoundError(f'Could not download data from {self.remote_url}. error code: {e.code}')
+        except urllib.error.URLError as e:
+            raise FileNotFoundError(f'Could not download data from {self.remote_url}: {e.args}')
 
+        # Uncompress
         tar = tarfile.open(destination_path)
 
         # Ensure brainglobe path exists and extract there:

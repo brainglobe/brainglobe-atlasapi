@@ -59,7 +59,7 @@ class Atlas():
         # Cached loading of meshes:
         self.region_meshes_dict = MeshDictionary(self.root_dir / "meshes")
 
-        for attr in ["name", "shape", "resolution"]:
+        for attr in ["name", "shape", "resolution", "symmetric"]:
             self.__setattr__(attr, self.metadata[attr])
 
         self._reference = None
@@ -128,6 +128,9 @@ class Atlas():
         return tuple([int(c) for c in coords])
 
     # ------- BrainRender methods, might be useful to implement here ------- #
+    def _check_point_in_region(self, point, region_actor):
+        pass
+
     def get_region_unilateral(self):
         pass
 

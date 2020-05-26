@@ -1,5 +1,7 @@
-from brainatlas_api.utils import open_json, read_tiff, make_hemispheres_stack
+import numpy as np
 from pathlib import Path
+
+from brainatlas_api.utils import open_json, read_tiff, make_hemispheres_stack
 from brainatlas_api.structures.structure_tree import StructureTree
 from brainatlas_api.obj_utils import read_obj
 
@@ -72,16 +74,27 @@ class Atlas():
         self.id_to_acronym_map = {v: k for k, v in
                                   self.acronym_to_id_map.items()}
 
+        # Store a list of all acronyms and names
+        self.structures_acronyms = [n['acronym'] for n in self.structures.nodes()]
+        self.structures_names = [n['name'] for n in self.structures.nodes()]
+
+
     @property
     def reference(self):
         if self._reference is None:
-            self._reference = read_tiff(self.root_dir / "reference.tiff")
+            try:
+                self._reference = read_tiff(self.root_dir / "reference.tiff")
+            except:
+                raise FileNotFoundError(f'Failed to load reference.tiff from {self.root_dir / "reference.tiff"}')
         return self._reference
 
     @property
     def annotated(self):
         if self._annotated is None:
-            self._annotated = read_tiff(self.root_dir / "annotated.tiff")
+            try:
+                self._annotated = read_tiff(self.root_dir / "annotated.tiff")
+            except:
+                raise FileNotFoundError(f'Failed to load annotated.tiff from {self.root_dir / "annotated.tiff"}')
         return self._annotated
 
     @property
@@ -105,6 +118,11 @@ class Atlas():
 
         return self.id_to_acronym_map[region_id]
 
+    def get_region_color_from_acronym(self, region_acronym):
+        region_id = self.acronym_to_id_map[region_acronym]
+        return self.structures.get_structures_by_id([region_id])[0]['rgb_triplet']
+
+
     # Meshes-related methods:
     def get_mesh_from_id(self, region_id):
         return self.region_meshes_dict[region_id]
@@ -116,8 +134,8 @@ class Atlas():
     def get_brain_mesh(self):
         return self.get_mesh_from_name("root")
 
-    def get_mesh_file_from_name(self, region_name):
-        region_id = self.acronym_to_id_map[region_name]
+    def get_mesh_file_from_acronym(self, region_acronym):
+        region_id = self.acronym_to_id_map[region_acronym]
         return self.region_meshes_dict.files_dict[region_id]
 
     def get_region_CenterOfMass(self):
@@ -137,8 +155,10 @@ class Atlas():
     def mirror_point_across_hemispheres(self):
         pass
 
-    def get_colors_from_coordinates(self):
-        pass
+    def get_colors_from_coordinates(self, coords):
+        region_id = self.get_region_id_from_coords(coords)
+        region = self.structures.get_structures_by_id([region_id])[0]
+        return region['rgb_triplet']
 
     def get_structure_ancestors(self, regions, ancestors=True,
                                 descendants=False):
@@ -151,10 +171,13 @@ class Atlas():
         pass
 
     def print_structures(self):
-        """
+        """ 
         Prints the name of every structure in the structure tree to the console.
         """
-        pass
+        acronyms, names = self.structures_acronyms, self.structures_names
+        sort_idx = np.argsort(acronyms)
+        acronyms, names = np.array(acronyms)[sort_idx], np.array(names)[sort_idx]
+        [print("({}) - {}".format(a, n)) for a,n in zip(acronyms, names)]
 
     # # functions to create oriented planes that can be used to slice actors etc
     # def get_plane_at_point(self, pos, norm, sx, sy,

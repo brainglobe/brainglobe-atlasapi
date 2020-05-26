@@ -118,7 +118,7 @@ class Atlas():
 
         return self.id_to_acronym_map[region_id]
 
-    def get_region_color(self, region_acronym):
+    def get_region_color_from_acronym(self, region_acronym):
         region_id = self.acronym_to_id_map[region_acronym]
         return self.structures.get_structures_by_id([region_id])[0]['rgb_triplet']
 

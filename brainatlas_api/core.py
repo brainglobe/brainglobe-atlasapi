@@ -106,15 +106,19 @@ class Atlas():
         return self.id_to_acronym_map[region_id]
 
     # Meshes-related methods:
-    def get_mesh_file_from_id(self, region_id):
+    def get_mesh_from_id(self, region_id):
         return self.region_meshes_dict[region_id]
+
+    def get_mesh_from_name(self, region_name):
+        region_id = self.acronym_to_id_map[region_name]
+        return self.get_mesh_from_id(region_id)
+
+    def get_brain_mesh(self):
+        return self.get_mesh_from_name("root")
 
     def get_mesh_file_from_name(self, region_name):
         region_id = self.acronym_to_id_map[region_name]
-        return self.get_mesh_file_from_id(region_id)
-
-    def get_brain_mesh(self):
-        return self.get_mesh_file_from_name("root")
+        return self.region_meshes_dict.files_dict[region_id]
 
     def get_region_CenterOfMass(self):
         pass

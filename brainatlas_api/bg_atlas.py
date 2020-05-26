@@ -71,3 +71,7 @@ class TestAtlas(BrainGlobeAtlas):
 
 class FishAtlas(BrainGlobeAtlas):
     atlas_name = "fishatlas"
+
+
+class AllenBrain(BrainGlobeAtlas):
+    atlas_name = "allenbrain25um"

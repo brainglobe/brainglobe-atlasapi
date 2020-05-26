@@ -1,1 +1,1 @@
-from brainatlas_api.bg_atlas import TestAtlas, FishAtlas
+from brainatlas_api.bg_atlas import TestAtlas, FishAtlas, AllenBrain

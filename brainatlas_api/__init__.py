@@ -1,1 +1,8 @@
-from brainatlas_api.bg_atlas import TestAtlas, FishAtlas, AllenBrain25Um
+from pathlib import Path
+
+
+
+# Check if base directory exists, create otherwise
+DEFAULT_PATH = Path.home() / ".brainglobe"
+DEFAULT_PATH.mkdir(exist_ok=True)
+DEFAULT_PATH.mkdir(exist_ok=True)

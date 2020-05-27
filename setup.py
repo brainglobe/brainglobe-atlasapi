@@ -20,6 +20,7 @@ setup(
             "gitpython",
             "coveralls",
             "coverage<=4.5.4",
+            "treelib"
         ]
     },
     python_requires=">=3.6",

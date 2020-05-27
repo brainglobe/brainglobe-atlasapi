@@ -1,6 +1,8 @@
 import numpy as np
 from pathlib import Path
 
+from treelib import Tree
+
 from brainatlas_api.utils import open_json, read_tiff, make_hemispheres_stack
 from brainatlas_api.structures.structure_tree import StructureTree
 from brainatlas_api.obj_utils import read_obj
@@ -137,7 +139,11 @@ class Atlas():
 
     def get_mesh_file_from_acronym(self, region_acronym):
         region_id = self.acronym_to_id_map[region_acronym]
-        return self.region_meshes_dict.files_dict[region_id]
+
+        try:
+            return self.region_meshes_dict.files_dict[region_id]
+        except Exception as e:
+            raise ValueError(f'Failed to retrieve mesh file for {region_acronym}: {e}')
 
     def get_region_CenterOfMass(self):
         pass
@@ -179,6 +185,52 @@ class Atlas():
         sort_idx = np.argsort(acronyms)
         acronyms, names = np.array(acronyms)[sort_idx], np.array(names)[sort_idx]
         [print("({}) - {}".format(a, n)) for a,n in zip(acronyms, names)]
+
+
+    def print_structures_tree(self, to_file=False, save_filepath=None):
+        """
+            Prints a 'tree' graph with the hierarchical organisation of all structures
+
+            :param to_file: bool, default False. If True the tree structure is saved to 
+                a file (at save_filepath) instead of printd to REPL
+            :param save_filepath: str, if to_file = True, pass the path to a .txt file 
+                where the tree structure will be saved.
+        """
+
+        def add_descendants_to_tree(atlas, tree, structure_id, parent_id):
+            """
+                Recursively goes through all the the descendants of a region and adds them to the tree
+            """
+            tree.create_node(tag=atlas.id_to_acronym_map[structure_id], 
+                                            identifier=structure_id, parent=parent_id)
+            descendants = atlas.structures.child_ids([structure_id])[0]
+
+            if len(descendants):
+                for child in descendants:
+                    add_descendants_to_tree(atlas, tree, child, structure_id)
+
+        # Create a Tree structure and initialise with root
+        root = self.acronym_to_id_map['root']
+        tree = Tree()
+        tree.create_node(tag='root', identifier=root)
+
+        # Recursively iterate through hierarchy#
+        for child in self.structures.child_ids([root])[0]:
+            add_descendants_to_tree(self, tree, child, root)
+
+        if not to_file:
+            tree.show()
+        else:
+            if save_filepath is None: 
+                raise ValueError('If setting to_file as True, you need to pass the path to \
+                                            a .txt file where the tree will be saved')
+            elif not save_filepath.endswith('.txt'): 
+                raise ValueError(f'save_filepath should point to a .txt file, not: {save_filepath}')
+
+            tree.save2file(save_filepath)
+
+
+
 
     # # functions to create oriented planes that can be used to slice actors etc
     # def get_plane_at_point(self, pos, norm, sx, sy,

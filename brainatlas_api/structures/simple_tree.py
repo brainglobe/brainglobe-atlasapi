@@ -41,11 +41,9 @@ from six import iteritems
 from allensdk.deprecated import deprecated
 
 
-class SimpleTree( object ):
-    def __init__(self, nodes, 
-                 node_id_cb, 
-                 parent_id_cb):
-        '''A tree structure
+class SimpleTree(object):
+    def __init__(self, nodes, node_id_cb, parent_id_cb):
+        """A tree structure
         
         Parameters
         ----------
@@ -70,11 +68,13 @@ class SimpleTree( object ):
         easy. The DataFrame constructor does it for you:
             your_dataframe = pandas.DataFrame(list_of_dict)
              
-        '''
+        """
 
-        self._nodes = { node_id_cb(n):n for n in nodes }
-        self._parent_ids = { nid:parent_id_cb(n) for nid,n in iteritems(self._nodes) }
-        self._child_ids = { nid:[] for nid in self._nodes }
+        self._nodes = {node_id_cb(n): n for n in nodes}
+        self._parent_ids = {
+            nid: parent_id_cb(n) for nid, n in iteritems(self._nodes)
+        }
+        self._child_ids = {nid: [] for nid in self._nodes}
 
         for nid in self._parent_ids:
             pid = self._parent_ids[nid]
@@ -84,9 +84,8 @@ class SimpleTree( object ):
         self.node_id_cb = node_id_cb
         self.parent_id_cb = parent_id_cb
 
-
     def filter_nodes(self, criterion):
-        '''Obtain a list of nodes filtered by some criterion
+        """Obtain a list of nodes filtered by some criterion
         
         Parameters
         ----------
@@ -98,13 +97,12 @@ class SimpleTree( object ):
         list of dict :
             Items are node dictionaries that passed the filter.
         
-        '''
-    
+        """
+
         return list(filter(criterion, self._nodes.values()))
 
-        
     def value_map(self, from_fn, to_fn):
-        '''Obtain a look-up table relating a pair of node properties across 
+        """Obtain a look-up table relating a pair of node properties across 
         nodes
         
         Parameters
@@ -122,23 +120,24 @@ class SimpleTree( object ):
             Maps the node property defined by from_fn to the node property 
             defined by to_fn across nodes.
 
-        '''
-        
+        """
+
         vm = {}
         for node in self._nodes.values():
             key = from_fn(node)
             value = to_fn(node)
-            
+
             if key in vm:
-                raise RuntimeError('from_fn is not unique across nodes. '
-                                   'Collision between {0} and {1}.'.format(value, vm[key]))    
+                raise RuntimeError(
+                    "from_fn is not unique across nodes. "
+                    "Collision between {0} and {1}.".format(value, vm[key])
+                )
             vm[key] = value
-  
+
         return vm
 
-
     def nodes_by_property(self, key, values, to_fn=None):
-        '''Get nodes by a specified property
+        """Get nodes by a specified property
 
         Parameters
         ----------
@@ -156,40 +155,37 @@ class SimpleTree( object ):
         list : 
             outputs, 1 for each input value.
 
-        '''
+        """
 
         if to_fn is None:
             to_fn = lambda x: x
 
-        if not callable( key ):
+        if not callable(key):
             from_fn = lambda x: x[key]
         else:
             from_fn = key
 
-        value_map = self.value_map( from_fn, to_fn )
-        return [ value_map[vv] for vv in values ]
-
+        value_map = self.value_map(from_fn, to_fn)
+        return [value_map[vv] for vv in values]
 
     def node_ids(self):
-        '''Obtain the node ids of each node in the tree
+        """Obtain the node ids of each node in the tree
         
         Returns
         -------
         list :
             elements are node ids 
         
-        '''
-    
+        """
+
         return list(self._nodes)
 
-    
     @deprecated("Use SimpleTree.parent_ids instead.")
     def parent_id(self, node_ids):
         return self.parent_ids(node_ids)
 
-    
     def parent_ids(self, node_ids):
-        '''Obtain the ids of one or more nodes' parents
+        """Obtain the ids of one or more nodes' parents
         
         Parameters
         ----------
@@ -201,13 +197,12 @@ class SimpleTree( object ):
         list of hashable : 
             Items are ids of input nodes' parents in order.
         
-        '''
-        
-        return [ self._parent_ids[nid] for nid in node_ids ]
+        """
 
-   
+        return [self._parent_ids[nid] for nid in node_ids]
+
     def child_ids(self, node_ids):
-        '''Obtain the ids of one or more nodes' children
+        """Obtain the ids of one or more nodes' children
         
         Parameters
         ----------
@@ -219,13 +214,12 @@ class SimpleTree( object ):
         list of list of hashable : 
             Items are lists of input nodes' children's ids.
             
-        '''
-    
-        return [ self._child_ids[nid] for nid in node_ids ]
+        """
 
+        return [self._child_ids[nid] for nid in node_ids]
 
     def ancestor_ids(self, node_ids):
-        '''Obtain the ids of one or more nodes' ancestors
+        """Obtain the ids of one or more nodes' ancestors
         
         Parameters
         ----------
@@ -246,21 +240,20 @@ class SimpleTree( object ):
         The ancestors of C are [C, B, A]. The ancestors of A are [A]. The 
         ancestors of D are [D, A]
         
-        '''
-    
+        """
+
         out = []
         for nid in node_ids:
-        
+
             current = [nid]
             while current[-1] is not None:
                 current.extend(self.parent_ids([current[-1]]))
             out.append(current[:-1])
-                
+
         return out
-            
-    
+
     def descendant_ids(self, node_ids):
-        '''Obtain the ids of one or more nodes' descendants
+        """Obtain the ids of one or more nodes' descendants
         
         Parameters
         ----------
@@ -280,29 +273,30 @@ class SimpleTree( object ):
           
         The descendants of A are [B, C, D]. The descendants of C are [].
         
-        '''
-    
+        """
+
         out = []
         for ii, nid in enumerate(node_ids):
-            
+
             current = [nid]
             children = self.child_ids([nid])[0]
-            
+
             if children:
-                current.extend(functools.reduce(op.add, map(list, 
-                               self.descendant_ids(children))))
-                               
+                current.extend(
+                    functools.reduce(
+                        op.add, map(list, self.descendant_ids(children))
+                    )
+                )
+
             out.append(current)
         return out
 
-    
     @deprecated("Use SimpleTree.nodes instead")
     def node(self, node_ids=None):
         return self.nodes(node_ids)
 
-    
     def nodes(self, node_ids=None):
-        '''Get one or more nodes' full dictionaries from their ids.
+        """Get one or more nodes' full dictionaries from their ids.
         
         Parameters
         ----------
@@ -313,21 +307,22 @@ class SimpleTree( object ):
         -------
         list of dict : 
             Items are nodes corresponding to argued ids.
-        '''
-    
+        """
+
         if node_ids is None:
             node_ids = self.node_ids()
-    
-        return [ self._nodes[nid] if nid in self._nodes else None for nid in node_ids]
 
+        return [
+            self._nodes[nid] if nid in self._nodes else None
+            for nid in node_ids
+        ]
 
     @deprecated("Use SimpleTree.parents instead")
     def parent(self, node_ids):
         return self.parents(node_ids)
 
-
     def parents(self, node_ids):
-        '''Get one or mode nodes' parent nodes
+        """Get one or mode nodes' parent nodes
         
         Parameters
         ----------
@@ -339,13 +334,12 @@ class SimpleTree( object ):
         list of dict : 
             Items are parents of nodes corresponding to argued ids.
     
-        '''
-        
+        """
+
         return self.nodes([self._parent_ids[nid] for nid in node_ids])
 
-
     def children(self, node_ids):
-        '''Get one or mode nodes' child nodes
+        """Get one or mode nodes' child nodes
         
         Parameters
         ----------
@@ -357,13 +351,12 @@ class SimpleTree( object ):
         list of list of dict : 
             Items are lists of child nodes corresponding to argued ids.
         
-        '''
-    
+        """
+
         return list(map(self.nodes, self.child_ids(node_ids)))
 
-
     def descendants(self, node_ids):
-        '''Get one or mode nodes' descendant nodes
+        """Get one or mode nodes' descendant nodes
         
         Parameters
         ----------
@@ -375,13 +368,12 @@ class SimpleTree( object ):
         list of list of dict : 
             Items are lists of descendant nodes corresponding to argued ids.
         
-        '''
-        
+        """
+
         return list(map(self.nodes, self.descendant_ids(node_ids)))
 
-    
     def ancestors(self, node_ids):
-        '''Get one or mode nodes' ancestor nodes
+        """Get one or mode nodes' ancestor nodes
         
         Parameters
         ----------
@@ -393,6 +385,6 @@ class SimpleTree( object ):
         list of list of dict : 
             Items are lists of ancestor nodes corresponding to argued ids.
         
-        '''
-    
+        """
+
         return list(map(self.nodes, self.ancestor_ids(node_ids)))

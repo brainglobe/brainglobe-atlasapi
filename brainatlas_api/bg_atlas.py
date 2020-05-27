@@ -9,8 +9,8 @@ from brainatlas_api.core import Atlas
 from brainatlas_api.utils import check_internet_connection
 
 
-
 COMPRESSED_FILENAME = "atlas.tar.gz"
+
 
 class BrainGlobeAtlas(Atlas):
     """
@@ -26,7 +26,10 @@ class BrainGlobeAtlas(Atlas):
         """
 
     atlas_name = None
-    _remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}.tar.gz"
+    _remote_url_base = (
+        "https://gin.g-node.org/brainglobe/atlases/raw/master/{}.tar.gz"
+    )
+
     def __init__(self, brainglobe_path=None, interm_dir_path=None):
 
         if brainglobe_path is None:
@@ -34,8 +37,11 @@ class BrainGlobeAtlas(Atlas):
 
         self.brainglobe_path = Path(brainglobe_path)
 
-        self.interm_dir_path = Path(interm_dir_path) if interm_dir_path is not None \
-                else self.brainglobe_path
+        self.interm_dir_path = (
+            Path(interm_dir_path)
+            if interm_dir_path is not None
+            else self.brainglobe_path
+        )
 
         try:
             super().__init__(self.brainglobe_path / self.atlas_name)
@@ -66,9 +72,13 @@ class BrainGlobeAtlas(Atlas):
                 with open(destination_path, "wb") as outfile:
                     shutil.copyfileobj(response, outfile)
         except urllib.error.HTTPError as e:
-            raise FileNotFoundError(f'Could not download data from {self.remote_url}. error code: {e.code}')
+            raise FileNotFoundError(
+                f"Could not download data from {self.remote_url}. error code: {e.code}"
+            )
         except urllib.error.URLError as e:
-            raise FileNotFoundError(f'Could not download data from {self.remote_url}: {e.args}')
+            raise FileNotFoundError(
+                f"Could not download data from {self.remote_url}: {e.args}"
+            )
 
         # Uncompress
         tar = tarfile.open(destination_path)
@@ -88,8 +98,10 @@ class TestAtlas(BrainGlobeAtlas):
 class FishAtlas(BrainGlobeAtlas):
     atlas_name = "fishatlas"
 
+
 class RatAtlas(BrainGlobeAtlas):
     atlas_name = "ratatlas"
-    
+
+
 class AllenBrain25Um(BrainGlobeAtlas):
     atlas_name = "allenbrain25um"

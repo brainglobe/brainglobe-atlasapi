@@ -45,10 +45,9 @@ import pandas as pd
 from .simple_tree import SimpleTree
 
 
-class StructureTree( SimpleTree ):
-                 
+class StructureTree(SimpleTree):
     def __init__(self, nodes):
-        '''A tree whose nodes are brain structures and whose edges indicate 
+        """A tree whose nodes are brain structures and whose edges indicate 
         physical containment.
         
         Parameters
@@ -72,19 +71,20 @@ class StructureTree( SimpleTree ):
                 This structure's ancestors (inclusive) from the root of the 
                 tree.
         
-        '''
-        
-        super(StructureTree, self).__init__(nodes,
-                                            lambda s: int(s['id']),
-                                            lambda s: s['structure_id_path'][-2] \
-                                                if len(s['structure_id_path']) > 1 \
-                                                and s['structure_id_path'] is not None \
-                                                and np.isfinite(s['structure_id_path'][-2]) \
-                                                else None)
-                                                
-                                             
+        """
+
+        super(StructureTree, self).__init__(
+            nodes,
+            lambda s: int(s["id"]),
+            lambda s: s["structure_id_path"][-2]
+            if len(s["structure_id_path"]) > 1
+            and s["structure_id_path"] is not None
+            and np.isfinite(s["structure_id_path"][-2])
+            else None,
+        )
+
     def get_structures_by_id(self, structure_ids):
-        '''Obtain a list of brain structures from their structure ids
+        """Obtain a list of brain structures from their structure ids
         
         Parameters
         ----------
@@ -96,13 +96,12 @@ class StructureTree( SimpleTree ):
         list of dict : 
             Each item describes a structure.
         
-        '''
-    
+        """
+
         return self.nodes(structure_ids)
-        
-    
+
     def get_structures_by_name(self, names):
-        '''Obtain a list of brain structures from their names,
+        """Obtain a list of brain structures from their names,
         
         Parameters
         ----------
@@ -114,13 +113,12 @@ class StructureTree( SimpleTree ):
         list of dict : 
             Each item describes a structure.
             
-        '''
-        
-        return self.nodes_by_property('name', names)
-        
-        
+        """
+
+        return self.nodes_by_property("name", names)
+
     def get_structures_by_acronym(self, acronyms):
-        '''Obtain a list of brain structures from their acronyms
+        """Obtain a list of brain structures from their acronyms
         
         Parameters
         ----------
@@ -132,56 +130,48 @@ class StructureTree( SimpleTree ):
         list of dict : 
             Each item describes a structure.
             
-        '''
-        
-        return self.nodes_by_property('acronym', acronyms)
-        
-        
+        """
+
+        return self.nodes_by_property("acronym", acronyms)
+
     def get_colormap(self):
-        '''Get a dictionary mapping structure ids to colors across all nodes.
+        """Get a dictionary mapping structure ids to colors across all nodes.
         
         Returns
         -------
         dict : 
             Keys are structure ids. Values are RGB lists of integers.
         
-        '''
-    
-        return self.value_map(lambda x: x['id'], 
-                              lambda y: y['rgb_triplet'])
+        """
 
-                              
-                              
+        return self.value_map(lambda x: x["id"], lambda y: y["rgb_triplet"])
+
     def get_name_map(self):
-        '''Get a dictionary mapping structure ids to names across all nodes.
+        """Get a dictionary mapping structure ids to names across all nodes.
         
         Returns
         -------
         dict : 
             Keys are structure ids. Values are structure name strings.
         
-        '''
-    
-        return self.value_map(lambda x: x['id'], 
-                              lambda y: y['name'])
-        
-        
+        """
+
+        return self.value_map(lambda x: x["id"], lambda y: y["name"])
+
     def get_id_acronym_map(self):
-        '''Get a dictionary mapping structure acronyms to ids across all nodes.
+        """Get a dictionary mapping structure acronyms to ids across all nodes.
         
         Returns
         -------
         dict : 
             Keys are structure acronyms. Values are structure ids.
         
-        '''
-        
-        return self.value_map(lambda x: x['acronym'], 
-                              lambda y: y['id'])
-        
-        
+        """
+
+        return self.value_map(lambda x: x["acronym"], lambda y: y["id"])
+
     def get_ancestor_id_map(self):
-        '''Get a dictionary mapping structure ids to ancestor ids across all 
+        """Get a dictionary mapping structure ids to ancestor ids across all 
         nodes. 
         
         Returns
@@ -189,14 +179,14 @@ class StructureTree( SimpleTree ):
         dict : 
             Keys are structure ids. Values are lists of ancestor ids.
         
-        '''
+        """
 
-        return self.value_map(lambda x: x['id'], 
-                              lambda y: self.ancestor_ids([y['id']])[0])
-        
-        
+        return self.value_map(
+            lambda x: x["id"], lambda y: self.ancestor_ids([y["id"]])[0]
+        )
+
     def structure_descends_from(self, child_id, parent_id):
-        '''Tests whether one structure descends from another. 
+        """Tests whether one structure descends from another. 
         
         Parameters
         ----------
@@ -211,13 +201,12 @@ class StructureTree( SimpleTree ):
             True if the structure specified by child_id is a descendant of 
             the one specified by parent_id. Otherwise False.
         
-        '''
-    
+        """
+
         return parent_id in self.ancestor_ids([child_id])[0]
-        
-        
+
     def has_overlaps(self, structure_ids):
-        '''Determine if a list of structures contains structures along with 
+        """Determine if a list of structures contains structures along with 
         their ancestors
         
         Parameters
@@ -231,16 +220,21 @@ class StructureTree( SimpleTree ):
             Ids of structures that are the ancestors of other structures in 
             the supplied set.
         
-        '''
-    
-        ancestor_ids = functools.reduce(op.add, 
-                              map(lambda x: x[1:], 
-                                  self.ancestor_ids(structure_ids)))
-        return (set(ancestor_ids) & set(structure_ids))
-        
+        """
 
-    def export_label_description(self, alphas=None, exclude_label_vis=None, exclude_mesh_vis=None, label_key='acronym'):
-        '''Produces an itksnap label_description table from this structure tree
+        ancestor_ids = functools.reduce(
+            op.add, map(lambda x: x[1:], self.ancestor_ids(structure_ids))
+        )
+        return set(ancestor_ids) & set(structure_ids)
+
+    def export_label_description(
+        self,
+        alphas=None,
+        exclude_label_vis=None,
+        exclude_mesh_vis=None,
+        label_key="acronym",
+    ):
+        """Produces an itksnap label_description table from this structure tree
 
         Parameters
         ----------
@@ -258,7 +252,7 @@ class StructureTree( SimpleTree ):
         pd.DataFrame : 
             Contains data needed for loading as an ITKSnap label description file.
 
-        '''
+        """
 
         if alphas is None:
             alphas = {}
@@ -267,26 +261,29 @@ class StructureTree( SimpleTree ):
         if exclude_mesh_vis is None:
             exclude_mesh_vis = set([])
 
-        df = pd.DataFrame([
-            {
-                'IDX': node['id'],
-                '-R-': node['rgb_triplet'][0],
-                '-G-': node['rgb_triplet'][1],
-                '-B-': node['rgb_triplet'][2],
-                '-A-': alphas.get(node['id'], 1.0), 
-                'VIS': 1 if node['id'] not in exclude_label_vis else 0,
-                'MSH': 1 if node['id'] not in exclude_mesh_vis else 0,
-                'LABEL': node[label_key]
-            }
-            for node in self.nodes()
-        ]).loc[:, ('IDX', '-R-', '-G-', '-B-', '-A-', 'VIS', 'MSH', 'LABEL')]
+        df = pd.DataFrame(
+            [
+                {
+                    "IDX": node["id"],
+                    "-R-": node["rgb_triplet"][0],
+                    "-G-": node["rgb_triplet"][1],
+                    "-B-": node["rgb_triplet"][2],
+                    "-A-": alphas.get(node["id"], 1.0),
+                    "VIS": 1 if node["id"] not in exclude_label_vis else 0,
+                    "MSH": 1 if node["id"] not in exclude_mesh_vis else 0,
+                    "LABEL": node[label_key],
+                }
+                for node in self.nodes()
+            ]
+        ).loc[:, ("IDX", "-R-", "-G-", "-B-", "-A-", "VIS", "MSH", "LABEL")]
 
         return df
 
-
     @staticmethod
-    def clean_structures(structures, whitelist=None, data_transforms=None, renames=None):
-        '''Convert structures_with_sets query results into a form that can be 
+    def clean_structures(
+        structures, whitelist=None, data_transforms=None, renames=None
+    ):
+        """Convert structures_with_sets query results into a form that can be 
         used to construct a StructureTree
         
         Parameters
@@ -310,7 +307,7 @@ class StructureTree( SimpleTree ):
         list of dict : 
             structures, after conversion of structure_id_path and structure_sets 
         
-        '''
+        """
 
         if whitelist is None:
             whitelist = StructureTree.whitelist()
@@ -318,7 +315,7 @@ class StructureTree( SimpleTree ):
         if data_transforms is None:
             data_transforms = StructureTree.data_transforms()
 
-        if renames is None:        
+        if renames is None:
             renames = StructureTree.renames()
             whitelist.extend(renames.values())
 
@@ -328,11 +325,11 @@ class StructureTree( SimpleTree ):
             record = {}
 
             for name in whitelist:
-                
+
                 if name not in st:
                     continue
                 data = st[name]
-            
+
                 if name in data_transforms:
                     data = data_transforms[name](data)
 
@@ -344,21 +341,21 @@ class StructureTree( SimpleTree ):
             structures[ii] = record
 
         return structures
-       
+
     @staticmethod
     def data_transforms():
-        return  {'color_hex_triplet': StructureTree.hex_to_rgb, 
-                 'structure_id_path': StructureTree.path_to_list}
-
+        return {
+            "color_hex_triplet": StructureTree.hex_to_rgb,
+            "structure_id_path": StructureTree.path_to_list,
+        }
 
     @staticmethod
     def renames():
-        return {'color_hex_triplet': 'rgb_triplet'}
-    
-        
+        return {"color_hex_triplet": "rgb_triplet"}
+
     @staticmethod
     def hex_to_rgb(hex_color):
-        '''Convert a hexadecimal color string to a uint8 triplet
+        """Convert a hexadecimal color string to a uint8 triplet
         
         Parameters
         ----------
@@ -372,25 +369,23 @@ class StructureTree( SimpleTree ):
         list of int : 
             3 characters long - 1 per two characters in the input string.
         
-        '''
-        
+        """
+
         if not isinstance(hex_color, string_types):
             return list(hex_color)
 
-        if hex_color[0] == '#':
+        if hex_color[0] == "#":
             hex_color = hex_color[1:]
-        
-        return [int(hex_color[a * 2: a*2 + 2], 16) for a in range(3)]
 
+        return [int(hex_color[a * 2 : a * 2 + 2], 16) for a in range(3)]
 
     @staticmethod
     def path_to_list(path):
-        '''Structure id paths are sometimes formatted as "/"-seperated strings.
+        """Structure id paths are sometimes formatted as "/"-seperated strings.
         This method converts them to a list of integers, if needed.
-        '''
+        """
 
         if not isinstance(path, string_types):
             return list(path)
 
-        return [int(stid) for stid in path.split('/') if stid != '']
-    
+        return [int(stid) for stid in path.split("/") if stid != ""]

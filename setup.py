@@ -5,7 +5,7 @@ requirements = ["allensdk", "tqdm", "numpy", "tifffile"]
 
 setup(
     name="brainatlas-api",
-    version="0.0.1a",
+    version="0.0.1b",
     description="TBC",
     install_requires=requirements,
     extras_require={

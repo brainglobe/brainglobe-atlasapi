@@ -19,8 +19,10 @@ class BrainGlobeAtlas(Atlas):
         Parameters
         ----------
         brainglobe_path : str or Path object
-        default folder for brainglobe downloads
+            default folder for brainglobe downloads
+
         interm_dir_path : str or Path object
+            folder to download the compressed file for extraction
         """
 
     atlas_name = None

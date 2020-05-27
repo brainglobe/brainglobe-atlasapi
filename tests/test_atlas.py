@@ -15,7 +15,6 @@ def test_initialization(atlas):
         "name": "test",
         "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
         "atlas_link": "www.brain-map.org.com",
-        "species": "Mus musculus",
         "symmetric": True,
         "resolution": [100, 100, 100],
         "shape": [132, 80, 114],
@@ -65,7 +64,7 @@ def test_data_from_coords(atlas, coords):
 
 def test_meshfile_from_id(atlas):
     assert (
-        atlas.get_mesh_file_from_name("CH")
+        atlas.get_mesh_file_from_acronym("CH")
         == atlas.root_dir / "meshes/567.obj"
     )
 

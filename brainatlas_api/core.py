@@ -77,6 +77,7 @@ class Atlas():
         # Store a list of all acronyms and names
         self.structures_acronyms = [n['acronym'] for n in self.structures.nodes()]
         self.structures_names = [n['name'] for n in self.structures.nodes()]
+        self.structures_ids = [n['name'] for n in self.structures.nodes()]
 
 
     @property

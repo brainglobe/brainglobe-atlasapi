@@ -1,41 +1,98 @@
-language: python
-matrix:
-  include:
-  - os: linux
-    python: 3.6
-    dist: bionic
-  - os: linux
-    python: 3.7
-    dist: bionic
-before_install:
-  - wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda info -a
-
-install:
-  - conda create -n test-environment python=$TRAVIS_PYTHON_VERSION
-  - source activate test-environment
-  - pip install -e .[dev]
-  - conda info -a
 after_success:
+  - pip install coveralls
   - coveralls
-script:
-  - black ./ -l 79 --check
-#  - travis_wait 40 bash travis/run_tests.sh
+
+stages:
+  - test
+  - name: deploy
+    if:
+      tag IS present AND repo = brainglobe/brainatlas-api
+
+
+jobs:
+  include:
+    - stage: test
+      name: "Ubuntu Bionic python 3.6"
+      language: python
+      os: linux
+      env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      dist: bionic
+      python: 3.6
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
+    - stage: test
+      name: "Ubuntu Bionic python 3.7"
+      language: python
+      os: linux
+      env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      dist: bionic
+      python: 3.7
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
+    - stage: test
+      name: "Ubuntu Xenial python 3.6"
+      language: python
+      os: linux
+      env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      dist: xenial
+      python: 3.6
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
+    - stage: test
+      name: "Ubuntu Xenial python 3.7"
+      language: python
+      os: linux
+      env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      dist: xenial
+      python: 3.7
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
+    - stage: test
+      name: "Windows Python 3.6"
+      language: shell
+      env: TRAVIS_PYTHON_VERSION=3.6
+      os: windows
+      before_install: source travis/install_windows.sh
+      script: bash travis/test.sh
+    - stage: test
+      name: "Windows Python 3.7"
+      language: shell
+      env: TRAVIS_PYTHON_VERSION=3.7
+      os: windows
+      before_install: source travis/install_windows.sh
+      script: bash travis/test.sh
+    - stage: test
+      name: "macOS Python 3.6"
+      os: osx
+      language: shell
+      env:
+      - TRAVIS_PYTHON_VERSION=3.6
+      - MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
+    - stage: test
+      name: "macOS Python 3.7"
+      os: osx
+      language: shell
+      env:
+      - TRAVIS_PYTHON_VERSION=3.7
+      - MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
+    - stage: deploy
+      os: bionic
+      name: "Deploy Linux"
+      language: python
+      before_install: source travis/install_unix.sh
+      script: bash travis/deploy_linux.sh
 notifications:
   email:
     recipients:
     - adam.tyson@ucl.ac.uk
     on_success: change
     on_failure: always
-#deploy:
-#  - provider: pypi
-#    user: __token__
-#    distributions: sdist bdist_wheel
-#    skip_existing: true
-#    on:
-#      branch: master
-#      tags: true
+
+env:
+  global:
+    - TWINE_USERNAME=__token__
+    # TWINE_PASSWORD is set to a PyPI API token in Travis settings

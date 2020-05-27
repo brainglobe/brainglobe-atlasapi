@@ -18,8 +18,9 @@ class MeshDictionary(dict):
         self.root = Path(mesh_path)
 
         # Create dictionary of loadable files:
-        self.files_dict = {int(f.resolve().stem): f for f in
-                           self.root.glob("*.obj")}
+        self.files_dict = {
+            int(f.resolve().stem): f for f in self.root.glob("*.obj")
+        }
 
     def __getitem__(self, item):
         """ Load mesh if it has not been read before, and add it to self dict.
@@ -41,7 +42,7 @@ class MeshDictionary(dict):
         return super().__getitem__(item)
 
 
-class Atlas():
+class Atlas:
     """ Base class to handle atlases in brainglobe.
 
         Parameters
@@ -71,14 +72,16 @@ class Atlas():
         # Dictionaries to map acronyms to ids...:
         self.acronym_to_id_map = self.structures.get_id_acronym_map()
         # ...and viceversa:
-        self.id_to_acronym_map = {v: k for k, v in
-                                  self.acronym_to_id_map.items()}
+        self.id_to_acronym_map = {
+            v: k for k, v in self.acronym_to_id_map.items()
+        }
 
         # Store a list of all acronyms and names
-        self.structures_acronyms = [n['acronym'] for n in self.structures.nodes()]
-        self.structures_names = [n['name'] for n in self.structures.nodes()]
-        self.structures_ids = [n['name'] for n in self.structures.nodes()]
-
+        self.structures_acronyms = [
+            n["acronym"] for n in self.structures.nodes()
+        ]
+        self.structures_names = [n["name"] for n in self.structures.nodes()]
+        self.structures_ids = [n["name"] for n in self.structures.nodes()]
 
     @property
     def reference(self):
@@ -86,7 +89,9 @@ class Atlas():
             try:
                 self._reference = read_tiff(self.root_dir / "reference.tiff")
             except:
-                raise FileNotFoundError(f'Failed to load reference.tiff from {self.root_dir / "reference.tiff"}')
+                raise FileNotFoundError(
+                    f'Failed to load reference.tiff from {self.root_dir / "reference.tiff"}'
+                )
         return self._reference
 
     @property
@@ -95,7 +100,9 @@ class Atlas():
             try:
                 self._annotated = read_tiff(self.root_dir / "annotated.tiff")
             except:
-                raise FileNotFoundError(f'Failed to load annotated.tiff from {self.root_dir / "annotated.tiff"}')
+                raise FileNotFoundError(
+                    f'Failed to load annotated.tiff from {self.root_dir / "annotated.tiff"}'
+                )
         return self._annotated
 
     @property
@@ -105,7 +112,9 @@ class Atlas():
             if self.metadata["symmetric"]:
                 self._hemispheres = make_hemispheres_stack(self.shape)
             else:
-                self._hemispheres = read_tiff(self.root_dir / "hemispheres.tiff")
+                self._hemispheres = read_tiff(
+                    self.root_dir / "hemispheres.tiff"
+                )
         return self._hemispheres
 
     def get_hemisphere_from_coords(self, coords):
@@ -121,8 +130,9 @@ class Atlas():
 
     def get_region_color_from_acronym(self, region_acronym):
         region_id = self.acronym_to_id_map[region_acronym]
-        return self.structures.get_structures_by_id([region_id])[0]['rgb_triplet']
-
+        return self.structures.get_structures_by_id([region_id])[0][
+            "rgb_triplet"
+        ]
 
     # Meshes-related methods:
     def get_mesh_from_id(self, region_id):
@@ -159,10 +169,11 @@ class Atlas():
     def get_colors_from_coordinates(self, coords):
         region_id = self.get_region_id_from_coords(coords)
         region = self.structures.get_structures_by_id([region_id])[0]
-        return region['rgb_triplet']
+        return region["rgb_triplet"]
 
-    def get_structure_ancestors(self, regions, ancestors=True,
-                                descendants=False):
+    def get_structure_ancestors(
+        self, regions, ancestors=True, descendants=False
+    ):
         pass
 
     def get_structure_descendants(self, regions):
@@ -177,8 +188,11 @@ class Atlas():
         """
         acronyms, names = self.structures_acronyms, self.structures_names
         sort_idx = np.argsort(acronyms)
-        acronyms, names = np.array(acronyms)[sort_idx], np.array(names)[sort_idx]
-        [print("({}) - {}".format(a, n)) for a,n in zip(acronyms, names)]
+        acronyms, names = (
+            np.array(acronyms)[sort_idx],
+            np.array(names)[sort_idx],
+        )
+        [print("({}) - {}".format(a, n)) for a, n in zip(acronyms, names)]
 
     # # functions to create oriented planes that can be used to slice actors etc
     # def get_plane_at_point(self, pos, norm, sx, sy,

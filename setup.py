@@ -1,6 +1,13 @@
 from setuptools import setup, find_namespace_packages
 
-requirements = ["tqdm", "numpy", "tifffile", "treelib", "pandas"]
+requirements = [
+    "tqdm",
+    "numpy",
+    "tifffile",
+    "treelib",
+    "pandas",
+    "brainio>=0.0.16",
+]
 
 
 setup(

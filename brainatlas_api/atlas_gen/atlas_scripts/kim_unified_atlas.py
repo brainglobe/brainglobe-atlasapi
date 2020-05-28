@@ -128,14 +128,15 @@ volume = load_labelled_volume(annotations_array)
 
 root = extract_volume_surface(volume)
 
-write(root, str(meshes_dir_path / "root.obj"))
+write(root, str(meshes_dir_path / "997.obj"))
 
+non_minor_regions = []
 # First create a mesh for every minor region
-for region in tqdm(structures):
+for region in tqdm(structures[0:100]):
 
     savepath = str(
         meshes_dir_path
-        / f'{region["acronym"]}.obj'.replace("/", "-").replace("\\", "-")
+        / f'{region["id"]}.obj'.replace("/", "-").replace("\\", "-")
     )
     if os.path.isfile(savepath):
         continue
@@ -144,8 +145,9 @@ for region in tqdm(structures):
 
     if not np.isin(np.float(region["id"]), annotations_array):
         print(
-            f'{region["acronym"]} doesnt seem to appear in annotated dataset'
+            f'{region["name"]} is not a terminal region, so will be extracted separately'
         )
+        non_minor_regions.append(region)
         continue
 
     vol[annotations_array == np.float32(np.float(region["id"]))] = 1
@@ -154,6 +156,34 @@ for region in tqdm(structures):
 
     write(extract_volume_surface(Volume(vol)), savepath)
 
+# Get other regions
+for region in non_minor_regions:
+    print(f'finding subregions for: {region["name"]}')
+
+    savepath = str(
+        meshes_dir_path
+        / f'{region["id"]}.obj'.replace("/", "-").replace("\\", "-")
+    )
+    if os.path.isfile(savepath):
+        continue
+
+    vol = np.zeros_like(annotations_array)
+
+    sub_region_ids = []
+    for subregion in structures:
+        if region["id"] in subregion["structure_id_path"]:
+            sub_region_ids.append(subregion["id"])
+
+    if sub_region_ids == []:
+        print(f'{region["acronym"]} doesnt seem to contain any other regions')
+        continue
+
+    vol[np.isin(annotations_array, sub_region_ids)] = 1
+    if np.max(vol) < 1:
+        raise ValueError
+
+    write(extract_volume_surface(Volume(vol)), savepath)
+print("Finished mesh extraction")
 
 # Write metadata
 # ######################################
@@ -178,3 +208,4 @@ with tarfile.open(output_filename, "w:gz") as tar:
 for f in downloading_path.glob("*"):
     f.unlink()
 downloading_path.rmdir()
+print("Finished atlas generation!")

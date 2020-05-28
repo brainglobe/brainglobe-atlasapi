@@ -1,42 +1,47 @@
 import requests
+import re
+from requests.exceptions import MissingSchema, InvalidURL, ConnectionError
 
-# Entries and types from this template will be used to check atlas info
-# consistency. Please keep updated both this and the function when changing the structure.
 
-METADATA_TEMPLATE = {
-    "name": "test",
-    "citation": "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034",
-    "atlas_link": "https://fishatlas.neuro.mpg.de",
-    "species": "Danio rerio",
-    "symmetric": False,
-    "resolution": (0.994, 1., 0.994),
-    "shape": (100, 50, 100),
-    "version": "0.0",
-}
+def generate_metadata_dict(
+    name, citation, atlas_link, species, symmetric, resolution, version, shape
+):
 
-def generate_metadata_dict(name,
-                           citation,
-                           atlas_link,
-                           species,
-                           symmetric,
-                           resolution,
-                           shape):
+    # We ask for a rigid naming convention to be followed:
+    parsename = name.split("_")
+    assert len(parsename) >= 3
+    assert re.match("[0-9]+um", parsename[-1])
 
-    if "doi" not in citation:
-        if "unpublished" not in citation:
-            raise ValueError("The citation field should contained a doi or specify 'unpublished'")
+    # Control version formatting:
+    assert re.match("[0-9]+\\.[0-9]+", version)
 
-    # Enforce correct format for resolution and shape:
+    # We ask for DOI and correct link only if atlas is published:
+    if citation != "unpublished":
+        assert "doi" in citation
+
+        # Test url:
+        try:
+            _ = requests.get(atlas_link)
+        except (MissingSchema, InvalidURL, ConnectionError):
+            raise InvalidURL(
+                "Ensure that the url is valid and formatted correctly!"
+            )
+
+    # Enforce correct format for symmetric, resolution and shape:
+    assert type(symmetric) == bool
+    assert len(resolution) == 3
+    assert len(shape) == 3
+
     resolution = tuple([float(v) for v in resolution])
-    shape = tuple(int(v)for v in shape)
+    shape = tuple(int(v) for v in shape)
 
-    metadata_dict = dict(name=name,
-                         citation=citation,
-                         atlas_link=atlas_link,
-                         species=species,
-                         symmetric=symmetric,
-                         resolution=resolution,
-                         shape=shape)
-
-
-
+    return dict(
+        name=name,
+        citation=citation,
+        atlas_link=atlas_link,
+        species=species,
+        symmetric=symmetric,
+        resolution=resolution,
+        version=version,
+        shape=shape,
+    )

@@ -51,7 +51,7 @@ def retrieve_over_http(url, output_file_path):
 
 
 # --------------------------------- File I/O --------------------------------- #
-def open_json(path):
+def read_json(path):
     with open(path, "r") as f:
         data = json.load(f)
     return data
@@ -64,8 +64,8 @@ def read_tiff(path):
 # -------------------------------- Folders I/O ------------------------------- #
 def get_subdirs(folderpath):
     """
-		Returns the subfolders in a given folder
-	"""
+        Returns the subfolders in a given folder
+    """
     return [f.path for f in os.scandir(folderpath) if f.is_dir()]
 
 

@@ -1,3 +1,5 @@
+import numpy as np
+
 # Entries and types from this template will be used to check atlas info
 # consistency. Please keep updated both this and the function when changing the structure.
 
@@ -30,3 +32,6 @@ REFERENCE_FILENAME = "reference.tiff"
 ANNOTATION_FILENAME = "annotation.tiff"
 HEMISPHERES_FILENAME = "hemispheres.tiff"
 MESHES_DIRNAME = "meshes"
+
+REFERENCE_DTYPE = np.uint16
+ANNOTATION_DTYPE = np.int32

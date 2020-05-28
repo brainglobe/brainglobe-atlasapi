@@ -21,8 +21,8 @@ def save_anatomy(stack, output_dir):
     stack
     output_dir
     """
-    if stack.dtype != np.uint16:
-        stack = stack.astype(np.uint16)
+    if stack.dtype != descriptors.REFERENCE_DTYPE:
+        stack = stack.astype(np.descriptors.REFERENCE_DTYPE)
     write_stack(stack, output_dir / descriptors.REFERENCE_FILENAME)
 
 
@@ -33,6 +33,6 @@ def save_annotation(stack, output_dir):
     stack
     output_dir
     """
-    if stack.dtype != np.int32:
-        stack = stack.astype(np.int32)
+    if stack.dtype != descriptors.ANNOTATION_DTYPE:
+        stack = stack.astype(descriptors.ANNOTATION_DTYPE)
     write_stack(stack, output_dir / descriptors.ANNOTATION_FILENAME)

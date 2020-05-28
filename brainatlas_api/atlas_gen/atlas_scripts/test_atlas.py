@@ -18,10 +18,10 @@ from brainatlas_api.atlas_gen import (
 
 # Specify information about the atlas:
 RES_UM = 100
-VERSION = "0.0"
+VERSION = "0.1"
 ATLAS_NAME = f"allen_mouse_{RES_UM}um_v{VERSION}"
 SPECIES = "mouse (Mus musculus)"
-ATLAS_LINK = "www.brain-map.org.com"
+ATLAS_LINK = "http://www.brain-map.org.com"
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 
 # Working path on disk:
@@ -30,11 +30,11 @@ bg_root_dir.mkdir(exist_ok=True)
 
 # Temporary folder for nrrd files download:
 download_dir_path = bg_root_dir / "downloading_path"
-download_dir_path.mkdir()
+download_dir_path.mkdir(exist_ok=True)
 
 # Temporary folder for files before compressing:
 uncompr_atlas_path = bg_root_dir / ATLAS_NAME
-uncompr_atlas_path.mkdir()
+uncompr_atlas_path.mkdir(exist_ok=True)
 
 # Download annotated and template volume:
 #########################################

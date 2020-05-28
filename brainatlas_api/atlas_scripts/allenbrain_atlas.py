@@ -1,7 +1,6 @@
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
-import tarfile
 
 from requests import exceptions
 from pathlib import Path
@@ -90,12 +89,3 @@ metadata_dict = {
 
 with open(uncompr_atlas_path / "atlas_metadata.json", "w") as f:
     json.dump(metadata_dict, f)
-
-output_filename = bg_root_dir / f"{uncompr_atlas_path.name}.tar.gz"
-with tarfile.open(output_filename, "w:gz") as tar:
-    tar.add(uncompr_atlas_path, arcname=uncompr_atlas_path.name)
-
-# Clean temporary directory and remove it:
-for f in downloading_path.glob("*"):
-    f.unlink()
-downloading_path.rmdir()

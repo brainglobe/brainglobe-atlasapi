@@ -5,9 +5,12 @@ from .structures import check_struct_consistency
 from . import descriptors
 import numpy as np
 import tarfile
+import shutil
 
 
-def wrapup_atlas_from_dir(dir_path, citation, atlas_link, species, resolution):
+def wrapup_atlas_from_dir(
+    dir_path, citation, atlas_link, species, resolution, cleanup_files=False
+):
     # Check that all core files are contained:
     for element in [
         descriptors.STRUCTURES_FILENAME,
@@ -54,3 +57,11 @@ def wrapup_atlas_from_dir(dir_path, citation, atlas_link, species, resolution):
 
     with open(dir_path / descriptors.METADATA_FILENAME, "w") as f:
         json.dump(metadata_dict, f)
+
+    output_filename = dir_path.parent / f"{dir_path.name}.tar.gz"
+    with tarfile.open(output_filename, "w:gz") as tar:
+        tar.add(dir_path, arcname=dir_path.name)
+
+    if cleanup_files:
+        # Clean temporary directory and remove it:
+        shutil.rmtree(dir_path)

@@ -35,10 +35,7 @@
 #
 import functools
 import operator as op
-from collections import defaultdict
 from six import iteritems
-
-from allensdk.deprecated import deprecated
 
 
 class SimpleTree(object):
@@ -48,23 +45,23 @@ class SimpleTree(object):
         Parameters
         ----------
         nodes : list of dict
-            Each dict is a node in the tree. The keys of the dict name the 
+            Each dict is a node in the tree. The keys of the dict name the
             properties of the node and should be consistent across nodes.
         node_id_cb : function | node dict -> node id
-            Calling node_id_cb on a node dictionary ought to produce a unique 
-            identifier for that node (we call this the node's id). The type 
-            of the node id is up to you, but ought to be consistent across 
+            Calling node_id_cb on a node dictionary ought to produce a unique
+            identifier for that node (we call this the node's id). The type
+            of the node id is up to you, but ought to be consistent across
             nodes and must be hashable.
         parent_id_cb : function | node_dict => parent node's id
             As node_id_cb, but returns the id of the node's parent.
             
         Notes
         -----
-        It is easy to pass a pandas DataFrame as the nodes. Just use the 
+        It is easy to pass a pandas DataFrame as the nodes. Just use the
         to_dict method of the dataframe like so:
             list_of_dict = your_dataframe.to_dict('record')
             your_tree = SimpleTree(list_of_dict, ...)
-        Converting a list of dictionaries to a pandas DataFrame is also very 
+        Converting a list of dictionaries to a pandas DataFrame is also very
         easy. The DataFrame constructor does it for you:
             your_dataframe = pandas.DataFrame(list_of_dict)
              
@@ -102,16 +99,16 @@ class SimpleTree(object):
         return list(filter(criterion, self._nodes.values()))
 
     def value_map(self, from_fn, to_fn):
-        """Obtain a look-up table relating a pair of node properties across 
+        """Obtain a look-up table relating a pair of node properties across
         nodes
         
         Parameters
         ----------
         from_fn : function | node dict => hashable value
-            The keys of the output dictionary will be obtained by calling 
+            The keys of the output dictionary will be obtained by calling
             from_fn on each node. Should be unique.
         to_fn : function | node_dict => value
-            The values of the output function will be obtained by calling 
+            The values of the output function will be obtained by calling
             to_fn on each node.
             
         Returns
@@ -142,12 +139,12 @@ class SimpleTree(object):
         Parameters
         ----------
         key : hashable or function
-            The property used for lookup. Should be unique. If a function, will 
+            The property used for lookup. Should be unique. If a function, will
             be invoked on each node.
         values : list
             Select matching elements from the lookup.
         to_fn : function, optional
-            Defines the outputs, on a per-node basis. Defaults to returning 
+            Defines the outputs, on a per-node basis. Defaults to returning
             the whole node.
   
         Returns
@@ -174,13 +171,12 @@ class SimpleTree(object):
         Returns
         -------
         list :
-            elements are node ids 
+            elements are node ids
         
         """
 
         return list(self._nodes)
 
-    @deprecated("Use SimpleTree.parent_ids instead.")
     def parent_id(self, node_ids):
         return self.parent_ids(node_ids)
 
@@ -194,7 +190,7 @@ class SimpleTree(object):
         
         Returns
         -------
-        list of hashable : 
+        list of hashable :
             Items are ids of input nodes' parents in order.
         
         """
@@ -211,7 +207,7 @@ class SimpleTree(object):
             
         Returns
         -------
-        list of list of hashable : 
+        list of list of hashable :
             Items are lists of input nodes' children's ids.
             
         """
@@ -291,7 +287,6 @@ class SimpleTree(object):
             out.append(current)
         return out
 
-    @deprecated("Use SimpleTree.nodes instead")
     def node(self, node_ids=None):
         return self.nodes(node_ids)
 
@@ -317,7 +312,6 @@ class SimpleTree(object):
             for nid in node_ids
         ]
 
-    @deprecated("Use SimpleTree.parents instead")
     def parent(self, node_ids):
         return self.parents(node_ids)
 

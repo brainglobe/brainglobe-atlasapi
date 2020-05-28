@@ -9,8 +9,39 @@ import shutil
 
 
 def wrapup_atlas_from_dir(
-    dir_path, citation, atlas_link, species, resolution, cleanup_files=False
+    dir_path,
+    citation,
+    atlas_link,
+    species,
+    resolution,
+    cleanup_files=False,
+    compress=True,
 ):
+    """
+    Check compliance of a folder with atlas standards, write metadata, and if required compress and cleanup.
+    This function should be used to finalize all atlases as it runs the required
+    controls.
+
+    Parameters
+    ----------
+    dir_path : str or Path object
+        directory with the atlases and regions description
+    citation : str
+        citation for the atlas, if unpublished specify "unpublished"
+    atlas_link : str
+        valid URL for the atlas
+    species : str
+        species name formatted as "CommonName (Genus species)"
+    resolution : tuple
+        tree elements, resolution on three axes
+    cleanup_files : bool
+         (Default value = False)
+    compress : bool
+         (Default value = True)
+
+
+    """
+
     # Check that all core files are contained:
     for element in [
         descriptors.STRUCTURES_FILENAME,
@@ -42,8 +73,7 @@ def wrapup_atlas_from_dir(
     structures = read_json(dir_path / descriptors.STRUCTURES_FILENAME)
     check_struct_consistency(structures)
 
-    # Finalize metadata dictionary
-    print(version)
+    # Finalize metadata dictionary:
     metadata_dict = generate_metadata_dict(
         name=atlas_name,
         citation=citation,
@@ -55,13 +85,17 @@ def wrapup_atlas_from_dir(
         shape=shape,
     )
 
+    # write metadata dict:
     with open(dir_path / descriptors.METADATA_FILENAME, "w") as f:
         json.dump(metadata_dict, f)
 
-    output_filename = dir_path.parent / f"{dir_path.name}.tar.gz"
-    with tarfile.open(output_filename, "w:gz") as tar:
-        tar.add(dir_path, arcname=dir_path.name)
+    # Compress if required:
+    if compress:
+        output_filename = dir_path.parent / f"{dir_path.name}.tar.gz"
+        with tarfile.open(output_filename, "w:gz") as tar:
+            tar.add(dir_path, arcname=dir_path.name)
 
+    # Cleanup if required:
     if cleanup_files:
         # Clean temporary directory and remove it:
         shutil.rmtree(dir_path)

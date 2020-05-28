@@ -132,7 +132,7 @@ write(root, str(meshes_dir_path / "997.obj"))
 
 non_minor_regions = []
 # First create a mesh for every minor region
-for region in tqdm(structures[0:100]):
+for region in tqdm(structures):
 
     savepath = str(
         meshes_dir_path

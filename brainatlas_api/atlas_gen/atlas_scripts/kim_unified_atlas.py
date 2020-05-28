@@ -2,13 +2,24 @@ import tempfile
 import json
 import tarfile
 import tifffile
+import os
+
 
 import pandas as pd
+import numpy as np
+
 
 from pathlib import Path
+from tqdm import tqdm
+from vtkplotter import write, Volume
+
 from brainio.brainio import load_any
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 
+from brainatlas_api.atlas_gen.volume_utils import (
+    extract_volume_surface,
+    load_labelled_volume,
+)
 
 paxinos_allen_directory = Path(
     "/media/adam/Storage/cellfinder/data/paxinos_allen/"
@@ -42,7 +53,7 @@ scaling_factor = ANNOTATIONS_RES_UM / RES_UM
 print(
     f"Loading: {annotations_image.name} and downscaling by: {scaling_factor}"
 )
-loaded = load_any(
+annotations_array = load_any(
     annotations_image,
     x_scaling_factor=scaling_factor,
     y_scaling_factor=scaling_factor,
@@ -69,7 +80,9 @@ print("Download completed...")
 
 # Save tiff stacks:
 tifffile.imsave(str(uncompr_atlas_path / "reference.tiff"), template_volume)
-tifffile.imsave(str(uncompr_atlas_path / "annotations.tiff"), loaded)
+tifffile.imsave(
+    str(uncompr_atlas_path / "annotations.tiff"), annotations_array
+)
 
 # Parse region names & hierarchy
 # ######################################
@@ -107,6 +120,39 @@ with open(uncompr_atlas_path / "structures.json", "w") as f:
 
 # Create meshes
 # ######################################
+print(f"Saving atlas data at {uncompr_atlas_path}")
+meshes_dir_path = uncompr_atlas_path / "meshes"
+meshes_dir_path.mkdir(exist_ok=True)
+
+volume = load_labelled_volume(annotations_array)
+
+root = extract_volume_surface(volume)
+
+write(root, str(meshes_dir_path / "root.obj"))
+
+# First create a mesh for every minor region
+for region in tqdm(structures):
+
+    savepath = str(
+        meshes_dir_path
+        / f'{region["acronym"]}.obj'.replace("/", "-").replace("\\", "-")
+    )
+    if os.path.isfile(savepath):
+        continue
+
+    vol = np.zeros_like(annotations_array)
+
+    if not np.isin(np.float(region["id"]), annotations_array):
+        print(
+            f'{region["acronym"]} doesnt seem to appear in annotated dataset'
+        )
+        continue
+
+    vol[annotations_array == np.float32(np.float(region["id"]))] = 1
+    if np.max(vol) < 1:
+        raise ValueError
+
+    write(extract_volume_surface(Volume(vol)), savepath)
 
 
 # Write metadata

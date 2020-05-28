@@ -18,6 +18,7 @@ setup(
         "dev": [
             "allensdk",
             "brainio>=0.0.16",
+            "vtkplotter",
             "sphinx",
             "recommonmark",
             "sphinx_rtd_theme",

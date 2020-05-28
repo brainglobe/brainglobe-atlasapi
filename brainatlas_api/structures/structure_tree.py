@@ -34,9 +34,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from __future__ import division, print_function, absolute_import
-import re
 import operator as op
-from six import iteritems, string_types
+from six import string_types
 import functools
 
 import numpy as np

@@ -6,7 +6,6 @@ requirements = [
     "tifffile",
     "treelib",
     "pandas",
-    "brainio>=0.0.16",
 ]
 
 
@@ -18,6 +17,7 @@ setup(
     extras_require={
         "dev": [
             "allensdk",
+            "brainio>=0.0.16",
             "sphinx",
             "recommonmark",
             "sphinx_rtd_theme",

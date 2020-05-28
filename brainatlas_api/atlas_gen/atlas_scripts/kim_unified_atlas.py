@@ -1,17 +1,21 @@
-from allensdk.core.reference_space_cache import ReferenceSpaceCache
-
-from pathlib import Path
 import tempfile
 import json
 import tarfile
-
 import tifffile
 
-from brainio.brainio import load_any
+import pandas as pd
 
-annotations_image = Path(
-    "/media/adam/Storage/cellfinder/data/paxinos_allen/annotations_coronal.tif"
+from pathlib import Path
+from brainio.brainio import load_any
+from allensdk.core.reference_space_cache import ReferenceSpaceCache
+
+
+paxinos_allen_directory = Path(
+    "/media/adam/Storage/cellfinder/data/paxinos_allen/"
 )
+annotations_image = paxinos_allen_directory / "annotations_coronal.tif"
+structures_file = paxinos_allen_directory / "structures.csv"
+
 # assume isotropic
 ANNOTATIONS_RES_UM = 10
 
@@ -66,40 +70,47 @@ print("Download completed...")
 # Save tiff stacks:
 tifffile.imsave(str(uncompr_atlas_path / "reference.tiff"), template_volume)
 tifffile.imsave(str(uncompr_atlas_path / "annotations.tiff"), loaded)
-#
-# # Download structures tree and meshes:
-# ######################################
-# oapi = OntologiesApi()  # ontologies
-# struct_tree = spacecache.get_structure_tree()  # structures tree
-#
-# # Find id of set of regions with mesh:
-# select_set = "Structures whose surfaces are represented by a precomputed mesh"
-#
-# all_sets = pd.DataFrame(oapi.get_structure_sets())
-# mesh_set_id = all_sets[all_sets.description == select_set].id.values[0]
-#
-# structs_with_mesh = struct_tree.get_structures_by_set_id([mesh_set_id])
-#
-# meshes_dir = uncompr_atlas_path / "meshes"  # directory to save meshes into
-# space = ReferenceSpaceApi()
-# for s in structs_with_mesh:
-#     name = s["id"]
-#     try:
-#         space.download_structure_mesh(
-#             structure_id=s["id"],
-#             ccf_version="annotation/ccf_2017",
-#             file_name=meshes_dir / f"{name}.obj",
-#         )
-#     except (exceptions.HTTPError, ConnectionError):
-#         print(s)
-#
-# # Loop over structures, remove entries not used in brainglobe:
-# for struct in structs_with_mesh:
-#     [struct.pop(k) for k in ["graph_id", "structure_set_ids", "graph_order"]]
-#
-# with open(uncompr_atlas_path / "structures.json", "w") as f:
-#     json.dump(structs_with_mesh, f)
 
+# Parse region names & hierarchy
+# ######################################
+
+df = pd.read_csv(structures_file)
+df = df.drop(columns=["Unnamed: 0", "parent_id", "parent_acronym"])
+
+# split by "/" and convert list of strings to list of ints
+df["structure_id_path"] = (
+    df["structure_id_path"]
+    .str.split(pat="/")
+    .map(lambda x: [int(i) for i in x])
+)
+
+structures = df.to_dict("records")
+
+for structure in structures:
+    structure.update({"rgb_triplet": [255, 255, 255]})
+    structure["structure_id_path"].append(structure["id"])
+
+root = {
+    "acronym": "root",
+    "id": 997,
+    "name": "root",
+    "structure_id_path": [997],
+    "rgb_triplet": [255, 255, 255],
+}
+
+structures.append(root)
+
+# save regions list json:
+with open(uncompr_atlas_path / "structures.json", "w") as f:
+    json.dump(structures, f)
+
+
+# Create meshes
+# ######################################
+
+
+# Write metadata
+# ######################################
 metadata_dict = {
     "name": ATLAS_NAME,
     "citation": "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w",

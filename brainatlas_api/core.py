@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 
-from brainatlas_api.utils import open_json, read_tiff, make_hemispheres_stack
+from brainatlas_api.utils import read_json, read_tiff, make_hemispheres_stack
 from brainatlas_api.structures.structure_tree import StructureTree
 from brainatlas_api.obj_utils import read_obj
 
@@ -35,7 +35,7 @@ class MeshDictionary(dict):
             Tuple with mesh description
 
         """
-        if not item in self.keys():
+        if item not in self.keys():
             value = read_obj(self.files_dict[item])
             super().__setitem__(item, value)
 
@@ -53,10 +53,10 @@ class Atlas:
 
     def __init__(self, path):
         self.root_dir = Path(path)
-        self.metadata = open_json(self.root_dir / "atlas_metadata.json")
+        self.metadata = read_json(self.root_dir / "atlas_metadata.json")
 
         # Class for structures:
-        structures_list = open_json(self.root_dir / "structures.json")
+        structures_list = read_json(self.root_dir / "structures.json")
         self.structures = StructureTree(structures_list)
 
         # Cached loading of meshes:
@@ -88,7 +88,7 @@ class Atlas:
         if self._reference is None:
             try:
                 self._reference = read_tiff(self.root_dir / "reference.tiff")
-            except:
+            except FileNotFoundError:  # avoid general excepts
                 raise FileNotFoundError(
                     f'Failed to load reference.tiff from {self.root_dir / "reference.tiff"}'
                 )
@@ -99,7 +99,7 @@ class Atlas:
         if self._annotated is None:
             try:
                 self._annotated = read_tiff(self.root_dir / "annotated.tiff")
-            except:
+            except FileNotFoundError:  # avoid general excepts
                 raise FileNotFoundError(
                     f'Failed to load annotated.tiff from {self.root_dir / "annotated.tiff"}'
                 )
@@ -187,6 +187,18 @@ class Atlas:
 
     def get_structure_parent(self, acronyms):
         pass
+
+    def print_structures(self):
+        """
+        Prints the name of every structure in the structure tree to the console.
+        """
+        acronyms, names = self.structures_acronyms, self.structures_names
+        sort_idx = np.argsort(acronyms)
+        acronyms, names = (
+            np.array(acronyms)[sort_idx],
+            np.array(names)[sort_idx],
+        )
+        [print("({}) - {}".format(a, n)) for a, n in zip(acronyms, names)]
 
     # # functions to create oriented planes that can be used to slice actors etc
     # def get_plane_at_point(self, pos, norm, sx, sy,

@@ -188,8 +188,6 @@ class Atlas:
     def get_structure_parent(self, acronyms):
         pass
 
-    
-
     # # functions to create oriented planes that can be used to slice actors etc
     # def get_plane_at_point(self, pos, norm, sx, sy,
     #                        color='lightgray', alpha=.25,

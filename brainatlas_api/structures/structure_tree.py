@@ -397,9 +397,6 @@ class StructureTree(SimpleTree):
 
         return [int(stid) for stid in path.split("/") if stid != ""]
 
-
-
-
     def print_structures(self, to_file=False, save_filepath=None):
         """ 
         Prints the name of every structure in the structure tree to the console.
@@ -409,9 +406,8 @@ class StructureTree(SimpleTree):
             where the tree structure will be saved.
         """
         names = [n["name"] for n in self.nodes()]
-        acronyms = [n["acronym"] for n in self.nodes()]        
-        
-        
+        acronyms = [n["acronym"] for n in self.nodes()]
+
         sort_idx = np.argsort(acronyms)
         acronyms, names = (
             np.array(acronyms)[sort_idx],
@@ -430,12 +426,10 @@ class StructureTree(SimpleTree):
                 raise ValueError(
                     f"save_filepath should point to a .txt file, not: {save_filepath}"
                 )
-            
-            with open(save_filepath, 'w') as out:
+
+            with open(save_filepath, "w") as out:
                 for a, n in zip(acronyms, names):
                     out.write("({}) - {}\n".format(a, n))
-
-
 
     def print_structures_tree(self, to_file=False, save_filepath=None):
         """
@@ -447,7 +441,9 @@ class StructureTree(SimpleTree):
                 where the tree structure will be saved.
         """
 
-        def add_descendants_to_tree(self, id_to_acronym_map, tree, structure_id, parent_id):
+        def add_descendants_to_tree(
+            self, id_to_acronym_map, tree, structure_id, parent_id
+        ):
             """
                 Recursively goes through all the the descendants of a region and adds them to the tree
             """
@@ -460,7 +456,9 @@ class StructureTree(SimpleTree):
 
             if len(descendants):
                 for child in descendants:
-                    add_descendants_to_tree(self, id_to_acronym_map, tree, child, structure_id)
+                    add_descendants_to_tree(
+                        self, id_to_acronym_map, tree, child, structure_id
+                    )
 
         # Create a Tree structure and initialise with root
         acronym_to_id_map = self.get_id_acronym_map()

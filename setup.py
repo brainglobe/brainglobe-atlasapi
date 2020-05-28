@@ -1,6 +1,6 @@
 from setuptools import setup, find_namespace_packages
 
-requirements = ["tqdm", "numpy", "tifffile", "treelib"]
+requirements = ["tqdm", "numpy", "tifffile", "treelib", "pandas"]
 
 
 setup(
@@ -10,6 +10,7 @@ setup(
     install_requires=requirements,
     extras_require={
         "dev": [
+            "allensdk",
             "sphinx",
             "recommonmark",
             "sphinx_rtd_theme",
@@ -19,6 +20,7 @@ setup(
             "pytest",
             "gitpython",
             "coverage",
+            "pre-commit",
         ]
     },
     python_requires=">=3.6, <3.8",

@@ -1,4 +1,4 @@
-from atlas_scripts.fishatlas_utils import add_path_inplace, collect_all_inplace
+from fishatlas_utils import add_path_inplace, collect_all_inplace
 
 from pathlib import Path
 import tempfile

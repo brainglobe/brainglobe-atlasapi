@@ -7,7 +7,7 @@ from pathlib import Path
 import json
 import shutil
 
-from brainatlas_api.atlas_gen import (
+from atlas_gen import (
     save_anatomy,
     save_annotation,
     descriptors,

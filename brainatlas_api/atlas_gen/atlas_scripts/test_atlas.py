@@ -7,8 +7,6 @@ from pathlib import Path
 import json
 import shutil
 
-import pandas as pd  # TODO not necessary
-
 from brainatlas_api.atlas_gen import (
     save_anatomy,
     save_annotation,
@@ -62,10 +60,13 @@ struct_tree = spacecache.get_structure_tree()  # structures tree
 # Find id of set of regions with mesh:
 select_set = "Structures whose surfaces are represented by a precomputed mesh"
 
-all_sets = pd.DataFrame(oapi.get_structure_sets())
-mesh_set_id = all_sets[all_sets.description == select_set].id.values[0]
+mesh_set_ids = [
+    s["id"]
+    for s in oapi.get_structure_sets()
+    if s["description"] == select_set
+]
 
-structs_with_mesh = struct_tree.get_structures_by_set_id([mesh_set_id])[:3]
+structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)[:3]
 
 # Directory for mesh saving:
 meshes_dir = uncompr_atlas_path / descriptors.MESHES_DIRNAME

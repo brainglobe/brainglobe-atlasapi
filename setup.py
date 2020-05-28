@@ -5,7 +5,7 @@ requirements = ["tqdm", "numpy", "tifffile", "treelib", "pandas"]
 
 setup(
     name="brainatlas-api",
-    version="0.0.1b",
+    version="0.0.1c",
     description="A lightweight python module to interact with atlases for systems neuroscience",
     install_requires=requirements,
     extras_require={
@@ -32,7 +32,7 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Operating System :: POSIX :: Linux",
-        "Operating System:: Microsoft:: Windows",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
         "Operating System :: MacOS :: MacOS X",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.6",

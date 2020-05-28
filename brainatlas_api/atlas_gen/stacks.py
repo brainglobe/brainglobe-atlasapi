@@ -1,5 +1,4 @@
 import tifffile
-import numpy as np
 from brainatlas_api.atlas_gen import descriptors
 
 
@@ -22,7 +21,7 @@ def save_anatomy(stack, output_dir):
     output_dir
     """
     if stack.dtype != descriptors.REFERENCE_DTYPE:
-        stack = stack.astype(np.descriptors.REFERENCE_DTYPE)
+        stack = stack.astype(descriptors.REFERENCE_DTYPE)
     write_stack(stack, output_dir / descriptors.REFERENCE_FILENAME)
 
 

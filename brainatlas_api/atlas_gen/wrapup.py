@@ -1,4 +1,5 @@
 import json
+from brainatlas_api.atlas_gen.metadata_utils import create_metadata_files
 from brainatlas_api.utils import read_tiff, read_json
 from .metadata import generate_metadata_dict
 from .structures import check_struct_consistency
@@ -88,9 +89,13 @@ def wrapup_atlas_from_dir(
     with open(dir_path / descriptors.METADATA_FILENAME, "w") as f:
         json.dump(metadata_dict, f)
 
+    # Create human readable .csv and .txt files
+    create_metadata_files(dir_path, metadata_dict, structures)
+
     # Compress if required:
     if compress:
         output_filename = dir_path.parent / f"{dir_path.name}.tar.gz"
+        print(f"Saving compressed atlas data at: {output_filename}")
         with tarfile.open(output_filename, "w:gz") as tar:
             tar.add(dir_path, arcname=dir_path.name)
 

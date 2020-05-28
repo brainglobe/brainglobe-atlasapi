@@ -105,3 +105,7 @@ class RatAtlas(BrainGlobeAtlas):
 
 class AllenBrain25Um(BrainGlobeAtlas):
     atlas_name = "allenbrain25um"
+
+
+class AllenHumanBrain500Um(BrainGlobeAtlas):
+    atlas_name = "allen_human_500um_v0.1"

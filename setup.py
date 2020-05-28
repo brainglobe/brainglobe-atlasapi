@@ -1,6 +1,12 @@
 from setuptools import setup, find_namespace_packages
 
-requirements = ["tqdm", "numpy", "tifffile", "treelib", "pandas"]
+requirements = [
+    "tqdm",
+    "numpy",
+    "tifffile",
+    "treelib",
+    "pandas",
+]
 
 
 setup(
@@ -11,6 +17,8 @@ setup(
     extras_require={
         "dev": [
             "allensdk",
+            "brainio>=0.0.16",
+            "vtkplotter",
             "sphinx",
             "recommonmark",
             "sphinx_rtd_theme",

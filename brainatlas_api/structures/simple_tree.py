@@ -38,8 +38,6 @@ import operator as op
 from collections import defaultdict
 from six import iteritems
 
-from allensdk.deprecated import deprecated
-
 
 class SimpleTree(object):
     def __init__(self, nodes, node_id_cb, parent_id_cb):
@@ -180,10 +178,6 @@ class SimpleTree(object):
 
         return list(self._nodes)
 
-    @deprecated("Use SimpleTree.parent_ids instead.")
-    def parent_id(self, node_ids):
-        return self.parent_ids(node_ids)
-
     def parent_ids(self, node_ids):
         """Obtain the ids of one or more nodes' parents
         
@@ -296,10 +290,6 @@ class SimpleTree(object):
             out.append(current)
         return out
 
-    @deprecated("Use SimpleTree.nodes instead")
-    def node(self, node_ids=None):
-        return self.nodes(node_ids)
-
     def nodes(self, node_ids=None):
         """Get one or more nodes' full dictionaries from their ids.
         
@@ -324,10 +314,6 @@ class SimpleTree(object):
             ]
         else:
             return self._nodes[node_ids] if node_ids in self._nodes else None
-
-    @deprecated("Use SimpleTree.parents instead")
-    def parent(self, node_ids):
-        return self.parents(node_ids)
 
     def parents(self, node_ids):
         """Get one or mode nodes' parent nodes

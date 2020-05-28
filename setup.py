@@ -12,6 +12,8 @@ setup(
         "dev": [
             "allensdk",
             "sphinx",
+            "brainio>=0.0.16",
+            "vtkplotter",
             "recommonmark",
             "sphinx_rtd_theme",
             "pydoc-markdown",

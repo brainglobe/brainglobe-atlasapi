@@ -198,8 +198,11 @@ class SimpleTree(object):
             Items are ids of input nodes' parents in order.
         
         """
+        if isinstance(node_ids, list):
+            return [self._parent_ids[nid] for nid in node_ids]
+        else:
+            return self._parent_ids[node_ids]
 
-        return [self._parent_ids[nid] for nid in node_ids]
 
     def child_ids(self, node_ids):
         """Obtain the ids of one or more nodes' children
@@ -215,8 +218,10 @@ class SimpleTree(object):
             Items are lists of input nodes' children's ids.
             
         """
-
-        return [self._child_ids[nid] for nid in node_ids]
+        if isinstance(node_ids, list):
+            return [self._child_ids[nid] for nid in node_ids]
+        else:
+            return self._child_ids[node_ids]
 
     def ancestor_ids(self, node_ids):
         """Obtain the ids of one or more nodes' ancestors
@@ -312,10 +317,13 @@ class SimpleTree(object):
         if node_ids is None:
             node_ids = self.node_ids()
 
-        return [
-            self._nodes[nid] if nid in self._nodes else None
-            for nid in node_ids
-        ]
+        if isinstance(node_ids, list):
+            return [
+                self._nodes[nid] if nid in self._nodes else None
+                for nid in node_ids
+            ]
+        else:
+            return self._nodes[node_ids] if node_ids in self._nodes else None
 
     @deprecated("Use SimpleTree.parents instead")
     def parent(self, node_ids):
@@ -335,8 +343,10 @@ class SimpleTree(object):
             Items are parents of nodes corresponding to argued ids.
     
         """
-
-        return self.nodes([self._parent_ids[nid] for nid in node_ids])
+        if isinstance(node_ids, list):
+            return self.nodes([self._parent_ids[nid] for nid in node_ids])
+        else:
+            return self.nodes(self._parent_ids[node_ids])
 
     def children(self, node_ids):
         """Get one or mode nodes' child nodes

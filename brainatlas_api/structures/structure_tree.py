@@ -41,6 +41,7 @@ import functools
 
 import numpy as np
 import pandas as pd
+from treelib import Tree
 
 from .simple_tree import SimpleTree
 
@@ -97,8 +98,10 @@ class StructureTree(SimpleTree):
             Each item describes a structure.
         
         """
-
-        return self.nodes(structure_ids)
+        if isinstance(structure_ids, list):
+            return self.nodes(structure_ids)
+        else:
+            return self.nodes([structure_ids])[0]
 
     def get_structures_by_name(self, names):
         """Obtain a list of brain structures from their names,
@@ -114,8 +117,10 @@ class StructureTree(SimpleTree):
             Each item describes a structure.
             
         """
-
-        return self.nodes_by_property("name", names)
+        if isinstance(names, list):
+            return self.nodes_by_property("name", names)
+        else:
+            return self.nodes_by_property("name", [names])[0]
 
     def get_structures_by_acronym(self, acronyms):
         """Obtain a list of brain structures from their acronyms
@@ -131,8 +136,10 @@ class StructureTree(SimpleTree):
             Each item describes a structure.
             
         """
-
-        return self.nodes_by_property("acronym", acronyms)
+        if isinstance(acronyms, list):
+            return self.nodes_by_property("acronym", acronyms)
+        else:
+            return self.nodes_by_property("acronym", [acronyms])[0]
 
     def get_colormap(self):
         """Get a dictionary mapping structure ids to colors across all nodes.
@@ -389,3 +396,95 @@ class StructureTree(SimpleTree):
             return list(path)
 
         return [int(stid) for stid in path.split("/") if stid != ""]
+
+
+
+
+    def print_structures(self, to_file=False, save_filepath=None):
+        """ 
+        Prints the name of every structure in the structure tree to the console.
+        :param to_file: bool, default False. If True the tree structure is saved to 
+            a file (at save_filepath) instead of printd to REPL
+        :param save_filepath: str, if to_file = True, pass the path to a .txt file 
+            where the tree structure will be saved.
+        """
+        names = [n["name"] for n in self.nodes()]
+        acronyms = [n["acronym"] for n in self.nodes()]        
+        
+        
+        sort_idx = np.argsort(acronyms)
+        acronyms, names = (
+            np.array(acronyms)[sort_idx],
+            np.array(names)[sort_idx],
+        )
+
+        if not to_file:
+            [print("({}) - {}".format(a, n)) for a, n in zip(acronyms, names)]
+        else:
+            if save_filepath is None:
+                raise ValueError(
+                    "If setting to_file as True, you need to pass the path to \
+                                            a .txt file where the tree will be saved"
+                )
+            elif not save_filepath.endswith(".txt"):
+                raise ValueError(
+                    f"save_filepath should point to a .txt file, not: {save_filepath}"
+                )
+            
+            with open(save_filepath, 'w') as out:
+                for a, n in zip(acronyms, names):
+                    out.write("({}) - {}\n".format(a, n))
+
+
+
+    def print_structures_tree(self, to_file=False, save_filepath=None):
+        """
+            Prints a 'tree' graph with the hierarchical organisation of all structures
+
+            :param to_file: bool, default False. If True the tree structure is saved to 
+                a file (at save_filepath) instead of printd to REPL
+            :param save_filepath: str, if to_file = True, pass the path to a .txt file 
+                where the tree structure will be saved.
+        """
+
+        def add_descendants_to_tree(self, id_to_acronym_map, tree, structure_id, parent_id):
+            """
+                Recursively goes through all the the descendants of a region and adds them to the tree
+            """
+            tree.create_node(
+                tag=id_to_acronym_map[structure_id],
+                identifier=structure_id,
+                parent=parent_id,
+            )
+            descendants = self.child_ids([structure_id])[0]
+
+            if len(descendants):
+                for child in descendants:
+                    add_descendants_to_tree(self, id_to_acronym_map, tree, child, structure_id)
+
+        # Create a Tree structure and initialise with root
+        acronym_to_id_map = self.get_id_acronym_map()
+        id_to_acronym_map = {v: k for k, v in acronym_to_id_map.items()}
+
+        root = acronym_to_id_map["root"]
+        tree = Tree()
+        tree.create_node(tag="root", identifier=root)
+
+        # Recursively iterate through hierarchy#
+        for child in self.child_ids([root])[0]:
+            add_descendants_to_tree(self, id_to_acronym_map, tree, child, root)
+
+        if not to_file:
+            tree.show()
+        else:
+            if save_filepath is None:
+                raise ValueError(
+                    "If setting to_file as True, you need to pass the path to \
+                                            a .txt file where the tree will be saved"
+                )
+            elif not save_filepath.endswith(".txt"):
+                raise ValueError(
+                    f"save_filepath should point to a .txt file, not: {save_filepath}"
+                )
+
+            tree.save2file(save_filepath)

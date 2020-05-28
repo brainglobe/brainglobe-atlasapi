@@ -1,6 +1,6 @@
 from setuptools import setup, find_namespace_packages
 
-requirements = ["allensdk", "tqdm", "numpy", "tifffile"]
+requirements = ["tqdm", "numpy", "tifffile", "treelib"]
 
 
 setup(

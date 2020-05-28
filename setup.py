@@ -1,6 +1,6 @@
 from setuptools import setup, find_namespace_packages
 
-requirements = ["tqdm", "numpy", "tifffile", "treelib"]
+requirements = ["tqdm", "numpy", "tifffile", "treelib", "pandas"]
 
 
 setup(

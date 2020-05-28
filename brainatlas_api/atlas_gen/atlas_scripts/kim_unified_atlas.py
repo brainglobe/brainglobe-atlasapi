@@ -45,10 +45,9 @@ loaded = load_any(
     z_scaling_factor=scaling_factor,
     anti_aliasing=False,
 )
-tifffile.imsave(str(uncompr_atlas_path / "annotations.tiff"), loaded)
 
 
-# Download annotated and template volume:
+# Download template volume:
 #########################################
 spacecache = ReferenceSpaceCache(
     manifest=downloading_path / "manifest.json",
@@ -59,14 +58,14 @@ spacecache = ReferenceSpaceCache(
 )
 
 # Download
-# annotated_volume, _ = spacecache.get_annotation_volume()
+print("Downloading template file")
 template_volume, _ = spacecache.get_template_volume()
 print("Download completed...")
 
 
 # Save tiff stacks:
 tifffile.imsave(str(uncompr_atlas_path / "reference.tiff"), template_volume)
-# tifffile.imsave(str(uncompr_atlas_path / "annotated.tiff"), annotated_volume)
+tifffile.imsave(str(uncompr_atlas_path / "annotations.tiff"), loaded)
 #
 # # Download structures tree and meshes:
 # ######################################

@@ -183,3 +183,11 @@ def test_export_label_description(tree):
 
     obt = tree.export_label_description()
     pd.testing.assert_frame_equal(obt, exp)
+
+
+def test_print_structures(tree):
+    tree.print_structures()
+
+
+def test_print_structures_tree(tree):
+    tree.print_structures_tree()

@@ -197,7 +197,6 @@ class SimpleTree(object):
         else:
             return self._parent_ids[node_ids]
 
-
     def child_ids(self, node_ids):
         """Obtain the ids of one or more nodes' children
         

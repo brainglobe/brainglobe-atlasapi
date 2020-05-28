@@ -1,30 +1,39 @@
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
-import tarfile
 
 from requests import exceptions
 from pathlib import Path
-import tempfile
 import json
+import shutil
 
-import tifffile
-import pandas as pd
+import pandas as pd  # TODO not necessary
 
-ATLAS_NAME = "test"
+from brainatlas_api.atlas_gen import (
+    save_anatomy,
+    save_annotation,
+    descriptors,
+    wrapup_atlas_from_dir,
+)
+
+# Specify information about the atlas:
 RES_UM = 100
+VERSION = "0.0"
+ATLAS_NAME = f"allen_mouse_{RES_UM}um_v{VERSION}"
+SPECIES = "mouse (Mus musculus)"
+ATLAS_LINK = "www.brain-map.org.com"
+CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 
-# Generated atlas path:
-bg_root_dir = Path.home() / "brainglobe"
+# Working path on disk:
+bg_root_dir = Path.home() / "brainglobe_workdir"
 bg_root_dir.mkdir(exist_ok=True)
 
 # Temporary folder for nrrd files download:
-temp_path = Path(tempfile.mkdtemp())
-download_dir_path = temp_path / "downloading_path"
+download_dir_path = bg_root_dir / "downloading_path"
 download_dir_path.mkdir()
 
 # Temporary folder for files before compressing:
-uncompr_atlas_path = temp_path / ATLAS_NAME
+uncompr_atlas_path = bg_root_dir / ATLAS_NAME
 uncompr_atlas_path.mkdir()
 
 # Download annotated and template volume:
@@ -42,8 +51,8 @@ annotated_volume, _ = spacecache.get_annotation_volume()
 template_volume, _ = spacecache.get_template_volume()
 print("Download completed...")
 # Save tiff stacks:
-tifffile.imsave(str(uncompr_atlas_path / "reference.tiff"), template_volume)
-tifffile.imsave(str(uncompr_atlas_path / "annotated.tiff"), annotated_volume)
+save_anatomy(template_volume, uncompr_atlas_path)
+save_annotation(annotated_volume, uncompr_atlas_path)
 
 # Download structures tree and meshes:
 ######################################
@@ -58,7 +67,9 @@ mesh_set_id = all_sets[all_sets.description == select_set].id.values[0]
 
 structs_with_mesh = struct_tree.get_structures_by_set_id([mesh_set_id])[:3]
 
-meshes_dir = uncompr_atlas_path / "meshes"  # directory to save meshes into
+# Directory for mesh saving:
+meshes_dir = uncompr_atlas_path / descriptors.MESHES_DIRNAME
+
 space = ReferenceSpaceApi()
 for s in structs_with_mesh:
     name = s["id"]
@@ -71,31 +82,22 @@ for s in structs_with_mesh:
     except (exceptions.HTTPError, ConnectionError):
         print(s)
 
-# Loop over structures, remove entries not used in brainglobe:
+# Loop over structures, remove entries not used:
 for struct in structs_with_mesh:
     [struct.pop(k) for k in ["graph_id", "structure_set_ids", "graph_order"]]
 
-with open(uncompr_atlas_path / "structures.json", "w") as f:
+with open(uncompr_atlas_path / descriptors.STRUCTURES_FILENAME, "w") as f:
     json.dump(structs_with_mesh, f)
 
-metadata_dict = {
-    "name": ATLAS_NAME,
-    "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
-    "atlas_link": "www.brain-map.org.com",
-    "species": "Mus musculus",
-    "symmetric": True,
-    "resolution": (RES_UM, RES_UM, RES_UM),
-    "shape": template_volume.shape,
-}
+# Wrap up, compress, and remove file:
+wrapup_atlas_from_dir(
+    uncompr_atlas_path,
+    CITATION,
+    ATLAS_LINK,
+    SPECIES,
+    (RES_UM,) * 3,
+    cleanup_files=True,
+    compress=True,
+)
 
-with open(uncompr_atlas_path / "atlas_metadata.json", "w") as f:
-    json.dump(metadata_dict, f)
-
-output_filename = bg_root_dir / f"{uncompr_atlas_path.name}.tar.gz"
-with tarfile.open(output_filename, "w:gz") as tar:
-    tar.add(uncompr_atlas_path, arcname=uncompr_atlas_path.name)
-
-# Clean temporary directory and remove it:
-for f in download_dir_path.glob("*"):
-    f.unlink()
-download_dir_path.rmdir()
+shutil.rmtree(download_dir_path)

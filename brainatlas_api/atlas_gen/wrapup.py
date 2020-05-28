@@ -3,7 +3,6 @@ from brainatlas_api.utils import read_tiff, read_json
 from .metadata import generate_metadata_dict
 from .structures import check_struct_consistency
 from . import descriptors
-import numpy as np
 import tarfile
 import shutil
 

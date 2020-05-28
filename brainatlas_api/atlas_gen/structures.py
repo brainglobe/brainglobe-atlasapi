@@ -1,4 +1,6 @@
-from .descriptors import STRUCTURE_TEMPLATE as STEMPLATE
+from brainatlas_api.atlas_gen.descriptors import (
+    STRUCTURE_TEMPLATE as STEMPLATE,
+)
 
 
 def check_struct_consistency(structures):

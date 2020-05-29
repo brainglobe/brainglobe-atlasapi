@@ -23,6 +23,7 @@ setup(
             "pre-commit",
             "vtkplotter",
             "PyMCubes",
+            "brainio",
         ]
     },
     python_requires=">=3.6",

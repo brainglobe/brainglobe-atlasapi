@@ -16,6 +16,7 @@ def wrapup_atlas_from_dir(
     resolution,
     cleanup_files=False,
     compress=True,
+    root=997,
 ):
     """
     Check compliance of a folder with atlas standards, write metadata, and if required compress and cleanup.
@@ -90,7 +91,7 @@ def wrapup_atlas_from_dir(
         json.dump(metadata_dict, f)
 
     # Create human readable .csv and .txt files
-    create_metadata_files(dir_path, metadata_dict, structures)
+    create_metadata_files(dir_path, metadata_dict, structures, root)
 
     # Compress if required:
     if compress:

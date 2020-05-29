@@ -27,7 +27,7 @@ def create_masked_array(volume, label, greater_than=False):
         ----------
         volume: np.ndarray 
             (2d or 3d array)
-        label: int, float. 
+        label: int, float or list of int. 
             the masked array will be 1 where volume == label
         greater_than: bool
             if True, all voxels with value > label will be set to 1
@@ -39,15 +39,22 @@ def create_masked_array(volume, label, greater_than=False):
 
     arr = np.zeros_like(volume)
 
-    if not np.all(np.isin(label, volume)):
+    if not isinstance(label, list) and not np.all(np.isin(label, volume)):
         print(f"Label {label} is not in the array, returning empty mask")
         return arr
-    else:
-        if not greater_than:
+    # elif isinstance(label, list):
+    #     if not np.any(np.isin(volume, label)):
+    #         print(f"Label is not in the array, returning empty mask")
+    #         return arr
+
+    if not greater_than:
+        if not isinstance(label, list):
             arr[volume == label] = 1
         else:
-            arr[volume > label] = 1
-        return arr
+            arr[np.isin(volume, label)] = 1
+    else:
+        arr[volume > label] = 1
+    return arr
 
 
 # ----------------------------- vtkplotter utils ----------------------------- #

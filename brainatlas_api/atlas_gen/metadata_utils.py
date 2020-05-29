@@ -44,7 +44,7 @@ def create_readme(uncompr_atlas_path, metadata_dict, structures):
         out.write(tree)
 
 
-def create_structures_csv(uncompr_atlas_path):
+def create_structures_csv(uncompr_atlas_path, root):
     """
     Converts an atlas structure json dictionary to csv. For cellfinder
     compatibility and ease of browsing.
@@ -54,10 +54,12 @@ def create_structures_csv(uncompr_atlas_path):
     uncompr_atlas_path : str or Path object
         path to uncompressed atlas folder
     """
-    convert_structure_json_to_csv(uncompr_atlas_path / "structures.json")
+    convert_structure_json_to_csv(
+        uncompr_atlas_path / "structures.json", root=root
+    )
 
 
-def create_metadata_files(uncompr_atlas_path, metadata_dict, structures):
+def create_metadata_files(uncompr_atlas_path, metadata_dict, structures, root):
     """
         Automatic creation of 
             . structures.csv
@@ -69,5 +71,5 @@ def create_metadata_files(uncompr_atlas_path, metadata_dict, structures):
         :param metadata_dict: dict with atlas metadata
         :param structures: list of dictionaries with structures hierarchical info
     """
-    create_structures_csv(uncompr_atlas_path)
+    create_structures_csv(uncompr_atlas_path, root)
     create_readme(uncompr_atlas_path, metadata_dict, structures)

@@ -138,7 +138,9 @@ for region in tqdm(structures):
     if os.path.isfile(savepath):
         continue
 
-    vol = np.zeros_like(annotations_array)
+    vol = np.zeros_like(
+        annotations_array
+    )  # this is made easy by volume_utils.create_masked_array
 
     if not np.isin(np.float(region["id"]), annotations_array):
         print(
@@ -164,8 +166,11 @@ for region in non_minor_regions:
     if os.path.isfile(savepath):
         continue
 
-    vol = np.zeros_like(annotations_array)
+    vol = np.zeros_like(
+        annotations_array
+    )  # this is made easy by volume_utils.create_masked_array
 
+    # I've moved this code to atlas_gen.structures.get_structure_children
     sub_region_ids = []
     for subregion in structures:
         if region["id"] in subregion["structure_id_path"]:
@@ -175,6 +180,7 @@ for region in non_minor_regions:
         print(f'{region["acronym"]} doesnt seem to contain any other regions')
         continue
 
+    # this is made easy by volume_utils.create_masked_array
     vol[np.isin(annotations_array, sub_region_ids)] = 1
     if np.max(vol) < 1:
         continue

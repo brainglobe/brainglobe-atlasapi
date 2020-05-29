@@ -57,7 +57,8 @@ def extract_mesh_from_mask(
         mcubes_smooth: bool,
             if True mcubes.smooth is used before applying marching cubes
         closing_n_iters: int
-            number of iterations of closing morphological operation
+            number of iterations of closing morphological operation.
+            set to None to avoid applying morphological operations
 
     """
     # check savepath argument
@@ -78,8 +79,8 @@ def extract_mesh_from_mask(
         )
 
     # Apply morphological transformations
-    volume = scipy.ndimage.morphology.binary_fill_holes(volume)
-    if closing_n_iters:
+    if closing_n_iters is not None:
+        volume = scipy.ndimage.morphology.binary_fill_holes(volume)
         volume = scipy.ndimage.morphology.binary_closing(
             volume, iterations=closing_n_iters
         )

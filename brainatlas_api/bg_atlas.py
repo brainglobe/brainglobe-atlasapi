@@ -92,7 +92,7 @@ class BrainGlobeAtlas(Atlas):
 
 
 class TestAtlas(BrainGlobeAtlas):
-    atlas_name = "test"
+    atlas_name = "allen_mouse_100um_v0.1"
 
 
 class FishAtlas(BrainGlobeAtlas):

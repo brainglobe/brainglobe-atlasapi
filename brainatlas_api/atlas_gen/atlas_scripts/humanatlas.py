@@ -1,7 +1,6 @@
 from pathlib import Path
 import json
 import pandas as pd
-
 from brainio import brainio
 import numpy as np
 import urllib3
@@ -35,11 +34,16 @@ def create_structure_mesh(args):
         print(f"Creating mesh for {a}.obj")
         savepath = meshes_dir / f"{a}.obj"
         if not savepath.exists():
-            # mesh_utils.extract_mesh_from_mask(volume, savepath, smooth=False, decimate=False, smooth_mesh=False, closing_n_iters=1)
-            mesh = mesh_utils.extract_mesh_from_mask_fast(
-                volume, obj_filepath=savepath
+            mesh = mesh_utils.extract_mesh_from_mask(
+                volume,
+                obj_filepath=savepath,
+                closing_n_iters=1,
+                decimate=True,
+                smooth=False,
             )
-        return mesh
+            return mesh
+        else:
+            return None
 
 
 if __name__ == "__main__":
@@ -168,11 +172,7 @@ if __name__ == "__main__":
     savepath = meshes_dir / f'{root["id"]}.obj'
     if not savepath.exists():
         mesh_utils.extract_mesh_from_mask(
-            root_volume,
-            savepath,
-            smooth=False,
-            decimate=True,
-            smooth_mesh=True,
+            root_volume, savepath, smooth=False, decimate=True
         )
 
     start = time.time()
@@ -192,7 +192,6 @@ if __name__ == "__main__":
     )
 
     # TODO extract meshes for non leaf regions
-    # TODO try: scipy.ndimage.morphology.binary_fill_holes to fix root
 
     # Wrap up, compress, and remove file:
     #####################################

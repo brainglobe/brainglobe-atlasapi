@@ -33,7 +33,7 @@ structures_file = paxinos_allen_directory / "structures.csv"
 # assume isotropic
 ANNOTATIONS_RES_UM = 10
 
-RES_UM = 10
+RES_UM = 50
 ATLAS_NAME = f"kim_unified{RES_UM}um"
 
 # Generated atlas path:
@@ -105,17 +105,9 @@ structures = df.to_dict("records")
 
 for structure in structures:
     structure.update({"rgb_triplet": [255, 255, 255]})
-    structure["structure_id_path"].append(structure["id"])
-
-root = {
-    "acronym": "root",
-    "id": 997,
-    "name": "root",
-    "structure_id_path": [997],
-    "rgb_triplet": [255, 255, 255],
-}
-
-structures.append(root)
+    # root doesn't have a parent
+    if structure["id"] != 997:
+        structure["structure_id_path"].append(structure["id"])
 
 # save regions list json:
 with open(uncompr_atlas_path / "structures.json", "w") as f:

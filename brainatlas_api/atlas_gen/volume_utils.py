@@ -2,13 +2,57 @@
     Code useful for dealing with volumetric data (e.g. allen annotation volume for the mouse atlas)
     extracting surfaces from volumetric data ....
 """
-
-from vtkplotter import Volume
+try:
+    from vtkplotter import Volume
+except ModuleNotFoundError:
+    raise ModuleNotFoundError(
+        "Mesh generation with these utils requires vtkplotter\n"
+        + '   please install with "pip install vtkplotter -U"'
+    )
 
 from brainio import brainio
 
 import os
 import numpy as np
+
+
+def create_masked_array(volume, label, greater_than=False):
+    """
+        Given a 2d o 3d numpy array and a 
+        label value, creates a masked binary
+        array which is 1 when volume == label
+        and 0 otherwise
+
+        Parameters
+        ----------
+        volume: np.ndarray 
+            (2d or 3d array)
+        label: int, float. 
+            the masked array will be 1 where volume == label
+        greater_than: bool
+            if True, all voxels with value > label will be set to 1
+    """
+    if not isinstance(volume, np.ndarray):
+        raise ValueError(
+            f"Argument volume should be a numpy array not {type(volume)}"
+        )
+
+    arr = np.zeros_like(volume)
+
+    if not np.all(np.isin(label, volume)):
+        print(f"Label {label} is not in the array, returning empty mask")
+        return arr
+    else:
+        if not greater_than:
+            arr[volume == label] = 1
+        else:
+            arr[volume > label] = 1
+        return arr
+
+
+# ----------------------------- vtkplotter utils ----------------------------- #
+# This stuff is outdated, use the functions in mesh_utils.py
+# to extract meshes from volumes
 
 
 def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):

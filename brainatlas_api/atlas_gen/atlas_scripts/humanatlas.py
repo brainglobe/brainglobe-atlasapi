@@ -1,12 +1,8 @@
 from pathlib import Path
-import tempfile
 import json
 import pandas as pd
 
-from brainatlas_api.atlas_gen.volume_utils import extract_volume_surface
-
-from vtkplotter import write, Volume
-from tqdm import tqdm
+# from tqdm import tqdm
 
 from brainio import brainio
 import numpy as np
@@ -17,6 +13,8 @@ from brainatlas_api.atlas_gen import (
     save_annotation,
     descriptors,
     wrapup_atlas_from_dir,
+    volume_utils,
+    mesh_utils,
 )
 
 from brainatlas_api.structures.structure_tree import StructureTree
@@ -35,15 +33,16 @@ data_fld = Path(
 )
 
 # Generated atlas path:
-bg_root_dir = Path.home() / "brainglobe"
+bg_root_dir = Path.home() / ".brainglobe"
 bg_root_dir.mkdir(exist_ok=True)
 
 # Temporary folder for nrrd files download:
-temp_path = Path(tempfile.mkdtemp())
+temp_path = bg_root_dir / "temp"
+temp_path.mkdir(exist_ok=True)
 
 # Temporary folder for files before compressing:
 uncompr_atlas_path = temp_path / ATLAS_NAME
-uncompr_atlas_path.mkdir()
+uncompr_atlas_path.mkdir(exist_ok=True)
 
 
 # Open reference:
@@ -62,8 +61,8 @@ anatomy = brainio.load_any(
 )  # shape (394, 466, 378)
 
 # Remove weird artefact
-annotation = annotation[:199, :, :]
-anatomy = anatomy[:199, :, :]
+annotation = annotation[:197, :, :]
+anatomy = anatomy[:197, :, :]
 
 # These data only have one hemisphere, so mirror them
 annotation_whole = np.zeros(
@@ -126,6 +125,7 @@ for i, region in structures.iterrows():
 with open(uncompr_atlas_path / descriptors.STRUCTURES_FILENAME, "w") as f:
     json.dump(regions_list, f)
 
+
 # Create meshes
 ###############
 meshes_dir = uncompr_atlas_path / descriptors.MESHES_DIRNAME
@@ -137,16 +137,31 @@ if 0 in voxel_counts:
     del voxel_counts[0]
 structures.set_index("id", inplace=True)
 
-for a in tqdm(voxel_counts):
-    lbl = structures.loc[a, "acronym"]
-    vol = np.zeros_like(annotation_whole)
-    vol[annotation_whole == a] = 1
+# Create root first
+root = [s for s in regions_list if s["acronym"] == "root"][0]
+root_volume = volume_utils.create_masked_array(
+    annotation_whole, 0, greater_than=True
+)
+savepath = meshes_dir / f'{root["id"]}.obj'
+if not savepath.exists():
+    mesh_utils.extract_mesh_from_mask(root_volume, savepath)
 
-    if np.max(vol) < 1:
-        print(f'No voxel data for region {region["acronym"]}')
-    else:
-        savepath = str(meshes_dir / str(a)) + ".obj"
-        write(extract_volume_surface(Volume(vol)), savepath)
+
+# structures_with_mesh = ["root"]
+# for a in tqdm(voxel_counts):
+#     lbl = structures.loc[a, "acronym"]
+#     vol = np.zeros_like(annotation_whole)
+#     vol[annotation_whole == a] = 1
+
+#     if np.max(vol) < 1:
+#         print(f"No voxel data for region {lbl}")
+#     else:
+#         savepath = str(meshes_dir / str(a)) + ".obj"
+#         write(extract_volume_surface(Volume(vol)), savepath)
+#         structures_with_mesh.append(lbl)
+
+# TODO extract meshes for non leaf regions
+# TODO try: scipy.ndimage.morphology.binary_fill_holes to fix root
 
 
 # Wrap up, compress, and remove file:

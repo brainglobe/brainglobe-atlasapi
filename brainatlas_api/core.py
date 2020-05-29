@@ -53,7 +53,7 @@ class Atlas:
 
     def __init__(self, path):
         self.root_dir = Path(path)
-        self.metadata = read_json(self.root_dir / "atlas_metadata.json")
+        self.metadata = read_json(self.root_dir / "metadata.json")
 
         # Class for structures:
         structures_list = read_json(self.root_dir / "structures.json")

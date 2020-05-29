@@ -36,7 +36,7 @@ def create_readme(uncompr_atlas_path, metadata_dict, structures):
         out.write("------------------------------\n\n\n")
         out.write("\n\n\n")
 
-        out.write("-- BRAIN STRUCTURES TREE --")
+        out.write("-- BRAIN STRUCTURES TREE --\n")
 
         out.write(tree)
 

@@ -17,7 +17,7 @@ from brainatlas_api.atlas_gen import (
 # Specify information about the atlas:
 RES_UM = 100
 VERSION = "0.1"
-ATLAS_NAME = f"allen_mouse_{RES_UM}um_v{VERSION}"
+ATLAS_NAME = f"test_allen_{RES_UM}um_v{VERSION}"
 SPECIES = "mouse (Mus musculus)"
 ATLAS_LINK = "http://www.brain-map.org.com"
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"

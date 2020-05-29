@@ -12,7 +12,7 @@ def atlas():
 
 def test_initialization(atlas):
     assert atlas.metadata == {
-        "name": "test",
+        "name": "test_500um_v0.1",
         "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
         "atlas_link": "www.brain-map.org.com",
         "symmetric": True,

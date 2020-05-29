@@ -59,7 +59,9 @@ def get_structure_children(structures, region, use_tree=False):
                 sub_region_ids.append(subregion["id"])
     else:
         tree = StructureTree(structures).get_structures_tree()
-        sub_region_ids = [l.identifier for l in tree.children(region["id"])]
+        sub_region_ids = [
+            l.identifier for k, l in tree.subtree(region["id"]).nodes.items()
+        ]
 
     if sub_region_ids == []:
         print(f'{region["acronym"]} doesnt seem to contain any other regions')
@@ -88,3 +90,28 @@ def get_structure_terminal_nodes(structures, region):
         return None
     else:
         return sub_region_ids
+
+
+# Used by show_which_structures_have_mesh
+class Region(object):
+    def __init__(self, has_mesh):
+        self.has_mesh = has_mesh
+
+
+def show_which_structures_have_mesh(structures, meshes_dir):
+    """
+        It prints out a tree visualisation with 
+        True for the regions that a mesh and false for the others
+
+    """
+    tree = StructureTree(structures).get_structures_tree()
+
+    for idx, node in tree.nodes.items():
+        savepath = meshes_dir / f"{idx}.obj"
+        if savepath.exists():
+            has_mesh = True
+        else:
+            has_mesh = False
+        node.data = Region(has_mesh)
+
+    tree.show(data_property="has_mesh")

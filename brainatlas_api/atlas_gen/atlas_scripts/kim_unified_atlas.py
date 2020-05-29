@@ -180,7 +180,7 @@ for region in non_minor_regions:
 
     vol[np.isin(annotations_array, sub_region_ids)] = 1
     if np.max(vol) < 1:
-        raise ValueError
+        continue
 
     write(extract_volume_surface(Volume(vol)), savepath)
 print("Finished mesh extraction")

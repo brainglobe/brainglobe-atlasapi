@@ -20,6 +20,9 @@ from brainatlas_api.atlas_gen.volume_utils import (
     extract_volume_surface,
     load_labelled_volume,
 )
+from brainatlas_api.atlas_gen.structure_json_to_csv import (
+    convert_structure_json_to_csv,
+)
 
 paxinos_allen_directory = Path(
     "/media/adam/Storage/cellfinder/data/paxinos_allen/"
@@ -118,6 +121,8 @@ structures.append(root)
 with open(uncompr_atlas_path / "structures.json", "w") as f:
     json.dump(structures, f)
 
+# save as csv
+convert_structure_json_to_csv(uncompr_atlas_path / "structures.json")
 
 # Create meshes
 # ######################################

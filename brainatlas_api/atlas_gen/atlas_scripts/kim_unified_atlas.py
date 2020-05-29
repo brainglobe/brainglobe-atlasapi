@@ -30,7 +30,7 @@ structures_file = paxinos_allen_directory / "structures.csv"
 # assume isotropic
 ANNOTATIONS_RES_UM = 10
 
-RES_UM = 50
+RES_UM = 10
 ATLAS_NAME = f"kim_unified{RES_UM}um"
 
 # Generated atlas path:
@@ -80,6 +80,7 @@ print("Download completed...")
 
 # Save tiff stacks:
 tifffile.imsave(str(uncompr_atlas_path / "reference.tiff"), template_volume)
+del template_volume
 tifffile.imsave(
     str(uncompr_atlas_path / "annotations.tiff"), annotations_array
 )
@@ -194,7 +195,7 @@ metadata_dict = {
     "species": "Mus musculus",
     "symmetric": True,
     "resolution": (RES_UM, RES_UM, RES_UM),
-    "shape": template_volume.shape,
+    "shape": annotations_array.shape,
 }
 
 with open(uncompr_atlas_path / "atlas_metadata.json", "w") as f:

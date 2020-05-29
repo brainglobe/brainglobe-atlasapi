@@ -1,6 +1,6 @@
 try:
     from vtkplotter import Mesh, write, load, show, Volume
-    from vtkplotter.applications import Browser
+    from vtkplotter.applications import Browser, Slicer
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vtkplotter\n"
@@ -21,13 +21,17 @@ from pathlib import Path
 import scipy
 
 
+# ---------------------------------------------------------------------------- #
+#                                 MESH CREATION                                #
+# ---------------------------------------------------------------------------- #
+
+
 def extract_mesh_from_mask(
     volume,
     obj_filepath=None,
     threshold=0.5,
     smooth=False,
     mcubes_smooth=False,
-    scale=0.975,
     closing_n_iters=8,
     decimate=True,
     use_marching_cubes=False,
@@ -52,9 +56,6 @@ def extract_mesh_from_mask(
             it's slower and less accurate than vtkplotter though.
         mcubes_smooth: bool,
             if True mcubes.smooth is used before applying marching cubes
-        scale: float
-            the resulting mesh will be scaled to this fraction of the original 
-            size. 
         closing_n_iters: int
             number of iterations of closing morphological operation
 
@@ -107,12 +108,36 @@ def extract_mesh_from_mask(
     if decimate:
         mesh.clean()
 
-    mesh = mesh.extractLargestRegion().scale(scale)
+    mesh = mesh.extractLargestRegion()
 
     if obj_filepath is not None:
         write(mesh, str(obj_filepath))
 
     return mesh
+
+
+# ---------------------------------------------------------------------------- #
+#                                MESH INSPECTION                               #
+# ---------------------------------------------------------------------------- #
+def compare_mesh_and_volume(mesh, volume):
+    """
+        Creates and interactive vtkplotter
+        visualisation to look at a reference volume
+        and a mesh at the same time. Can be used to 
+        assess the quality of the mesh extraction. 
+
+        Parameters:
+        -----------
+
+        mesh: vtkplotter Mesh
+        volume: np.array or vtkplotter Volume
+    """
+    if isinstance(volume, np.ndarray):
+        volume = Volume(volume)
+
+    vp = Slicer(volume, bg2="white", showHisto=False)
+    vp.add(mesh.alpha(0.5))
+    vp.show()
 
 
 def inspect_meshses_folder(folder):

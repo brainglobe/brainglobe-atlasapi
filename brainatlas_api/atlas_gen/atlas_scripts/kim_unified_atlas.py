@@ -20,9 +20,8 @@ from brainatlas_api.atlas_gen.volume_utils import (
     extract_volume_surface,
     load_labelled_volume,
 )
-from brainatlas_api.atlas_gen.structure_json_to_csv import (
-    convert_structure_json_to_csv,
-)
+from brainatlas_api.atlas_gen.metadata_utils import create_metadata_files
+
 
 paxinos_allen_directory = Path(
     "/media/adam/Storage/cellfinder/data/paxinos_allen/"
@@ -113,8 +112,6 @@ for structure in structures:
 with open(uncompr_atlas_path / "structures.json", "w") as f:
     json.dump(structures, f)
 
-# save as csv
-convert_structure_json_to_csv(uncompr_atlas_path / "structures.json")
 
 # Create meshes
 # ######################################
@@ -199,6 +196,9 @@ metadata_dict = {
 
 with open(uncompr_atlas_path / "atlas_metadata.json", "w") as f:
     json.dump(metadata_dict, f)
+
+# Create human readable files
+create_metadata_files(uncompr_atlas_path, metadata_dict, structures)
 
 output_filename = bg_root_dir / f"{uncompr_atlas_path.name}.tar.gz"
 with tarfile.open(output_filename, "w:gz") as tar:

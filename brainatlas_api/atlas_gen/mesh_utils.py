@@ -24,6 +24,7 @@ def extract_mesh_from_mask(
     volume,
     obj_filepath,
     smooth=True,
+    smooth_mesh=False,
     closing_n_iters=10,
     decimate=True,
     scale=0.975,
@@ -39,12 +40,14 @@ def extract_mesh_from_mask(
         obj_filepath: str or Path object
             path to where the .obj mesh file will be saved
         smooth: bool
-            if true mcubes.smooth will be used to smooth the mesh (slow)
+            if true mcubes.smooth will be used to smooth the volume before marching cubes (slow)
         closing_n_iters: int
             number of iterations of closing morphological operation
         decimate: bool
             if true the mesh created by mcubes will be decimated to reduce
             the number of vertices
+        smooth_mesh: bool
+            if true the mesh is smoothed with the Laplacian method.
         scale: float
             the resulting mesh will be scaled to this fraction of the original 
             size. 
@@ -85,8 +88,12 @@ def extract_mesh_from_mask(
 
     # Load .obj and cleanup + save again
     mesh = load(str(obj_filepath))
+
     if decimate:
-        mesh.decimate()
+        mesh.clean()
+
+    if smooth_mesh:
+        mesh.smoothWSinc()
 
     mesh = mesh.extractLargestRegion().scale(scale)
     write(mesh, str(obj_filepath))

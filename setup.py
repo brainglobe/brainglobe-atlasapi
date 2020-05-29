@@ -21,6 +21,8 @@ setup(
             "gitpython",
             "coverage",
             "pre-commit",
+            "vtkplotter",
+            "PyMCubes",
         ]
     },
     python_requires=">=3.6",

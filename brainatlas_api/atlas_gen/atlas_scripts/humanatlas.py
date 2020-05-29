@@ -144,8 +144,9 @@ root_volume = volume_utils.create_masked_array(
 )
 savepath = meshes_dir / f'{root["id"]}.obj'
 if not savepath.exists():
-    mesh_utils.extract_mesh_from_mask(root_volume, savepath)
-
+    mesh_utils.extract_mesh_from_mask(
+        root_volume, savepath, smooth=False, decimate=False, smooth_mesh=True
+    )
 
 # structures_with_mesh = ["root"]
 # for a in tqdm(voxel_counts):
@@ -172,6 +173,6 @@ wrapup_atlas_from_dir(
     ATLAS_LINK,
     SPECIES,
     (RES_UM,) * 3,
-    cleanup_files=True,
+    cleanup_files=False,
     compress=True,
 )

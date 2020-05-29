@@ -71,6 +71,7 @@ def convert_structure_json_to_csv(structure_json_path, destination_path=None):
     df["structure_id_path"] = df["structure_id_path"].apply(
         structure_id_path_to_string
     )
+    df = df.sort_values("name")
 
     if destination_path is None:
         destination_path = structure_json_path.with_suffix(".csv")

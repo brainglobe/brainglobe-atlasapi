@@ -130,6 +130,8 @@ volume = load_labelled_volume(annotations_array)
 root = extract_volume_surface(volume)
 
 write(root, str(meshes_dir_path / "997.obj"))
+del volume
+del root
 
 non_minor_regions = []
 # First create a mesh for every minor region

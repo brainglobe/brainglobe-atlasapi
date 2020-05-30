@@ -12,11 +12,13 @@ def atlas():
 
 def test_initialization(atlas):
     assert atlas.metadata == {
-        "name": "test_500um_v0.1",
+        "name": "test_allen_100um",
         "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
-        "atlas_link": "www.brain-map.org.com",
+        "atlas_link": "http://www.brain-map.org.com",
         "symmetric": True,
         "resolution": [100, 100, 100],
+        "species": "mouse (Mus musculus)",
+        "version": "0.1",
         "shape": [132, 80, 114],
     }
 
@@ -26,7 +28,7 @@ def test_initialization(atlas):
     [
         ("shape", [132, 80, 114]),
         ("resolution", [100, 100, 100]),
-        ("name", "test"),
+        ("name", "test_allen_100um"),
         ("symmetric", True),
     ],
 )

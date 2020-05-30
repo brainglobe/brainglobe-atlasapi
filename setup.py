@@ -23,7 +23,6 @@ setup(
             "gitpython",
             "coverage",
             "pre-commit",
-            "vtkplotter",
             "PyMCubes",
             "brainio",
         ]

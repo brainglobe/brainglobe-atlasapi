@@ -12,6 +12,14 @@ stages:
 jobs:
   include:
     - stage: test
+      name: "Windows Python 3.7"
+      language: shell
+      env: TRAVIS_PYTHON_VERSION=3.7
+      os: windows
+      before_install: source travis/install_windows.sh
+      script: bash travis/test.sh
+
+    - stage: test
       name: "Ubuntu Xenial python 3.6"
       language: python
       os: linux
@@ -39,14 +47,6 @@ jobs:
       dist: xenial
       python: 3.8
       before_install: source travis/install_unix.sh
-      script: bash travis/test.sh
-
-    - stage: test
-      name: "Windows Python 3.7"
-      language: shell
-      env: TRAVIS_PYTHON_VERSION=3.7
-      os: windows
-      before_install: source travis/install_windows.sh
       script: bash travis/test.sh
 
     - stage: test

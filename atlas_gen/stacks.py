@@ -1,5 +1,5 @@
 import tifffile
-from brainatlas_api.atlas_gen import descriptors
+from brainatlas_api import descriptors
 
 
 def write_stack(stack, filename):

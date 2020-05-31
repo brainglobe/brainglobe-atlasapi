@@ -12,12 +12,12 @@ from vtkplotter import load
 from brainatlas_api.atlas_gen import (
     save_anatomy,
     save_annotation,
-    descriptors,
     wrapup_atlas_from_dir,
     volume_utils,
-    mesh_utils,
     get_structure_children,
 )
+from atlas_gen import mesh_utils
+from brainatlas_api import descriptors
 from brainatlas_api.structures.structure_tree import StructureTree
 
 

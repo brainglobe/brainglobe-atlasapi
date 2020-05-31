@@ -7,12 +7,9 @@ from pathlib import Path
 import json
 import shutil
 
-from brainatlas_api.atlas_gen import (
-    save_anatomy,
-    save_annotation,
-    descriptors,
-    wrapup_atlas_from_dir,
-)
+from atlas_gen.stacks import save_anatomy, save_annotation
+from atlas_gen.wrapup import wrapup_atlas_from_dir
+from brainatlas_api import descriptors
 
 # Specify information about the atlas:
 RES_UM = 100

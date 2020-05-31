@@ -1,7 +1,7 @@
 from setuptools import setup, find_namespace_packages
 
-requirements = ["tqdm", "numpy", "tifffile", "treelib", "pandas"]
-
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
 
 setup(
     name="brainatlas-api",

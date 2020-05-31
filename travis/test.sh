@@ -1,3 +1,4 @@
+pip install -r requirements.txt
 pip install -e .
 pip install black
 conda info -a

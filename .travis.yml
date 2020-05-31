@@ -17,7 +17,7 @@ jobs:
       os: linux
       env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
       dist: xenial
-      python: 3.7
+      python: 3.6
       before_install: source travis/install_unix.sh
       script: bash travis/test.sh
 
@@ -47,16 +47,6 @@ jobs:
       env: TRAVIS_PYTHON_VERSION=3.7
       os: windows
       before_install: source travis/install_windows.sh
-      script: bash travis/test.sh
-
-    - stage: test
-      name: "macOS Python 3.7"
-      os: osx
-      language: shell
-      env:
-      - TRAVIS_PYTHON_VERSION=3.7
-      - MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-      before_install: source travis/install_unix.sh
       script: bash travis/test.sh
 
     - stage: test

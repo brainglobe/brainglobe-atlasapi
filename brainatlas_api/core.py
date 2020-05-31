@@ -4,6 +4,14 @@ from pathlib import Path
 from brainatlas_api.utils import read_json, read_tiff, make_hemispheres_stack
 from brainatlas_api.structures.structure_tree import StructureTree
 from brainatlas_api.obj_utils import read_obj
+from brainatlas_api.atlas_gen.descriptors import (
+    METADATA_FILENAME,
+    STRUCTURES_FILENAME,
+    REFERENCE_FILENAME,
+    ANNOTATION_FILENAME,
+    HEMISPHERES_FILENAME,
+    MESHES_DIRNAME,
+)
 
 
 class MeshDictionary(dict):
@@ -53,14 +61,16 @@ class Atlas:
 
     def __init__(self, path):
         self.root_dir = Path(path)
-        self.metadata = read_json(self.root_dir / "atlas_metadata.json")
+        self.metadata = read_json(self.root_dir / METADATA_FILENAME)
 
         # Class for structures:
-        structures_list = read_json(self.root_dir / "structures.json")
+        structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
         self.structures = StructureTree(structures_list)
 
         # Cached loading of meshes:
-        self.region_meshes_dict = MeshDictionary(self.root_dir / "meshes")
+        self.region_meshes_dict = MeshDictionary(
+            self.root_dir / MESHES_DIRNAME
+        )
 
         for attr in ["name", "shape", "resolution", "symmetric"]:
             self.__setattr__(attr, self.metadata[attr])
@@ -87,10 +97,10 @@ class Atlas:
     def reference(self):
         if self._reference is None:
             try:
-                self._reference = read_tiff(self.root_dir / "reference.tiff")
+                self._reference = read_tiff(self.root_dir / REFERENCE_FILENAME)
             except FileNotFoundError:  # avoid general excepts
                 raise FileNotFoundError(
-                    f'Failed to load reference.tiff from {self.root_dir / "reference.tiff"}'
+                    f"Failed to load reference.tiff from {self.root_dir / REFERENCE_FILENAME}"
                 )
         return self._reference
 
@@ -98,10 +108,12 @@ class Atlas:
     def annotated(self):
         if self._annotated is None:
             try:
-                self._annotated = read_tiff(self.root_dir / "annotated.tiff")
+                self._annotated = read_tiff(
+                    self.root_dir / ANNOTATION_FILENAME
+                )
             except FileNotFoundError:  # avoid general excepts
                 raise FileNotFoundError(
-                    f'Failed to load annotated.tiff from {self.root_dir / "annotated.tiff"}'
+                    f"Failed to load annotated.tiff from {self.root_dir / ANNOTATION_FILENAME}"
                 )
         return self._annotated
 
@@ -113,7 +125,7 @@ class Atlas:
                 self._hemispheres = make_hemispheres_stack(self.shape)
             else:
                 self._hemispheres = read_tiff(
-                    self.root_dir / "hemispheres.tiff"
+                    self.root_dir / HEMISPHERES_FILENAME
                 )
         return self._hemispheres
 

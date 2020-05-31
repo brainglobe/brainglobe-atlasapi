@@ -2,13 +2,64 @@
     Code useful for dealing with volumetric data (e.g. allen annotation volume for the mouse atlas)
     extracting surfaces from volumetric data ....
 """
-
-from vtkplotter import Volume
+try:
+    from vtkplotter import Volume
+except ModuleNotFoundError:
+    raise ModuleNotFoundError(
+        "Mesh generation with these utils requires vtkplotter\n"
+        + '   please install with "pip install vtkplotter -U"'
+    )
 
 from brainio import brainio
 
 import os
 import numpy as np
+
+
+def create_masked_array(volume, label, greater_than=False):
+    """
+        Given a 2d o 3d numpy array and a 
+        label value, creates a masked binary
+        array which is 1 when volume == label
+        and 0 otherwise
+
+        Parameters
+        ----------
+        volume: np.ndarray 
+            (2d or 3d array)
+        label: int, float or list of int. 
+            the masked array will be 1 where volume == label
+        greater_than: bool
+            if True, all voxels with value > label will be set to 1
+    """
+    if not isinstance(volume, np.ndarray):
+        raise ValueError(
+            f"Argument volume should be a numpy array not {type(volume)}"
+        )
+
+    arr = np.zeros_like(volume)
+
+    if not isinstance(label, list) and not np.all(np.isin(label, volume)):
+        print(f"Label {label} is not in the array, returning empty mask")
+        return arr
+    # elif isinstance(label, list):
+    #     if not np.any(np.isin(volume, label)):
+    #         print(f"Label is not in the array, returning empty mask")
+    #         return arr
+
+    if not greater_than:
+        if not isinstance(label, list):
+            arr[volume == label] = 1
+        else:
+            arr[np.isin(volume, label)] = 1
+    else:
+        arr[volume > label] = 1
+    return arr
+
+
+# ----------------------------- vtkplotter utils ----------------------------- #
+# This stuff is outdated, use the functions in mesh_utils.py
+# to extract meshes from volumes
 
 
 def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):
@@ -49,42 +100,3 @@ def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):
     otf.AddPoint(data.max(), alpha)
 
     return vol
-
-
-def extract_volume_surface(vol, threshold=0.1, smooth=False):
-    """ 
-        Returns a vtkplotter mesh actor with just the outer surface of a volume
-
-        :param vol: instance of Volume class from vtkplotter
-        :param threshold: float, min value to threshold the volume for isosurface extraction
-        :param smooth: bool, if True the surface mesh is smoothed
-    """
-
-    if not isinstance(vol, Volume):
-        raise TypeError(
-            f"vol argument should be an instance of Volume not {vol.__type__}"
-        )
-
-    mesh = vol.clone().isosurface(threshold=threshold).cap()
-
-    if smooth:
-        mesh.smoothLaplacian()
-
-    return mesh
-
-
-def extract_label_mesh(vol, lbl):
-    """
-        Given a vtkplotter Volume with a scalar value labelling each voxel, 
-        this function returns a mesh of only the voxels whose value matches the lbl argument
-
-        :param vol: a vtkplotter Volume
-        :param lbl: float or int
-    """
-    if not isinstance(vol, Volume):
-        raise TypeError(
-            f"vol argument should be an instance of Volume not {vol.__type__}"
-        )
-
-    mask = vol.clone().threshold(above=lbl - 0.1, below=lbl + 0.1)
-    return extract_volume_surface(mask, threshold=lbl - 0.1)

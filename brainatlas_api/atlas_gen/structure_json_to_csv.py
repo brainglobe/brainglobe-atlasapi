@@ -49,7 +49,9 @@ def get_parent_id(structure_id_path, root=997):
         return int(structure_id_path[-2])
 
 
-def convert_structure_json_to_csv(structure_json_path, destination_path=None):
+def convert_structure_json_to_csv(
+    structure_json_path, destination_path=None, root=997
+):
     """
     Converts an atlas structure json dictionary to csv. For cellfinder
     compatibility and ease of browsing.
@@ -67,7 +69,9 @@ def convert_structure_json_to_csv(structure_json_path, destination_path=None):
 
     df = pd.read_json(structure_json_path)
     df = df.drop(columns=["rgb_triplet"])
-    df["parent_structure_id"] = df["structure_id_path"].apply(get_parent_id)
+    df["parent_structure_id"] = df["structure_id_path"].apply(
+        get_parent_id, root=root
+    )
     df["structure_id_path"] = df["structure_id_path"].apply(
         structure_id_path_to_string
     )

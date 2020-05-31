@@ -26,6 +26,7 @@ class BrainGlobeAtlas(Atlas):
         """
 
     atlas_name = None
+    version = None
     _remote_url_base = (
         "https://gin.g-node.org/brainglobe/atlases/raw/master/{}.tar.gz"
     )
@@ -42,6 +43,8 @@ class BrainGlobeAtlas(Atlas):
             if interm_dir_path is not None
             else self.brainglobe_path
         )
+
+        self.atlas_name = self.atlas_name + f"_v{self.version}"
 
         try:
             super().__init__(self.brainglobe_path / self.atlas_name)
@@ -92,20 +95,25 @@ class BrainGlobeAtlas(Atlas):
 
 
 class TestAtlas(BrainGlobeAtlas):
-    atlas_name = "test"
+    atlas_name = "test_allen_100um"
+    version = "0.1"
 
 
 class FishAtlas(BrainGlobeAtlas):
     atlas_name = "fishatlas"
+    version = "0.1"
 
 
 class RatAtlas(BrainGlobeAtlas):
     atlas_name = "ratatlas"
+    version = "0.1"
 
 
 class AllenBrain25Um(BrainGlobeAtlas):
     atlas_name = "allenbrain25um"
+    version = "0.1"
 
 
 class AllenHumanBrain500Um(BrainGlobeAtlas):
-    atlas_name = "allen_human_500um_v0.1"
+    atlas_name = "allen_human_500um"
+    version = "0.1"

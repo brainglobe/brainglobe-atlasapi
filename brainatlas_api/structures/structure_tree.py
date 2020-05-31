@@ -430,14 +430,9 @@ class StructureTree(SimpleTree):
                 for a, n in zip(acronyms, names):
                     out.write("({}) - {}\n".format(a, n))
 
-    def print_structures_tree(self, to_file=False, save_filepath=None):
+    def get_structures_tree(self):
         """
-            Prints a 'tree' graph with the hierarchical organisation of all structures
-
-            :param to_file: bool, default False. If True the tree structure is saved to 
-                a file (at save_filepath) instead of printd to REPL
-            :param save_filepath: str, if to_file = True, pass the path to a .txt file 
-                where the tree structure will be saved.
+            Creates a 'tree' graph with the hierarchical organisation of all structures
         """
 
         def add_descendants_to_tree(
@@ -471,6 +466,20 @@ class StructureTree(SimpleTree):
         for child in self.child_ids([root])[0]:
             add_descendants_to_tree(self, id_to_acronym_map, tree, child, root)
 
+        return tree
+
+    def print_structures_tree(self, to_file=False, save_filepath=None):
+        """
+            Prints a 'tree' graph with the hierarchical organisation of all structures
+
+            :param to_file: bool, default False. If True the tree structure is saved to 
+                a file (at save_filepath) instead of printd to REPL
+            :param save_filepath: str, if to_file = True, pass the path to a .txt file 
+                where the tree structure will be saved.
+        """
+
+        tree = self.get_structures_tree()
+
         if not to_file:
             tree.show()
         else:
@@ -485,3 +494,4 @@ class StructureTree(SimpleTree):
                 )
 
             tree.save2file(save_filepath)
+        return tree

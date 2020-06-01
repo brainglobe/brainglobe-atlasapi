@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="brainatlas-api",
-    version="0.0.1c",
+    version="0.0.2rc0",
     description="A lightweight python module to interact with atlases for systems neuroscience",
     install_requires=requirements,
     extras_require={
@@ -24,7 +24,6 @@ setup(
             "coverage",
             "pre-commit",
             "PyMCubes",
-            "brainio",
         ]
     },
     python_requires=">=3.6, <3.8",

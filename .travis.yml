@@ -1,9 +1,8 @@
-after_success:
-  - pip install coveralls
-  - coveralls
-
 stages:
   - test
+  - name: deploy_test
+    if:
+      tag IS present
   - name: deploy
     if:
       tag IS present AND repo = brainglobe/brainatlas-api
@@ -20,6 +19,9 @@ jobs:
       python: 3.6
       before_install: source travis/install_unix.sh
       script: bash travis/test.sh
+      after_success:
+        - pip install coveralls
+        - coveralls
 
     - stage: test
       name: "Ubuntu Xenial python 3.7"
@@ -69,6 +71,41 @@ jobs:
       before_install: source travis/install_unix.sh
       script: bash travis/lint.sh
 
+    - stage: deploy_test
+      name: "Windows Python 3.6"
+      language: shell
+      env: TRAVIS_PYTHON_VERSION=3.6
+      os: windows
+      before_install: source travis/install_windows.sh
+      script: bash travis/test.sh
+
+    - stage: deploy_test
+      name: "Windows Python 3.8"
+      language: shell
+      env: TRAVIS_PYTHON_VERSION=3.8
+      os: windows
+      before_install: source travis/install_windows.sh
+      script: bash travis/test.sh
+
+    - stage: deploy_test
+      name: "macOS Python 3.6"
+      os: osx
+      language: shell
+      env:
+      - TRAVIS_PYTHON_VERSION=3.6
+      - MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
+
+    - stage: deploy_test
+      name: "macOS Python 3.8"
+      os: osx
+      language: shell
+      env:
+      - TRAVIS_PYTHON_VERSION=3.8
+      - MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
 
     - stage: deploy
       os: bionic

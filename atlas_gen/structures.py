@@ -1,6 +1,4 @@
-from brainatlas_api.atlas_gen.descriptors import (
-    STRUCTURE_TEMPLATE as STEMPLATE,
-)
+from brainatlas_api.descriptors import STRUCTURE_TEMPLATE as STEMPLATE
 from brainatlas_api.structures.structure_tree import StructureTree
 
 

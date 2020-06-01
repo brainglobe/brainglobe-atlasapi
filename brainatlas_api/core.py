@@ -4,7 +4,7 @@ from pathlib import Path
 from brainatlas_api.utils import read_json, read_tiff, make_hemispheres_stack
 from brainatlas_api.structures.structure_tree import StructureTree
 from brainatlas_api.obj_utils import read_obj
-from brainatlas_api.atlas_gen.descriptors import (
+from brainatlas_api.descriptors import (
     METADATA_FILENAME,
     STRUCTURES_FILENAME,
     REFERENCE_FILENAME,

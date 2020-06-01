@@ -3,7 +3,7 @@ from brainatlas_api.atlas_gen.metadata_utils import create_metadata_files
 from brainatlas_api.utils import read_tiff, read_json
 from .metadata import generate_metadata_dict
 from .structures import check_struct_consistency
-from . import descriptors
+from brainatlas_api import descriptors
 import tarfile
 import shutil
 

@@ -16,11 +16,11 @@ from vtkplotter import write, Volume
 from brainio.brainio import load_any
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 
-from brainatlas_api.atlas_gen.volume_utils import (
+from atlas_gen.volume_utils import (
     extract_volume_surface,
     load_labelled_volume,
 )
-from brainatlas_api.atlas_gen.metadata_utils import create_metadata_files
+from atlas_gen.metadata_utils import create_metadata_files
 
 
 paxinos_allen_directory = Path(

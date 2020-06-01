@@ -16,13 +16,19 @@ from atlas_gen.structure_json_to_csv import convert_structure_json_to_csv
 
 
 def generate_metadata_dict(
-    name, citation, atlas_link, species, symmetric, resolution, version, shape
+    name,
+    citation,
+    atlas_link,
+    species,
+    symmetric,
+    resolution,
+    version,
+    shape,
+    transformation_mat,
 ):
 
-    # We ask for a rigid naming convention to be followed:
-    parsename = name.split("_")
-    assert len(parsename) >= 3
-    assert re.match("[0-9]+um", parsename[-1])
+    # Name should be author_species
+    assert len(name.split("_")) >= 2
 
     # Control version formatting:
     assert re.match("[0-9]+\\.[0-9]+", version)
@@ -56,6 +62,7 @@ def generate_metadata_dict(
         resolution=resolution,
         version=version,
         shape=shape,
+        trasform_to_bg=tuple([tuple(m) for m in transformation_mat]),
     )
 
 

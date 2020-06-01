@@ -59,8 +59,8 @@ def test_maps(atlas):
     "coords", [[39.0, 36.0, 57.0], (39, 36, 57), np.array([39.0, 36.0, 57.0])]
 )
 def test_data_from_coords(atlas, coords):
-    assert atlas.get_region_id_from_coords(coords) == 997
-    assert atlas.get_region_name_from_coords(coords) == "root"
+    assert atlas.get_structure_id_from_coords(coords) == 997
+    assert atlas.get_structure_name_from_coords(coords) == "root"
     assert atlas.get_hemisphere_from_coords(coords) == 0
 
 

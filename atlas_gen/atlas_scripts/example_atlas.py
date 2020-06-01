@@ -7,7 +7,6 @@ from pathlib import Path
 import json
 import shutil
 
-from atlas_gen.stacks import save_anatomy, save_annotation
 from atlas_gen.wrapup import wrapup_atlas_from_dir
 from brainatlas_api import descriptors
 
@@ -45,10 +44,6 @@ spacecache = ReferenceSpaceCache(
 annotated_volume, _ = spacecache.get_annotation_volume()
 template_volume, _ = spacecache.get_template_volume()
 print("Download completed...")
-
-# Save tiff stacks:
-save_anatomy(template_volume, uncompr_atlas_path)
-save_annotation(annotated_volume, uncompr_atlas_path)
 
 # Download structures tree and meshes:
 ######################################

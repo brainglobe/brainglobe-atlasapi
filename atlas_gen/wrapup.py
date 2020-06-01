@@ -1,31 +1,47 @@
 import json
-from brainatlas_api.atlas_gen.metadata_utils import create_metadata_files
-from brainatlas_api.utils import read_tiff, read_json
-from .metadata import generate_metadata_dict
-from .structures import check_struct_consistency
+from atlas_gen.metadata_utils import (
+    create_metadata_files,
+    generate_metadata_dict,
+)
+from atlas_gen.stacks import save_reference, save_annotation
+
+# from brainatlas_api.utils import read_tiff, read_json
+from atlas_gen.structures import check_struct_consistency
 from brainatlas_api import descriptors
 import tarfile
 import shutil
 
+# import bgspace as bgs
 
-def wrapup_atlas_from_dir(
-    dir_path,
+# This should be changed every time we make changes in the atlas
+# structure:
+ATLAS_VERSION = 0
+
+
+def wrapup_atlas_from_data(
+    atlas_name,
+    atlas_minor_version,
     citation,
     atlas_link,
     species,
     resolution,
+    orientation,
+    root_id,
+    reference_stack,
+    annotation_stack,
+    structures_list,
+    meshes_dict,
+    working_dir,
+    hemispheres_stack=None,
     cleanup_files=False,
     compress=True,
-    root=997,
 ):
     """
-    Check compliance of a folder with atlas standards, write metadata, and if required compress and cleanup.
-    This function should be used to finalize all atlases as it runs the required
-    controls.
+    Finalise an atlas with truly consistent format from all the data.
 
     Parameters
     ----------
-    dir_path : str or Path object
+    dest_dir : str or Path object
         directory with the atlases and regions description
     citation : str
         citation for the atlas, if unpublished specify "unpublished"
@@ -43,36 +59,14 @@ def wrapup_atlas_from_dir(
 
     """
 
-    # Check that all core files are contained:
-    for element in [
-        descriptors.STRUCTURES_FILENAME,
-        descriptors.REFERENCE_FILENAME,
-        descriptors.ANNOTATION_FILENAME,
-    ]:
-        assert (dir_path / element).exists()
+    version = f"{ATLAS_VERSION}.{atlas_minor_version}"
+    shape = reference_stack.shape
 
-    # Get name and version from dir name - in this way multiple
-    # specifications are avoided:
-    parsename = dir_path.name.split("_")
-
-    atlas_name = "_".join(parsename[:-1])
-    version = parsename[-1][1:]  # version: v0.0 format
-
-    # Read stack shape:
-    ref_stack = read_tiff(dir_path / descriptors.REFERENCE_FILENAME)
-    shape = ref_stack.shape
-
-    # If no hemisphere file is given, ensure the atlas is symmetric:
-    if not (dir_path / descriptors.HEMISPHERES_FILENAME).exists():
-        # assert np.allclose(ref_stack[:, :, :shape[2] // 2],
-        #                   np.flip(ref_stack[:, :, -shape[2] // 2:], 2))
-        symmetric = True
-    else:
-        symmetric = False
+    # If no hemisphere file is given, assume the atlas is symmetric:
+    symmetric = hemispheres_stack is None
 
     # Check consistency of structures .json file:
-    structures = read_json(dir_path / descriptors.STRUCTURES_FILENAME)
-    check_struct_consistency(structures)
+    check_struct_consistency(structures_list)
 
     # Finalize metadata dictionary:
     metadata_dict = generate_metadata_dict(
@@ -86,21 +80,32 @@ def wrapup_atlas_from_dir(
         shape=shape,
     )
 
-    # write metadata dict:
-    with open(dir_path / descriptors.METADATA_FILENAME, "w") as f:
-        json.dump(metadata_dict, f)
+    atlas_dir_name = atlas_name + "_v" + version
+    dest_dir = working_dir / atlas_dir_name
+    dest_dir.mkdir()  # exist_ok would be more permissive but error-prone here
 
-    # Create human readable .csv and .txt files
-    create_metadata_files(dir_path, metadata_dict, structures, root)
+    # save regions list json:
+    with open(dest_dir / descriptors.STRUCTURES_FILENAME, "w") as f:
+        json.dump(structures_list, f)
+
+    # TODO use BGSpace and reorient stacks;
+    # TODO use BGSpace and reorient mesh;
+    # TODO find function to save meshes;
+    # write tiff stacks:
+    save_reference(reference_stack, dest_dir)
+    save_annotation(annotation_stack, dest_dir)
+
+    # Create human readable .csv and .txt files:
+    create_metadata_files(dest_dir, metadata_dict, structures_list, root_id)
 
     # Compress if required:
     if compress:
-        output_filename = dir_path.parent / f"{dir_path.name}.tar.gz"
+        output_filename = dest_dir.parent / f"{dest_dir.name}.tar.gz"
         print(f"Saving compressed atlas data at: {output_filename}")
         with tarfile.open(output_filename, "w:gz") as tar:
-            tar.add(dir_path, arcname=dir_path.name)
+            tar.add(dest_dir, arcname=dest_dir.name)
 
     # Cleanup if required:
     if cleanup_files:
         # Clean temporary directory and remove it:
-        shutil.rmtree(dir_path)
+        shutil.rmtree(dest_dir)

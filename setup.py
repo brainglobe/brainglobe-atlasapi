@@ -24,7 +24,6 @@ setup(
             "coverage",
             "pre-commit",
             "PyMCubes",
-            "brainio",
         ]
     },
     python_requires=">=3.6, <3.8",

@@ -1,7 +1,3 @@
-after_success:
-  - pip install coveralls
-  - coveralls
-
 stages:
   - test
   - name: deploy_test
@@ -10,7 +6,6 @@ stages:
   - name: deploy
     if:
       tag IS present AND repo = brainglobe/brainatlas-api
-
 
 
 jobs:
@@ -24,6 +19,9 @@ jobs:
       python: 3.6
       before_install: source travis/install_unix.sh
       script: bash travis/test.sh
+      after_success:
+        - pip install coveralls
+        - coveralls
 
     - stage: test
       name: "Ubuntu Xenial python 3.7"

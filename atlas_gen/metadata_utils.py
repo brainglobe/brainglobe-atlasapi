@@ -3,12 +3,67 @@
         . structures.csv
         . README.txt
 """
+import re
+import json
 from datetime import datetime
+from brainatlas_api import descriptors
+
+import requests
+from requests.exceptions import MissingSchema, InvalidURL, ConnectionError
 
 from brainatlas_api.structures.structure_tree import StructureTree
-from brainatlas_api.atlas_gen.structure_json_to_csv import (
-    convert_structure_json_to_csv,
-)
+from atlas_gen.structure_json_to_csv import convert_structure_json_to_csv
+
+
+def generate_metadata_dict(
+    name,
+    citation,
+    atlas_link,
+    species,
+    symmetric,
+    resolution,
+    version,
+    shape,
+    transformation_mat,
+):
+
+    # Name should be author_species
+    assert len(name.split("_")) >= 2
+
+    # Control version formatting:
+    assert re.match("[0-9]+\\.[0-9]+", version)
+
+    # We ask for DOI and correct link only if atlas is published:
+    if citation != "unpublished":
+        assert "doi" in citation
+
+        # Test url:
+        try:
+            _ = requests.get(atlas_link)
+        except (MissingSchema, InvalidURL, ConnectionError):
+            raise InvalidURL(
+                "Ensure that the url is valid and formatted correctly!"
+            )
+
+    # Enforce correct format for symmetric, resolution and shape:
+    assert type(symmetric) == bool
+    assert len(resolution) == 3
+    assert len(shape) == 3
+
+    resolution = tuple([float(v) for v in resolution])
+    shape = tuple(int(v) for v in shape)
+
+    return dict(
+        name=name,
+        citation=citation,
+        atlas_link=atlas_link,
+        species=species,
+        symmetric=symmetric,
+        resolution=resolution,
+        version=version,
+        shape=shape,
+        trasform_to_bg=tuple([tuple(m) for m in transformation_mat]),
+    )
 
 
 def create_readme(uncompr_atlas_path, metadata_dict, structures):
@@ -59,7 +114,7 @@ def create_structures_csv(uncompr_atlas_path, root):
     )
 
 
-def create_metadata_files(uncompr_atlas_path, metadata_dict, structures, root):
+def create_metadata_files(dest_dir, metadata_dict, structures, root_id):
     """
         Automatic creation of 
             . structures.csv
@@ -71,5 +126,9 @@ def create_metadata_files(uncompr_atlas_path, metadata_dict, structures, root):
         :param metadata_dict: dict with atlas metadata
         :param structures: list of dictionaries with structures hierarchical info
     """
-    create_structures_csv(uncompr_atlas_path, root)
-    create_readme(uncompr_atlas_path, metadata_dict, structures)
+    # write metadata dict:
+    with open(dest_dir / descriptors.METADATA_FILENAME, "w") as f:
+        json.dump(metadata_dict, f)
+
+    create_structures_csv(dest_dir, root_id)
+    create_readme(dest_dir, metadata_dict, structures)

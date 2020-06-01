@@ -13,7 +13,7 @@ def write_stack(stack, filename):
     tifffile.imsave(str(filename), stack)
 
 
-def save_anatomy(stack, output_dir):
+def save_reference(stack, output_dir):
     """
     Parameters
     ----------

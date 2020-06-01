@@ -93,7 +93,7 @@ def wrapup_atlas_from_data(
     # Check consistency of structures .json file:
     check_struct_consistency(structures_list)
 
-    atlas_dir_name = atlas_name + f"{resolution[0]}um" + "_v" + version
+    atlas_dir_name = f"{atlas_name}_{resolution[0]}um_v{version}"
     dest_dir = Path(working_dir) / atlas_dir_name
     # exist_ok would be more permissive but error-prone here as there might
     # be old files

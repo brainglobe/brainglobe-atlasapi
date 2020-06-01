@@ -7,10 +7,9 @@ from pathlib import Path
 from tqdm import tqdm
 
 from atlas_gen.wrapup import wrapup_atlas_from_data
-from brainatlas_api import descriptors
 
 # Specify information about the atlas:
-RES_UM = 25
+RES_UM = 100
 VERSION = 2
 ATLAS_NAME = f"example_mouse"
 SPECIES = "Mus musculus"
@@ -19,7 +18,7 @@ CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 ORIENTATION = "asl"
 
 # Working path on disk:
-bg_root_dir = Path.home() / "brainglobe_workdir" / ATLAS_NAME
+bg_root_dir = Path.home() / "brainglobe_workingdir" / "example"
 bg_root_dir.mkdir(exist_ok=True)
 
 # Temporary folder for nrrd files download:
@@ -55,10 +54,10 @@ mesh_set_ids = [
     if s["description"] == select_set
 ]
 
-structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
+structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)[:3]
 
 # Directory for mesh saving:
-meshes_dir = bg_root_dir / descriptors.MESHES_DIRNAME
+meshes_dir = bg_root_dir / "mesh_temp_download"
 
 space = ReferenceSpaceApi()
 meshes_dict = dict()
@@ -80,7 +79,7 @@ for struct in structs_with_mesh:
     [struct.pop(k) for k in ["graph_id", "structure_set_ids", "graph_order"]]
 
 
-# Wrap up, compress, and remove file:0
+# Wrap up, compress, and remove file:
 print(f"Finalising atlas")
 wrapup_atlas_from_data(
     atlas_name=ATLAS_NAME,

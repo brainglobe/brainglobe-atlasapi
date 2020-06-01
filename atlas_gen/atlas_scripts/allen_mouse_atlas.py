@@ -10,16 +10,16 @@ from atlas_gen.wrapup import wrapup_atlas_from_data
 from brainatlas_api import descriptors
 
 # Specify information about the atlas:
-RES_UM = 100
+RES_UM = 25
 VERSION = 2
-ATLAS_NAME = f"example_mouse"
+ATLAS_NAME = f"allen_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org.com"
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 ORIENTATION = "asl"
 
 # Working path on disk:
-bg_root_dir = Path.home() / "brainglobe_workdir" / ATLAS_NAME
+bg_root_dir = Path.home() / "brainglobe_workingdir" / "mouse"
 bg_root_dir.mkdir(exist_ok=True)
 
 # Temporary folder for nrrd files download:
@@ -55,7 +55,7 @@ mesh_set_ids = [
     if s["description"] == select_set
 ]
 
-structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)[:3]
+structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
 
 # Directory for mesh saving:
 meshes_dir = bg_root_dir / descriptors.MESHES_DIRNAME

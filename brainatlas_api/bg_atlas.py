@@ -111,7 +111,7 @@ class RatAtlas(BrainGlobeAtlas):
 
 class AllenBrain25Um(BrainGlobeAtlas):
     atlas_name = "allenbrain25um"
-    version = "0.1"
+    version = "0.2"
 
 
 class AllenHumanBrain500Um(BrainGlobeAtlas):

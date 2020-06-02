@@ -19,7 +19,9 @@ CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 ORIENTATION = "asl"
 
 # Working path on disk:
-bg_root_dir = Path.home() / "brainglobe_workingdir" / "mouse"
+working_dir = Path.home() / "brainglobe_workingdir"
+working_dir.mkdir(exist_ok=True)
+bg_root_dir = working_dir / "mouse"
 bg_root_dir.mkdir(exist_ok=True)
 
 # Temporary folder for nrrd files download:

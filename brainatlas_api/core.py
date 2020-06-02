@@ -1,4 +1,3 @@
-import numpy as np
 from pathlib import Path
 
 from brainatlas_api.utils import read_json, read_tiff, make_hemispheres_stack
@@ -18,12 +17,12 @@ def _idx_from_coords(coords):
 
 
 class Atlas:
-    """ Base class to handle atlases in brainglobe.
+    """ Base class to handle atlases in BrainGlobe.
 
         Parameters
         ----------
         path : str or Path object
-            path to folder containing data info
+            path to folder containing data info.
         """
 
     def __init__(self, path):
@@ -32,13 +31,14 @@ class Atlas:
 
         # Load structures list:
         structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
+
         # Add entry for file paths:
         for struct in structures_list:
             struct["mesh_filename"] = (
                 self.root_dir / MESHES_DIRNAME / "{}.obj".format(struct["id"])
             )
 
-        self.structures = StructuresDict(structures_list,)
+        self.structures = StructuresDict(structures_list)
 
         self._reference = None
         self._annotation = None
@@ -70,11 +70,50 @@ class Atlas:
                 )
         return self._hemispheres
 
-    def hemisphere_from_coords(self, coords):
-        return self.hemispheres[_idx_from_coords(coords)]
+    def hemisphere_from_coords(self, coords, as_string=False):
+        """Get the hemisphere from a coordinate triplet.
 
-    def structure_from_coords(self, coords, as_acronym=False):
+        Parameters
+        ----------
+        coords : tuple or list or numpy array
+            Triplet of coordinates.
+        as_string : bool
+            If true, returns "left" or "right".
+
+        Returns
+        -------
+        int or string
+            Hemisphere label.
+
+        """
+        hem = self.hemispheres[_idx_from_coords(coords)]
+        if as_string:
+            hem = ["left", "right"][hem]
+        return hem
+
+    def structure_from_coords(
+        self, coords, as_acronym=False, hierarchy_lev=None
+    ):
+        """Get the structure from a coordinate triplet.
+        Parameters
+        ----------
+        coords : tuple or list or numpy array
+            Triplet of coordinates.
+        as_acronym : bool
+            If true, the region acronym is returned.
+        hierarchy_lev : int or None
+            If specified, return parent node at thi hierarchy level.
+
+        Returns
+        -------
+        int or string
+            Structure containing the coordinates.
+        """
         rid = self.annotation[_idx_from_coords(coords)]
+
+        if hierarchy_lev is not None:
+            rid = self.structures[rid]["structure_id_path"][hierarchy_lev]
+
         if as_acronym:
             d = self.structures[rid]
             return d["acronym"]
@@ -82,40 +121,47 @@ class Atlas:
             return rid
 
     # Meshes-related methods:
-    def get_from_structure(self, structure, key):
+    def _get_from_structure(self, structure, key):
+        """Internal interface to the structure dict. It support querying with a
+        single structure id or a list of ids.
+
+        Parameters
+        ----------
+        structure : int or str or list
+            Valid id or acronym, or list if ids or acronyms.
+        key : str
+            Key for the Structure dictionary (eg "name" or "rgb_triplet").
+
+        Returns
+        -------
+        value or list of values
+            If structure is a list, returns list.
+
+        """
         if isinstance(structure, list) or isinstance(structure, tuple):
-            return [self.get_from_structure(s, key) for s in structure]
+            return [self._get_from_structure(s, key) for s in structure]
         else:
             return self.structures[structure][key]
 
-    def mesh_from_structure(self, region_id):
-        return self.structures[region_id]["mesh"]
+    def mesh_from_structure(self, structure):
+        return self._get_from_structure(structure, "mesh")
 
-    def meshfile_from_structure(self, region_id):
-        return self.structures[region_id]["mesh_filename"]
+    def meshfile_from_structure(self, structure):
+        return self._get_from_structure(structure, "mesh_filename")
 
     def root_mesh(self):
         return self.mesh_from_structure("root")
 
+    def root_meshfile(self):
+        return self.meshfile_from_structure("root")
+
     # ------- BrainRender methods, might be useful to implement here ------- #
 
-    def get_region_unilateral(self):
-        pass
+    # def get_region_unilateral(self):
+    #     pass
 
-    def mirror_point_across_hemispheres(self):
-        pass
-
-    def print_structures(self):
-        """
-        Prints the name of every structure in the structure tree to the console.
-        """
-        acronyms, names = self.structures_acronyms, self.structures_names
-        sort_idx = np.argsort(acronyms)
-        acronyms, names = (
-            np.array(acronyms)[sort_idx],
-            np.array(names)[sort_idx],
-        )
-        [print("({}) - {}".format(a, n)) for a, n in zip(acronyms, names)]
+    # def mirror_point_across_hemispheres(self):
+    #     pass
 
     # # functions to create oriented planes that can be used to slice actors etc
     # def get_plane_at_point(self, pos, norm, sx, sy,

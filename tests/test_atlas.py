@@ -48,7 +48,7 @@ def test_structures(atlas):
         "grey": 8,
         "CH": 567,
     }
-    assert atlas.get_from_structure([997, 8, 567], "acronym") == [
+    assert atlas._get_from_structure([997, 8, 567], "acronym") == [
         "root",
         "grey",
         "CH",

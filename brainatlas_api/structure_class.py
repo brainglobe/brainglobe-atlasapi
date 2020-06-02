@@ -1,37 +1,40 @@
 import meshio as mio
+from collections import UserDict
+import warnings
 
 
-class Structure(dict):
+class Structure(UserDict):
+    """Class implementing the lazy loading of a mesh if the dictionary is
+    queried for it.
+    """
+
     def __getitem__(self, item):
-        if item == "mesh" and super().__getitem__(item) is None:
-            # TODO gracefully fail with warning if no mesh:
+        if item == "mesh" and self.data[item] is None:
+            if self.data["mesh_filename"] is None:
+                warnings.warn(
+                    "No mesh filename for region {}".format(
+                        self.data["acronym"]
+                    )
+                )
+                return None
             try:
-                super().__setitem__(item, mio.read(self["mesh_filename"]))
+                self.data[item] = mio.read(self.data["mesh_filename"])
             except (TypeError, mio.ReadError):
                 raise mio.ReadError(
                     "No valid mesh for region: {}".format(self.data["acronym"])
                 )
 
-        return super().__getitem__(item)
-
-    def get_center_of_mass(self):
-        pass
-
-    def ancestors(self):
-        pass
-
-    def descendants(self):
-        pass
+        return self.data[item]
 
 
-class StructuresDict(dict):
-    """ Class to handle dual indexing by either acronym or id.
+class StructuresDict(UserDict):
+    """Class to handle dual indexing by either acronym or id.
 
-        Parameters
-        ----------
-        mesh_path : str or Path object
-            path to folder containing all meshes .obj files
-        """
+    Parameters
+    ----------
+    mesh_path : str or Path object
+        path to folder containing all meshes .obj files
+    """
 
     def __init__(self, structures_list):
         super().__init__()
@@ -43,10 +46,10 @@ class StructuresDict(dict):
 
         for struct in structures_list:
             sid = struct["id"]
-            super().__setitem__(sid, Structure(**struct, mesh=None))
+            self.data[sid] = Structure(**struct, mesh=None)
 
     def __getitem__(self, item):
-        """ Core implementation of the class support for different indexing.
+        """Core implementation of the class support for different indexing.
 
         Parameters
         ----------
@@ -61,4 +64,12 @@ class StructuresDict(dict):
         except ValueError:
             item = self.acronym_to_id_map[item]
 
-        return super().__getitem__(int(item))
+        return self.data[int(item)]
+
+    def __repr__(self):
+        """String representation of the class, print all regions names
+        """
+
+        return "".join(
+            ["({}) \t- {}\n".format(k, v["acronym"]) for k, v in self.items()]
+        )

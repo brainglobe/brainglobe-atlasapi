@@ -2,7 +2,6 @@ import json
 import tifffile
 import numpy as np
 import requests
-import os
 from tqdm.auto import tqdm
 
 
@@ -62,11 +61,12 @@ def read_tiff(path):
 
 
 # -------------------------------- Folders I/O ------------------------------- #
-def get_subdirs(folderpath):
-    """
-        Returns the subfolders in a given folder
-    """
-    return [f.path for f in os.scandir(folderpath) if f.is_dir()]
+# Ideally manageable with pathlib
+# def get_subdirs(folderpath):
+#    """
+#        Returns the subfolders in a given folder
+#    """
+#    return [f.path for f in os.scandir(folderpath) if f.is_dir()]
 
 
 # ------------------------------- Data handling ------------------------------ #

@@ -94,9 +94,9 @@ class BrainGlobeAtlas(Atlas):
         destination_path.unlink()
 
 
-class TestAtlas(BrainGlobeAtlas):
-    atlas_name = "test_allen_100um"
-    version = "0.1"
+class ExampleAtlas(BrainGlobeAtlas):
+    atlas_name = "example_mouse_100um"
+    version = "0.2"
 
 
 class FishAtlas(BrainGlobeAtlas):

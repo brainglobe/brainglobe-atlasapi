@@ -4,3 +4,4 @@ tifffile
 treelib
 pandas
 requests
+meshio

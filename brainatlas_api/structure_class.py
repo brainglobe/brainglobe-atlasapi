@@ -1,14 +1,18 @@
 import meshio as mio
-from collections import UserDict
 
 
-class Structure(UserDict):
+class Structure(dict):
     def __getitem__(self, item):
-        if item == "mesh" and self.data[item] is None:
+        if item == "mesh" and super().__getitem__(item) is None:
             # TODO gracefully fail with warning if no mesh:
-            self.data[item] = mio.read(self["mesh_filename"])
+            try:
+                super().__setitem__(item, mio.read(self["mesh_filename"]))
+            except (TypeError, mio.ReadError):
+                raise mio.ReadError(
+                    "No valid mesh for region: {}".format(self.data["acronym"])
+                )
 
-        return self.data[item]
+        return super().__getitem__(item)
 
     def get_center_of_mass(self):
         pass
@@ -20,7 +24,7 @@ class Structure(UserDict):
         pass
 
 
-class StructuresDict(UserDict):
+class StructuresDict(dict):
     """ Class to handle dual indexing by either acronym or id.
 
         Parameters
@@ -29,7 +33,7 @@ class StructuresDict(UserDict):
             path to folder containing all meshes .obj files
         """
 
-    def __init__(self, structures_list, mesh_dir_path):
+    def __init__(self, structures_list):
         super().__init__()
 
         # Acronym to id map:
@@ -37,17 +41,24 @@ class StructuresDict(UserDict):
             r["acronym"]: r["id"] for r in structures_list
         }
 
-        for struct_dict in structures_list:
-            sid = struct_dict["id"]
-            mesh_filename = mesh_dir_path / f"{sid}.obj"
-            self.data[sid] = Structure(
-                mesh_filename=mesh_filename, mesh=None, **struct_dict
-            )
+        for struct in structures_list:
+            sid = struct["id"]
+            super().__setitem__(sid, Structure(**struct, mesh=None))
 
     def __getitem__(self, item):
-        if isinstance(item, int):
-            return self.data[item]
-        elif isinstance(item, str):
-            return self.data[self.acronym_to_id_map[item]]
-        elif isinstance(item, list):
-            return [self.__getitem__(i) for i in item]
+        """ Core implementation of the class support for different indexing.
+
+        Parameters
+        ----------
+        item :
+
+        Returns
+        -------
+
+        """
+        try:
+            item = int(item)
+        except ValueError:
+            item = self.acronym_to_id_map[item]
+
+        return super().__getitem__(int(item))

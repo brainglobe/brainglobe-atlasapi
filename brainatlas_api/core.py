@@ -30,11 +30,15 @@ class Atlas:
         self.root_dir = Path(path)
         self.metadata = read_json(self.root_dir / METADATA_FILENAME)
 
-        # Class for structures:
+        # Load structures list:
         structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
-        self.structures = StructuresDict(
-            structures_list, self.root_dir / MESHES_DIRNAME
-        )
+        # Add entry for file paths:
+        for struct in structures_list:
+            struct["mesh_filename"] = (
+                self.root_dir / MESHES_DIRNAME / "{}.obj".format(struct["id"])
+            )
+
+        self.structures = StructuresDict(structures_list,)
 
         self._reference = None
         self._annotation = None
@@ -57,7 +61,9 @@ class Atlas:
         if self._hemispheres is None:
             # If reference is symmetric generate hemispheres block:
             if self.metadata["symmetric"]:
-                self._hemispheres = make_hemispheres_stack(self.shape)
+                self._hemispheres = make_hemispheres_stack(
+                    self.metadata["shape"]
+                )
             else:
                 self._hemispheres = read_tiff(
                     self.root_dir / HEMISPHERES_FILENAME
@@ -67,15 +73,29 @@ class Atlas:
     def hemisphere_from_coords(self, coords):
         return self.hemispheres[_idx_from_coords(coords)]
 
-    def structure_from_coords(self, coords):
-        return self.annotation[_idx_from_coords(coords)]
+    def structure_from_coords(self, coords, as_acronym=False):
+        rid = self.annotation[_idx_from_coords(coords)]
+        if as_acronym:
+            d = self.structures[rid]
+            return d["acronym"]
+        else:
+            return rid
 
     # Meshes-related methods:
-    def get_mesh(self, region_id):
-        return self.structure_mesh_dict[region_id]
+    def get_from_structure(self, structure, key):
+        if isinstance(structure, list) or isinstance(structure, tuple):
+            return [self.get_from_structure(s, key) for s in structure]
+        else:
+            return self.structures[structure][key]
 
-    def get_brain_mesh(self):
-        return self.get_mesh_from_name("root")
+    def mesh_from_structure(self, region_id):
+        return self.structures[region_id]["mesh"]
+
+    def meshfile_from_structure(self, region_id):
+        return self.structures[region_id]["mesh_filename"]
+
+    def root_mesh(self):
+        return self.mesh_from_structure("root")
 
     # ------- BrainRender methods, might be useful to implement here ------- #
 

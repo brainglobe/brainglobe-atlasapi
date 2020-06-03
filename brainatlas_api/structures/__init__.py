@@ -1,2 +1,0 @@
-from brainatlas_api.structures.simple_tree import SimpleTree
-from brainatlas_api.structures.structure_tree import StructureTree

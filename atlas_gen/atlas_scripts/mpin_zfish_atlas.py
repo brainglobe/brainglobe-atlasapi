@@ -1,5 +1,4 @@
 from pathlib import Path
-import tempfile
 import warnings
 
 import nrrd
@@ -12,13 +11,13 @@ from brainatlas_api.utils import retrieve_over_http
 from brainatlas_api.structures import StructureTree
 
 # Specify information about the atlas:
-RES_UM = 1.0
+RES_UM = 1
 VERSION = 2
 ATLAS_NAME = f"mpin_zfish"
-SPECIES = "Mus musculus"
-ATLAS_LINK = "http://www.brain-map.org.com"
+SPECIES = "Danio rerio"
+ATLAS_LINK = "http://fishatlas.neuro.mpg.de"
 CITATION = "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034"
-ORIENTATION = "ial"
+ORIENTATION = "lai"
 
 
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
@@ -96,25 +95,21 @@ def collect_all_inplace(
         collect_all_inplace(region, traversing_list, download_path, mesh_dict)
 
 
-# Temporary folder for nrrd files download:
-temp_path = Path(tempfile.mkdtemp())
-download_dir_path = temp_path / "downloading_path"
-download_dir_path.mkdir()
-
 # Download reference:
 #####################
 reference_url = f"{BASE_URL}/media/brain_browser/Brain/MovieViewBrain/standard_brain_fixed_SYP_T_GAD1b.nrrd"
-out_file_path = download_dir_path / "reference.nrrd"
+out_file_path = bg_root_dir / "reference.nrrd"
 
 retrieve_over_http(reference_url, out_file_path)
 
 refstack, h = nrrd.read(str(out_file_path))
+print(refstack.shape)
 
 # Download structures tree and meshes:
 ######################################
 regions_url = f"{BASE_URL}/neurons/get_brain_regions"
 
-meshes_dir_path = download_dir_path / "meshes_temp_download"
+meshes_dir_path = bg_root_dir / "meshes_temp_download"
 meshes_dir_path.mkdir(exist_ok=True)
 
 # Download structures hierarchy:
@@ -143,7 +138,6 @@ collect_all_inplace(
     structures_dict, structures_list, meshes_dir_path, meshes_dict
 )
 
-print(structures_list)
 # Wrap up, compress, and remove file:0
 print(f"Finalising atlas")
 wrapup_atlas_from_data(

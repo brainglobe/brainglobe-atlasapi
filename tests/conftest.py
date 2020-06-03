@@ -1,8 +1,10 @@
 import pytest
-from brainatlas_api.bg_atlas import TestAtlas
-import tempfile
+from brainatlas_api.bg_atlas import ExampleAtlas
+
+# import tempfile
 
 
 @pytest.fixture(scope="module")
 def atlas_path():
-    return TestAtlas(brainglobe_path=tempfile.mkdtemp()).root_dir
+    # brainglobe_path=tempfile.mkdtemp()
+    return ExampleAtlas().root_dir

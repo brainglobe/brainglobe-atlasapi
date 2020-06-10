@@ -1,8 +1,6 @@
 import meshio as mio
-import pandas as pd
 from collections import UserDict
 import warnings
-from brainatlas_api.structure_tree_util import get_structures_tree
 
 
 class Structure(UserDict):
@@ -50,18 +48,6 @@ class StructuresDict(UserDict):
             sid = struct["id"]
             self.data[sid] = Structure(**struct, mesh=None)
 
-        # Get hierarchy tree
-        self.tree = get_structures_tree(structures_list)
-
-        # Get lookup table
-        self.lookup_table = pd.DataFrame(
-            dict(
-                acronym=[r["acronym"] for r in structures_list],
-                id=[r["id"] for r in structures_list],
-                name=[r["name"] for r in structures_list],
-            )
-        )
-
     def __getitem__(self, item):
         """Core implementation of the class support for different indexing.
 
@@ -87,16 +73,3 @@ class StructuresDict(UserDict):
         return "".join(
             ["({}) \t- {}\n".format(k, v["acronym"]) for k, v in self.items()]
         )
-
-    def hierarchy(self):
-        """
-            Prints a hierarchical tree with structure acronyms:
-
-        """
-        self.tree.show()
-
-    def lookup(self):
-        """
-            Prints lookup table
-        """
-        print(self.lookup_table)

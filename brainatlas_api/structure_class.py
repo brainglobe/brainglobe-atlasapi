@@ -69,7 +69,7 @@ class StructuresDict(UserDict):
     def __repr__(self):
         """String representation of the class, print all regions names
         """
-
+        # TODO consider changing this to printing the tree structure as it's a more concise visualisation
         return "".join(
             ["({}) \t- {}\n".format(k, v["acronym"]) for k, v in self.items()]
         )

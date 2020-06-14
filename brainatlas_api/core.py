@@ -1,7 +1,9 @@
 from pathlib import Path
+import pandas as pd
 
 from brainatlas_api.utils import read_json, read_tiff, make_hemispheres_stack
 from brainatlas_api.structure_class import StructuresDict
+from brainatlas_api.structure_tree_util import get_structures_tree
 from brainatlas_api.descriptors import (
     METADATA_FILENAME,
     STRUCTURES_FILENAME,
@@ -31,6 +33,7 @@ class Atlas:
 
         # Load structures list:
         structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
+        self.structures_list = structures_list  # keep to generate tree and dataframe views when necessary
 
         # Add entry for file paths:
         for struct in structures_list:
@@ -43,6 +46,32 @@ class Atlas:
         self._reference = None
         self._annotation = None
         self._hemispheres = None
+        self._hierarchy = None
+        self._lookup = None
+
+    @property
+    def hierarchy(self):
+        """
+            Returns a Treelib.tree object with structures hierarchy
+        """
+        if self._hierarchy is None:
+            self._hierarchy = get_structures_tree(self.structures_list)
+        return self._hierarchy
+
+    @property
+    def lookup(self):
+        """
+            Returns a dataframe with id, acronym and name for each structure
+        """
+        if self._lookup is None:
+            self._lookup = pd.DataFrame(
+                dict(
+                    acronym=[r["acronym"] for r in self.structures_list],
+                    id=[r["id"] for r in self.structures_list],
+                    name=[r["name"] for r in self.structures_list],
+                )
+            )
+        return self._lookup
 
     @property
     def reference(self):

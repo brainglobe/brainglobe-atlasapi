@@ -1,9 +1,7 @@
 from pathlib import Path
-import urllib
-import shutil
 import tarfile
-import warnings
 
+from brainatlas_api.utils import retrieve_over_http
 from brainatlas_api import DEFAULT_PATH
 from brainatlas_api.core import Atlas
 from brainatlas_api.utils import check_internet_connection
@@ -44,22 +42,26 @@ class BrainGlobeAtlas(Atlas):
             else self.brainglobe_path
         )
 
-        self.atlas_name = self.atlas_name + f"_v{self.version}"
-
         try:
-            super().__init__(self.brainglobe_path / self.atlas_name)
+            super().__init__(self.brainglobe_path / self.atlas_full_name)
 
         except FileNotFoundError:
-            warnings.warn(f"{self.atlas_name} not found. Downloading...")
+            print(
+                0, f"{self.atlas_full_name} not found locally. Downloading..."
+            )
             self.download_extract_file()
 
-            super().__init__(self.brainglobe_path / self.atlas_name)
+            super().__init__(self.brainglobe_path / self.atlas_full_name)
+
+    @property
+    def atlas_full_name(self):
+        return f"{self.atlas_name}_v{self.version}"
 
     @property
     def remote_url(self):
         """ Format complete url for download.
         """
-        return self._remote_url_base.format(self.atlas_name)
+        return self._remote_url_base.format(self.atlas_full_name)
 
     def download_extract_file(self):
         """ Download and extract atlas from remote url.
@@ -70,24 +72,10 @@ class BrainGlobeAtlas(Atlas):
         destination_path = self.interm_dir_path / COMPRESSED_FILENAME
 
         # Try to download atlas data
-        try:
-            with urllib.request.urlopen(self.remote_url) as response:
-                with open(destination_path, "wb") as outfile:
-                    shutil.copyfileobj(response, outfile)
-        except urllib.error.HTTPError as e:
-            raise FileNotFoundError(
-                f"Could not download data from {self.remote_url}. error code: {e.code}"
-            )
-        except urllib.error.URLError as e:
-            raise FileNotFoundError(
-                f"Could not download data from {self.remote_url}: {e.args}"
-            )
+        retrieve_over_http(self.remote_url, destination_path)
 
-        # Uncompress
+        # Uncompress in brainglobe path:
         tar = tarfile.open(destination_path)
-
-        # Ensure brainglobe path exists and extract there:
-        self.brainglobe_path.mkdir(exist_ok=True)
         tar.extractall(path=self.brainglobe_path)
         tar.close()
 
@@ -100,17 +88,18 @@ class ExampleAtlas(BrainGlobeAtlas):
 
 
 class FishAtlas(BrainGlobeAtlas):
-    atlas_name = "fishatlas"
-    version = "0.1"
+    atlas_name = "mpin_zfish_1um"
+    version = "0.2"
 
 
 class RatAtlas(BrainGlobeAtlas):
+    # TODO fix
     atlas_name = "ratatlas"
     version = "0.1"
 
 
 class AllenBrain25Um(BrainGlobeAtlas):
-    atlas_name = "allenbrain25um"
+    atlas_name = "allen_mouse_25um"
     version = "0.2"
 
 

@@ -3,6 +3,9 @@ import tifffile
 import numpy as np
 import requests
 from tqdm.auto import tqdm
+import logging
+
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
 # ------------------------------- Web requests ------------------------------- #
@@ -32,6 +35,7 @@ def check_internet_connection(
 
 
 def retrieve_over_http(url, output_file_path):
+    CHUNK_SIZE = 4096
     response = requests.get(url, stream=True)
 
     try:
@@ -42,11 +46,14 @@ def retrieve_over_http(url, output_file_path):
             total=int(response.headers.get("content-length", 0)),
             desc=output_file_path.name,
         ) as fout:
-            for chunk in response.iter_content(chunk_size=16384):
+            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
                 fout.write(chunk)
 
     except requests.exceptions.ConnectionError:
         output_file_path.unlink()
+        raise requests.exceptions.ConnectionError(
+            f"Could not download file from {url}"
+        )
 
 
 # --------------------------------- File I/O --------------------------------- #

@@ -1,16 +1,15 @@
 from pathlib import Path
 import tarfile
 
-from brainatlas_api.utils import retrieve_over_http
-from brainatlas_api import DEFAULT_PATH
-from brainatlas_api.core import Atlas
-from brainatlas_api.utils import check_internet_connection
+from brainatlas_api import utils
+from brainatlas_api import config
+from brainatlas_api import core
 
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
 
-class BrainGlobeAtlas(Atlas):
+class BrainGlobeAtlas(core.Atlas):
     """
     Add download functionalities to Atlas class.
 
@@ -30,17 +29,15 @@ class BrainGlobeAtlas(Atlas):
     )
 
     def __init__(self, brainglobe_path=None, interm_dir_path=None):
+        conf = config.read_config()
 
         if brainglobe_path is None:
-            brainglobe_path = DEFAULT_PATH
-
+            brainglobe_path = conf["default_dirs"]["atlas_dir"]
         self.brainglobe_path = Path(brainglobe_path)
 
-        self.interm_dir_path = (
-            Path(interm_dir_path)
-            if interm_dir_path is not None
-            else self.brainglobe_path
-        )
+        if interm_dir_path is None:
+            interm_dir_path = conf["default_dirs"]["atlas_dir"]
+        self.interm_dir_path = Path(interm_dir_path)
 
         try:
             super().__init__(self.brainglobe_path / self.atlas_full_name)
@@ -66,13 +63,13 @@ class BrainGlobeAtlas(Atlas):
     def download_extract_file(self):
         """ Download and extract atlas from remote url.
         """
-        check_internet_connection()
+        utils.check_internet_connection()
 
         # Get path to folder where data will be saved
         destination_path = self.interm_dir_path / COMPRESSED_FILENAME
 
         # Try to download atlas data
-        retrieve_over_http(self.remote_url, destination_path)
+        utils.retrieve_over_http(self.remote_url, destination_path)
 
         # Uncompress in brainglobe path:
         tar = tarfile.open(destination_path)

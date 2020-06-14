@@ -10,15 +10,14 @@ COMPRESSED_FILENAME = "atlas.tar.gz"
 
 
 class BrainGlobeAtlas(core.Atlas):
-    """
-    Add download functionalities to Atlas class.
+    """Add download functionalities to Atlas class.
 
         Parameters
         ----------
-        brainglobe_path : str or Path object
+        brainglobe_dir : str or Path object
             default folder for brainglobe downloads
 
-        interm_dir_path : str or Path object
+        interm_download_dir : str or Path object
             folder to download the compressed file for extraction
         """
 
@@ -28,19 +27,25 @@ class BrainGlobeAtlas(core.Atlas):
         "https://gin.g-node.org/brainglobe/atlases/raw/master/{}.tar.gz"
     )
 
-    def __init__(self, brainglobe_path=None, interm_dir_path=None):
+    def __init__(self, brainglobe_dir=None, interm_download_dir=None):
         conf = config.read_config()
 
-        if brainglobe_path is None:
-            brainglobe_path = conf["default_dirs"]["atlas_dir"]
-        self.brainglobe_path = Path(brainglobe_path)
+        # Use either input values or values from the config file, and create
+        # directory if it does not exist:
+        for dir, dirname in zip(
+            [brainglobe_dir, interm_download_dir],
+            ["brainglobe_dir", "interm_download_dir"],
+        ):
+            if dir is None:
+                dir = conf["default_dirs"][dirname]
 
-        if interm_dir_path is None:
-            interm_dir_path = conf["default_dirs"]["atlas_dir"]
-        self.interm_dir_path = Path(interm_dir_path)
+            # If the default folder does not exist yet, make it:
+            dir_path = Path(dir)
+            dir_path.mkdir(exist_ok=True)
+            setattr(self, dirname, dir_path)
 
         try:
-            super().__init__(self.brainglobe_path / self.atlas_full_name)
+            super().__init__(self.brainglobe_dir / self.atlas_full_name)
 
         except FileNotFoundError:
             print(
@@ -48,7 +53,7 @@ class BrainGlobeAtlas(core.Atlas):
             )
             self.download_extract_file()
 
-            super().__init__(self.brainglobe_path / self.atlas_full_name)
+            super().__init__(self.brainglobe_dir / self.atlas_full_name)
 
     @property
     def atlas_full_name(self):
@@ -56,24 +61,24 @@ class BrainGlobeAtlas(core.Atlas):
 
     @property
     def remote_url(self):
-        """ Format complete url for download.
+        """Format complete url for download.
         """
         return self._remote_url_base.format(self.atlas_full_name)
 
     def download_extract_file(self):
-        """ Download and extract atlas from remote url.
+        """Download and extract atlas from remote url.
         """
         utils.check_internet_connection()
 
         # Get path to folder where data will be saved
-        destination_path = self.interm_dir_path / COMPRESSED_FILENAME
+        destination_path = self.interm_download_dir / COMPRESSED_FILENAME
 
         # Try to download atlas data
         utils.retrieve_over_http(self.remote_url, destination_path)
 
         # Uncompress in brainglobe path:
         tar = tarfile.open(destination_path)
-        tar.extractall(path=self.brainglobe_path)
+        tar.extractall(path=self.brainglobe_dir)
         tar.close()
 
         destination_path.unlink()

@@ -27,6 +27,11 @@ setup(
         ]
     },
     python_requires=">=3.6, <3.8",
+    entry_points={
+        "console_scripts": [
+            "brainatlas_config = brainatlas_api.config:cli_modify_config"
+        ]
+    },
     packages=find_namespace_packages(exclude=("atlas_gen", "docs", "tests*")),
     include_package_data=True,
     url="https://github.com/brainglobe/brainatlas-api",

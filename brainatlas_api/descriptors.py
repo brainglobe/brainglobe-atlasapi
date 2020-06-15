@@ -1,10 +1,9 @@
 import numpy as np
 
 # Entries and types from this template will be used to check atlas info
-# consistency. Please keep updated both this and the function when changing the structure.
-
+# consistency. Please keep updated both this and the function when changing
+# the structure.
 # If the atlas is unpublished, specify "unpublished" in the citation.
-
 METADATA_TEMPLATE = {
     "name": "name/author/institute_species_[optionalspecs]",
     "citation": "Someone et al 2020, https://doi.org/somedoi",

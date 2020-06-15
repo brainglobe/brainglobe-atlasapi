@@ -28,7 +28,12 @@ setup(
         ]
     },
     python_requires=">=3.6, <3.8",
-    packages=find_namespace_packages(exclude=("docs", "tests*")),
+    entry_points={
+        "console_scripts": [
+            "brainatlas_config = brainatlas_api.config:cli_modify_config"
+        ]
+    },
+    packages=find_namespace_packages(exclude=("atlas_gen", "docs", "tests*")),
     include_package_data=True,
     url="https://github.com/brainglobe/brainatlas-api",
     author="Luigi Petrucco, Federico Claudi, Adam Tyson",

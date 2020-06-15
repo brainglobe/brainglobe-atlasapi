@@ -24,6 +24,7 @@ setup(
             "coverage",
             "pre-commit",
             "PyMCubes",
+            "bgspace",
         ]
     },
     python_requires=">=3.6, <3.8",

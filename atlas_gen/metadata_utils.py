@@ -11,8 +11,8 @@ from brainatlas_api import descriptors
 import requests
 from requests.exceptions import MissingSchema, InvalidURL, ConnectionError
 
-from brainatlas_api.structures.structure_tree import StructureTree
 from atlas_gen.structure_json_to_csv import convert_structure_json_to_csv
+from brainatlas_api.structure_tree_util import get_structures_tree
 
 
 def generate_metadata_dict(
@@ -70,10 +70,8 @@ def create_readme(uncompr_atlas_path, metadata_dict, structures):
     readmepath = str(uncompr_atlas_path / "README.txt")
 
     # First write the structure tree
-    structuresTree = StructureTree(structures)
-    structuresTree.print_structures_tree(
-        to_file=True, save_filepath=readmepath
-    )
+    structuresTree = get_structures_tree(structures)
+    structuresTree.save2file(readmepath)
 
     # The prepend the header and info
     with open(readmepath, "r") as original:

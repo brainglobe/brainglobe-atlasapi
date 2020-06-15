@@ -1,5 +1,5 @@
 from brainatlas_api.descriptors import STRUCTURE_TEMPLATE as STEMPLATE
-from brainatlas_api.structures.structure_tree import StructureTree
+from brainatlas_api.structure_tree_util import get_structures_tree
 
 
 def check_struct_consistency(structures):
@@ -56,7 +56,7 @@ def get_structure_children(structures, region, use_tree=False):
             if region["id"] in subregion["structure_id_path"]:
                 sub_region_ids.append(subregion["id"])
     else:
-        tree = StructureTree(structures).get_structures_tree()
+        tree = get_structures_tree(structures)
         sub_region_ids = [
             l.identifier for k, l in tree.subtree(region["id"]).nodes.items()
         ]
@@ -77,7 +77,7 @@ def get_structure_terminal_nodes(structures, region):
         struture tree
     """
 
-    tree = StructureTree(structures).get_structures_tree()
+    tree = get_structures_tree(structures)
 
     sub_region_ids = [
         l.identifier for l in tree.subtree(region["id"]).leaves()
@@ -102,7 +102,7 @@ def show_which_structures_have_mesh(structures, meshes_dir):
         True for the regions that a mesh and false for the others
 
     """
-    tree = StructureTree(structures).get_structures_tree()
+    tree = get_structures_tree(structures)
 
     for idx, node in tree.nodes.items():
         savepath = meshes_dir / f"{idx}.obj"

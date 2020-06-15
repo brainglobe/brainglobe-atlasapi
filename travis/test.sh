@@ -4,4 +4,4 @@ pip install pytest
 pip install pytest-cov
 
 conda info -a
-pytest --cov=brainatlas_api
+pytest --runslow --cov=brainatlas_api

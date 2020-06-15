@@ -1,9 +1,10 @@
 import configparser
 from pathlib import Path
 import click
+from pkg_resources import resource_filename
 
-# Might be problematic if module is refactored in subdir, but:
-CONFIG_PATH = Path(__file__).parent.parent / "bg_config.conf"
+CONFIG_FILENAME = "bg_config.conf"
+CONFIG_PATH = Path(resource_filename("brainatlas_api", CONFIG_FILENAME))
 
 # 2 level dictionary for sections and values:
 DEFAULT_PATH = Path.home() / ".brainglobe"
@@ -15,13 +16,14 @@ TEMPLATE_CONF_DICT = {
 }
 
 
-def write_default_config():
+def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
     """Write configuration file at first repo usage. In this way,
     we don't need to keep a confusing template config file in the repo.
 
     Parameters
     ----------
-    file_path
+    path
+    template
 
     Returns
     -------
@@ -29,14 +31,14 @@ def write_default_config():
     """
 
     conf = configparser.ConfigParser()
-    for k, val in TEMPLATE_CONF_DICT.items():
+    for k, val in template.items():
         conf[k] = val
 
-    with open(CONFIG_PATH, "w") as f:
+    with open(path, "w") as f:
         conf.write(f)
 
 
-def read_config():
+def read_config(path=CONFIG_PATH):
     """
     Returns
     -------
@@ -44,16 +46,16 @@ def read_config():
     """
 
     # If no config file exists yet, write the default one:
-    if not CONFIG_PATH.exists():
+    if not path.exists():
         write_default_config()
 
     conf = configparser.ConfigParser()
-    conf.read(CONFIG_PATH)
+    conf.read(path)
 
     return conf
 
 
-def write_config_value(key, val):
+def write_config_value(key, val, path=CONFIG_PATH):
     """Write a new value in the config file. To make things simple, ignore
     sections and look directly for matching parameters names.
 
@@ -66,10 +68,10 @@ def write_config_value(key, val):
 
     """
     conf = configparser.ConfigParser()
-    conf.read(CONFIG_PATH)
+    conf.read(path)
     for sect_name, sect_dict in conf.items():
         if key in sect_dict.keys():
-            conf[sect_name][key] = val
+            conf[sect_name][key] = str(val)
 
     with open(CONFIG_PATH, "w") as f:
         conf.write(f)

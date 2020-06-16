@@ -3,13 +3,7 @@ from rich.table import Table
 from rich import print as rprint
 
 from brainatlas_api import config
-from brainatlas_api.bg_atlas import (
-    BrainGlobeAtlas,
-    FishAtlas,
-    RatAtlas,
-    AllenBrain25Um,
-    AllenHumanBrain500Um,
-)
+from brainatlas_api import bg_atlas
 
 
 """
@@ -29,17 +23,22 @@ def list_atlases():
             atlases[elem.name] = dict(
                 downloaded=True,
                 local=str(elem),
-                online=BrainGlobeAtlas._remote_url_base.format(elem.name),
+                online=bg_atlas.BrainGlobeAtlas._remote_url_base.format(
+                    elem.name
+                ),
             )
 
     # ---------------------- Get atlases not yet downloaded ---------------------- #
-    for atlas in [FishAtlas, RatAtlas, AllenBrain25Um, AllenHumanBrain500Um]:
+    available_atlases = [
+        cls for cls in map(bg_atlas.__dict__.get, bg_atlas.__all__)
+    ]
+    for atlas in available_atlases:
         name = f"{atlas.atlas_name}_v{atlas.version}"
         if name not in atlases.keys():
             atlases[str(name)] = dict(
                 downloaded=False,
                 local="[red]---[/red]",
-                online=BrainGlobeAtlas._remote_url_base.format(name),
+                online=atlas._remote_url_base.format(name),
             )
 
     # -------------------------------- print table ------------------------------- #

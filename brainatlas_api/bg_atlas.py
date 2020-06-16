@@ -8,6 +8,8 @@ from brainatlas_api import core
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
+__all__ = ["FishAtlas", "RatAtlas", "AllenBrain25Um", "AllenHumanBrain500Um"]
+
 
 class BrainGlobeAtlas(core.Atlas):
     """Add download functionalities to Atlas class.

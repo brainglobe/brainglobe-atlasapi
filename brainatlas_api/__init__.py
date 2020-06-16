@@ -7,4 +7,14 @@ available_atlases = [
 
 
 def get_atlas_class_from_name(name):
-    a = 1
+    names = [
+        f"{atlas.atlas_name}_v{atlas.version}" for atlas in available_atlases
+    ]
+    atlases = {n: a for n, a in zip(names, available_atlases)}
+
+    if name in atlases.keys():
+        return atlases[name]
+    else:
+        print(f"Could not find atlas with name {name}. Available atlases:\n")
+        list_atlases()
+        return None

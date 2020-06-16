@@ -1,14 +1,14 @@
 from pathlib import Path
 import warnings
-
 import nrrd
 import requests
+import tarfile
+import tifffile
 
-
+from allensdk.core.structure_tree import StructureTree
 from atlas_gen.wrapup import wrapup_atlas_from_data
 
 from brainatlas_api.utils import retrieve_over_http
-from brainatlas_api.structures import StructureTree
 
 # Specify information about the atlas:
 RES_UM = 1
@@ -99,11 +99,26 @@ def collect_all_inplace(
 #####################
 reference_url = f"{BASE_URL}/media/brain_browser/Brain/MovieViewBrain/standard_brain_fixed_SYP_T_GAD1b.nrrd"
 out_file_path = bg_root_dir / "reference.nrrd"
-
 retrieve_over_http(reference_url, out_file_path)
 
-refstack, h = nrrd.read(str(out_file_path))
-print(refstack.shape)
+reference_stack, h = nrrd.read(str(out_file_path))
+
+# Download annotation and hemispheres from GIN repo:
+gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations.tar.gz"
+compressed_zip_path = bg_root_dir / "annotations.tar"
+retrieve_over_http(gin_url, compressed_zip_path)
+
+tar = tarfile.open(compressed_zip_path)
+tar.extractall(path=bg_root_dir)
+
+extracted_dir = bg_root_dir / "mpin_zfish_annotations"
+
+annotation_stack = tifffile.imread(
+    str(extracted_dir / "mpin_zfish_annotation.tif")
+)
+hemispheres_stack = tifffile.imread(
+    str(extracted_dir / "mpin_zfish_hemispheres.tif")
+)
 
 # Download structures tree and meshes:
 ######################################
@@ -149,12 +164,12 @@ wrapup_atlas_from_data(
     resolution=(RES_UM,) * 3,
     orientation=ORIENTATION,
     root_id=0,
-    reference_stack=refstack,
-    annotation_stack=refstack,
+    reference_stack=reference_stack,
+    annotation_stack=annotation_stack,
     structures_list=structures_list,
     meshes_dict=meshes_dict,
     working_dir=bg_root_dir,
-    hemispheres_stack=None,
+    hemispheres_stack=hemispheres_stack,
     cleanup_files=False,
     compress=True,
 )

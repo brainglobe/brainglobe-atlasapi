@@ -4,6 +4,7 @@ import nrrd
 import requests
 import tarfile
 import tifffile
+import numpy as np
 
 from allensdk.core.structure_tree import StructureTree
 from atlas_gen.wrapup import wrapup_atlas_from_data
@@ -17,7 +18,7 @@ ATLAS_NAME = f"mpin_zfish"
 SPECIES = "Danio rerio"
 ATLAS_LINK = "http://fishatlas.neuro.mpg.de"
 CITATION = "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034"
-ORIENTATION = "lai"
+ORIENTATION = "ial"
 
 
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
@@ -101,7 +102,9 @@ reference_url = f"{BASE_URL}/media/brain_browser/Brain/MovieViewBrain/standard_b
 out_file_path = bg_root_dir / "reference.nrrd"
 retrieve_over_http(reference_url, out_file_path)
 
+# Swap axes b/c of nrrd reading
 reference_stack, h = nrrd.read(str(out_file_path))
+reference_stack = np.swapaxes(reference_stack, 0, 2)
 
 # Download annotation and hemispheres from GIN repo:
 gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations.tar.gz"
@@ -113,12 +116,15 @@ tar.extractall(path=bg_root_dir)
 
 extracted_dir = bg_root_dir / "mpin_zfish_annotations"
 
+#
 annotation_stack = tifffile.imread(
     str(extracted_dir / "mpin_zfish_annotation.tif")
 )
+
 hemispheres_stack = tifffile.imread(
     str(extracted_dir / "mpin_zfish_hemispheres.tif")
 )
+
 
 # Download structures tree and meshes:
 ######################################

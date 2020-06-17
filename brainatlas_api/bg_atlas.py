@@ -8,7 +8,14 @@ from brainatlas_api import core
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
-__all__ = ["FishAtlas", "RatAtlas", "AllenBrain25Um", "AllenHumanBrain500Um"]
+__all__ = [
+    "FishAtlas",
+    "RatAtlas",
+    "AllenBrain25Um",
+    "AllenHumanBrain500Um",
+    "KimUnified25Um",
+    "KimUnified50Um",
+]
 
 
 class BrainGlobeAtlas(core.Atlas):
@@ -105,6 +112,16 @@ class RatAtlas(BrainGlobeAtlas):
 class AllenBrain25Um(BrainGlobeAtlas):
     atlas_name = "allen_mouse_25um"
     version = "0.2"
+
+
+class KimUnified25Um(BrainGlobeAtlas):
+    atlas_name = "kim_unified25um"
+    version = "0.1"
+
+
+class KimUnified50Um(BrainGlobeAtlas):
+    atlas_name = "kim_unified50um"
+    version = "0.1"
 
 
 class AllenHumanBrain500Um(BrainGlobeAtlas):

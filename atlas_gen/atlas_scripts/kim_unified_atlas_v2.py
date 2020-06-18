@@ -11,24 +11,24 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 # import sys
 
 # sys.path.append("./")
-from atlas_gen.mesh_utils import create_region_mesh
+from atlas_gen.mesh_utils import create_region_mesh, Region
 from atlas_gen.wrapup import wrapup_atlas_from_data
-from brainatlas_api.structure_tree_util import get_structures_tree, Region
+from brainatlas_api.structure_tree_util import get_structures_tree
 
 
 if __name__ == "__main__":
-    PARALLEL = True  # disable parallel mesh extraction for easier debugging
+    PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
     # ---------------------------------------------------------------------------- #
     #                                 PREP METADATA                                #
     # ---------------------------------------------------------------------------- #
-    RES_UM = 50
+    RES_UM = 25
     VERSION = 1
     ATLAS_NAME = f"kim_unified"
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://kimlab.io/brain-map/atlas/"
     CITATION = "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w"
-    ORIENTATION = "asr"
+    ORIENTATION = "als"
     ROOT_ID = 997
 
     # ---------------------------------------------------------------------------- #

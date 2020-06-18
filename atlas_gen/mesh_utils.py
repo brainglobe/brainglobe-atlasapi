@@ -166,7 +166,6 @@ def create_region_mesh(args):
         if not np.max(mask):
             print(f"Empty mask for {node.tag}")
         else:
-            print("Creating mesh for ", node.tag)
             if node.identifier == ROOT_ID:
                 extract_mesh_from_mask(
                     mask, obj_filepath=savepath, smooth=True

@@ -19,7 +19,7 @@ except ModuleNotFoundError:
 import numpy as np
 from pathlib import Path
 import scipy
-
+from atlas_gen.volume_utils import create_masked_array
 
 # ---------------------------------------------------------------------------- #
 #                                 MESH CREATION                                #
@@ -34,6 +34,7 @@ def extract_mesh_from_mask(
     mcubes_smooth=False,
     closing_n_iters=8,
     decimate=True,
+    tol=0.0005,
     use_marching_cubes=False,
 ):
     """ 
@@ -59,6 +60,10 @@ def extract_mesh_from_mask(
         closing_n_iters: int
             number of iterations of closing morphological operation.
             set to None to avoid applying morphological operations
+        decimate: bool
+            If True the number of vertices is reduced through decimation
+        tol: float
+            parameter for decimation, larger values correspond to more aggressive decimation
 
     """
     # check savepath argument
@@ -107,7 +112,7 @@ def extract_mesh_from_mask(
         mesh.smoothLaplacian()
 
     if decimate:
-        mesh.clean()
+        mesh.clean(tol=tol)
 
     mesh = mesh.extractLargestRegion()
 
@@ -115,6 +120,71 @@ def extract_mesh_from_mask(
         write(mesh, str(obj_filepath))
 
     return mesh
+
+
+def create_region_mesh(args):
+    """
+        Automates the creation of a region's mesh. Given a volume of annotations
+        and a structures tree, it takes the volume's region corresponding to the 
+        region of interest and all of it's children's labels and creates a mesh. 
+        It takes a tuple of arguments to facilitaed parallel processing with
+        multiprocessing.pool.map
+
+        Parameters
+        ----------
+        meshes_dir_path: pathlib Path object with folder where meshes are saved
+        tree: treelib.Tree with hierarchical structures information
+        node: tree's node corresponding to the region who's mesh is being created
+        labels: list of unique label annotations in annotated volume (list(np.unique(annotated_volume)))
+        annotaed_volume: 3d numpy array with annotaed volume
+        ROOT_ID: int, id of root structure (mesh creation is a bit more refined for that)
+    """
+    # Split arguments
+    meshes_dir_path, node, tree, labels, annotated_volume, ROOT_ID = args
+
+    # Avoid ovewriting existing mesh
+    savepath = meshes_dir_path / f"{node.identifier}.obj"
+    if savepath.exists():
+        return
+
+    # Get lables for region and it's children
+    stree = tree.subtree(node.identifier)
+    ids = list(stree.nodes.keys())
+
+    # Keep only labels that are in the annotation volume
+    matched_labels = [i for i in ids if i in labels]
+
+    if (
+        not matched_labels
+    ):  # it fails if the region and all of it's children are not in annotation
+        print(f"No labels found for {node.tag}")
+        return
+    else:
+        # Create mask and extract mesh
+        mask = create_masked_array(annotated_volume, ids)
+
+        if not np.max(mask):
+            print(f"Empty mask for {node.tag}")
+        else:
+            print("Creating mesh for ", node.tag)
+            if node.identifier == ROOT_ID:
+                extract_mesh_from_mask(
+                    mask, obj_filepath=savepath, smooth=True
+                )
+            else:
+                extract_mesh_from_mask(
+                    mask, obj_filepath=savepath, smooth=True, closing_n_iters=4
+                )
+
+
+class Region(object):
+    """
+        Class used to add metadata to treelib.Tree during atlas creation. Using this
+        means that you can then filter tree nodes depending on wether or not they have a mesh/label
+    """
+
+    def __init__(self, has_label):
+        self.has_label = has_label
 
 
 # ---------------------------------------------------------------------------- #

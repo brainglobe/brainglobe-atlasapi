@@ -11,7 +11,7 @@ from atlas_gen.metadata_utils import (
     create_metadata_files,
     generate_metadata_dict,
 )
-from atlas_gen.stacks import save_reference, save_annotation
+from atlas_gen.stacks import save_reference, save_annotation, save_hemispheres
 from atlas_gen.structures import check_struct_consistency
 
 from brainatlas_api import descriptors
@@ -99,10 +99,17 @@ def wrapup_atlas_from_data(
     # be old files
     dest_dir.mkdir()
 
+    stack_list = [reference_stack, annotation_stack]
+    saving_fun_list = [save_reference, save_annotation]
+
+    if not symmetric:
+        stack_list = stack_list + [
+            hemispheres_stack,
+        ]
+        saving_fun_list = saving_fun_list + [save_hemispheres]
+
     # write tiff stacks:
-    for stack, saving_function in zip(
-        [reference_stack, annotation_stack], [save_reference, save_annotation]
-    ):
+    for stack, saving_function in zip(stack_list, saving_fun_list):
 
         if isinstance(stack, str) or isinstance(stack, Path):
             stack = tifffile.imread(stack)

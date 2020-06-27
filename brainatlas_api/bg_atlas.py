@@ -8,7 +8,14 @@ from brainatlas_api import core
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
-__all__ = ["FishAtlas", "RatAtlas", "AllenBrain25Um", "AllenHumanBrain500Um"]
+__all__ = [
+    "FishAtlas",
+    "RatAtlas",
+    "AllenBrain25Um",
+    "AllenHumanBrain500Um",
+    "KimUnified25Um",
+    "KimUnified50Um",
+]
 
 
 class BrainGlobeAtlas(core.Atlas):
@@ -97,7 +104,7 @@ class FishAtlas(BrainGlobeAtlas):
 
 
 class RatAtlas(BrainGlobeAtlas):
-    # TODO fix
+    # TODO fix hierarchy and meshes
     atlas_name = "ratatlas"
     version = "0.1"
 
@@ -107,6 +114,17 @@ class AllenBrain25Um(BrainGlobeAtlas):
     version = "0.2"
 
 
+class KimUnified25Um(BrainGlobeAtlas):
+    atlas_name = "kim_unified_25um"
+    version = "0.1"
+
+
+class KimUnified50Um(BrainGlobeAtlas):
+    atlas_name = "kim_unified_50um"
+    version = "0.1"
+
+
 class AllenHumanBrain500Um(BrainGlobeAtlas):
+    # TODO fix meshes
     atlas_name = "allen_human_500um"
     version = "0.1"

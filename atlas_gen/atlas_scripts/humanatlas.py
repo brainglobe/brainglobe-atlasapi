@@ -1,105 +1,20 @@
-from pathlib import Path
 import json
+from rich.progress import track
 import pandas as pd
-from brainio import brainio
 import numpy as np
-import urllib3
-import multiprocessing as mp
 import time
+import multiprocessing as mp
+from pathlib import Path
 import treelib
-from vtkplotter import load
+from brainio import brainio
+import urllib3
+from allensdk.core.structure_tree import StructureTree
 
-from brainatlas_api.atlas_gen import (
-    save_anatomy,
-    save_annotation,
-    wrapup_atlas_from_dir,
-    volume_utils,
-    get_structure_children,
-)
-from atlas_gen import mesh_utils
-from brainatlas_api import descriptors
-from brainatlas_api.structures.structure_tree import StructureTree
-
-
-def create_structure_mesh(args):
-    structures, annotation_whole, meshes_dir, a = args
-
-    lbl = structures.loc[a, "acronym"]
-    volume = volume_utils.create_masked_array(
-        annotation_whole, a, greater_than=False
-    )
-
-    if np.max(volume) < 1:
-        print(f"No voxel data for region {lbl}")
-        return None
-    else:
-        print(f"Creating mesh for {a}.obj")
-        savepath = meshes_dir / f"{a}.obj"
-        if not savepath.exists():
-            mesh = mesh_utils.extract_mesh_from_mask(
-                volume,
-                obj_filepath=savepath,
-                closing_n_iters=1,
-                decimate=True,
-                smooth=False,
-            )
-            return mesh
-        else:
-            return None
-
-
-def create_nonleaf_structure_mesh(args):
-    (
-        nonleaf,
-        meshes_dir,
-        regions_list,
-        id_to_acronym_map,
-        acronym_to_voxel,
-        annotation_whole,
-    ) = args
-    savepath = meshes_dir / f'{nonleaf["id"]}.obj'
-    if not savepath.exists():
-        print(f'Creating mesh for {nonleaf["id"]}.obj')
-
-        # Get id of substructures leafs
-        substructures = get_structure_children(
-            regions_list, nonleaf, use_tree=True
-        )
-
-        if not substructures:
-            print(f'No substructures for : {nonleaf["id"]}')
-            return None
-
-        # get the voxel ids of substructures
-        substructuresids = [id_to_acronym_map[idx] for idx in substructures]
-        voxel_labels = [
-            acronym_to_voxel[acro]
-            for acro in substructuresids
-            if acro in list(acronym_to_voxel.keys())
-        ]
-
-        volume = volume_utils.create_masked_array(
-            annotation_whole, voxel_labels
-        )
-
-        if volume.max() < 1:
-            print(f"No voxel data for region {nonleaf['id']}")
-            return None
-
-        mesh_utils.extract_mesh_from_mask(
-            volume,
-            obj_filepath=savepath,
-            closing_n_iters=8,
-            decimate=True,
-            smooth=False,
-        )
-    else:
-        return None
-
-
-class Region(object):
-    def __init__(self, has_mesh):
-        self.has_mesh = has_mesh
+# import sys
+# sys.path.append("./")
+from atlas_gen.mesh_utils import create_region_mesh, Region
+from atlas_gen.wrapup import wrapup_atlas_from_data
+from brainatlas_api.structure_tree_util import get_structures_tree
 
 
 def prune_tree(tree):
@@ -107,7 +22,7 @@ def prune_tree(tree):
     for key, node in nodes.items():
         if node.tag == "root":
             continue
-        if node.data.has_mesh:
+        if node.data.has_label:
             try:
                 children = tree.children(node.identifier)
             except treelib.exceptions.NodeIDAbsentError:
@@ -127,23 +42,39 @@ def prune_tree(tree):
                 continue
             else:
                 if not np.any(
-                    [c.data.has_mesh for _, c in subtree.nodes.items()]
+                    [c.data.has_label for _, c in subtree.nodes.items()]
                 ):
                     tree.remove_node(node.identifier)
     return tree
 
 
 if __name__ == "__main__":
-    # Specify information about the atlas:
+    PARALLEL = False  # disable parallel mesh extraction for easier debugging
+
+    # ---------------------------------------------------------------------------- #
+    #                                 PREP METADATA                                #
+    # ---------------------------------------------------------------------------- #
     RES_UM = 500
-    VERSION = "0.1"
-    ATLAS_NAME = f"allen_human_{RES_UM}um_v{VERSION}"
-    SPECIES = "human (Homo sapiens)"
+    VERSION = 1
+    ATLAS_NAME = f"allen_human"
+    SPECIES = "Homo sapiens"
     ATLAS_LINK = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/"
     CITATION = "Ding et al 2020, https://doi.org/10.1002/cne.24080"
+    ORIENTATION = "ipr"
+
+    # ---------------------------------------------------------------------------- #
+    #                                PREP FILEPATHS                                #
+    # ---------------------------------------------------------------------------- #
 
     data_fld = Path(
         r"D:\Dropbox (UCL - SWC)\Rotation_vte\Anatomy\Atlases\atlasesforbrainrender\AllenHuman"
+    )
+
+    annotations_image = data_fld / "annotation.nii"
+    anatomy_image = (
+        data_fld
+        / "mni_icbm152_nlin_sym_09b"
+        / "mni_icbm152_pd_tal_nlin_sym_09b_hires.nii"
     )
 
     # Generated atlas path:
@@ -151,51 +82,28 @@ if __name__ == "__main__":
     bg_root_dir.mkdir(exist_ok=True)
 
     # Temporary folder for nrrd files download:
-    temp_path = bg_root_dir / "temp"
+    temp_path = Path(r"C:\Users\Federico\.brainglobe\humanev")
     temp_path.mkdir(exist_ok=True)
 
     # Temporary folder for files before compressing:
     uncompr_atlas_path = temp_path / ATLAS_NAME
     uncompr_atlas_path.mkdir(exist_ok=True)
 
-    # Open reference:
-    #################
-    # TODO check if re-orienting is necessary
-
-    annotation = brainio.load_any(
-        data_fld / "annotation.nii"
-    )  # shape (394, 466, 378)
-
-    anatomy = brainio.load_any(
-        data_fld
-        / "mni_icbm152_nlin_sym_09b"
-        / "mni_icbm152_pd_tal_nlin_sym_09b_hires.nii"
-    )  # shape (394, 466, 378)
+    # ---------------------------------------------------------------------------- #
+    #                                 GET TEMPLATE                                 #
+    # ---------------------------------------------------------------------------- #
+    annotation = brainio.load_any(annotations_image)  # shape (394, 466, 378)
+    anatomy = brainio.load_any(anatomy_image)  # shape (394, 466, 378)
 
     # Remove weird artefact
-    annotation = annotation[:197, :, :]
-    anatomy = anatomy[:197, :, :]
+    annotation = annotation[:200, :, :]
+    anatomy = anatomy[:200, :, :]
 
-    # These data only have one hemisphere, so mirror them
-    annotation_whole = np.zeros(
-        (annotation.shape[0] * 2, annotation.shape[1], annotation.shape[2]),
-        annotation.dtype,
-    )
-    annotation_whole[: annotation.shape[0], :, :] = annotation
-    annotation_whole[annotation.shape[0] :, :, :] = annotation[::-1, :, :]
+    # show(Volume(root_annotation), axes=1)
 
-    anatomy_whole = np.zeros(
-        (anatomy.shape[0] * 2, anatomy.shape[1], anatomy.shape[2]),
-        anatomy.dtype,
-    )
-    anatomy_whole[: anatomy.shape[0], :, :] = anatomy
-    anatomy_whole[anatomy.shape[0] :, :, :] = anatomy[::-1, :, :]
-
-    # Save as .tiff
-    save_annotation(annotation_whole, uncompr_atlas_path)
-    save_anatomy(anatomy_whole, uncompr_atlas_path)
-    del anatomy_whole, annotation, anatomy
-
+    # ---------------------------------------------------------------------------- #
+    #                             STRUCTURES HIERARCHY                             #
+    # ---------------------------------------------------------------------------- #
     # Download structure tree
     #########################
 
@@ -233,152 +141,273 @@ if __name__ == "__main__":
                 ),
             }
         )
+    ROOT_ID = regions_list[0]["id"]
 
-    # save regions list json:
-    with open(uncompr_atlas_path / descriptors.STRUCTURES_FILENAME, "w") as f:
-        json.dump(regions_list, f)
+    # ---------------------------------------------------------------------------- #
+    #                                CREATE MESHESH                                #
+    # ---------------------------------------------------------------------------- #
+    print(f"Saving atlas data at {uncompr_atlas_path}")
+    meshes_dir_path = uncompr_atlas_path / "meshes"
+    meshes_dir_path.mkdir(exist_ok=True)
 
-    # Create meshes
-    ###############
-    meshes_dir = uncompr_atlas_path / descriptors.MESHES_DIRNAME
-    meshes_dir.mkdir(exist_ok=True)
-
-    unique_values, unique_counts = np.unique(
-        annotation_whole, return_counts=True
-    )
-    voxel_counts = dict(zip(unique_values, unique_counts))
-    if 0 in voxel_counts:
-        del voxel_counts[0]
-    structures.set_index("id", inplace=True)
-
-    # Create root first
-    root = [s for s in regions_list if s["acronym"] == "root"][0]
-    root_idx = root["id"]
-    root_volume = volume_utils.create_masked_array(
-        annotation_whole, 0, greater_than=True
-    )
-    savepath = meshes_dir / f'{root["id"]}.obj'
-    if not savepath.exists():
-        root_mesh = mesh_utils.extract_mesh_from_mask(
-            root_volume, savepath, smooth=False, decimate=True
-        )
-    else:
-        root_mesh = load(str(savepath))
-
-    # Asses mesh extraction quality
-    # mesh_utils.compare_mesh_and_volume(root_mesh, root_volume)
-
-    # ? Create meshes for leaf nodes
-    start = time.time()
-    pool = mp.Pool(mp.cpu_count() - 2)
-    try:
-        pool.map(
-            create_structure_mesh,
-            [
-                (structures, annotation_whole, meshes_dir, a)
-                for a in voxel_counts
-            ],
-        )
-    except mp.pool.MaybeEncodingError:
-        pass  # error with returning results from pool.map but we don't care
+    tree = get_structures_tree(regions_list)
     print(
-        f"Creating meshes for {len(voxel_counts)} structures took: {round(time.time() - start, 3)}s"
+        f"Number of brain regions: {tree.size()}, max tree depth: {tree.depth()}"
     )
 
-    # Show which regions were represented in the annotated volume
-    regions_with_mesh = [structures.loc[a, "acronym"] for a in voxel_counts]
-
-    tree = StructureTree(regions_list).get_structures_tree()
+    # Mark which tree elements are in the annotation volume
+    labels = np.unique(annotation).astype(np.int32)
 
     for key, node in tree.nodes.items():
-        if node.tag in regions_with_mesh:
-            has_mesh = True
+        if key in labels:
+            is_label = True
         else:
-            has_mesh = False
-        node.data = Region(has_mesh)
+            is_label = False
 
-    # Remove regions that are children to the ones that which
-    # were represented in the volume or were
-    # at least some of their children had a mesh
-    tree = prune_tree(tree)
+        node.data = Region(is_label)
 
-    # ? extract meshes for non leaf regions
-    id_to_acronym_map = {s["id"]: s["acronym"] for s in regions_list}
-    voxel_to_acro = {a: structures.loc[a, "acronym"] for a in voxel_counts}
-    acronym_to_voxel = {v: k for k, v in voxel_to_acro.items()}
-    non_leaf_nodes = [
-        s
-        for s in regions_list
-        if s["acronym"] != "root" and s["id"] not in voxel_counts
-    ]
+    # tree.show(data_property='has_label')
 
+    # Remove nodes for which no mesh can be created
+    # tree = prune_tree(tree)
+    # print(
+    #     f"After pruning: # of brain regions: {tree.size()}, max tree depth: {tree.depth()}"
+    # )
+
+    # Mesh creation
     start = time.time()
-    pool = mp.Pool(mp.cpu_count() - 2)
-    try:
-        pool.map(
-            create_nonleaf_structure_mesh,
-            [
-                (
-                    nonleaf,
-                    meshes_dir,
-                    regions_list,
-                    id_to_acronym_map,
-                    acronym_to_voxel,
-                    annotation_whole,
-                )
-                for nonleaf in non_leaf_nodes
-            ],
-        )
-    except mp.pool.MaybeEncodingError:
-        pass  # error with returning results from pool.map but we don't care
-    print(
-        f"Creating meshes for {len(non_leaf_nodes)} structures took: {round(time.time() - start, 3)}s"
-    )
+    if PARALLEL:
+        print("Starting mesh creation in parallel")
 
-    # ? Fill in more of the regions that don't have mesh yet
-    for repeat in range(4):
-        for idx, node in tree.nodes.items():
-            savepath = meshes_dir / f"{idx}.obj"
-            if not savepath.exists():
-                region = [r for r in regions_list if r["id"] == idx][0]
-                args = (
-                    region,
-                    meshes_dir,
-                    regions_list,
-                    id_to_acronym_map,
-                    acronym_to_voxel,
-                    annotation_whole,
-                )
-                create_nonleaf_structure_mesh(args)
+        pool = mp.Pool(mp.cpu_count() - 2)
 
-    # Update tree and check that everyone got a mesh
-    for idx, node in tree.nodes.items():
-        savepath = meshes_dir / f"{idx}.obj"
-        if savepath.exists():
-            node.data.has_mesh = True
+        try:
+            pool.map(
+                create_region_mesh,
+                [
+                    (meshes_dir_path, node, tree, labels, annotation, ROOT_ID,)
+                    for node in tree.nodes.values()
+                ],
+            )
+        except mp.pool.MaybeEncodingError:
+            pass  # error with returning results from pool.map but we don't care
+    else:
+        print("Starting mesh creation")
 
-    tree.show(data_property="has_mesh")
+        for node in track(
+            tree.nodes.values(),
+            total=tree.size(),
+            description="Creating meshes",
+        ):
+            if node.tag == "root":
+                volume = annotation.copy()
+                volume[volume > 0] = node.identifier
+            else:
+                volume = annotation
+
+            create_region_mesh(
+                (meshes_dir_path, node, tree, labels, volume, ROOT_ID,)
+            )
 
     print(
-        f"\n\nTotal number of structures left in tree: {tree.size()} - max depth: {tree.depth()}"
+        "Finished mesh extraction in: ",
+        round((time.time() - start) / 60, 2),
+        " minutes",
     )
 
-    tree_regions = [node.identifier for k, node in tree.nodes.items()]
-    pruned_regions_list = [r for r in regions_list if r["id"] in tree_regions]
+    # Create meshes dict
+    meshes_dict = dict()
+    structures_with_mesh = []
+    for s in regions_list:
+        # Check if a mesh was created
+        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        if not mesh_path.exists():
+            # print(f"No mesh file exists for: {s['name']}")
+            continue
+        else:
+            # Check that the mesh actually exists (i.e. not empty)
+            if mesh_path.stat().st_size < 512:
+                # print(f"obj file for {s['name']} is too small.")
+                continue
 
-    # save regions list json:
-    with open(uncompr_atlas_path / descriptors.STRUCTURES_FILENAME, "w") as f:
-        json.dump(pruned_regions_list, f)
+        structures_with_mesh.append(s)
+        meshes_dict[s["id"]] = mesh_path
+
+    print(
+        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+    )
+
+    # ---------------------------------------------------------------------------- #
+    #                                    WRAP UP                                   #
+    # ---------------------------------------------------------------------------- #
 
     # Wrap up, compress, and remove file:
-    #####################################
-    wrapup_atlas_from_dir(
-        uncompr_atlas_path,
-        CITATION,
-        ATLAS_LINK,
-        SPECIES,
-        (RES_UM,) * 3,
+    print(f"Finalising atlas")
+    wrapup_atlas_from_data(
+        atlas_name=ATLAS_NAME,
+        atlas_minor_version=VERSION,
+        citation=CITATION,
+        atlas_link=ATLAS_LINK,
+        species=SPECIES,
+        resolution=(RES_UM,) * 3,
+        orientation=ORIENTATION,
+        root_id=ROOT_ID,
+        reference_stack=anatomy,
+        annotation_stack=annotation,
+        structures_list=structures_with_mesh,
+        meshes_dict=meshes_dict,
+        working_dir=bg_root_dir,
+        hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
-        root=root_idx,
     )
+
+
+# ---------------------------------------------------------------------------- #
+#                                   OLD CODE                                   #
+# ---------------------------------------------------------------------------- #
+
+#     # Create meshes
+#     ###############
+#     meshes_dir = uncompr_atlas_path / descriptors.MESHES_DIRNAME
+#     meshes_dir.mkdir(exist_ok=True)
+
+#     unique_values, unique_counts = np.unique(
+#         annotation_whole, return_counts=True
+#     )
+#     voxel_counts = dict(zip(unique_values, unique_counts))
+#     if 0 in voxel_counts:
+#         del voxel_counts[0]
+#     structures.set_index("id", inplace=True)
+
+#     # Create root first
+#     root = [s for s in regions_list if s["acronym"] == "root"][0]
+#     root_idx = root["id"]
+#     root_volume = volume_utils.create_masked_array(
+#         annotation_whole, 0, greater_than=True
+#     )
+#     savepath = meshes_dir / f'{root["id"]}.obj'
+#     if not savepath.exists():
+#         root_mesh = mesh_utils.extract_mesh_from_mask(
+#             root_volume, savepath, smooth=False, decimate=True
+#         )
+#     else:
+#         root_mesh = load(str(savepath))
+
+#     # Asses mesh extraction quality
+#     # mesh_utils.compare_mesh_and_volume(root_mesh, root_volume)
+
+#     # ? Create meshes for leaf nodes
+#     start = time.time()
+#     pool = mp.Pool(mp.cpu_count() - 2)
+#     try:
+#         pool.map(
+#             create_structure_mesh,
+#             [
+#                 (structures, annotation_whole, meshes_dir, a)
+#                 for a in voxel_counts
+#             ],
+#         )
+#     except mp.pool.MaybeEncodingError:
+#         pass  # error with returning results from pool.map but we don't care
+#     print(
+#         f"Creating meshes for {len(voxel_counts)} structures took: {round(time.time() - start, 3)}s"
+#     )
+
+#     # Show which regions were represented in the annotated volume
+#     regions_with_mesh = [structures.loc[a, "acronym"] for a in voxel_counts]
+
+#     tree = StructureTree(regions_list).get_structures_tree()
+
+#     for key, node in tree.nodes.items():
+#         if node.tag in regions_with_mesh:
+#             has_mesh = True
+#         else:
+#             has_mesh = False
+#         node.data = Region(has_mesh)
+
+#     # Remove regions that are children to the ones that which
+#     # were represented in the volume or were
+#     # at least some of their children had a mesh
+#     tree = prune_tree(tree)
+
+#     # ? extract meshes for non leaf regions
+#     id_to_acronym_map = {s["id"]: s["acronym"] for s in regions_list}
+#     voxel_to_acro = {a: structures.loc[a, "acronym"] for a in voxel_counts}
+#     acronym_to_voxel = {v: k for k, v in voxel_to_acro.items()}
+#     non_leaf_nodes = [
+#         s
+#         for s in regions_list
+#         if s["acronym"] != "root" and s["id"] not in voxel_counts
+#     ]
+
+#     start = time.time()
+#     pool = mp.Pool(mp.cpu_count() - 2)
+#     try:
+#         pool.map(
+#             create_nonleaf_structure_mesh,
+#             [
+#                 (
+#                     nonleaf,
+#                     meshes_dir,
+#                     regions_list,
+#                     id_to_acronym_map,
+#                     acronym_to_voxel,
+#                     annotation_whole,
+#                 )
+#                 for nonleaf in non_leaf_nodes
+#             ],
+#         )
+#     except mp.pool.MaybeEncodingError:
+#         pass  # error with returning results from pool.map but we don't care
+#     print(
+#         f"Creating meshes for {len(non_leaf_nodes)} structures took: {round(time.time() - start, 3)}s"
+#     )
+
+#     # ? Fill in more of the regions that don't have mesh yet
+#     for repeat in range(4):
+#         for idx, node in tree.nodes.items():
+#             savepath = meshes_dir / f"{idx}.obj"
+#             if not savepath.exists():
+#                 region = [r for r in regions_list if r["id"] == idx][0]
+#                 args = (
+#                     region,
+#                     meshes_dir,
+#                     regions_list,
+#                     id_to_acronym_map,
+#                     acronym_to_voxel,
+#                     annotation_whole,
+#                 )
+#                 create_nonleaf_structure_mesh(args)
+
+#     # Update tree and check that everyone got a mesh
+#     for idx, node in tree.nodes.items():
+#         savepath = meshes_dir / f"{idx}.obj"
+#         if savepath.exists():
+#             node.data.has_mesh = True
+
+#     tree.show(data_property="has_mesh")
+
+#     print(
+#         f"\n\nTotal number of structures left in tree: {tree.size()} - max depth: {tree.depth()}"
+#     )
+
+#     tree_regions = [node.identifier for k, node in tree.nodes.items()]
+#     pruned_regions_list = [r for r in regions_list if r["id"] in tree_regions]
+
+#     # save regions list json:
+#     with open(uncompr_atlas_path / descriptors.STRUCTURES_FILENAME, "w") as f:
+#         json.dump(pruned_regions_list, f)
+
+#     # Wrap up, compress, and remove file:
+#     #####################################
+#     wrapup_atlas_from_dir(
+#         uncompr_atlas_path,
+#         CITATION,
+#         ATLAS_LINK,
+#         SPECIES,
+#         (RES_UM,) * 3,
+#         cleanup_files=False,
+#         compress=True,
+#         root=root_idx,
+#     )

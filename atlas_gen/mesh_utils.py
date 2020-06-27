@@ -130,6 +130,9 @@ def create_region_mesh(args):
         It takes a tuple of arguments to facilitaed parallel processing with
         multiprocessing.pool.map
 
+        Note, by default it avoids overwriting a structure's mesh if the
+        .obj file exists already.
+
         Parameters
         ----------
         meshes_dir_path: pathlib Path object with folder where meshes are saved

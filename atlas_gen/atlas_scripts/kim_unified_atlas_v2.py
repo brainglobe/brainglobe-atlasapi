@@ -99,7 +99,6 @@ if __name__ == "__main__":
 
     # Parse region names & hierarchy
     # ######################################
-
     df = pd.read_csv(structures_file)
     df = df.drop(columns=["Unnamed: 0", "parent_id", "parent_acronym"])
 

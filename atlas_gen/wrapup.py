@@ -19,7 +19,7 @@ from brainatlas_api import descriptors
 
 # This should be changed every time we make changes in the atlas
 # structure:
-ATLAS_VERSION = 0
+ATLAS_VERSION = descriptors.ATLAS_MAJOR_V
 
 
 def wrapup_atlas_from_data(

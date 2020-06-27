@@ -8,7 +8,8 @@ available_atlases = [
 
 def get_atlas_class_from_name(name):
     names = [
-        f"{atlas.atlas_name}_v{atlas.version}" for atlas in available_atlases
+        f"{atlas.atlas_name}_v{atlas.local_version}"
+        for atlas in available_atlases
     ]
     atlases = {n: a for n, a in zip(names, available_atlases)}
 

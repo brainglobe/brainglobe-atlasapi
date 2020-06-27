@@ -1,9 +1,12 @@
 from pathlib import Path
 import tarfile
+import requests
+import warnings
 
 from brainatlas_api import utils
 from brainatlas_api import config
 from brainatlas_api import core
+from brainatlas_api import descriptors
 
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
@@ -31,16 +34,17 @@ class BrainGlobeAtlas(core.Atlas):
         """
 
     atlas_name = None
-    version = None
+    _minor_v = None
     _remote_url_base = (
-        "https://gin.g-node.org/brainglobe/atlases/raw/master/{}.tar.gz"
+        "https://gin.g-node.org/brainglobe/atlases/{}/master/{}.tar.gz"
     )
 
     def __init__(self, brainglobe_dir=None, interm_download_dir=None):
+        # Read BrainGlobe configuration file:
         conf = config.read_config()
 
-        # Use either input values or values from the config file, and create
-        # directory if it does not exist:
+        # Use either input locations or locations from the config file,
+        # and create directory if it does not exist:
         for dir, dirname in zip(
             [brainglobe_dir, interm_download_dir],
             ["brainglobe_dir", "interm_download_dir"],
@@ -53,26 +57,98 @@ class BrainGlobeAtlas(core.Atlas):
             dir_path.mkdir(exist_ok=True)
             setattr(self, dirname, dir_path)
 
-        try:
-            super().__init__(self.brainglobe_dir / self.atlas_full_name)
+        self._remote_min_version = None
 
-        except FileNotFoundError:
-            print(
-                0, f"{self.atlas_full_name} not found locally. Downloading..."
-            )
+        # Flag for existence of local version, will be toggled if one is found.
+        self._exists_local = False
+
+        # Look for this atlas in local brainglobe folder:
+        if self.atlas_full_name is None:
+            print(0, f"{self.atlas_name} not found locally. Downloading...")
             self.download_extract_file()
 
-            super().__init__(self.brainglobe_dir / self.atlas_full_name)
+        maj, min = self.local_version
+
+        if maj < descriptors.ATLAS_MAJOR_V:
+            print(
+                f"Atlas {self.atlas_full_name} is outdated; minimal version is {descriptors.ATLAS_MAJOR_V}"
+            )
+
+        if (
+            self.remote_min_version is not None
+            and min < self.remote_min_version
+        ):
+            warnings.warn(
+                f"A more recent atlas version exist for {self.atlas_name} at {self.remote_url}"
+            )
+
+        # Instantiate after eventual download:
+        super().__init__(self.brainglobe_dir / self.atlas_full_name)
+
+    @property
+    def local_version(self):
+        """If atlas is local, return actual version of the downloaded files;
+        Else, return last available version online. If they don't match, raise a
+        warning.
+        """
+        full_name = self.atlas_full_name
+
+        if full_name is None:
+            return None
+
+        version_str = full_name.split("_v")[-1]
+
+        return tuple([int(n) for n in version_str.split(".")])
+
+    @property
+    def remote_min_version(self):
+        """Retrieve most recent version of remote atlas in GIN repo.
+        Currently checks only up to 20; might be a bottleneck, each request takes
+        approx 300 ms.
+        """
+        if self._remote_min_version is None:
+            if utils.check_internet_connection():
+                for i in range(20):
+                    name = (
+                        f"{self.atlas_name}_v{descriptors.ATLAS_MAJOR_V}.{i}"
+                    )
+                    request = requests.get(
+                        self._remote_url_base.format("src", name)
+                    )
+
+                    # Such comparison ensures that the remote URL is valid
+                    if request.status_code < 400:
+                        return i
+
+        return self._remote_min_version
 
     @property
     def atlas_full_name(self):
-        return f"{self.atlas_name}_v{self.version}"
+        """As we can't know the local version a priori, search candidate dirs
+        using name and not version number. If none is found, return None
+        """
+        pattern = f"{self.atlas_name}_v*"
+        candidate_dirs = list(self.brainglobe_dir.glob(pattern))
+
+        # If multiple folders exist, raise error:
+        if len(candidate_dirs) > 1:
+            raise FileExistsError(
+                f"Multiple versions of atlas {self.atlas_name} in {self.brainglobe_dir}"
+            )
+        # If no one exist, return None:
+        elif len(candidate_dirs) == 0:
+            return None
+        # Else, return actual name:
+        else:
+            return candidate_dirs[0].name
 
     @property
     def remote_url(self):
         """Format complete url for download.
         """
-        return self._remote_url_base.format(self.atlas_full_name)
+        min_v = self.remote_min_version
+        name = f"{self.atlas_name}_v{descriptors.ATLAS_MAJOR_V}.{min_v}"
+        return self._remote_url_base.format("raw", name)
 
     def download_extract_file(self):
         """Download and extract atlas from remote url.
@@ -95,36 +171,29 @@ class BrainGlobeAtlas(core.Atlas):
 
 class ExampleAtlas(BrainGlobeAtlas):
     atlas_name = "example_mouse_100um"
-    version = "0.2"
 
 
 class FishAtlas(BrainGlobeAtlas):
     atlas_name = "mpin_zfish_1um"
-    version = "0.2"
 
 
 class RatAtlas(BrainGlobeAtlas):
     # TODO fix hierarchy and meshes
     atlas_name = "ratatlas"
-    version = "0.1"
 
 
 class AllenBrain25Um(BrainGlobeAtlas):
     atlas_name = "allen_mouse_25um"
-    version = "0.2"
 
 
 class KimUnified25Um(BrainGlobeAtlas):
     atlas_name = "kim_unified_25um"
-    version = "0.1"
 
 
 class KimUnified50Um(BrainGlobeAtlas):
     atlas_name = "kim_unified_50um"
-    version = "0.1"
 
 
 class AllenHumanBrain500Um(BrainGlobeAtlas):
     # TODO fix meshes
     atlas_name = "allen_human_500um"
-    version = "0.1"

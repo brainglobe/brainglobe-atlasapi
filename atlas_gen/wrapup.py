@@ -39,6 +39,7 @@ def wrapup_atlas_from_data(
     hemispheres_stack=None,
     cleanup_files=False,
     compress=True,
+    scale_meshes=False,
 ):
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -78,6 +79,9 @@ def wrapup_atlas_from_data(
          (Default value = False)
     compress : bool, optional
          (Default value = True)
+    scale_meshes: bool, optional
+        (Default values = False). If True the meshes points are scaled by the resolution
+        to ensure that they are specified in microns, regardless of the atlas resolution.
 
 
     """
@@ -131,6 +135,9 @@ def wrapup_atlas_from_data(
         mesh.points = space_convention.map_points_to(
             descriptors.ATLAS_ORIENTATION, mesh.points, shape=volume_shape
         )
+
+        # Scale the mesh to be in microns
+        mesh.points *= resolution
 
         # Save in meshes dir:
         mio.write(mesh_dest_dir / f"{mesh_id}.obj", mesh)

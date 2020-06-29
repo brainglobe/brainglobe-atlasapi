@@ -143,7 +143,15 @@ def create_region_mesh(args):
         ROOT_ID: int, id of root structure (mesh creation is a bit more refined for that)
     """
     # Split arguments
-    meshes_dir_path, node, tree, labels, annotated_volume, ROOT_ID = args
+    (
+        meshes_dir_path,
+        node,
+        tree,
+        labels,
+        annotated_volume,
+        ROOT_ID,
+        closing_n_iters,
+    ) = args
 
     # Avoid ovewriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
@@ -175,7 +183,10 @@ def create_region_mesh(args):
                 )
             else:
                 extract_mesh_from_mask(
-                    mask, obj_filepath=savepath, smooth=True, closing_n_iters=4
+                    mask,
+                    obj_filepath=savepath,
+                    smooth=True,
+                    closing_n_iters=closing_n_iters,
                 )
 
 

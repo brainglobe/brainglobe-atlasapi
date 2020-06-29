@@ -17,7 +17,7 @@ from brainatlas_api.structure_tree_util import get_structures_tree
 
 
 if __name__ == "__main__":
-    PARALLEL = False  # disable parallel mesh extraction for easier debugging
+    PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
     # ---------------------------------------------------------------------------- #
     #                                 PREP METADATA                                #
@@ -159,6 +159,7 @@ if __name__ == "__main__":
     # tree.show(data_property='has_label')
 
     # Mesh creation
+    closing_n_iters = 2
     start = time.time()
     if PARALLEL:
         print("Starting mesh creation in parallel")
@@ -176,6 +177,7 @@ if __name__ == "__main__":
                         labels,
                         annotated_volume,
                         ROOT_ID,
+                        closing_n_iters,
                     )
                     for node in tree.nodes.values()
                 ],
@@ -198,6 +200,7 @@ if __name__ == "__main__":
                     labels,
                     annotated_volume,
                     ROOT_ID,
+                    closing_n_iters,
                 )
             )
 
@@ -252,4 +255,5 @@ if __name__ == "__main__":
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
+        scale_meshes=True,
     )

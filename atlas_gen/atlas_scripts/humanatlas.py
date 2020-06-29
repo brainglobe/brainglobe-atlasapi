@@ -11,6 +11,7 @@ import urllib3
 from allensdk.core.structure_tree import StructureTree
 
 # import sys
+
 # sys.path.append("./")
 from atlas_gen.mesh_utils import create_region_mesh, Region
 from atlas_gen.wrapup import wrapup_atlas_from_data
@@ -169,12 +170,13 @@ if __name__ == "__main__":
     # tree.show(data_property='has_label')
 
     # Remove nodes for which no mesh can be created
-    # tree = prune_tree(tree)
-    # print(
-    #     f"After pruning: # of brain regions: {tree.size()}, max tree depth: {tree.depth()}"
-    # )
+    tree = prune_tree(tree)
+    print(
+        f"After pruning: # of brain regions: {tree.size()}, max tree depth: {tree.depth()}"
+    )
 
     # Mesh creation
+    closing_n_iters = 2
     start = time.time()
     if PARALLEL:
         print("Starting mesh creation in parallel")
@@ -185,7 +187,15 @@ if __name__ == "__main__":
             pool.map(
                 create_region_mesh,
                 [
-                    (meshes_dir_path, node, tree, labels, annotation, ROOT_ID,)
+                    (
+                        meshes_dir_path,
+                        node,
+                        tree,
+                        labels,
+                        annotation,
+                        ROOT_ID,
+                        closing_n_iters,
+                    )
                     for node in tree.nodes.values()
                 ],
             )
@@ -206,7 +216,15 @@ if __name__ == "__main__":
                 volume = annotation
 
             create_region_mesh(
-                (meshes_dir_path, node, tree, labels, volume, ROOT_ID,)
+                (
+                    meshes_dir_path,
+                    node,
+                    tree,
+                    labels,
+                    volume,
+                    ROOT_ID,
+                    closing_n_iters,
+                )
             )
 
     print(

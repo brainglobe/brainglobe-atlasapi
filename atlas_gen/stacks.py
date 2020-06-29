@@ -35,3 +35,15 @@ def save_annotation(stack, output_dir):
     if stack.dtype != descriptors.ANNOTATION_DTYPE:
         stack = stack.astype(descriptors.ANNOTATION_DTYPE)
     write_stack(stack, output_dir / descriptors.ANNOTATION_FILENAME)
+
+
+def save_hemispheres(stack, output_dir):
+    """
+    Parameters
+    ----------
+    stack
+    output_dir
+    """
+    if stack.dtype != descriptors.HEMISPHERES_DTYPE:
+        stack = stack.astype(descriptors.HEMISPHERES_DTYPE)
+    write_stack(stack, output_dir / descriptors.HEMISPHERES_FILENAME)

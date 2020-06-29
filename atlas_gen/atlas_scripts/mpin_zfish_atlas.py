@@ -18,7 +18,7 @@ ATLAS_NAME = f"mpin_zfish"
 SPECIES = "Danio rerio"
 ATLAS_LINK = "http://fishatlas.neuro.mpg.de"
 CITATION = "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034"
-ORIENTATION = "ial"
+ORIENTATION = "lai"
 
 
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
@@ -116,7 +116,6 @@ tar.extractall(path=bg_root_dir)
 
 extracted_dir = bg_root_dir / "mpin_zfish_annotations"
 
-#
 annotation_stack = tifffile.imread(
     str(extracted_dir / "mpin_zfish_annotation.tif")
 )
@@ -124,6 +123,13 @@ annotation_stack = tifffile.imread(
 hemispheres_stack = tifffile.imread(
     str(extracted_dir / "mpin_zfish_hemispheres.tif")
 )
+
+# meshes from the website and stacks do not have the same orientation.
+# Therefore, flip axes of the stacks so that bgspace reorientation is used on
+# the meshes:
+annotation_stack = annotation_stack.swapaxes(0, 2)
+hemispheres_stack = hemispheres_stack.swapaxes(0, 2)
+reference_stack = reference_stack.swapaxes(0, 2)
 
 
 # Download structures tree and meshes:

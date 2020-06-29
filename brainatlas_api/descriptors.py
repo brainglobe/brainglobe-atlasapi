@@ -33,7 +33,8 @@ HEMISPHERES_FILENAME = "hemispheres.tiff"
 MESHES_DIRNAME = "meshes"
 
 REFERENCE_DTYPE = np.uint16
-ANNOTATION_DTYPE = np.int32
+ANNOTATION_DTYPE = np.uint32
+HEMISPHERES_DTYPE = np.uint8
 
 # Standard orientation origin: Anterior, Left, Superior
 ATLAS_ORIENTATION = "asl"

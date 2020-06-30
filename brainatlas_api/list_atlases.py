@@ -36,9 +36,7 @@ def list_atlases():
         name = f"{atlas.atlas_name}_v{atlas.local_version}"
         if name not in atlases.keys():
             atlases[str(name)] = dict(
-                downloaded=False,
-                local="[red]---[/red]",
-                online=atlas._remote_url_base.format(name),
+                downloaded=False, local="[red]---[/red]",
             )
 
     # -------------------------------- print table ------------------------------- #
@@ -50,15 +48,12 @@ def list_atlases():
     table.add_column("Name")
     table.add_column("Downloaded")
     table.add_column("Local path")
-    table.add_column("Online path", style="dim")
 
     for atlas, info in atlases.items():
         if info["downloaded"]:
             downloaded = "[green]:heavy_check_mark:[/green]"
         else:
             downloaded = "[red]---[/red]"
-        table.add_row(
-            "[b]" + atlas + "[/b]", downloaded, info["local"], info["online"]
-        )
+        table.add_row("[b]" + atlas + "[/b]", downloaded, info["local"])
 
     rprint(table)

@@ -4,6 +4,11 @@ from brainatlas_api.bg_atlas import ExampleAtlas
 # import tempfile
 
 
+@pytest.fixture()
+def atlas():
+    return ExampleAtlas()
+
+
 @pytest.fixture(scope="module")
 def atlas_path():
     # brainglobe_path=tempfile.mkdtemp()

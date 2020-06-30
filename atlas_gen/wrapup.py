@@ -11,7 +11,7 @@ from atlas_gen.metadata_utils import (
     create_metadata_files,
     generate_metadata_dict,
 )
-from atlas_gen.stacks import save_reference, save_annotation
+from atlas_gen.stacks import save_reference, save_annotation, save_hemispheres
 from atlas_gen.structures import check_struct_consistency
 
 from brainatlas_api import descriptors
@@ -19,7 +19,7 @@ from brainatlas_api import descriptors
 
 # This should be changed every time we make changes in the atlas
 # structure:
-ATLAS_VERSION = 0
+ATLAS_VERSION = descriptors.ATLAS_MAJOR_V
 
 
 def wrapup_atlas_from_data(
@@ -39,6 +39,7 @@ def wrapup_atlas_from_data(
     hemispheres_stack=None,
     cleanup_files=False,
     compress=True,
+    scale_meshes=False,
 ):
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -78,6 +79,9 @@ def wrapup_atlas_from_data(
          (Default value = False)
     compress : bool, optional
          (Default value = True)
+    scale_meshes: bool, optional
+        (Default values = False). If True the meshes points are scaled by the resolution
+        to ensure that they are specified in microns, regardless of the atlas resolution.
 
 
     """
@@ -99,10 +103,17 @@ def wrapup_atlas_from_data(
     # be old files
     dest_dir.mkdir()
 
+    stack_list = [reference_stack, annotation_stack]
+    saving_fun_list = [save_reference, save_annotation]
+
+    if not symmetric:
+        stack_list = stack_list + [
+            hemispheres_stack,
+        ]
+        saving_fun_list = saving_fun_list + [save_hemispheres]
+
     # write tiff stacks:
-    for stack, saving_function in zip(
-        [reference_stack, annotation_stack], [save_reference, save_annotation]
-    ):
+    for stack, saving_function in zip(stack_list, saving_fun_list):
 
         if isinstance(stack, str) or isinstance(stack, Path):
             stack = tifffile.imread(stack)
@@ -131,6 +142,9 @@ def wrapup_atlas_from_data(
         mesh.points = space_convention.map_points_to(
             descriptors.ATLAS_ORIENTATION, mesh.points, shape=volume_shape
         )
+
+        # Scale the mesh to be in microns
+        mesh.points *= resolution
 
         # Save in meshes dir:
         mio.write(mesh_dest_dir / f"{mesh_id}.obj", mesh)

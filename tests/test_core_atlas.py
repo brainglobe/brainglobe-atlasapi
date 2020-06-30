@@ -2,13 +2,6 @@ import pytest
 
 import numpy as np
 
-from brainatlas_api.bg_atlas import ExampleAtlas
-
-
-@pytest.fixture()
-def atlas():
-    return ExampleAtlas()
-
 
 def test_initialization(atlas):
     assert atlas.metadata == {
@@ -69,10 +62,15 @@ def test_meshfile_from_id(atlas):
         atlas.meshfile_from_structure("CH")
         == atlas.root_dir / "meshes/567.obj"
     )
+    assert atlas.root_meshfile() == atlas.root_dir / "meshes/997.obj"
 
 
 def test_mesh_from_id(atlas):
-    # TODO will change depending on mesh loading package
     mesh = atlas.structures[567]["mesh"]
     assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
-    assert np.allclose(mesh.cells[0].data[0], [0, 1, 2])
+
+    mesh = atlas.mesh_from_structure(567)
+    assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
+
+    mesh = atlas.root_mesh()
+    assert np.allclose(mesh.points[0], [7896.56, 3384.15, 503.781])

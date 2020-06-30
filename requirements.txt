@@ -1,4 +1,3 @@
-tqdm>=4.46.1
 numpy
 tifffile
 treelib

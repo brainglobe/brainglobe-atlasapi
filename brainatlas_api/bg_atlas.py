@@ -73,7 +73,7 @@ class BrainGlobeAtlas(core.Atlas):
         super().__init__(self.brainglobe_dir / self.local_full_name)
 
         # Compare atlas local version with latest online
-        self.check_lateset_version()
+        self.check_latest_version()
 
     @property
     def local_version(self):
@@ -144,7 +144,7 @@ class BrainGlobeAtlas(core.Atlas):
 
         destination_path.unlink()
 
-    def check_lateset_version(self):
+    def check_latest_version(self):
         """
             Checks if the local version is the latest available
             and prompts the user to update if not

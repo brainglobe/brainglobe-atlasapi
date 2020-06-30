@@ -97,15 +97,5 @@ def list_atlases():
                 table.row_styles.append(
                     Style(color="black", bgcolor="magenta2")
                 )
-            else:
-                if n % 2 == 0:
-                    table.row_styles.append(Style(bgcolor="rgb(20, 20, 20)"))
-                else:
-                    table.row_styles.append(
-                        Style(
-                            color="rgb(20, 20, 20)",
-                            bgcolor="rgb(140, 140, 140)",
-                        )
-                    )
 
     rprint(table)

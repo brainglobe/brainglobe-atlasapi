@@ -1,6 +1,9 @@
 import pytest
 
+import pandas as pd
 import numpy as np
+import contextlib
+from io import StringIO
 
 
 def test_initialization(atlas):
@@ -55,6 +58,7 @@ def test_data_from_coords(atlas, coords):
     assert atlas.structure_from_coords(coords) == 997
     assert atlas.structure_from_coords(coords, as_acronym=True) == "root"
     assert atlas.hemisphere_from_coords(coords) == 0
+    assert atlas.hemisphere_from_coords(coords, as_string=True) == "left"
 
 
 def test_meshfile_from_id(atlas):
@@ -74,3 +78,31 @@ def test_mesh_from_id(atlas):
 
     mesh = atlas.root_mesh()
     assert np.allclose(mesh.points[0], [7896.56, 3384.15, 503.781])
+
+
+def test_lookup(atlas):
+    df_lookup = atlas.lookup
+    df = pd.DataFrame(
+        dict(
+            acronym=["root", "grey", "CH"],
+            id=[997, 8, 567],
+            name=["root", "Basic cell groups and regions", "Cerebrum"],
+        )
+    )
+
+    assert all(df_lookup == df)
+
+
+def test_hierarchy(atlas):
+    hier = atlas.hierarchy
+    temp_stdout = StringIO()
+    with contextlib.redirect_stdout(temp_stdout):
+        print(hier)
+    output = temp_stdout.getvalue().strip()
+    assert output == "root\n└── grey\n    └── CH"
+
+    assert {k: v.tag for k, v in hier.nodes.items()} == {
+        997: "root",
+        8: "grey",
+        567: "CH",
+    }

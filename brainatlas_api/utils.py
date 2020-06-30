@@ -4,6 +4,7 @@ import numpy as np
 import requests
 from tqdm.auto import tqdm
 import logging
+import configparser
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -28,7 +29,7 @@ def check_internet_connection(
         if not raise_error:
             print("No internet connection available.")
         else:
-            raise ValueError(
+            raise ConnectionError(
                 "No internet connection, try again when you are connected to the internet."
             )
     return False
@@ -54,6 +55,14 @@ def retrieve_over_http(url, output_file_path):
         raise requests.exceptions.ConnectionError(
             f"Could not download file from {url}"
         )
+
+
+def conf_from_url(url):
+    text = requests.get(url).text
+    config = configparser.ConfigParser()
+    config.read_string(text)
+
+    return config
 
 
 # --------------------------------- File I/O --------------------------------- #

@@ -1,5 +1,8 @@
 import numpy as np
 
+# Major version of atlases used by current brainatlas-api release:
+ATLAS_MAJOR_V = 0
+
 # Entries and types from this template will be used to check atlas info
 # consistency. Please keep updated both this and the function when changing
 # the structure.
@@ -16,6 +19,8 @@ METADATA_TEMPLATE = {
     "supplementary_stacks": [],
 }
 
+
+# Template for a structure dictionary:
 STRUCTURE_TEMPLATE = {
     "acronym": "root",
     "id": 997,
@@ -25,6 +30,7 @@ STRUCTURE_TEMPLATE = {
 }
 
 
+# File and directory names for the atlas package:
 METADATA_FILENAME = "metadata.json"
 STRUCTURES_FILENAME = "structures.json"
 REFERENCE_FILENAME = "reference.tiff"
@@ -32,9 +38,10 @@ ANNOTATION_FILENAME = "annotation.tiff"
 HEMISPHERES_FILENAME = "hemispheres.tiff"
 MESHES_DIRNAME = "meshes"
 
+# Types for the atlas stacks:
 REFERENCE_DTYPE = np.uint16
 ANNOTATION_DTYPE = np.uint32
 HEMISPHERES_DTYPE = np.uint8
 
-# Standard orientation origin: Anterior, Left, Superior
+# Standard orientation origin: Anterior, Left, Superior (using BGSpace definition)
 ATLAS_ORIENTATION = "asl"

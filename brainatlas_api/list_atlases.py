@@ -33,7 +33,7 @@ def list_atlases():
         cls for cls in map(bg_atlas.__dict__.get, bg_atlas.__all__)
     ]
     for atlas in available_atlases:
-        name = f"{atlas.atlas_name}_v{atlas.version}"
+        name = f"{atlas.atlas_name}_v{atlas.local_version}"
         if name not in atlases.keys():
             atlases[str(name)] = dict(
                 downloaded=False,

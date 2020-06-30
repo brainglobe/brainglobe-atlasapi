@@ -5,8 +5,4 @@ pandas
 requests
 meshio
 click
-<<<<<<< HEAD
 rich
-=======
-rich
->>>>>>> master

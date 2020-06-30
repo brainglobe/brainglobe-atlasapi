@@ -64,7 +64,9 @@ class BrainGlobeAtlas(core.Atlas):
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
-            print(0, f"{self.atlas_name} not found locally. Downloading...")
+            rprint(
+                f"[magenta2]Bgatlas_api: {self.atlas_name} not found locally. Downloading...[magenta2]"
+            )
             self.download_extract_file()
 
         # Instantiate after eventual download:
@@ -152,8 +154,8 @@ class BrainGlobeAtlas(core.Atlas):
 
         if local != online:
             rprint(
-                f"[b][magenta2]Brainatlas_api[/b]: [b]{self.atlas_name}[/b] version [b]{local}[/b] is not the latest: [b]{online}[/b]. "
-                + "To update the atlas run:[/magenta2]\n"
+                f"[b][magenta2]Brainatlas_api[/b]: [b]{self.atlas_name}[/b] version [b]{local}[/b] is not the latest available ([b]{online}[/b]). "
+                + "To update the atlas run in the terminal:[/magenta2]\n"
                 + f"    [gold1]brainatlas_update -a {self.atlas_name}[/gold1]"
             )
             return False

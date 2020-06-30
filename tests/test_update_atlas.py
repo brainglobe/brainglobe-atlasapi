@@ -3,9 +3,9 @@ from click.testing import CliRunner
 
 
 def test_update():
-    update.update_atlas(atlas_name="allen_mouse_25um")
+    update.update_atlas(atlas_name="example_mouse_100um")
 
-    update.update_atlas(atlas_name="allen_mouse_25um", force=True)
+    update.update_atlas(atlas_name="example_mouse_100um", force=True)
 
 
 def test_update_wrong_name():
@@ -16,4 +16,4 @@ def test_update_command():
     runner = CliRunner()
 
     # Test printing of config file:
-    runner.invoke(update.cli_atlas_command, ["-a", "allen_mouse_25um"])
+    runner.invoke(update.cli_atlas_command, ["-a", "example_mouse_100um"])

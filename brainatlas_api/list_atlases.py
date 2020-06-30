@@ -72,7 +72,7 @@ def list_atlases():
         box=box.ROUNDED,
     )
 
-    table.add_column("Name")
+    table.add_column("Name", no_wrap=True, width=32)
     table.add_column("Downloaded", justify="center")
     table.add_column("Local version", justify="center")
     table.add_column("Latest version", justify="center")

@@ -1,3 +1,5 @@
+from rich import print as rprint
+
 from brainatlas_api import bg_atlas
 from brainatlas_api.list_atlases import list_atlases
 
@@ -14,6 +16,8 @@ def get_atlas_class_from_name(name):
     if name in atlases.keys():
         return atlases[name]
     else:
-        print(f"Could not find atlas with name {name}. Available atlases:\n")
+        rprint(
+            f"[red1][b]Brainglobe_api[/b]: Could not find atlas with name {name}. Available atlases:[red1]"
+        )
         list_atlases()
         return None

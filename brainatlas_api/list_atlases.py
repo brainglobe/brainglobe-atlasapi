@@ -1,5 +1,5 @@
 from pathlib import Path
-from rich.table import Table, box
+from rich.table import Table, box, Style
 from rich import print as rprint
 
 from brainatlas_api import config
@@ -48,6 +48,8 @@ def list_atlases():
                     local=str(elem),
                     version=elem.name.split("_v")[-1],
                     latest_version=str(available_atlases[name]),
+                    updated=str(available_atlases[name])
+                    == elem.name.split("_v")[-1],
                 )
 
     # ---------------------- Get atlases not yet downloaded ---------------------- #
@@ -58,6 +60,7 @@ def list_atlases():
                 local="[red]---[/red]",
                 version="[red]---[/red]",
                 latest_version=str(available_atlases[str(name)]),
+                updated=None,
             )
 
     # -------------------------------- print table ------------------------------- #
@@ -75,7 +78,7 @@ def list_atlases():
     table.add_column("Latest version", justify="center")
     table.add_column("Local path")
 
-    for atlas, info in atlases.items():
+    for n, (atlas, info) in enumerate(atlases.items()):
         if info["downloaded"]:
             downloaded = "[green]:heavy_check_mark:[/green]"
         else:
@@ -88,5 +91,21 @@ def list_atlases():
             info["latest_version"],
             info["local"],
         )
+
+        if info["updated"] is not None:
+            if not info["updated"]:
+                table.row_styles.append(
+                    Style(color="black", bgcolor="magenta2")
+                )
+            else:
+                if n % 2 == 0:
+                    table.row_styles.append(Style(bgcolor="rgb(20, 20, 20)"))
+                else:
+                    table.row_styles.append(
+                        Style(
+                            color="rgb(20, 20, 20)",
+                            bgcolor="rgb(140, 140, 140)",
+                        )
+                    )
 
     rprint(table)

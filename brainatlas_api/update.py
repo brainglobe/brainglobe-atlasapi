@@ -1,12 +1,12 @@
 from rich import print as rprint
 import shutil
-import argparse
+import click
 
 import brainatlas_api
 from brainatlas_api.bg_atlas import _version_str_from_tuple
 
 
-def update_atlas(atlas_name, force=False):
+def update_atlas(atlas_name=None, force=False):
     """
         Updates a brainatlas_api atlas from the latest
         available version online. 
@@ -56,28 +56,8 @@ def update_atlas(atlas_name, force=False):
     )
 
 
-# -------------------------- command line interface -------------------------- #
-def update_parser():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "-a",
-        "--atlas",
-        dest="atlas",
-        required=True,
-        help="name of the atlas to update",
-        type=str,
-    )
-
-    fprce_parser = parser.add_mutually_exclusive_group(required=False)
-    fprce_parser.add_argument("--force", dest="force", action="store_true")
-    fprce_parser.add_argument("--no-force", dest="force", action="store_false")
-    parser.set_defaults(force=False)
-
-    return parser
-
-
-def main():
-    args = update_parser().parse_args()
-    update_atlas(args.atlas, args.force)
-    return
+@click.command()
+@click.option("-a", "--atlas_name")
+@click.option("-f", "--force", is_flag=True)
+def cli_atlas_command(atlas_name=None, force=False):
+    return update_atlas(atlas_name, force=force)

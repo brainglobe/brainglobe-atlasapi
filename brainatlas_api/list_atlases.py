@@ -1,6 +1,7 @@
 from pathlib import Path
 from rich.table import Table, box, Style
 from rich import print as rprint
+import click
 
 from brainatlas_api import config
 from brainatlas_api.bg_atlas import BrainGlobeAtlas
@@ -12,7 +13,9 @@ from brainatlas_api import utils
 """
 
 
-def list_atlases():
+@click.command()
+@click.option("-s", "--show_local_path", is_flag=True)
+def list_atlases(show_local_path=False):
     """ 
         Print's a formatted table with the name and version of local (downloaded)
         and online (available) atlases.
@@ -76,7 +79,8 @@ def list_atlases():
     table.add_column("Downloaded", justify="center")
     table.add_column("Local version", justify="center")
     table.add_column("Latest version", justify="center")
-    table.add_column("Local path")
+    if show_local_path:
+        table.add_column("Local path")
 
     for n, (atlas, info) in enumerate(atlases.items()):
         if info["downloaded"]:
@@ -84,13 +88,17 @@ def list_atlases():
         else:
             downloaded = "[red]---[/red]"
 
-        table.add_row(
+        row = [
             "[b]" + atlas + "[/b]",
             downloaded,
             info["version"],
             info["latest_version"],
-            info["local"],
-        )
+        ]
+
+        if show_local_path:
+            row.append(info["local"])
+
+        table.add_row(*row,)
 
         if info["updated"] is not None:
             if not info["updated"]:

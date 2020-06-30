@@ -35,7 +35,6 @@ class BrainGlobeAtlas(core.Atlas):
         """
 
     atlas_name = None
-    _minor_v = None
     _remote_url_base = (
         "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
     )
@@ -57,9 +56,6 @@ class BrainGlobeAtlas(core.Atlas):
             dir_path = Path(dir)
             dir_path.mkdir(exist_ok=True)
             setattr(self, dirname, dir_path)
-
-        # Flag for existence of local version, will be toggled if one is found.
-        self._exists_local = False
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:

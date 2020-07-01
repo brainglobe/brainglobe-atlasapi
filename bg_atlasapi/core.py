@@ -14,10 +14,6 @@ from bg_atlasapi.descriptors import (
 )
 
 
-def _idx_from_coords(coords):
-    return tuple([int(c) for c in coords])
-
-
 class Atlas:
     """ Base class to handle atlases in BrainGlobe.
 
@@ -50,6 +46,12 @@ class Atlas:
         self._lookup = None
 
     @property
+    def resolution(self):
+        """Make resolution more accessible from class.
+        """
+        return self.metadata["resolution"]
+
+    @property
     def hierarchy(self):
         """
             Returns a Treelib.tree object with structures hierarchy
@@ -59,7 +61,7 @@ class Atlas:
         return self._hierarchy
 
     @property
-    def lookup(self):
+    def lookup_df(self):
         """
             Returns a dataframe with id, acronym and name for each structure
         """
@@ -99,15 +101,19 @@ class Atlas:
                 )
         return self._hemispheres
 
-    def hemisphere_from_coords(self, coords, as_string=False):
+    def hemisphere_from_coords(self, coords, microns=False, as_string=False):
         """Get the hemisphere from a coordinate triplet.
 
         Parameters
         ----------
         coords : tuple or list or numpy array
-            Triplet of coordinates.
+            Triplet of coordinates. Default in voxels, can be microns if
+            microns=True
+        microns : bool
+            If true, coordinates are interpreted in microns.
         as_string : bool
             If true, returns "left" or "right".
+
 
         Returns
         -------
@@ -115,19 +121,22 @@ class Atlas:
             Hemisphere label.
 
         """
-        hem = self.hemispheres[_idx_from_coords(coords)]
+
+        hem = self.hemispheres[self._idx_from_coords(coords, microns)]
         if as_string:
             hem = ["left", "right"][hem]
         return hem
 
     def structure_from_coords(
-        self, coords, as_acronym=False, hierarchy_lev=None
+        self, coords, microns=False, as_acronym=False, hierarchy_lev=None
     ):
         """Get the structure from a coordinate triplet.
         Parameters
         ----------
         coords : tuple or list or numpy array
             Triplet of coordinates.
+        microns : bool
+            If true, coordinates are interpreted in microns.
         as_acronym : bool
             If true, the region acronym is returned.
         hierarchy_lev : int or None
@@ -138,8 +147,10 @@ class Atlas:
         int or string
             Structure containing the coordinates.
         """
-        rid = self.annotation[_idx_from_coords(coords)]
 
+        rid = self.annotation[self._idx_from_coords(coords, microns)]
+
+        # If we want to cut the result at some high level of the hierarchy:
         if hierarchy_lev is not None:
             rid = self.structures[rid]["structure_id_path"][hierarchy_lev]
 
@@ -183,6 +194,13 @@ class Atlas:
 
     def root_meshfile(self):
         return self.meshfile_from_structure("root")
+
+    def _idx_from_coords(self, coords, microns):
+        # If microns are passed, convert:
+        if microns:
+            coords = [c / res for c, res in zip(coords, self.resolution)]
+
+        return tuple([int(c) for c in coords])
 
     # ------- BrainRender methods, might be useful to implement here ------- #
 

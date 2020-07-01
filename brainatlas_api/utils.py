@@ -4,15 +4,7 @@ import numpy as np
 import requests
 import logging
 import configparser
-
-from rich.progress import (
-    BarColumn,
-    DownloadColumn,
-    TextColumn,
-    TransferSpeedColumn,
-    TimeRemainingColumn,
-    Progress,
-)
+from tqdm.auto import tqdm
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -44,37 +36,19 @@ def check_internet_connection(
 
 
 def retrieve_over_http(url, output_file_path):
-    # Make progress bar object
-
-    progress = Progress(
-        TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
-        BarColumn(bar_width=None),
-        "[progress.percentage]{task.percentage:>3.1f}%",
-        "•",
-        DownloadColumn(),
-        "•",
-        TransferSpeedColumn(),
-        "•",
-        TimeRemainingColumn(),
-    )
-
     CHUNK_SIZE = 4096
     response = requests.get(url, stream=True)
 
     try:
-        with progress:
-            task_id = progress.add_task(
-                "download",
-                filename=output_file_path.name,
-                start=False,
-                total=int(response.headers.get("content-length", 0)),
-            )
-            progress.start_task(task_id)
-
-            with open(output_file_path, "wb") as fout:
-                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                    fout.write(chunk)
-                    progress.update(task_id, advance=CHUNK_SIZE)
+        with tqdm.wrapattr(
+            open(output_file_path, "wb"),
+            "write",
+            miniters=1,
+            total=int(response.headers.get("content-length", 0)),
+            desc=output_file_path.name,
+        ) as fout:
+            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                fout.write(chunk)
 
     except requests.exceptions.ConnectionError:
         output_file_path.unlink()

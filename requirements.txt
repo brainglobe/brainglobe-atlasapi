@@ -6,3 +6,4 @@ requests
 meshio
 click
 rich
+tqdm>=4.46.1

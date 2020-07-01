@@ -20,7 +20,7 @@ def update_atlas(atlas_name=None, force=False):
     """
     # Check input
     if not isinstance(atlas_name, str):
-        raise ValueError("atlas name should be a string")
+        raise ValueError(f"atlas name should be a string, not {atlas_name}")
 
     # Get atlas class
     atlasclass = brainatlas_api.get_atlas_class_from_name(atlas_name)
@@ -31,7 +31,7 @@ def update_atlas(atlas_name=None, force=False):
 
     # Check if we need to update
     if not force:
-        if atlas.check_lateset_version():
+        if atlas.check_latest_version():
             rprint(
                 f"[b][magenta2]Brainatlas_api: {atlas.atlas_name} is already updated "
                 + f"(version: {_version_str_from_tuple(atlas.local_version)})[/b]"
@@ -59,5 +59,5 @@ def update_atlas(atlas_name=None, force=False):
 @click.command()
 @click.option("-a", "--atlas_name")
 @click.option("-f", "--force", is_flag=True)
-def cli_atlas_command(atlas_name=None, force=False):
+def cli_update_atlas_command(atlas_name, force=False):
     return update_atlas(atlas_name, force=force)

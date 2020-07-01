@@ -10,6 +10,7 @@ from bg_atlasapi import core
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
 __all__ = [
+    "ExampleAtlas",
     "FishAtlas",
     "RatAtlas",
     "AllenBrain25Um",

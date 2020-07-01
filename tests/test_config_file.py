@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from bg_atlasapi import config
 from click.testing import CliRunner
-from bg_atlasapi import bg_atlas
+from bg_atlasapi import bg_atlas, cli
 import shutil
 
 
@@ -32,7 +32,7 @@ def test_config_creation(conf_path):
 @pytest.mark.slow
 def test_config_edit():
     runner = CliRunner()
-    result = runner.invoke(config.cli_modify_config, ["--show"])
+    result = runner.invoke(cli.bg_cli, ["config", "--show"])
     assert result.exit_code == 0
     assert result.output == config._print_config() + "\n"
 

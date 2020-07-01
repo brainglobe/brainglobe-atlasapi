@@ -5,7 +5,7 @@ stages:
       tag IS present
   - name: deploy
     if:
-      tag IS present AND repo = brainglobe/brainatlas-api
+      tag IS present AND repo = brainglobe/bg-atlasapi
 
 
 jobs:

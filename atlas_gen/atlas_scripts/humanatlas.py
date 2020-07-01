@@ -15,7 +15,7 @@ from allensdk.core.structure_tree import StructureTree
 # sys.path.append("./")
 from atlas_gen.mesh_utils import create_region_mesh, Region
 from atlas_gen.wrapup import wrapup_atlas_from_data
-from brainatlas_api.structure_tree_util import get_structures_tree
+from bg_atlasapi.structure_tree_util import get_structures_tree
 
 
 def prune_tree(tree):

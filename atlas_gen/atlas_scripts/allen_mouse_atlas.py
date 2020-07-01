@@ -7,7 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from atlas_gen.wrapup import wrapup_atlas_from_data
-from brainatlas_api import descriptors
+from bg_atlasapi import descriptors
 
 # Specify information about the atlas:
 RES_UM = 25

@@ -1,6 +1,6 @@
 import numpy as np
 
-# Major version of atlases used by current brainatlas-api release:
+# Major version of atlases used by current bg-atlasapi release:
 ATLAS_MAJOR_V = 0
 
 # Entries and types from this template will be used to check atlas info

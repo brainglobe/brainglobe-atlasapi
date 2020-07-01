@@ -1,7 +1,7 @@
 import pytest
 import tempfile
 import shutil
-from brainatlas_api.bg_atlas import ExampleAtlas
+from bg_atlasapi.bg_atlas import ExampleAtlas
 
 
 def test_versions(atlas):

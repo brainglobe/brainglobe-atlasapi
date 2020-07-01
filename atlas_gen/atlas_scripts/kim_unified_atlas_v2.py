@@ -13,7 +13,7 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 # sys.path.append("./")
 from atlas_gen.mesh_utils import create_region_mesh, Region
 from atlas_gen.wrapup import wrapup_atlas_from_data
-from brainatlas_api.structure_tree_util import get_structures_tree
+from bg_atlasapi.structure_tree_util import get_structures_tree
 
 
 if __name__ == "__main__":

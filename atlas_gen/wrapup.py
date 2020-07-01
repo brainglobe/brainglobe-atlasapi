@@ -14,7 +14,7 @@ from atlas_gen.metadata_utils import (
 from atlas_gen.stacks import save_reference, save_annotation, save_hemispheres
 from atlas_gen.structures import check_struct_consistency
 
-from brainatlas_api import descriptors
+from bg_atlasapi import descriptors
 
 
 # This should be changed every time we make changes in the atlas

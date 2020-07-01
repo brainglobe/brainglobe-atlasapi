@@ -1,6 +1,6 @@
-from brainatlas_api.structure_class import StructuresDict
-from brainatlas_api.utils import read_json
-from brainatlas_api import descriptors
+from bg_atlasapi.structure_class import StructuresDict
+from bg_atlasapi.utils import read_json
+from bg_atlasapi import descriptors
 import meshio as mio
 import pytest
 

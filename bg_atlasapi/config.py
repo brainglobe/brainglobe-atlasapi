@@ -4,7 +4,7 @@ import click
 from pkg_resources import resource_filename
 
 CONFIG_FILENAME = "bg_config.conf"
-CONFIG_PATH = Path(resource_filename("brainatlas_api", CONFIG_FILENAME))
+CONFIG_PATH = Path(resource_filename("bg_atlasapi", CONFIG_FILENAME))
 
 # 2 level dictionary for sections and values:
 DEFAULT_PATH = Path.home() / ".brainglobe"

@@ -1,9 +1,9 @@
 import pytest
 import tempfile
 from pathlib import Path
-from brainatlas_api import config
+from bg_atlasapi import config
 from click.testing import CliRunner
-from brainatlas_api import bg_atlas
+from bg_atlasapi import bg_atlas
 import shutil
 
 

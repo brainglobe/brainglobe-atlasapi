@@ -1,7 +1,7 @@
 from rich import print as rprint
 
-from brainatlas_api import bg_atlas
-from brainatlas_api.list_atlases import show_atlases
+from bg_atlasapi import bg_atlas
+from bg_atlasapi.list_atlases import show_atlases
 
 available_atlases = [
     cls for cls in map(bg_atlas.__dict__.get, bg_atlas.__all__)

@@ -1,4 +1,4 @@
-from brainatlas_api import update
+from bg_atlasapi import update
 from click.testing import CliRunner
 
 

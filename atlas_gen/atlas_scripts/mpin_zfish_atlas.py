@@ -9,7 +9,7 @@ import numpy as np
 from allensdk.core.structure_tree import StructureTree
 from atlas_gen.wrapup import wrapup_atlas_from_data
 
-from brainatlas_api.utils import retrieve_over_http
+from bg_atlasapi.utils import retrieve_over_http
 
 # Specify information about the atlas:
 RES_UM = 1

@@ -6,13 +6,13 @@
 import re
 import json
 from datetime import datetime
-from brainatlas_api import descriptors
+from bg_atlasapi import descriptors
 
 import requests
 from requests.exceptions import MissingSchema, InvalidURL, ConnectionError
 
 from atlas_gen.structure_json_to_csv import convert_structure_json_to_csv
-from brainatlas_api.structure_tree_util import get_structures_tree
+from bg_atlasapi.structure_tree_util import get_structures_tree
 
 
 def generate_metadata_dict(

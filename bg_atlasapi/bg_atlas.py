@@ -2,9 +2,9 @@ from pathlib import Path
 import tarfile
 from rich import print as rprint
 
-from brainatlas_api import utils
-from brainatlas_api import config
-from brainatlas_api import core
+from bg_atlasapi import utils
+from bg_atlasapi import config
+from bg_atlasapi import core
 
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
@@ -156,7 +156,7 @@ class BrainGlobeAtlas(core.Atlas):
             rprint(
                 f"[b][magenta2]Brainatlas_api[/b]: [b]{self.atlas_name}[/b] version [b]{local}[/b] is not the latest available ([b]{online}[/b]). "
                 + "To update the atlas run in the terminal:[/magenta2]\n"
-                + f"    [gold1]brainatlas_update -a {self.atlas_name}[/gold1]"
+                + f"    [gold1]bg_update -a {self.atlas_name}[/gold1]"
             )
             return False
         return True

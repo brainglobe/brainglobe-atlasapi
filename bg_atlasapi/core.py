@@ -1,10 +1,10 @@
 from pathlib import Path
 import pandas as pd
 
-from brainatlas_api.utils import read_json, read_tiff, make_hemispheres_stack
-from brainatlas_api.structure_class import StructuresDict
-from brainatlas_api.structure_tree_util import get_structures_tree
-from brainatlas_api.descriptors import (
+from bg_atlasapi.utils import read_json, read_tiff, make_hemispheres_stack
+from bg_atlasapi.structure_class import StructuresDict
+from bg_atlasapi.structure_tree_util import get_structures_tree
+from bg_atlasapi.descriptors import (
     METADATA_FILENAME,
     STRUCTURES_FILENAME,
     REFERENCE_FILENAME,

@@ -4,7 +4,7 @@ with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
 setup(
-    name="brainatlas-api",
+    name="bg-atlasapi",
     version="0.0.2rc0",
     description="A lightweight python module to interact with atlases for systems neuroscience",
     install_requires=requirements,
@@ -30,14 +30,14 @@ setup(
     python_requires=">=3.6, <3.8",
     entry_points={
         "console_scripts": [
-            "brainatlas_config = brainatlas_api.config:cli_modify_config",
-            "brainatlas_list_atlases = brainatlas_api.list_atlases:cli_show_atlases",
-            "brainatlas_update = brainatlas_api.update:cli_update_atlas_command",
+            "bg_config = bg_atlasapi.config:cli_modify_config",
+            "bg_list_atlases = bg_atlasapi.list_atlases:cli_show_atlases",
+            "bg_update = bg_atlasapi.update:cli_update_atlas_command",
         ]
     },
     packages=find_namespace_packages(exclude=("atlas_gen", "docs", "tests*")),
     include_package_data=True,
-    url="https://github.com/brainglobe/brainatlas-api",
+    url="https://github.com/brainglobe/bg-atlasapi",
     author="Luigi Petrucco, Federico Claudi, Adam Tyson",
     author_email="adam.tyson@ucl.ac.uk",
     classifiers=[

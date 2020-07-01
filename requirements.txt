@@ -1,4 +1,3 @@
-tqdm>=4.46.1
 numpy
 tifffile
 treelib
@@ -7,3 +6,4 @@ requests
 meshio
 click
 rich
+tqdm>=4.46.1

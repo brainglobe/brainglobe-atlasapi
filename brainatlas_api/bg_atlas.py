@@ -1,5 +1,6 @@
 from pathlib import Path
 import tarfile
+from rich import print as rprint
 
 from brainatlas_api import utils
 from brainatlas_api import config
@@ -20,6 +21,10 @@ __all__ = [
 
 def _version_tuple_from_str(version_str):
     return tuple([int(n) for n in version_str.split(".")])
+
+
+def _version_str_from_tuple(version_tuple):
+    return f"{version_tuple[0]}.{version_tuple[1]}"
 
 
 class BrainGlobeAtlas(core.Atlas):
@@ -59,11 +64,16 @@ class BrainGlobeAtlas(core.Atlas):
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
-            print(0, f"{self.atlas_name} not found locally. Downloading...")
+            rprint(
+                f"[magenta2]Bgatlas_api: {self.atlas_name} not found locally. Downloading...[magenta2]"
+            )
             self.download_extract_file()
 
         # Instantiate after eventual download:
         super().__init__(self.brainglobe_dir / self.local_full_name)
+
+        # Compare atlas local version with latest online
+        self.check_latest_version()
 
     @property
     def local_version(self):
@@ -133,6 +143,23 @@ class BrainGlobeAtlas(core.Atlas):
         tar.close()
 
         destination_path.unlink()
+
+    def check_latest_version(self):
+        """
+            Checks if the local version is the latest available
+            and prompts the user to update if not
+        """
+        local = _version_str_from_tuple(self.local_version)
+        online = _version_str_from_tuple(self.remote_version)
+
+        if local != online:
+            rprint(
+                f"[b][magenta2]Brainatlas_api[/b]: [b]{self.atlas_name}[/b] version [b]{local}[/b] is not the latest available ([b]{online}[/b]). "
+                + "To update the atlas run in the terminal:[/magenta2]\n"
+                + f"    [gold1]brainatlas_update -a {self.atlas_name}[/gold1]"
+            )
+            return False
+        return True
 
 
 class ExampleAtlas(BrainGlobeAtlas):

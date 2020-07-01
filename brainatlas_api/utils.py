@@ -2,9 +2,9 @@ import json
 import tifffile
 import numpy as np
 import requests
-from tqdm.auto import tqdm
 import logging
 import configparser
+from tqdm.auto import tqdm
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -63,6 +63,13 @@ def conf_from_url(url):
     config.read_string(text)
 
     return config
+
+
+def get_latest_atlases_version():
+    # TODO download version from online
+
+    versions = read_json("docs/atlases/latest_version.json")
+    return versions
 
 
 # --------------------------------- File I/O --------------------------------- #

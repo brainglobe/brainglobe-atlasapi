@@ -31,7 +31,8 @@ setup(
     entry_points={
         "console_scripts": [
             "brainatlas_config = brainatlas_api.config:cli_modify_config",
-            "brainatlas_list_atlases = brainatlas_api.list_atlases:list_atlases",
+            "brainatlas_list_atlases = brainatlas_api.list_atlases:cli_show_atlases",
+            "brainatlas_update = brainatlas_api.update:cli_update_atlas_command",
         ]
     },
     packages=find_namespace_packages(exclude=("atlas_gen", "docs", "tests*")),

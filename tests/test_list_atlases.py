@@ -1,16 +1,10 @@
 import bg_atlasapi
 from bg_atlasapi import list_atlases
 import pytest
-from click.testing import CliRunner
 
 
 def test_show_atlases():
     list_atlases.show_atlases(show_local_path=True)
-
-
-def test_cli_show_atlases():
-    runner = CliRunner()
-    runner.invoke(list_atlases.cli_show_atlases, ["s"])
 
 
 @pytest.mark.parametrize(

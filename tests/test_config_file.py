@@ -25,24 +25,6 @@ def test_config_creation(conf_path):
             assert val == str(config.TEMPLATE_CONF_DICT[sectname][k])
 
 
-# This testing of the command line application does not really
-# cange anything in the filesystem, so the repo config will remain unchanged:
-def test_config_cli():
-    runner = CliRunner()
-
-    # Test printing of config file:
-    result = runner.invoke(config.cli_modify_config, ["--show"])
-    assert result.exit_code == 0
-    assert result.output == config._print_config() + "\n"
-
-    # Correct edit (this does not really change the file):
-    result = runner.invoke(
-        config.cli_modify_config, [f"-k brainglobe_dir -v valid_path"]
-    )
-    assert result.exit_code == 0
-    assert result.output == config._print_config() + "\n"
-
-
 # Ugly test zone: here we use the terminal commands, which edit the config
 # file in the brainatlas_api repo from which the tests are being run.
 # This is not the cleanest way, the alternative would be to run this test in

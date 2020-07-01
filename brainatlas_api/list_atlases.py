@@ -3,9 +3,9 @@ from rich.table import Table, box, Style
 from rich import print as rprint
 import click
 
-from brainatlas_api import config
-from brainatlas_api.bg_atlas import BrainGlobeAtlas
-from brainatlas_api import utils
+from bg_atlasapi import config
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas
+from bg_atlasapi import utils
 
 
 """

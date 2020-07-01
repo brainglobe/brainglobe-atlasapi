@@ -44,6 +44,10 @@ def update_atlas(atlas_name=None, force=False):
     )
     fld = atlas.brainglobe_dir / atlas.local_full_name
     shutil.rmtree(fld)
+    if fld.exists():
+        raise ValueError(
+            "Something went wrong while tryint to delete the old version of the atlas, aborting."
+        )
 
     # Download again
     atlas.download_extract_file()

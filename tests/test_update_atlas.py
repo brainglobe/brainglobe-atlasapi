@@ -16,6 +16,8 @@ def test_update_command():
     runner = CliRunner()
 
     # Test printing of config file:
-    runner.invoke(
+    result = runner.invoke(
         update.cli_update_atlas_command, ["-a", "example_mouse_100um"]
     )
+
+    assert result.exit_code == 0

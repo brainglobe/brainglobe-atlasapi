@@ -1,7 +1,7 @@
 from rich import print as rprint
 
 from brainatlas_api import bg_atlas
-from brainatlas_api.list_atlases import list_atlases
+from brainatlas_api.list_atlases import show_atlases
 
 available_atlases = [
     cls for cls in map(bg_atlas.__dict__.get, bg_atlas.__all__)
@@ -19,5 +19,5 @@ def get_atlas_class_from_name(name):
         rprint(
             f"[red1][b]Brainglobe_api[/b]: Could not find atlas with name {name}. Available atlases:[red1]"
         )
-        list_atlases()
+        show_atlases()
         return None

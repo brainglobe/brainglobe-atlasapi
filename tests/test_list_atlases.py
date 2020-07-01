@@ -1,9 +1,16 @@
 import brainatlas_api
+from brainatlas_api import list_atlases
 import pytest
+from click.testing import CliRunner
 
 
-def test_list_atlases():
-    brainatlas_api.list_atlases()
+def test_show_atlases():
+    list_atlases.show_atlases(show_local_path=True)
+
+
+def test_cli_show_atlases():
+    runner = CliRunner()
+    runner.invoke(list_atlases.cli_show_atlases, ["s"])
 
 
 @pytest.mark.parametrize(

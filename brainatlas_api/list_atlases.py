@@ -13,9 +13,7 @@ from brainatlas_api import utils
 """
 
 
-@click.command()
-@click.option("-s", "--show_local_path", is_flag=True)
-def list_atlases(show_local_path=False):
+def show_atlases(show_local_path=False):
     """ 
         Print's a formatted table with the name and version of local (downloaded)
         and online (available) atlases.
@@ -107,3 +105,9 @@ def list_atlases(show_local_path=False):
                 )
 
     rprint(table)
+
+
+@click.command()
+@click.option("-s", "--show_local_path", is_flag=True)
+def cli_show_atlases(show_local_path=False):
+    return show_atlases(show_local_path=show_local_path)

@@ -88,6 +88,13 @@ def conf_from_url(url):
     return config
 
 
+def get_latest_atlases_version():
+    # TODO download version from online
+
+    versions = read_json("docs/atlases/latest_version.json")
+    return versions
+
+
 # --------------------------------- File I/O --------------------------------- #
 def read_json(path):
     with open(path, "r") as f:

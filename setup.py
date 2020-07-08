@@ -28,13 +28,7 @@ setup(
         ]
     },
     python_requires=">=3.6, <3.8",
-    entry_points={
-        "console_scripts": [
-            "bg_config = bg_atlasapi.config:cli_modify_config",
-            "bg_list_atlases = bg_atlasapi.list_atlases:cli_show_atlases",
-            "bg_update = bg_atlasapi.update:cli_update_atlas_command",
-        ]
-    },
+    entry_points={"console_scripts": ["brainglobe = bg_atlasapi.cli:bg_cli"]},
     packages=find_namespace_packages(exclude=("atlas_gen", "docs", "tests*")),
     include_package_data=True,
     url="https://github.com/brainglobe/bg-atlasapi",

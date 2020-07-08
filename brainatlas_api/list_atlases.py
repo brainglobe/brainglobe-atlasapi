@@ -1,6 +1,7 @@
 from pathlib import Path
 from rich.table import Table, box, Style
 from rich import print as rprint
+import click
 
 from bg_atlasapi import config
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas
@@ -10,37 +11,6 @@ from bg_atlasapi import utils
 """
     Some functionality to list all available and downloaded brainglobe atlases
 """
-
-
-def get_downloaded_atlases():
-    """
-        Returns a dictionary with metadata about already installed atalses
-    """
-    available_atlases = utils.conf_from_url(
-        BrainGlobeAtlas._remote_url_base.format("last_versions.conf")
-    )
-    available_atlases = dict(available_atlases["atlases"])
-
-    # Get brainglobe directory
-    conf = config.read_config()
-    brainglobe_dir = Path(conf["default_dirs"]["brainglobe_dir"])
-
-    # Get downloaded atlases
-    atlases = {}
-    for elem in brainglobe_dir.iterdir():
-        if elem.is_dir():
-            name = elem.name.split("_v")[0]
-
-            if name in available_atlases.keys():
-                atlases[name] = dict(
-                    downloaded=True,
-                    local=str(elem),
-                    version=elem.name.split("_v")[-1],
-                    latest_version=str(available_atlases[name]),
-                    updated=str(available_atlases[name])
-                    == elem.name.split("_v")[-1],
-                )
-    return atlases
 
 
 def show_atlases(show_local_path=False):
@@ -64,17 +34,33 @@ def show_atlases(show_local_path=False):
     available_atlases = dict(available_atlases["atlases"])
 
     # ----------------------------- Get local atlases ---------------------------- #
-    atlases = get_downloaded_atlases()
+    # Get brainglobe directory
+    conf = config.read_config()
+    brainglobe_dir = Path(conf["default_dirs"]["brainglobe_dir"])
+
+    # Get downloaded atlases
+    atlases = {}
+    for elem in brainglobe_dir.iterdir():
+        if elem.is_dir():
+            name = elem.name.split("_v")[0]
+            if name in available_atlases.keys():
+                atlases[name] = dict(
+                    downloaded=True,
+                    local=str(elem),
+                    version=elem.name.split("_v")[-1],
+                    latest_version=str(available_atlases[name]),
+                    updated=str(available_atlases[name])
+                    == elem.name.split("_v")[-1],
+                )
 
     # ---------------------- Get atlases not yet downloaded ---------------------- #
     for atlas in available_atlases.keys():
-
         if atlas not in atlases.keys():
             atlases[str(atlas)] = dict(
                 downloaded=False,
                 local="[red]---[/red]",
                 version="[red]---[/red]",
-                latest_version=str(available_atlases[atlas]),
+                latest_version=str(available_atlases[str(name)]),
                 updated=None,
             )
 
@@ -119,3 +105,9 @@ def show_atlases(show_local_path=False):
                 )
 
     rprint(table)
+
+
+@click.command()
+@click.option("-s", "--show_local_path", is_flag=True)
+def cli_show_atlases(show_local_path=False):
+    return show_atlases(show_local_path=show_local_path)

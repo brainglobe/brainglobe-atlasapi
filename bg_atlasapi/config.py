@@ -1,7 +1,7 @@
 import configparser
 from pathlib import Path
-import click
 from pkg_resources import resource_filename
+import click
 
 CONFIG_FILENAME = "bg_config.conf"
 CONFIG_PATH = Path(resource_filename("bg_atlasapi", CONFIG_FILENAME))
@@ -77,10 +77,6 @@ def write_config_value(key, val, path=CONFIG_PATH):
         conf.write(f)
 
 
-@click.command()
-@click.option("-k", "--key")
-@click.option("-v", "--value")
-@click.option("-s", "--show", is_flag=True)
 def cli_modify_config(key=0, value=0, show=False):
     # Ensure that we choose valid paths for default directory. The path does
     # not have to exist yet, but the parent must be valid:

@@ -165,6 +165,7 @@ def wrapup_atlas_from_data(
         species=species,
         symmetric=symmetric,
         resolution=resolution,
+        orientation=descriptors.ATLAS_ORIENTATION,
         version=version,
         shape=shape,
         transformation_mat=transformation_mat,

@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 import tifffile
-import bgspace as bgs
+import bg_space as bgs
 import meshio as mio
 
 from atlas_gen.metadata_utils import (
@@ -91,14 +91,18 @@ def wrapup_atlas_from_data(
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
 
-    # Instantiate BGSpace obj:
-    space_convention = bgs.SpaceConvention(orientation)
+    # Instantiate BGSpace obj, using original stack size in um as meshes
+    # are un um:
+    original_shape = reference_stack.shape
+    volume_shape = tuple(res * s for res, s in zip(resolution, original_shape))
+    space_convention = bgs.SpaceConvention(orientation, shape=volume_shape)
 
     # Check consistency of structures .json file:
     check_struct_consistency(structures_list)
 
     atlas_dir_name = f"{atlas_name}_{resolution[0]}um_v{version}"
     dest_dir = Path(working_dir) / atlas_dir_name
+
     # exist_ok would be more permissive but error-prone here as there might
     # be old files
     dest_dir.mkdir()
@@ -106,11 +110,14 @@ def wrapup_atlas_from_data(
     stack_list = [reference_stack, annotation_stack]
     saving_fun_list = [save_reference, save_annotation]
 
+    # If the atlas is not symmetric, we are also providing an hemisphere stack:
     if not symmetric:
-        stack_list = stack_list + [
+        stack_list += [
             hemispheres_stack,
         ]
-        saving_fun_list = saving_fun_list + [save_hemispheres]
+        saving_fun_list += [
+            save_hemispheres,
+        ]
 
     # write tiff stacks:
     for stack, saving_function in zip(stack_list, saving_fun_list):
@@ -119,7 +126,6 @@ def wrapup_atlas_from_data(
             stack = tifffile.imread(stack)
 
         # Reorient stacks if required:
-        original_shape = stack.shape
         stack = space_convention.map_stack_to(
             descriptors.ATLAS_ORIENTATION, stack, copy=False
         )
@@ -129,8 +135,7 @@ def wrapup_atlas_from_data(
 
         del stack  # necessary?
 
-    # Reorient vertices here as we need to know original stack size in um:
-    volume_shape = tuple(res * s for res, s in zip(resolution, original_shape))
+    # Reorient vertices of the mesh.
 
     mesh_dest_dir = dest_dir / descriptors.MESHES_DIRNAME
     mesh_dest_dir.mkdir()
@@ -140,17 +145,18 @@ def wrapup_atlas_from_data(
 
         # Reorient points:
         mesh.points = space_convention.map_points_to(
-            descriptors.ATLAS_ORIENTATION, mesh.points, shape=volume_shape
+            descriptors.ATLAS_ORIENTATION, mesh.points
         )
 
-        # Scale the mesh to be in microns
-        mesh.points *= resolution
+        # Scale the mesh to be in microns, if necessary:
+        if scale_meshes:
+            mesh.points *= resolution
 
         # Save in meshes dir:
         mio.write(mesh_dest_dir / f"{mesh_id}.obj", mesh)
 
     transformation_mat = space_convention.transformation_matrix_to(
-        descriptors.ATLAS_ORIENTATION, shape=volume_shape
+        descriptors.ATLAS_ORIENTATION
     )
 
     # save regions list json:

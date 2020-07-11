@@ -11,7 +11,7 @@ from bg_atlasapi import descriptors
 
 # Specify information about the atlas:
 RES_UM = 25
-VERSION = 2
+VERSION = 3
 ATLAS_NAME = f"allen_brain"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org.com"

@@ -14,6 +14,7 @@ METADATA_TEMPLATE = {
     "species": "Gen species",
     "symmetric": False,
     "resolution": (1.0, 1.0, 1.0),
+    "orientation": "asl",
     "shape": (100, 50, 100),
     "version": "0.0",
     "supplementary_stacks": [],

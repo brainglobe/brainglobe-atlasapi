@@ -10,7 +10,7 @@ from atlas_gen.wrapup import wrapup_atlas_from_data
 
 # Specify information about the atlas:
 RES_UM = 100
-VERSION = 2
+VERSION = 3
 ATLAS_NAME = f"example_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org.com"

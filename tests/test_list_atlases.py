@@ -1,18 +1,44 @@
-import bg_atlasapi
-from bg_atlasapi import list_atlases
-import pytest
+from bg_atlasapi.list_atlases import (
+    get_downloaded_atlases,
+    get_atlases_lastversions,
+    show_atlases,
+    get_local_atlas_version,
+)
+
+
+def test_get_downloaded_atlases():
+    available_atlases = get_downloaded_atlases()
+
+    # Check that example is listed:
+    assert "example_mouse_100um" in available_atlases
+
+    # Check that all listed ar valid atlas names:
+    assert all([len(a.split("_")) == 3 for a in available_atlases])
+
+
+def test_get_local_atlas_version():
+    v = get_local_atlas_version("example_mouse_100um")
+
+    assert len(v.split(".")) == 2
+
+
+def test_lastversions():
+    last_versions = get_atlases_lastversions()
+    example_atlas = last_versions["example_mouse_100um"]
+
+    local_v = get_local_atlas_version("example_mouse_100um")
+
+    assert example_atlas["version"] == local_v
+    assert all(
+        [
+            int(l) <= int(r)
+            for l, r in zip(
+                example_atlas["latest_version"].split("."), local_v.split(".")
+            )
+        ]
+    )
 
 
 def test_show_atlases():
-    list_atlases.show_atlases(show_local_path=True)
-
-
-@pytest.mark.parametrize(
-    "key, is_none", [("allen_mouse_25um", False), ("xxx", True)]
-)
-def test_get_atlas_from_name(key, is_none):
-    a = bg_atlasapi.get_atlas_class_from_name(key)
-    if is_none:
-        assert a is None
-    else:
-        assert a is not None
+    # TODO add more valid testing than just look for errors when running:
+    show_atlases(show_local_path=True)

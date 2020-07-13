@@ -22,11 +22,10 @@ def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
 
     Parameters
     ----------
-    path
-    template
-
-    Returns
-    -------
+    path : Path object
+        Path of the config file (optional).
+    template : dict
+        Template of the config file to be written (optional).
 
     """
 
@@ -39,10 +38,17 @@ def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
 
 
 def read_config(path=CONFIG_PATH):
-    """
+    """Read BrainGlobe config.
+
+    Parameters
+    ----------
+    path : Path object
+        Path of the config file (optional).
+
     Returns
     -------
-
+    ConfigParser object
+        brainglobe configuration
     """
 
     # If no config file exists yet, write the default one:
@@ -64,7 +70,9 @@ def write_config_value(key, val, path=CONFIG_PATH):
     key : str
         Name of the parameter to configure.
     val :
-        New value
+        New value.
+    path : Path object
+        Path of the config file (optional).
 
     """
     conf = configparser.ConfigParser()
@@ -75,6 +83,18 @@ def write_config_value(key, val, path=CONFIG_PATH):
 
     with open(CONFIG_PATH, "w") as f:
         conf.write(f)
+
+
+def get_brainglobe_dir():
+    """Return brainglobe default directory.
+
+    Returns
+    -------
+    Path object
+        default BrainGlobe directory with atlases
+    """
+    conf = read_config()
+    return Path(conf["default_dirs"]["brainglobe_dir"])
 
 
 def cli_modify_config(key=0, value=0, show=False):
@@ -95,6 +115,8 @@ def cli_modify_config(key=0, value=0, show=False):
 
 
 def _print_config():
+    """Print configuration.
+    """
     config = read_config()
     string = ""
     for sect_name, sect_content in config.items():

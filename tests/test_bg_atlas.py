@@ -1,7 +1,7 @@
 import pytest
 import tempfile
 import shutil
-from bg_atlasapi.bg_atlas import ExampleAtlas
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 def test_versions(atlas):
@@ -12,8 +12,10 @@ def test_local_search():
     brainglobe_dir = tempfile.mkdtemp()
     interm_download_dir = tempfile.mkdtemp()
 
-    atlas = ExampleAtlas(
-        brainglobe_dir=brainglobe_dir, interm_download_dir=interm_download_dir
+    atlas = BrainGlobeAtlas(
+        "example_mouse_100um",
+        brainglobe_dir=brainglobe_dir,
+        interm_download_dir=interm_download_dir,
     )
 
     assert atlas.atlas_name in atlas.local_full_name
@@ -23,7 +25,9 @@ def test_local_search():
     shutil.copytree(atlas.root_dir, copy_filename)
 
     with pytest.raises(FileExistsError) as error:
-        _ = ExampleAtlas(brainglobe_dir=brainglobe_dir)
+        _ = BrainGlobeAtlas(
+            "example_mouse_100um", brainglobe_dir=brainglobe_dir
+        )
     assert "Multiple versions of atlas" in str(error)
 
     shutil.rmtree(brainglobe_dir)

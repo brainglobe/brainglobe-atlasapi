@@ -2,22 +2,10 @@ from pathlib import Path
 import tarfile
 from rich import print as rprint
 
-from bg_atlasapi import utils
-from bg_atlasapi import config
-from bg_atlasapi import core
+from bg_atlasapi import utils, config, core, descriptors
 
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
-
-__all__ = [
-    "ExampleAtlas",
-    "FishAtlas",
-    "RatAtlas",
-    "AllenBrain25Um",
-    "AllenHumanBrain500Um",
-    "KimUnified25Um",
-    "KimUnified50Um",
-]
 
 
 def _version_tuple_from_str(version_str):
@@ -33,6 +21,8 @@ class BrainGlobeAtlas(core.Atlas):
 
         Parameters
         ----------
+        atlas_name : str
+            Name of the atlas to be used.
         brainglobe_dir : str or Path object
             default folder for brainglobe downloads
 
@@ -41,11 +31,13 @@ class BrainGlobeAtlas(core.Atlas):
         """
 
     atlas_name = None
-    _remote_url_base = (
-        "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
-    )
+    _remote_url_base = descriptors.remote_url_base
 
-    def __init__(self, brainglobe_dir=None, interm_download_dir=None):
+    def __init__(
+        self, atlas_name, brainglobe_dir=None, interm_download_dir=None
+    ):
+        self.atlas_name = atlas_name
+
         # Read BrainGlobe configuration file:
         conf = config.read_config()
 
@@ -94,10 +86,12 @@ class BrainGlobeAtlas(core.Atlas):
         """
         remote_url = self._remote_url_base.format("last_versions.conf")
         versions_conf = utils.conf_from_url(remote_url)
-
-        return _version_tuple_from_str(
-            versions_conf["atlases"][self.atlas_name]
-        )
+        try:
+            return _version_tuple_from_str(
+                versions_conf["atlases"][self.atlas_name]
+            )
+        except KeyError:
+            raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
 
     @property
     def local_full_name(self):
@@ -161,33 +155,3 @@ class BrainGlobeAtlas(core.Atlas):
             )
             return False
         return True
-
-
-class ExampleAtlas(BrainGlobeAtlas):
-    atlas_name = "example_mouse_100um"
-
-
-class FishAtlas(BrainGlobeAtlas):
-    atlas_name = "mpin_zfish_1um"
-
-
-class RatAtlas(BrainGlobeAtlas):
-    # TODO fix hierarchy and meshes
-    atlas_name = "ratatlas"
-
-
-class AllenBrain25Um(BrainGlobeAtlas):
-    atlas_name = "allen_mouse_25um"
-
-
-class KimUnified25Um(BrainGlobeAtlas):
-    atlas_name = "kim_unified_25um"
-
-
-class KimUnified50Um(BrainGlobeAtlas):
-    atlas_name = "kim_unified_50um"
-
-
-class AllenHumanBrain500Um(BrainGlobeAtlas):
-    # TODO fix meshes
-    atlas_name = "allen_human_500um"

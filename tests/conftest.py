@@ -1,18 +1,15 @@
 import pytest
-from bg_atlasapi.bg_atlas import ExampleAtlas
-
-# import tempfile
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 @pytest.fixture()
 def atlas():
-    return ExampleAtlas()
+    return BrainGlobeAtlas("example_mouse_100um")
 
 
 @pytest.fixture(scope="module")
 def atlas_path():
-    # brainglobe_path=tempfile.mkdtemp()
-    return ExampleAtlas().root_dir
+    return BrainGlobeAtlas("example_mouse_100um").root_dir
 
 
 def pytest_addoption(parser):

@@ -1,5 +1,8 @@
 import numpy as np
 
+# Base url of the gin repository:
+remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
+
 # Major version of atlases used by current bg-atlasapi release:
 ATLAS_MAJOR_V = 0
 

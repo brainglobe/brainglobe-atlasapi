@@ -1,5 +1,6 @@
 from pathlib import Path
 import pandas as pd
+from bg_space import SpaceConvention
 
 from bg_atlasapi.utils import read_json, read_tiff, make_hemispheres_stack
 from bg_atlasapi.structure_class import StructuresDict
@@ -38,6 +39,13 @@ class Atlas:
             )
 
         self.structures = StructuresDict(structures_list)
+
+        # Instantiate SpaceConvention object describing the current atlas:
+        self._space = SpaceConvention(
+            origin=self.metadata["orientation"],
+            shape=self.metadata["shape"],
+            resolution=self.metadata["resolution"],
+        )
 
         self._reference = None
         self._annotation = None

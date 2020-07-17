@@ -107,8 +107,9 @@ class Atlas:
 
                 # Fill out with 2s the right hemisphere:
                 slices = [slice(None) for _ in range(3)]
-                slices[front_ax_idx] = slice(stack.shape[front_ax_idx] // 2,
-                                             None)
+                slices[front_ax_idx] = slice(
+                    stack.shape[front_ax_idx] // 2 + 1, None
+                )
                 stack[tuple(slices)] = 2
 
                 self._hemispheres = stack

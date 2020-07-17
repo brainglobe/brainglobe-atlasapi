@@ -12,7 +12,7 @@ from bg_atlasapi import descriptors
 # Specify information about the atlas:
 RES_UM = 25
 VERSION = 3
-ATLAS_NAME = f"allen_brain"
+ATLAS_NAME = "allen_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org.com"
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"

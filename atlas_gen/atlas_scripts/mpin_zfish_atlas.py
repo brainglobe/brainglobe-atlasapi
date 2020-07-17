@@ -14,7 +14,7 @@ from bg_atlasapi.utils import retrieve_over_http
 # Specify information about the atlas:
 RES_UM = 1
 VERSION = 3
-ATLAS_NAME = f"mpin_zfish"
+ATLAS_NAME = "mpin_zfish"
 SPECIES = "Danio rerio"
 ATLAS_LINK = "http://fishatlas.neuro.mpg.de"
 CITATION = "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034"

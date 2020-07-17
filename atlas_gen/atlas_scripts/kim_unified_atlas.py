@@ -33,7 +33,7 @@ structures_file = paxinos_allen_directory / "structures.csv"
 ANNOTATIONS_RES_UM = 10
 
 RES_UM = 50
-ATLAS_NAME = f"kim_unified{RES_UM}um"
+ATLAS_NAME = "kim_unified{RES_UM}um"
 
 # Generated atlas path:
 bg_root_dir = Path.home() / "brainglobe"

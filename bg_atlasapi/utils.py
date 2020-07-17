@@ -1,6 +1,5 @@
 import json
 import tifffile
-import numpy as np
 import requests
 import logging
 import configparser
@@ -104,13 +103,3 @@ def read_json(path):
 
 def read_tiff(path):
     return tifffile.imread(str(path))
-
-
-# -------------------------------- Folders I/O ------------------------------- #
-# Ideally manageable with pathlib
-# def get_subdirs(folderpath):
-#    """
-#        Returns the subfolders in a given folder
-#    """
-#    return [f.path for f in os.scandir(folderpath) if f.is_dir()]
-

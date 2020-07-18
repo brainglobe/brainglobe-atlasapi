@@ -1,4 +1,2 @@
-from rich import print as rprint
-
-from bg_atlasapi import bg_atlas
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 from bg_atlasapi.list_atlases import show_atlases

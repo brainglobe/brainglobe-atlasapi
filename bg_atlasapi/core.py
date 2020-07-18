@@ -1,7 +1,9 @@
 from pathlib import Path
 import pandas as pd
+import numpy as np
+from bg_space import SpaceConvention
 
-from bg_atlasapi.utils import read_json, read_tiff, make_hemispheres_stack
+from bg_atlasapi.utils import read_json, read_tiff
 from bg_atlasapi.structure_class import StructuresDict
 from bg_atlasapi.structure_tree_util import get_structures_tree
 from bg_atlasapi.descriptors import (
@@ -15,13 +17,13 @@ from bg_atlasapi.descriptors import (
 
 
 class Atlas:
-    """ Base class to handle atlases in BrainGlobe.
+    """Base class to handle atlases in BrainGlobe.
 
-        Parameters
-        ----------
-        path : str or Path object
-            path to folder containing data info.
-        """
+    Parameters
+    ----------
+    path : str or Path object
+        path to folder containing data info.
+    """
 
     def __init__(self, path):
         self.root_dir = Path(path)
@@ -39,6 +41,13 @@ class Atlas:
 
         self.structures = StructuresDict(structures_list)
 
+        # Instantiate SpaceConvention object describing the current atlas:
+        self._space = SpaceConvention(
+            origin=self.metadata["orientation"],
+            shape=self.metadata["shape"],
+            resolution=self.metadata["resolution"],
+        )
+
         self._reference = None
         self._annotation = None
         self._hemispheres = None
@@ -53,8 +62,7 @@ class Atlas:
 
     @property
     def hierarchy(self):
-        """
-            Returns a Treelib.tree object with structures hierarchy
+        """Returns a Treelib.tree object with structures hierarchy.
         """
         if self._hierarchy is None:
             self._hierarchy = get_structures_tree(self.structures_list)
@@ -62,8 +70,7 @@ class Atlas:
 
     @property
     def lookup_df(self):
-        """
-            Returns a dataframe with id, acronym and name for each structure
+        """Returns a dataframe with id, acronym and name for each structure.
         """
         if self._lookup is None:
             self._lookup = pd.DataFrame(
@@ -92,9 +99,20 @@ class Atlas:
         if self._hemispheres is None:
             # If reference is symmetric generate hemispheres block:
             if self.metadata["symmetric"]:
-                self._hemispheres = make_hemispheres_stack(
-                    self.metadata["shape"]
+                # initialize empty stack:
+                stack = np.ones(self.metadata["shape"], dtype=np.uint8)
+
+                # Use bgspace description to fill out with hemisphere values:
+                front_ax_idx = self._space.axes_order.index("frontal")
+
+                # Fill out with 2s the right hemisphere:
+                slices = [slice(None) for _ in range(3)]
+                slices[front_ax_idx] = slice(
+                    stack.shape[front_ax_idx] // 2 + 1, None
                 )
+                stack[tuple(slices)] = 2
+
+                self._hemispheres = stack
             else:
                 self._hemispheres = read_tiff(
                     self.root_dir / HEMISPHERES_FILENAME
@@ -124,13 +142,14 @@ class Atlas:
 
         hem = self.hemispheres[self._idx_from_coords(coords, microns)]
         if as_string:
-            hem = ["left", "right"][hem]
+            hem = ["left", "right"][hem - 1]
         return hem
 
     def structure_from_coords(
         self, coords, microns=False, as_acronym=False, hierarchy_lev=None
     ):
         """Get the structure from a coordinate triplet.
+
         Parameters
         ----------
         coords : tuple or list or numpy array

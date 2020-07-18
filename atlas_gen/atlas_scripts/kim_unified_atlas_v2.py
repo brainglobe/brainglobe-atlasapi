@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------- #
     RES_UM = 25
     VERSION = 1
-    ATLAS_NAME = f"kim_unified"
+    ATLAS_NAME = "kim_unified"
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://kimlab.io/brain-map/atlas/"
     CITATION = "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w"

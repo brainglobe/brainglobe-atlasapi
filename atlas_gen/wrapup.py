@@ -11,7 +11,12 @@ from atlas_gen.metadata_utils import (
     create_metadata_files,
     generate_metadata_dict,
 )
-from atlas_gen.stacks import save_reference, save_annotation, save_hemispheres
+from atlas_gen.stacks import (
+    save_reference,
+    save_annotation,
+    save_hemispheres,
+    save_secondary_reference,
+)
 from atlas_gen.structures import check_struct_consistency
 
 from bg_atlasapi import descriptors
@@ -40,6 +45,7 @@ def wrapup_atlas_from_data(
     cleanup_files=False,
     compress=True,
     scale_meshes=False,
+    secondary_references=dict(),
 ):
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -133,10 +139,13 @@ def wrapup_atlas_from_data(
 
         saving_function(stack, dest_dir)
 
-        del stack  # necessary?
+    for k, stack in secondary_references.items():
+        stack = space_convention.map_stack_to(
+            descriptors.ATLAS_ORIENTATION, stack, copy=False
+        )
+        save_secondary_reference(stack, k, output_dir=dest_dir)
 
     # Reorient vertices of the mesh.
-
     mesh_dest_dir = dest_dir / descriptors.MESHES_DIRNAME
     mesh_dest_dir.mkdir()
 
@@ -175,6 +184,7 @@ def wrapup_atlas_from_data(
         version=version,
         shape=shape,
         transformation_mat=transformation_mat,
+        secondary_references=[k for k in secondary_references.keys()],
     )
 
     # Create human readable .csv and .txt files:

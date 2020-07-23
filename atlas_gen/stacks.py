@@ -25,6 +25,19 @@ def save_reference(stack, output_dir):
     write_stack(stack, output_dir / descriptors.REFERENCE_FILENAME)
 
 
+def save_secondary_reference(stack, name, output_dir):
+    """
+    Parameters
+    ----------
+    stack
+    name
+    output_dir
+    """
+    if stack.dtype != descriptors.REFERENCE_DTYPE:
+        stack = stack.astype(descriptors.REFERENCE_DTYPE)
+    write_stack(stack, output_dir / f"{name}.tiff")
+
+
 def save_annotation(stack, output_dir):
     """
     Parameters

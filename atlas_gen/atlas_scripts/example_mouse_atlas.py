@@ -9,10 +9,6 @@ from tqdm import tqdm
 from atlas_gen.wrapup import wrapup_atlas_from_data
 
 VERSION = 3
-# Working path on disk:
-bg_root_dir = Path.home() / "brainglobe_workingdir" / "example"
-bg_root_dir.mkdir(exist_ok=True)
-
 
 def create_atlas(version, bg_root_dir):
 

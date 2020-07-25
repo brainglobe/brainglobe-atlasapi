@@ -145,7 +145,7 @@ if __name__ == "__main__":
     ROOT_ID = regions_list[0]["id"]
 
     # ---------------------------------------------------------------------------- #
-    #                                CREATE MESHESH                                #
+    #                                CREATE MESHES                                #
     # ---------------------------------------------------------------------------- #
     print(f"Saving atlas data at {uncompr_atlas_path}")
     meshes_dir_path = uncompr_atlas_path / "meshes"

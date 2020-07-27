@@ -10,6 +10,7 @@
 
 The brainglobe atlas API (BG-AtlasAPI) provides a common interface for programmers to download and process brain atlas data from multiple sources. 
 
+![banner](docs/img/banner.jpeg)
 ## Atlases available
 
 A number of atlases are in development, but those available currently are:

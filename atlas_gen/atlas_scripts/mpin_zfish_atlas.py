@@ -13,8 +13,8 @@ from bg_atlasapi.utils import retrieve_over_http
 
 # Specify information about the atlas:
 RES_UM = 1
-VERSION = 2
-ATLAS_NAME = f"mpin_zfish"
+VERSION = 3
+ATLAS_NAME = "mpin_zfish"
 SPECIES = "Danio rerio"
 ATLAS_LINK = "http://fishatlas.neuro.mpg.de"
 CITATION = "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034"
@@ -125,7 +125,7 @@ hemispheres_stack = tifffile.imread(
 )
 
 # meshes from the website and stacks do not have the same orientation.
-# Therefore, flip axes of the stacks so that bgspace reorientation is used on
+# Therefore, flip axes of the stacks so that bg-space reorientation is used on
 # the meshes:
 annotation_stack = annotation_stack.swapaxes(0, 2)
 hemispheres_stack = hemispheres_stack.swapaxes(0, 2)

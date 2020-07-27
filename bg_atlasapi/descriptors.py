@@ -1,5 +1,8 @@
 import numpy as np
 
+# Base url of the gin repository:
+remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
+
 # Major version of atlases used by current bg-atlasapi release:
 ATLAS_MAJOR_V = 0
 
@@ -14,6 +17,7 @@ METADATA_TEMPLATE = {
     "species": "Gen species",
     "symmetric": False,
     "resolution": (1.0, 1.0, 1.0),
+    "orientation": "asl",
     "shape": (100, 50, 100),
     "version": "0.0",
     "supplementary_stacks": [],

@@ -46,7 +46,7 @@ def test_config_edit():
     assert config_post["default_dirs"]["brainglobe_dir"] == str(new_atlas_dir)
 
     # Use new location to download:
-    atlas = bg_atlas.ExampleAtlas()
+    atlas = bg_atlas.BrainGlobeAtlas(atlas_name="example_mouse_100um")
 
     assert atlas.root_dir.parent == new_atlas_dir
 

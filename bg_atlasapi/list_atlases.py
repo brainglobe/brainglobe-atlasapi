@@ -1,10 +1,8 @@
-from pathlib import Path
 from rich.table import Table, box, Style
 from rich import print as rprint
 
-from bg_atlasapi import config
+from bg_atlasapi import config, utils, descriptors
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas
-from bg_atlasapi import utils
 
 
 """
@@ -12,61 +10,100 @@ from bg_atlasapi import utils
 """
 
 
-def get_downloaded_atlases():
+def get_downloaded_atlases(with_version=False):
+    """Get a list of all the downloaded atlases and their version.
+
+    Returns
+    -------
+    list
+        A list of tuples with the locally available atlases and their version
     """
-        Returns a dictionary with metadata about already installed atalses
+
+    # Get brainglobe directory:
+    brainglobe_dir = config.get_brainglobe_dir()
+
+    return [
+        f.name.split("_v")[0]
+        for f in brainglobe_dir.glob("*_*_*_v*")
+        if f.is_dir()
+    ]
+
+
+def get_local_atlas_version(atlas_name):
+    """Get version of a downloaded available atlas.
+
+    Arguments
+    ---------
+    atlas_name : str
+        Name of the atlas.
+
+    Returns
+    -------
+    str
+        Version of atlas.
     """
+
+    brainglobe_dir = config.get_brainglobe_dir()
+    return [
+        f.name.split("_v")[1]
+        for f in brainglobe_dir.glob(f"*{atlas_name}*")
+        if f.is_dir()
+    ][0]
+
+
+def get_atlases_lastversions():
+    """
+    Returns
+    -------
+    dict
+        A dictionary with metadata about already installed atlases.
+    """
+
+    # Read from URL all available last versions:
     available_atlases = utils.conf_from_url(
-        BrainGlobeAtlas._remote_url_base.format("last_versions.conf")
+        descriptors.remote_url_base.format("last_versions.conf")
     )
     available_atlases = dict(available_atlases["atlases"])
 
-    # Get brainglobe directory
-    conf = config.read_config()
-    brainglobe_dir = Path(conf["default_dirs"]["brainglobe_dir"])
-
-    # Get downloaded atlases
+    # Get downloaded atlases looping over folders in brainglobe directory:
     atlases = {}
-    for elem in brainglobe_dir.iterdir():
-        if elem.is_dir():
-            name = elem.name.split("_v")[0]
-
-            if name in available_atlases.keys():
-                atlases[name] = dict(
-                    downloaded=True,
-                    local=str(elem),
-                    version=elem.name.split("_v")[-1],
-                    latest_version=str(available_atlases[name]),
-                    updated=str(available_atlases[name])
-                    == elem.name.split("_v")[-1],
-                )
+    for name in get_downloaded_atlases():
+        if name in available_atlases.keys():
+            local_version = get_local_atlas_version(name)
+            atlases[name] = dict(
+                downloaded=True,
+                local=name,
+                version=local_version,
+                latest_version=str(available_atlases[name]),
+                updated=str(available_atlases[name]) == local_version,
+            )
     return atlases
 
 
 def show_atlases(show_local_path=False):
-    """ 
-        Print's a formatted table with the name and version of local (downloaded)
-        and online (available) atlases.
+    """Prints a formatted table with the name and version of local (downloaded)
+    and online (available) atlases. To do so, dowload info on
+    the latest atlas version and compares it with what it's stored
+    locally.
 
-        Downloads the latest atlas version and compares it with what it's stored
-        locally. 
+    Arguments
+    ---------
+    show_local_path : bool
+        If true, local path of the atlases are in the table with the rest
+        (optional, default=False).
+
     """
-    if not utils.check_internet_connection():
-        print(
-            "Sorry, we need a working internet connection to retriev the latest metadata"
-        )
-        return
 
-    # --------------------------- Get available_atlases -------------------------- #
+    # Get available_atlases:
     available_atlases = utils.conf_from_url(
         BrainGlobeAtlas._remote_url_base.format("last_versions.conf")
     )
     available_atlases = dict(available_atlases["atlases"])
 
-    # ----------------------------- Get local atlases ---------------------------- #
-    atlases = get_downloaded_atlases()
+    # Get local atlases:
+    atlases = get_atlases_lastversions()
 
-    # ---------------------- Get atlases not yet downloaded ---------------------- #
+    # Get atlases not yet downloaded:
     for atlas in available_atlases.keys():
 
         if atlas not in atlases.keys():
@@ -78,7 +115,7 @@ def show_atlases(show_local_path=False):
                 updated=None,
             )
 
-    # -------------------------------- print table ------------------------------- #
+    # Print table:
     table = Table(
         show_header=True,
         header_style="bold green",

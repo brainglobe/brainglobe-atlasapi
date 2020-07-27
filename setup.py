@@ -24,10 +24,16 @@ setup(
             "coverage",
             "pre-commit",
             "PyMCubes",
+<<<<<<< HEAD
             "bgspace",
         ]
     },
     python_requires=">=3.6, <3.8",
+=======
+        ]
+    },
+    python_requires=">=3.6",
+>>>>>>> master
     entry_points={"console_scripts": ["brainglobe = bg_atlasapi.cli:bg_cli"]},
     packages=find_namespace_packages(exclude=("atlas_gen", "docs", "tests*")),
     include_package_data=True,

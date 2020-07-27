@@ -11,10 +11,11 @@ def test_initialization(atlas):
         "name": "example_mouse",
         "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
         "atlas_link": "http://www.brain-map.org.com",
-        "symmetric": True,
-        "resolution": [100, 100, 100],
         "species": "Mus musculus",
-        "version": "0.2",
+        "symmetric": True,
+        "resolution": [100.0, 100.0, 100.0],
+        "orientation": "asl",
+        "version": "0.3",
         "shape": [132, 80, 114],
         "trasform_to_bg": [
             [1.0, 0.0, 0.0, 0.0],
@@ -30,7 +31,7 @@ def test_initialization(atlas):
     [
         ("reference", [[[146, 155], [153, 157]], [[148, 150], [153, 153]]]),
         ("annotation", [[[59, 362], [59, 362]], [[59, 362], [59, 362]]]),
-        ("hemispheres", [[[0, 0], [0, 0]], [[1, 1], [1, 1]]]),
+        ("hemispheres", [[[1, 2], [1, 2]], [[1, 2], [1, 2]]]),
     ],
 )
 def test_stacks(atlas, stack_name, val):
@@ -64,7 +65,7 @@ def test_data_from_coords(atlas, coords):
         )
         == "root"
     )
-    assert atlas.hemisphere_from_coords(coords) == 0
+    assert atlas.hemisphere_from_coords(coords) == 1
     assert atlas.hemisphere_from_coords(coords, as_string=True) == "left"
     assert (
         atlas.hemisphere_from_coords(

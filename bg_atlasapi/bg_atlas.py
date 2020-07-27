@@ -1,23 +1,13 @@
 from pathlib import Path
 import tarfile
+import requests
+
 from rich import print as rprint
 
-from bg_atlasapi import utils
-from bg_atlasapi import config
-from bg_atlasapi import core
+from bg_atlasapi import utils, config, core, descriptors
 
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
-
-__all__ = [
-    "ExampleAtlas",
-    "FishAtlas",
-    "RatAtlas",
-    "AllenBrain25Um",
-    "AllenHumanBrain500Um",
-    "KimUnified25Um",
-    "KimUnified50Um",
-]
 
 
 def _version_tuple_from_str(version_str):
@@ -29,23 +19,39 @@ def _version_str_from_tuple(version_tuple):
 
 
 class BrainGlobeAtlas(core.Atlas):
-    """Add download functionalities to Atlas class.
+    """Add remote atlas fetching and version comparison functionalities
+    to the core Atlas class.
 
-        Parameters
-        ----------
-        brainglobe_dir : str or Path object
-            default folder for brainglobe downloads
+    Parameters
+    ----------
+    atlas_name : str
+        Name of the atlas to be used.
+    brainglobe_dir : str or Path object
+        Default folder for brainglobe downloads.
+    interm_download_dir : str or Path object
+        Folder to download the compressed file for extraction.
+    check_latest : bool (optional)
+        If true, check if we have the most recent atlas (default=True). Set
+        this to False to avoid waiting for remote server response on atlas
+        instantiation and to suppress warnings.
+    print_authors : bool (optional)
+        If true, disable default listing of the atlas reference.
 
-        interm_download_dir : str or Path object
-            folder to download the compressed file for extraction
-        """
+    """
 
     atlas_name = None
-    _remote_url_base = (
-        "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
-    )
+    _remote_url_base = descriptors.remote_url_base
 
-    def __init__(self, brainglobe_dir=None, interm_download_dir=None):
+    def __init__(
+        self,
+        atlas_name,
+        brainglobe_dir=None,
+        interm_download_dir=None,
+        check_latest=True,
+        print_authors=True,
+    ):
+        self.atlas_name = atlas_name
+
         # Read BrainGlobe configuration file:
         conf = config.read_config()
 
@@ -73,8 +79,10 @@ class BrainGlobeAtlas(core.Atlas):
         # Instantiate after eventual download:
         super().__init__(self.brainglobe_dir / self.local_full_name)
 
-        # Compare atlas local version with latest online
-        self.check_latest_version()
+        if check_latest:
+            self.check_latest_version()
+        if print_authors:
+            print(self)
 
     @property
     def local_version(self):
@@ -90,19 +98,28 @@ class BrainGlobeAtlas(core.Atlas):
 
     @property
     def remote_version(self):
-        """Remote version read from GIN conf file.
+        """Remote version read from GIN conf file. If we are offline, return
+        None.
         """
         remote_url = self._remote_url_base.format("last_versions.conf")
-        versions_conf = utils.conf_from_url(remote_url)
 
-        return _version_tuple_from_str(
-            versions_conf["atlases"][self.atlas_name]
-        )
+        # Grasp remote version if a connection is available:
+        try:
+            versions_conf = utils.conf_from_url(remote_url)
+        except requests.ConnectionError:
+            return
+
+        try:
+            return _version_tuple_from_str(
+                versions_conf["atlases"][self.atlas_name]
+            )
+        except KeyError:
+            raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
 
     @property
     def local_full_name(self):
         """As we can't know the local version a priori, search candidate dirs
-        using name and not version number. If none is found, return None
+        using name and not version number. If none is found, return None.
         """
         pattern = f"{self.atlas_name}_v*"
         candidate_dirs = list(self.brainglobe_dir.glob(pattern))
@@ -114,7 +131,7 @@ class BrainGlobeAtlas(core.Atlas):
             )
         # If no one exist, return None:
         elif len(candidate_dirs) == 0:
-            return None
+            return
         # Else, return actual name:
         else:
             return candidate_dirs[0].name
@@ -146,10 +163,11 @@ class BrainGlobeAtlas(core.Atlas):
         destination_path.unlink()
 
     def check_latest_version(self):
+        """Checks if the local version is the latest available
+        and prompts the user to update if not.
         """
-            Checks if the local version is the latest available
-            and prompts the user to update if not
-        """
+        if self.remote_version is None:  # in this case, we are offline
+            return
         local = _version_str_from_tuple(self.local_version)
         online = _version_str_from_tuple(self.remote_version)
 
@@ -157,37 +175,18 @@ class BrainGlobeAtlas(core.Atlas):
             rprint(
                 f"[b][magenta2]Bg_atlasapi[/b]: [b]{self.atlas_name}[/b] version [b]{local}[/b] is not the latest available ([b]{online}[/b]). "
                 + "To update the atlas run in the terminal:[/magenta2]\n"
-                + f"    [gold1]bg_update -a {self.atlas_name}[/gold1]"
+                + f"    [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
             )
             return False
         return True
 
-
-class ExampleAtlas(BrainGlobeAtlas):
-    atlas_name = "example_mouse_100um"
-
-
-class FishAtlas(BrainGlobeAtlas):
-    atlas_name = "mpin_zfish_1um"
-
-
-class RatAtlas(BrainGlobeAtlas):
-    # TODO fix hierarchy and meshes
-    atlas_name = "ratatlas"
-
-
-class AllenBrain25Um(BrainGlobeAtlas):
-    atlas_name = "allen_mouse_25um"
-
-
-class KimUnified25Um(BrainGlobeAtlas):
-    atlas_name = "kim_unified_25um"
-
-
-class KimUnified50Um(BrainGlobeAtlas):
-    atlas_name = "kim_unified_50um"
-
-
-class AllenHumanBrain500Um(BrainGlobeAtlas):
-    # TODO fix meshes
-    atlas_name = "allen_human_500um"
+    def __repr__(self):
+        """Fancy print for the atlas providing authors information.
+        """
+        meta = self.metadata
+        name_split = self.atlas_name.split("_")
+        pretty_name = "{} {} atlas (res. {})".format(*name_split)
+        pretty_string = (
+            f"{pretty_name}\nFrom: {meta['atlas_link']} ({meta['citation']} )"
+        )
+        return pretty_string

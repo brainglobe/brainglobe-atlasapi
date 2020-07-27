@@ -58,7 +58,7 @@ def get_structure_children(structures, region, use_tree=False):
     else:
         tree = get_structures_tree(structures)
         sub_region_ids = [
-            l.identifier for k, l in tree.subtree(region["id"]).nodes.items()
+            n.identifier for k, n in tree.subtree(region["id"]).nodes.items()
         ]
 
     if sub_region_ids == []:
@@ -80,7 +80,7 @@ def get_structure_terminal_nodes(structures, region):
     tree = get_structures_tree(structures)
 
     sub_region_ids = [
-        l.identifier for l in tree.subtree(region["id"]).leaves()
+        n.identifier for n in tree.subtree(region["id"]).leaves()
     ]
 
     if not sub_region_ids:

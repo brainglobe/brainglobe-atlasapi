@@ -32,7 +32,7 @@ A number of atlases are in development, but those available currently are:
 * The [Enhanced and Unified Mouse Brain Atlas](https://kimlab.io/brain-map/atlas/) at 25 micron resolution
 
 ## Installation
-BG-AtlasAPI works with Python >3.8, and can be installed from PyPI with:
+BG-AtlasAPI works with Python >3.6, and can be installed from PyPI with:
 ```bash
 pip install bg-atlasapi
 ```

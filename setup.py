@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="bg-atlasapi",
-    version="0.0.2rc0",
+    version="0.0.7rc0",
     description="A lightweight python module to interact with atlases for systems neuroscience",
     install_requires=requirements,
     extras_require={

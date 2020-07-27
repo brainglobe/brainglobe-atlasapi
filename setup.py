@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="bg-atlasapi",
-    version="0.0.2rc0",
+    version="0.0.7rc0",
     description="A lightweight python module to interact with atlases for systems neuroscience",
     install_requires=requirements,
     extras_require={
@@ -24,16 +24,9 @@ setup(
             "coverage",
             "pre-commit",
             "PyMCubes",
-<<<<<<< HEAD
-            "bgspace",
-        ]
-    },
-    python_requires=">=3.6, <3.8",
-=======
         ]
     },
     python_requires=">=3.6",
->>>>>>> master
     entry_points={"console_scripts": ["brainglobe = bg_atlasapi.cli:bg_cli"]},
     packages=find_namespace_packages(exclude=("atlas_gen", "docs", "tests*")),
     include_package_data=True,

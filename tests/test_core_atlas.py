@@ -120,3 +120,10 @@ def test_hierarchy(atlas):
         8: "grey",
         567: "CH",
     }
+
+def test_descendants(atlas):
+    anc = atlas.get_structure_ancestors('TH')
+    assert anc == ['root', 'grey', 'BS', 'IB']
+
+    desc = atlas.get_structure_descendants('MOs')
+    assert desc == ['MOs1', 'MOs2/3', 'MOs5', 'MOs6a', 'MOs6b']

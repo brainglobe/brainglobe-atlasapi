@@ -166,7 +166,7 @@ collect_all_inplace(
 )
 
 # Wrap up, compress, and remove file:0
-print(f"Finalising atlas")
+print("Finalising atlas")
 wrapup_atlas_from_data(
     atlas_name=ATLAS_NAME,
     atlas_minor_version=VERSION,

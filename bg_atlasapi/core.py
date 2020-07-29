@@ -222,25 +222,27 @@ class Atlas:
         return tuple([int(c) for c in coords])
 
     def get_structure_ancestors(self, structure):
-       """
+        """
             Returns a list of acronyms for all 
             ancestors of a given structure
        """
-       ancestors_id = self._get_from_structure(structure, 'structure_id_path')[:-1]
+        ancestors_id = self._get_from_structure(
+            structure, "structure_id_path"
+        )[:-1]
 
-       return self._get_from_structure(ancestors_id, 'acronym')
+        return self._get_from_structure(ancestors_id, "acronym")
 
     def get_structure_descendants(self, structure):
         """
             Returns a list of acronyms for all 
             descendants of a given structure
         """
-        structure = self._get_from_structure(structure, 'acronym')
-        
+        structure = self._get_from_structure(structure, "acronym")
+
         # For all structures check if given structure is ancestor
         descendants = []
         for struc in self.structures.keys():
             if structure in self.get_structure_ancestors(struc):
-                descendants.append(self._get_from_structure(struc, 'acronym'))
+                descendants.append(self._get_from_structure(struc, "acronym"))
 
         return descendants

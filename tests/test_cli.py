@@ -14,7 +14,7 @@ def test_config_cli():
 
     # Correct edit (this does not really change the file):
     result = runner.invoke(
-        cli.bg_cli, ["config", f"-k brainglobe_dir -v valid_path"]
+        cli.bg_cli, ["config", "-k brainglobe_dir -v valid_path"]
     )
     assert result.exit_code == 0
     assert result.output == config._print_config() + "\n"

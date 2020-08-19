@@ -35,18 +35,17 @@ bibliography: paper.bib
 
 # Summary
 Neuroanatomical data analysis relies on precise understanding of where in the brain the information comes from. For this reason, brain atlases have been developed which provide brain region annotation overlaid upon a standardized reference brain image. These atlases have been developed for many animal model species, and are routinely used for data analysis and visualisation. The availability of these atlases vary, many are available online and some have an application programming interface (API), but these are inconsistent across atlases. 
+
 The lack of an unified atlas API hinders the development and adoption of open-source neuroanatomy software, as each tool is typically only developed for a single atlas for one model organism. The brainglobe atlas API (BG-Atlas API) overcomes this problem by providing a common interface for programmers to download and process data from multiple atlases. Software can then be developed agnostic to the atlas, increasing adoption and interopability of software in neuroscience. 
 
 # Statement of need 
-Neuroscience is gradually becoming a field reliant on large scale data acquisition, such as whole-brain optical neural recordings [@Ahrens:2012], brain-wide connectivity mapping [@Osten:2013] or high-density electrophysiological probes [@Jun:2017]. For this reason, custom, computational analysis is now necessary in the majority of neuroscience laboratories, and Python is emerging as the programming language of choice [@Muller:2015].
-
 To facilitate the study of neural function, a long standing approach has been to identify neuroanatomically defined brain regions: structures with defined function, connectivity and anatomical location. The study of these brain regions led to the development of a number of brain atlases for numerous species. Typically these atlases are made up of a reference image of a brain, pixel-wise annotations (e.g. a mapping from each voxel to a brain structure) and additional metadata such as region hierarchy (region A is a subdivision of region B). These atlases are used throughout neuroscience, for teaching, visualisation of data, and registration of imaging data to a common coordinate space.
 
 Many excellent and open access atlases exist, such as the Allen Mouse Brain Common Coordinate Framework [@Wang:2020] and the Max Planck Larval Zebrafish Atlas [@Kunst:2019], from which
-the neuroscience community benefitted enormously. Most available atlases provide an API
-which are crucial for the development of programming tools that utilise these atlases. 
-However not all atlases provide an API and no API is there which can work across atlases.
-In part for this reason, the majority of software tools developed by neuroscientist are
+the neuroscience community benefited enormously. Python is emerging as the programming language of choice in neuroscience [@Muller:2015], and most available atlases provide an API
+which is crucial for the development of programming tools that use these atlases. 
+However not all atlases provide an API and there is no common API which can work across atlases.
+This is one of the reasons why the majority of software tools developed by neuroscientists are
 specific to a single atlas and cannot work with others.
 
 `BG-atlasAPI` was developed to overcome these problems and provide an interface for developers to access data from multiple atlases in common formats. Each atlas can be instantiated by passing the atlas name to the `BrainGlobeAtlas` class. A number of files are provided as class attributes including a reference (structural) image, an annotation image (a map of brain regions coded by voxel intensity), meshes for each brain region, and various metadata such as the authors of the atlas, and the hierarchy of the brain regions. There are methods for many common tasks such as orienting data and parsing the region hierarchy.

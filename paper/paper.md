@@ -9,16 +9,16 @@ tags:
 authors:
   - name: Federico Claudi^[Joint first author, ordered alphabetically]
     affiliation: 1
-  - name: Luigi Petrucco^[Joint first author, ordered alphabetically]
+  - name: Luigi Petrucco*
     affiliation: 2
-  - name: Adam Tyson^[Joint first author, ordered alphabetically]
+  - name: Adam Tyson*
     orcid: 0000-0003-3225-1130
     affiliation: 1
-  - name: Tiago Branco^[Joint senior author, ordered alphabetically]
+  - name: Tiago Branco
     affiliation: 1
-  - name: Troy Margrie^[Joint senior author, ordered alphabetically]
+  - name: Troy Margrie
     affiliation: 1
-  - name: Ruben Portugues^[Joint senior author, ordered alphabetically]
+  - name: Ruben Portugues
     affiliation: "2, 3"
 
 affiliations:

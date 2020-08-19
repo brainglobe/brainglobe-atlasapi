@@ -14,11 +14,11 @@ from bg_atlasapi.utils import retrieve_over_http
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
 
 
-def download_line_stack(line_name):
+def download_line_stack(tg_line_name):
     """Utility function to download a line from its name.
     """
-    reference_url = f"{BASE_URL}/media/brain_browser/Lines/{line_name}/AverageData/Tiff_File/Average_{line_name}.zip"
-    out_file_path = bg_root_dir / f"{line_name}.zip"
+    reference_url = f"{BASE_URL}/media/brain_browser/Lines/{tg_line_name}/AverageData/Tiff_File/Average_{line_name}.zip"
+    out_file_path = bg_root_dir / f"{tg_line_name}.zip"
     retrieve_over_http(reference_url, out_file_path)
     with zipfile.ZipFile(out_file_path, "r") as zip_ref:
         zip_ref.extractall(bg_root_dir)
@@ -200,6 +200,6 @@ if __name__ == "__main__":
     VERSION = 4
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "fish"
-    bg_root_dir.mkdir(exist_ok=True)
+    bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     create_atlas(VERSION, bg_root_dir)

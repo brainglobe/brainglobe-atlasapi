@@ -52,6 +52,6 @@ However not all atlases provide a Python API and there is no common API which ca
 
 Currently six atlases across three species (larval zebrafish, mouse and human) are available [@Wang:2020; @Ding:2016; @Kunst:2019; @Chon:2019], with work underway to add further atlases (e.g. rat, drosophila). We provide scripts for automated generation of these atlases, and welcome contributions from anyone who wants to add an atlas. 
 
-We have used `BG-atlasAPI` to develop two software tools for use in neuroscience, `brainreg` [@Tyson:2020] for 3D registration of image data between sample and atlas coordinate space and `BrainRender` [@Claudi:2020] for visualisation of user-generated data, and atlas data in a common coordinate space. We hope that other developers will use the API, and develop tools that can be used across neuroscience, increasing their reach, and preventing duplication of effort.
+We have used `BG-atlasAPI` to develop two software tools for use in neuroscience, `brainreg` [@Tyson:2020] for 3D registration of image data between sample and atlas coordinate space and `brainrender` [@Claudi:2020] for visualisation of user-generated data, and atlas data in a common coordinate space. We hope that other developers will use the API, and develop tools that can be used across neuroscience, increasing their reach, and preventing duplication of effort.
 
 # References

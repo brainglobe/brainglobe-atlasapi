@@ -43,7 +43,13 @@ The brain of even the simplest organism is a highly complex structure. In mammal
 
 Many excellent atlases exist, such as the Allen Mouse Brain Common Coordinate Framework [@Wang:2020] and the Max Planck Larval Zebrafish Atlas [@Kunst:2019], and many neuroscientists have built software tools around these. The problem is that not all available atlases have an API, and those that do are not consistent. As the majority of neuroscientists only work with a single model organism, most software tools are developed with only one atlas in mind. 
 
-The BG-atlasAPI was developed to overcome these problems, and provide an interface for developers to access data from multiple atlases in common formats. Each atlas can be instantiated by passing the atlas name to the `BrainGlobeAtlas` class. A number of files are provided as class attributes including a reference (brian structural) image, an annotation image (a map of brain regions coded by voxel intensity), meshes for each brain region, and various metadata such as the authors of the atlas, and the hierarchy of the brain regions.
+`BG-atlasAPI` was developed to overcome these problems, and provide an interface for developers to access data from multiple atlases in common formats. Each atlas can be instantiated by passing the atlas name to the `BrainGlobeAtlas` class. A number of files are provided as class attributes including a reference (brian structural) image, an annotation image (a map of brain regions coded by voxel intensity), meshes for each brain region, and various metadata such as the authors of the atlas, and the hierarchy of the brain regions.
+
+`BG-atlasAPI` was built with two purposes. The first was to simplify the use of neuroanatomical atlases for neuroscientists developers by providing a simple, concise and well-documented API. The second was to reduce the burden required to develop tools that can be used across neuroscience. The majority of neuroanatomical software tools developed currently are for a single model organism, yet many of these tools could be of great use for many other neuroscientists. 
+
+Currently six atlases accross three species (larval zebrafish, mouse and human) are available, with work underway to add further atlases (e.g. rat). We provide scripts for automated generation of these atlases, and welcome contributions from anyone who wants to add an atlas. 
+
+We have used `BG-atlasAPI` to develop two software tools for use in neuroscience, brainreg [@Tyson:2020] for 3D registration of image data between sample and atlas coordinate space and brainrender [@Claudi:2020] for visualisation of user-generated data, and atlas data in a common coordinate space. We hope that other developers will use the API, and develop tools that can be used across neuroscience, increasing their reach, and prevent duplication of effort.
 
 
 # Acknowledgements

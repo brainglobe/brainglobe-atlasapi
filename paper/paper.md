@@ -11,12 +11,12 @@ authors:
     affiliation: 1
   - name: Luigi Petrucco*
     affiliation: 2
-  - name: Adam Tyson*
+  - name: Adam L. Tyson*
     orcid: 0000-0003-3225-1130
     affiliation: 1
   - name: Tiago Branco
     affiliation: 1
-  - name: Troy Margrie
+  - name: Troy W. Margrie
     affiliation: 1
   - name: Ruben Portugues
     affiliation: "2, 3"

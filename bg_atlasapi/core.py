@@ -22,8 +22,11 @@ class Atlas:
     Parameters
     ----------
     path : str or Path object
-        path to folder containing data info.
+        Path to folder containing data info.
     """
+
+    left_hemisphere_value = 1
+    right_hemisphere_value = 2
 
     def __init__(self, path):
         self.root_dir = Path(path)
@@ -42,7 +45,7 @@ class Atlas:
         self.structures = StructuresDict(structures_list)
 
         # Instantiate SpaceConvention object describing the current atlas:
-        self._space = SpaceConvention(
+        self.space = SpaceConvention(
             origin=self.metadata["orientation"],
             shape=self.metadata["shape"],
             resolution=self.metadata["resolution"],
@@ -100,17 +103,17 @@ class Atlas:
             # If reference is symmetric generate hemispheres block:
             if self.metadata["symmetric"]:
                 # initialize empty stack:
-                stack = np.ones(self.metadata["shape"], dtype=np.uint8)
+                stack = np.full(self.metadata["shape"], 2, dtype=np.uint8)
 
                 # Use bgspace description to fill out with hemisphere values:
-                front_ax_idx = self._space.axes_order.index("frontal")
+                front_ax_idx = self.space.axes_order.index("frontal")
 
                 # Fill out with 2s the right hemisphere:
                 slices = [slice(None) for _ in range(3)]
                 slices[front_ax_idx] = slice(
                     stack.shape[front_ax_idx] // 2 + 1, None
                 )
-                stack[tuple(slices)] = 2
+                stack[tuple(slices)] = 1
 
                 self._hemispheres = stack
             else:

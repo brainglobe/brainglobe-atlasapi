@@ -31,7 +31,7 @@ def test_initialization(atlas):
     [
         ("reference", [[[146, 155], [153, 157]], [[148, 150], [153, 153]]]),
         ("annotation", [[[59, 362], [59, 362]], [[59, 362], [59, 362]]]),
-        ("hemispheres", [[[1, 2], [1, 2]], [[1, 2], [1, 2]]]),
+        ("hemispheres", [[[2, 1], [2, 1]], [[2, 1], [2, 1]]]),
     ],
 )
 def test_stacks(atlas, stack_name, val):
@@ -65,13 +65,13 @@ def test_data_from_coords(atlas, coords):
         )
         == "root"
     )
-    assert atlas.hemisphere_from_coords(coords) == 1
-    assert atlas.hemisphere_from_coords(coords, as_string=True) == "left"
+    assert atlas.hemisphere_from_coords(coords) == atlas.right_hemisphere_value
+    assert atlas.hemisphere_from_coords(coords, as_string=True) == "right"
     assert (
         atlas.hemisphere_from_coords(
             [c * r for c, r in zip(coords, res)], microns=True, as_string=True
         )
-        == "left"
+        == "right"
     )
 
 

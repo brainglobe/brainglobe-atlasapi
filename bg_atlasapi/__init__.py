@@ -1,4 +1,4 @@
-__author__ = "BrainGlobe"
+__author__ = """brainglobe"""
 __version__ = "0.1.0"
 
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas

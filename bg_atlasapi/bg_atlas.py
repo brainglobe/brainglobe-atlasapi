@@ -175,7 +175,7 @@ class BrainGlobeAtlas(core.Atlas):
             rprint(
                 f"[b][magenta2]Bg_atlasapi[/b]: [b]{self.atlas_name}[/b] version [b]{local}[/b] is not the latest available ([b]{online}[/b]). "
                 + "To update the atlas run in the terminal:[/magenta2]\n"
-                + f"    [gold1]bg_update -a {self.atlas_name}[/gold1]"
+                + f"    [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
             )
             return False
         return True

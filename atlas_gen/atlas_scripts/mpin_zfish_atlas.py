@@ -93,6 +93,7 @@ def collect_all_inplace(
         collect_all_inplace(region, traversing_list, download_path, mesh_dict)
 
 
+<<<<<<< HEAD
 def create_atlas(version, bg_root_dir):
     # Specify fixed information about the atlas:
     RES_UM = 1
@@ -203,3 +204,94 @@ if __name__ == "__main__":
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     create_atlas(VERSION, bg_root_dir)
+=======
+# Download reference:
+#####################
+reference_url = f"{BASE_URL}/media/brain_browser/Brain/MovieViewBrain/standard_brain_fixed_SYP_T_GAD1b.nrrd"
+out_file_path = bg_root_dir / "reference.nrrd"
+retrieve_over_http(reference_url, out_file_path)
+
+# Swap axes b/c of nrrd reading
+reference_stack, h = nrrd.read(str(out_file_path))
+reference_stack = np.swapaxes(reference_stack, 0, 2)
+
+# Download annotation and hemispheres from GIN repo:
+gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations.tar.gz"
+compressed_zip_path = bg_root_dir / "annotations.tar"
+retrieve_over_http(gin_url, compressed_zip_path)
+
+tar = tarfile.open(compressed_zip_path)
+tar.extractall(path=bg_root_dir)
+
+extracted_dir = bg_root_dir / "mpin_zfish_annotations"
+
+annotation_stack = tifffile.imread(
+    str(extracted_dir / "mpin_zfish_annotation.tif")
+)
+
+hemispheres_stack = tifffile.imread(
+    str(extracted_dir / "mpin_zfish_hemispheres.tif")
+)
+
+# meshes from the website and stacks do not have the same orientation.
+# Therefore, flip axes of the stacks so that bg-space reorientation is used on
+# the meshes:
+annotation_stack = annotation_stack.swapaxes(0, 2)
+hemispheres_stack = hemispheres_stack.swapaxes(0, 2)
+reference_stack = reference_stack.swapaxes(0, 2)
+
+
+# Download structures tree and meshes:
+######################################
+regions_url = f"{BASE_URL}/neurons/get_brain_regions"
+
+meshes_dir_path = bg_root_dir / "meshes_temp_download"
+meshes_dir_path.mkdir(exist_ok=True)
+
+# Download structures hierarchy:
+structures = requests.get(regions_url).json()["brain_regions"]
+
+# Initiate dictionary with root info:
+structures_dict = {
+    "name": "root",
+    "id": 0,
+    "sub_regions": structures.copy(),
+    "structure_id_path": [0],
+    "acronym": "root",
+    "files": {
+        "file_3D": "/media/Neurons_database/Brain_and_regions/Brains/Outline/Outline_new.txt"
+    },
+    "color": "#ffffff",
+}
+
+# Go through the regions hierarchy and create the structure path entry:
+add_path_inplace(structures_dict)
+
+# Create empty list and collect all regions traversing the regions hierarchy:
+structures_list = []
+meshes_dict = {}
+collect_all_inplace(
+    structures_dict, structures_list, meshes_dir_path, meshes_dict
+)
+
+# Wrap up, compress, and remove file:0
+print("Finalising atlas")
+wrapup_atlas_from_data(
+    atlas_name=ATLAS_NAME,
+    atlas_minor_version=VERSION,
+    citation=CITATION,
+    atlas_link=ATLAS_LINK,
+    species=SPECIES,
+    resolution=(RES_UM,) * 3,
+    orientation=ORIENTATION,
+    root_id=0,
+    reference_stack=reference_stack,
+    annotation_stack=annotation_stack,
+    structures_list=structures_list,
+    meshes_dict=meshes_dict,
+    working_dir=bg_root_dir,
+    hemispheres_stack=hemispheres_stack,
+    cleanup_files=False,
+    compress=True,
+)
+>>>>>>> master

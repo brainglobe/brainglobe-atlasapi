@@ -60,7 +60,7 @@ if __name__ == "__main__":
     ATLAS_NAME = "allen_human"
     SPECIES = "Homo sapiens"
     ATLAS_LINK = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/"
-    CITATION = "Ding et al 2020, https://doi.org/10.1002/cne.24080"
+    CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
     ORIENTATION = "ipr"
 
     # ---------------------------------------------------------------------------- #

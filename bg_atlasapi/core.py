@@ -55,7 +55,7 @@ class Atlas:
         )
 
         self._reference = None
-        self.secondary_references = SecondaryRefDict(
+        self.additional_references = AdditionalRefDict(
             references_list=self.metadata["secondary_references"],
             data_path=self.path)
 
@@ -258,7 +258,7 @@ class Atlas:
         return descendants
 
 
-class SecondaryRefDict(UserDict):
+class AdditionalRefDict(UserDict):
     """Class implementing the lazy loading of secondary references
     if the dictionary is queried for it.
     """

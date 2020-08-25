@@ -26,7 +26,7 @@ def generate_metadata_dict(
     version,
     shape,
     transformation_mat,
-    secondary_references,
+    additional_references,
 ):
 
     # Name should be author_species
@@ -55,7 +55,7 @@ def generate_metadata_dict(
     resolution = tuple([float(v) for v in resolution])
     shape = tuple(int(v) for v in shape)
 
-    assert type(secondary_references) == list
+    assert type(additional_references) == list
 
     return dict(
         name=name,
@@ -68,7 +68,7 @@ def generate_metadata_dict(
         version=version,
         shape=shape,
         trasform_to_bg=tuple([tuple(m) for m in transformation_mat]),
-        secondary_references=secondary_references,
+        additional_references=additional_references,
     )
 
 

@@ -45,7 +45,7 @@ def wrapup_atlas_from_data(
     cleanup_files=False,
     compress=True,
     scale_meshes=False,
-    secondary_references=dict(),
+    additional_references=dict(),
 ):
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -88,8 +88,8 @@ def wrapup_atlas_from_data(
     scale_meshes: bool, optional
         (Default values = False). If True the meshes points are scaled by the resolution
         to ensure that they are specified in microns, regardless of the atlas resolution.
-
-
+    additional_references: dict, optional
+        (Default value = empty dict). Dictionary with secondary reference stacks.
     """
 
     version = f"{ATLAS_VERSION}.{atlas_minor_version}"
@@ -184,7 +184,7 @@ def wrapup_atlas_from_data(
         version=version,
         shape=shape,
         transformation_mat=transformation_mat,
-        secondary_references=[k for k in secondary_references.keys()],
+        additional_references=[k for k in additional_references.keys()],
     )
 
     # Create human readable .csv and .txt files:

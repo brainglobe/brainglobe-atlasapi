@@ -192,7 +192,7 @@ def create_atlas(version, bg_root_dir):
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
-        secondary_references=additional_references,
+        additional_references=additional_references,
     )
 
 

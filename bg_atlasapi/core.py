@@ -1,6 +1,9 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
+from collections import UserDict
+import warnings
+
 from bg_space import SpaceConvention
 
 from bg_atlasapi.utils import read_json, read_tiff
@@ -52,6 +55,10 @@ class Atlas:
         )
 
         self._reference = None
+        self.secondary_references = SecondaryRefDict(
+            references_list=self.metadata["secondary_references"],
+            data_path=self.path)
+
         self._annotation = None
         self._hemispheres = None
         self._hierarchy = None
@@ -249,3 +256,25 @@ class Atlas:
                 descendants.append(self._get_from_structure(struc, "acronym"))
 
         return descendants
+
+
+class SecondaryRefDict(UserDict):
+    """Class implementing the lazy loading of secondary references
+    if the dictionary is queried for it.
+    """
+    def __init__(self, references_list, data_path, *args, **kwargs):
+        self.data_path = data_path
+        self.references_list = references_list
+
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, ref_name):
+        if self.data[ref_name] is None:
+            if ref_name not in self.references_list:
+                if self.data["mesh_filename"] is None:
+                    warnings.warn(f"No reference named {ref_name} "
+                                  f"(available: {self.references_list})")
+                    return None
+                self.data[ref_name] = read_tiff(self.data_path / f"{ref_name}.tiff")
+
+        return self.data[ref_name]

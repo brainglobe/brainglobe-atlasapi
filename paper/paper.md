@@ -34,17 +34,8 @@ bibliography: paper.bib
 ---
 
 # Summary
-> FEDE
-
 Neuroscientists routinely perform experiments aimed at recording or manipulating neural activity, uncovering physiological proesses underlying brain function or clarifying aspects of brain anatomy. Understanding how the brain generates behaviour ultimately depends on the possibility to merge the results of these experiments into a coherent picture of brain anatomy and function. Brain atlases are crucial in this endeavour: by outlining the organization of brain regions they provide a reference upon which our understanding of brain function can be anchored. More recently, digital high-resolution 3d atlases have been produced for several model organisms providing an invaluable resource for the research community. 
 Effective use of these atlases depends on the availability of an application programming interface (API) which can be used to develop software accessing atlas data. However, while most atlases come with an API, these are generally incosistent across atlases.
-
-> LUIGI
-
-To develop functional models of the brain, neurosciences rely on a growing number of methodologies to explore neurons' physiology and interfere with it. The results of these experiment need accurate mapping on the brain's anatomy in order to combined in a coherent picture different lines of evidence. Therefore, there is an increasing need for  brain atlases providing brain region annotation overlaid upon a standardized reference brain images, onto which experiments can be registered. These atlases now exist for a variety of animal model species, and are routinely used for data analysis and visualisation. Although some of them come with an application programming interface (API), these are generally inconsistent across atlases. 
-
-> CONCLUSION
-
 The lack of an unified atlas API hinders the development and adoption of open-source neuroanatomy software, as each tool is typically only developed for a for a single atlas and a particular model organism and rarely tested across different species. The brainglobe atlas API (BG-Atlas API) overcomes this problem by providing a common interface for programmers to download and process data from multiple atlases. By adopting the BG-Atlas API, software can then be developed agnostic to the atlas, increasing adoption and interoperability of packages in neuroscience and enabling direct integration of different experimental modalities and even comparisons across model organisms. 
 
 # Statement of need 

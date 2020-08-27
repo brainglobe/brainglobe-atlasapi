@@ -46,7 +46,9 @@ def create_atlas(version, res_um, bg_root_dir):
     struct_tree = spacecache.get_structure_tree()  # structures tree
 
     # Find id of set of regions with mesh:
-    select_set = "Structures whose surfaces are represented by a precomputed mesh"
+    select_set = (
+        "Structures whose surfaces are represented by a precomputed mesh"
+    )
 
     mesh_set_ids = [
         s["id"]
@@ -76,8 +78,10 @@ def create_atlas(version, res_um, bg_root_dir):
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:
-        [struct.pop(k) for k in ["graph_id", "structure_set_ids", "graph_order"]]
-
+        [
+            struct.pop(k)
+            for k in ["graph_id", "structure_set_ids", "graph_order"]
+        ]
 
     # Wrap up, compress, and remove file:0
     print(f"Finalising atlas")

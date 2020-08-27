@@ -57,7 +57,8 @@ class Atlas:
         self._reference = None
         self.additional_references = AdditionalRefDict(
             references_list=self.metadata["secondary_references"],
-            data_path=self.root_dir)
+            data_path=self.root_dir,
+        )
 
         self._annotation = None
         self._hemispheres = None
@@ -262,6 +263,7 @@ class AdditionalRefDict(UserDict):
     """Class implementing the lazy loading of secondary references
     if the dictionary is queried for it.
     """
+
     def __init__(self, references_list, data_path, *args, **kwargs):
         self.data_path = data_path
         self.references_list = references_list
@@ -272,10 +274,14 @@ class AdditionalRefDict(UserDict):
         if ref_name not in self.keys():
 
             if ref_name not in self.references_list:
-                warnings.warn(f"No reference named {ref_name} "
-                              f"(available: {self.references_list})")
+                warnings.warn(
+                    f"No reference named {ref_name} "
+                    f"(available: {self.references_list})"
+                )
                 return None
 
-            self.data[ref_name] = read_tiff(self.data_path / f"{ref_name}.tiff")
+            self.data[ref_name] = read_tiff(
+                self.data_path / f"{ref_name}.tiff"
+            )
 
         return self.data[ref_name]

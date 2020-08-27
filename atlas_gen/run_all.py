@@ -33,16 +33,16 @@ for (_, module_name, _) in pkgutil.iter_modules(atlas_scripts.__path__):
                 bg_root_dir = temp_root_dir / f"{module_name}_{res_um}um"
                 bg_root_dir.mkdir(exist_ok=True)
 
-                module.create_atlas(version=4,
-                                    res_um=res_um,
-                                    bg_root_dir=bg_root_dir)
+                module.create_atlas(
+                    version=4, res_um=res_um, bg_root_dir=bg_root_dir
+                )
 
                 compressed_file = next(
-                    bg_root_dir.glob("*_*_[0-9]*um_*.*.tar.gz"))
+                    bg_root_dir.glob("*_*_[0-9]*um_*.*.tar.gz")
+                )
                 shutil.move(str(compressed_file), str(dest_root_dir))
         else:
             module.create_atlas(version=4, bg_root_dir=bg_root_dir)
 
             compressed_file = next(bg_root_dir.glob("*_*_[0-9]*um_*.*.tar.gz"))
             shutil.move(str(compressed_file), str(dest_root_dir))
-

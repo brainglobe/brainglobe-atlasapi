@@ -10,6 +10,7 @@ from atlas_gen.wrapup import wrapup_atlas_from_data
 
 VERSION = 3
 
+
 def create_atlas(version, bg_root_dir):
 
     # Specify information about the atlas:

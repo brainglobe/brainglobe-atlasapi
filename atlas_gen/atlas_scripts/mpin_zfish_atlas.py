@@ -17,7 +17,7 @@ BASE_URL = r"https://fishatlas.neuro.mpg.de"
 def download_line_stack(tg_line_name):
     """Utility function to download a line from its name.
     """
-    reference_url = f"{BASE_URL}/media/brain_browser/Lines/{tg_line_name}/AverageData/Tiff_File/Average_{line_name}.zip"
+    reference_url = f"{BASE_URL}/media/brain_browser/Lines/{tg_line_name}/AverageData/Tiff_File/Average_{tg_line_name}.zip"
     out_file_path = bg_root_dir / f"{tg_line_name}.zip"
     retrieve_over_http(reference_url, out_file_path)
     with zipfile.ZipFile(out_file_path, "r") as zip_ref:

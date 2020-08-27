@@ -57,7 +57,7 @@ class Atlas:
         self._reference = None
         self.additional_references = AdditionalRefDict(
             references_list=self.metadata["secondary_references"],
-            data_path=self.path)
+            data_path=self.root_dir)
 
         self._annotation = None
         self._hemispheres = None
@@ -269,12 +269,13 @@ class AdditionalRefDict(UserDict):
         super().__init__(*args, **kwargs)
 
     def __getitem__(self, ref_name):
-        if self.data[ref_name] is None:
+        if ref_name not in self.keys():
+
             if ref_name not in self.references_list:
-                if self.data["mesh_filename"] is None:
-                    warnings.warn(f"No reference named {ref_name} "
-                                  f"(available: {self.references_list})")
-                    return None
-                self.data[ref_name] = read_tiff(self.data_path / f"{ref_name}.tiff")
+                warnings.warn(f"No reference named {ref_name} "
+                              f"(available: {self.references_list})")
+                return None
+
+            self.data[ref_name] = read_tiff(self.data_path / f"{ref_name}.tiff")
 
         return self.data[ref_name]

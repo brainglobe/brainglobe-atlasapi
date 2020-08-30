@@ -139,7 +139,7 @@ def wrapup_atlas_from_data(
 
         saving_function(stack, dest_dir)
 
-    for k, stack in secondary_references.items():
+    for k, stack in additional_references.items():
         stack = space_convention.map_stack_to(
             descriptors.ATLAS_ORIENTATION, stack, copy=False
         )

@@ -55,10 +55,15 @@ class Atlas:
         )
 
         self._reference = None
-        self.additional_references = AdditionalRefDict(
-            references_list=self.metadata["secondary_references"],
+
+        try:
+            self.additional_references = AdditionalRefDict(
+            references_list=self.metadata["additional_references"],
             data_path=self.root_dir,
         )
+        except KeyError:
+            warnings.warn("This atlas seems to be outdated as no additional_references list "
+                          "is found in metadata!")
 
         self._annotation = None
         self._hemispheres = None

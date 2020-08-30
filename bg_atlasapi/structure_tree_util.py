@@ -23,7 +23,7 @@ def get_structures_tree(structures_list):
             Recursively goes through all the the descendants of a region and adds them to the tree
         """
         tree.create_node(
-            tag=id_to_acronym_map[structure_id],
+            tag=f"{id_to_acronym_map[structure_id]} ({structure_id})",
             identifier=structure_id,
             parent=parent_id,
         )

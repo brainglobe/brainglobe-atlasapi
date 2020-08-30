@@ -114,7 +114,11 @@ class BrainGlobeAtlas(core.Atlas):
                 versions_conf["atlases"][self.atlas_name]
             )
         except KeyError:
-            raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
+            return None
+
+
+
+            # raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
 
     @property
     def local_full_name(self):

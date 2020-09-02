@@ -5,29 +5,10 @@ from bg_atlasapi.config import read_config
 import configparser
 import atlas_gen
 from importlib import import_module
+import shutil
+from bg_atlasapi.utils import atlas_name_from_repr, atlas_repr_from_name
 
-from atlas_gen.atlas_scripts.example_mouse import create_atlas
-
-
-generation_dict = dict(example_mouse=[100])
-
-
-def get_atlas_repr(name):
-    parts = name.split("_")
-    # if atlas name with no version:
-    version_str = parts.pop() if not parts[-1].endswith("um") else None
-    resolution_str = parts.pop()
-
-    atlas_name = "_".join(parts)
-    if version_str:
-        major_vers, minor_vers = version_str[2:].split(".")
-    else:
-        major_vers, minor_vers = None, None
-    return dict(name=atlas_name,
-                major_vers=major_vers,
-                minor_vers=minor_vers,
-                resolution=resolution_str[:-2])
-
+GENERATION_DICT = dict(example_mouse=[100])
 
 
 cwd = Path.home() / "bg_auto"
@@ -42,31 +23,46 @@ if __name__ == "__main__":
     # pw = input("GIN-GNode password: ")  # Python 3
     # print(us, pw)
 
+    # Read last versions from conf file:
     conf = configparser.ConfigParser()
     conf.read(repo_path / "last_versions.conf")
-    atlases_status = dict()
+
+    # Find all atlases representation given the names in the conf:
+    atlases_repr = dict()
     for k in conf["atlases"].keys():
-        repr = get_atlas_repr(k)
-
+        repr = atlas_repr_from_name(k)
         # Read versions from conf:
-        major_vers, minor_vers = conf["atlases"][k].split(".")
-        repr["major_vers"] = major_vers
-        repr["minor_vers"] = minor_vers
-        atlases_status[repr.pop("name")] =repr
+        repr["major_vers"], repr["minor_vers"] = conf["atlases"][k].split(".")
+        # Add as entries in a dict:
+        atlases_repr[repr.pop("name")] = repr
 
-    bg_atlas_version = atlas_gen.__version__
+    # Major version is given by version of the atlas_gen module:
+    bg_atlasgen_version = atlas_gen.__version__
 
+    # Path to the scripts to generate the atlases:
     scripts_path = atlas_gen_path / "atlas_scripts"
 
-    for n, res in generation_dict.items():
-        # print(next(scripts_path.glob(f"{n}.py")))
-        # print(n)
-        status = atlases_status[n]
-        mod = import_module(f"atlas_gen.atlas_scripts.{n}")
-        script_version = mod.__version__
+    # Loop over the entries from the GENERATION_DICT configuration dict
+    for name, resolutions in GENERATION_DICT.items():
+        status = atlases_repr[name]
+        module = import_module(f"atlas_gen.atlas_scripts.{name}")
+        script_version = module.__version__
+
         if bg_atlas_version >= status["major_vers"] and \
                 script_version > status["minor_vers"]:
-            print(n, mod.create_atlas)
+            print(name, module.create_atlas)
 
+            for resolution in resolutions:
+                temp_dir = cwd / "tempdir"
+                temp_dir.mkdir(exist_ok=True)
 
+                output_filename = module.create_atlas(temp_dir, resolution)
 
+                shutil.move(str(output_filename), repo_path)
+                shutil.rmtree(temp_dir)
+
+                k = atlas_name_from_repr(name, resolution)
+                conf["atlases"][k] = str(f"{bg_atlasgen_version}.{script_version}")
+
+                with open(repo_path / "last_versions.conf", "w") as f:
+                    conf.write(f)

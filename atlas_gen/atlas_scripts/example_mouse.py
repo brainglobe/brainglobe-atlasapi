@@ -11,10 +11,10 @@ from tqdm import tqdm
 from atlas_gen.wrapup import wrapup_atlas_from_data
 
 
-def create_atlas(bg_root_dir):
+def create_atlas(bg_root_dir, resolution):
 
     # Specify information about the atlas:
-    RES_UM = 100
+    RES_UM = resolution  # 100
     ATLAS_NAME = "example_mouse"
     SPECIES = "Mus musculus"
     ATLAS_LINK = "http://www.brain-map.org.com"
@@ -104,7 +104,7 @@ def create_atlas(bg_root_dir):
         compress=True,
     )
 
-    return Path()
+    return output_filename
 
 
 if __name__ == "__main__":

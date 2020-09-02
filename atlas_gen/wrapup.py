@@ -20,6 +20,7 @@ from atlas_gen.stacks import (
 from atlas_gen.structures import check_struct_consistency
 
 from bg_atlasapi import descriptors
+from bg_atlasapi.utils import atlas_name_from_repr
 
 
 # This should be changed every time we make changes in the atlas
@@ -92,8 +93,6 @@ def wrapup_atlas_from_data(
         (Default value = empty dict). Dictionary with secondary reference stacks.
     """
 
-    version = f"{ATLAS_VERSION}.{atlas_minor_version}"
-
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
 
@@ -106,7 +105,8 @@ def wrapup_atlas_from_data(
     # Check consistency of structures .json file:
     check_struct_consistency(structures_list)
 
-    atlas_dir_name = f"{atlas_name}_{resolution[0]}um_v{version}"
+    atlas_dir_name = atlas_name_from_repr(atlas_name, resolution[0],
+                                          ATLAS_VERSION, atlas_minor_version)
     dest_dir = Path(working_dir) / atlas_dir_name
 
     # exist_ok would be more permissive but error-prone here as there might
@@ -181,7 +181,7 @@ def wrapup_atlas_from_data(
         symmetric=symmetric,
         resolution=resolution,
         orientation=descriptors.ATLAS_ORIENTATION,
-        version=version,
+        version=f"{ATLAS_VERSION}.{atlas_minor_version}",
         shape=shape,
         transformation_mat=transformation_mat,
         additional_references=[k for k in additional_references.keys()],

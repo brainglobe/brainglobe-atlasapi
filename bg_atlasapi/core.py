@@ -1,11 +1,13 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
+from collections import UserDict
+import warnings
+
 from bg_space import SpaceConvention
 
 from bg_atlasapi.utils import read_json, read_tiff
 from bg_atlasapi.structure_class import StructuresDict
-from bg_atlasapi.structure_tree_util import get_structures_tree
 from bg_atlasapi.descriptors import (
     METADATA_FILENAME,
     STRUCTURES_FILENAME,
@@ -46,35 +48,51 @@ class Atlas:
 
         # Instantiate SpaceConvention object describing the current atlas:
         self.space = SpaceConvention(
-            origin=self.metadata["orientation"],
-            shape=self.metadata["shape"],
-            resolution=self.metadata["resolution"],
+            origin=self.orientation,
+            shape=self.shape,
+            resolution=self.resolution,
         )
 
         self._reference = None
+
+        try:
+            self.additional_references = AdditionalRefDict(
+                references_list=self.metadata["additional_references"],
+                data_path=self.root_dir,
+            )
+        except KeyError:
+            warnings.warn(
+                "This atlas seems to be outdated as no additional_references list "
+                "is found in metadata!"
+            )
+
         self._annotation = None
         self._hemispheres = None
-        self._hierarchy = None
         self._lookup = None
 
     @property
     def resolution(self):
-        """Make resolution more accessible from class.
-        """
+        """Make resolution more accessible from class."""
         return self.metadata["resolution"]
 
     @property
+    def orientation(self):
+        """Make orientation more accessible from class."""
+        return self.metadata["orientation"]
+
+    @property
+    def shape(self):
+        """Make shape more accessible from class."""
+        return self.metadata["shape"]
+
+    @property
     def hierarchy(self):
-        """Returns a Treelib.tree object with structures hierarchy.
-        """
-        if self._hierarchy is None:
-            self._hierarchy = get_structures_tree(self.structures_list)
-        return self._hierarchy
+        """Returns a Treelib.tree object with structures hierarchy."""
+        return self.structures.tree
 
     @property
     def lookup_df(self):
-        """Returns a dataframe with id, acronym and name for each structure.
-        """
+        """Returns a dataframe with id, acronym and name for each structure."""
         if self._lookup is None:
             self._lookup = pd.DataFrame(
                 dict(
@@ -226,9 +244,9 @@ class Atlas:
 
     def get_structure_ancestors(self, structure):
         """
-            Returns a list of acronyms for all 
-            ancestors of a given structure
-       """
+        Returns a list of acronyms for all
+        ancestors of a given structure
+        """
         ancestors_id = self._get_from_structure(
             structure, "structure_id_path"
         )[:-1]
@@ -237,8 +255,8 @@ class Atlas:
 
     def get_structure_descendants(self, structure):
         """
-            Returns a list of acronyms for all 
-            descendants of a given structure
+        Returns a list of acronyms for all
+        descendants of a given structure
         """
         structure = self._get_from_structure(structure, "acronym")
 
@@ -249,3 +267,31 @@ class Atlas:
                 descendants.append(self._get_from_structure(struc, "acronym"))
 
         return descendants
+
+
+class AdditionalRefDict(UserDict):
+    """Class implementing the lazy loading of secondary references
+    if the dictionary is queried for it.
+    """
+
+    def __init__(self, references_list, data_path, *args, **kwargs):
+        self.data_path = data_path
+        self.references_list = references_list
+
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, ref_name):
+        if ref_name not in self.keys():
+
+            if ref_name not in self.references_list:
+                warnings.warn(
+                    f"No reference named {ref_name} "
+                    f"(available: {self.references_list})"
+                )
+                return None
+
+            self.data[ref_name] = read_tiff(
+                self.data_path / f"{ref_name}.tiff"
+            )
+
+        return self.data[ref_name]

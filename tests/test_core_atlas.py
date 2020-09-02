@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 import contextlib
 from io import StringIO
+import tifffile
+
+from bg_atlasapi.core import AdditionalRefDict
 
 
 def test_initialization(atlas):
@@ -24,6 +27,25 @@ def test_initialization(atlas):
             [0.0, 0.0, 0.0, 1.0],
         ],
     }
+
+    assert atlas.orientation == "asl"
+    assert atlas.shape == [132, 80, 114]
+    assert atlas.resolution == [100.0, 100.0, 100.0]
+
+
+def test_additional_ref_dict(temp_path):
+    fake_data = dict()
+    for k in ["1", "2"]:
+        stack = np.ones((10, 20, 30)) * int(k)
+        fake_data[k] = stack
+        tifffile.imsave(temp_path / f"{k}.tiff", stack)
+
+    add_ref_dict = AdditionalRefDict(fake_data.keys(), temp_path)
+
+    for k, stack in add_ref_dict.items():
+        assert add_ref_dict[k] == stack
+
+    assert add_ref_dict["3"] is None
 
 
 @pytest.mark.parametrize(
@@ -113,12 +135,12 @@ def test_hierarchy(atlas):
     with contextlib.redirect_stdout(temp_stdout):
         print(hier)
     output = temp_stdout.getvalue().strip()
-    assert output == "root\n└── grey\n    └── CH"
+    assert output == "root (997)\n└── grey (8)\n    └── CH (567)"
 
     assert {k: v.tag for k, v in hier.nodes.items()} == {
-        997: "root",
-        8: "grey",
-        567: "CH",
+        997: "root (997)",
+        8: "grey (8)",
+        567: "CH (567)",
     }
 
 

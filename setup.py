@@ -3,32 +3,24 @@ from setuptools import setup, find_namespace_packages
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
+with open("requirements_dev.txt") as f:
+    requirements_dev = f.read().splitlines()
+
+with open("README.md") as f:
+    long_description = f.read()
+
 setup(
     name="bg-atlasapi",
     version="0.1.1",
-    description="A lightweight python module to interact with atlases for systems neuroscience",
+    description="A lightweight python module to interact with "
+    "atlases for systems neuroscience",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     install_requires=requirements,
-    extras_require={
-        "dev": [
-            "allensdk",
-            "sphinx",
-            "brainio>=0.0.16",
-            "vtkplotter",
-            "recommonmark",
-            "sphinx_rtd_theme",
-            "pydoc-markdown",
-            "black",
-            "pytest-cov",
-            "pytest",
-            "gitpython",
-            "coverage",
-            "pre-commit",
-            "PyMCubes",
-        ]
-    },
+    extras_require=dict(dev=requirements_dev),
     python_requires=">=3.6",
     entry_points={"console_scripts": ["brainglobe = bg_atlasapi.cli:bg_cli"]},
-    packages=find_namespace_packages(exclude=("atlas_gen", "docs", "tests*")),
+    packages=find_namespace_packages(exclude=("docs", "tests*")),
     include_package_data=True,
     url="https://github.com/brainglobe/bg-atlasapi",
     author="Luigi Petrucco, Federico Claudi, Adam Tyson",

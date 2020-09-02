@@ -13,17 +13,16 @@ def child_ids(structure, structure_list):
 
 
 def get_structures_tree(structures_list):
-    """Creates a 'tree' graph with the hierarchical organisation of all structures
-    """
+    """Creates a 'tree' graph with the hierarchical organisation of all structures"""
 
     def add_descendants_to_tree(
         structures_list, id_to_acronym_map, tree, structure_id, parent_id
     ):
         """
-            Recursively goes through all the the descendants of a region and adds them to the tree
+        Recursively goes through all the the descendants of a region and adds them to the tree
         """
         tree.create_node(
-            tag=id_to_acronym_map[structure_id],
+            tag=f"{id_to_acronym_map[structure_id]} ({structure_id})",
             identifier=structure_id,
             parent=parent_id,
         )
@@ -45,7 +44,7 @@ def get_structures_tree(structures_list):
 
     root = acronym_to_id_map["root"]
     tree = Tree()
-    tree.create_node(tag="root", identifier=root)
+    tree.create_node(tag=f"root ({root})", identifier=root)
 
     # Recursively iterate through hierarchy#
     for child in child_ids(root, structures_list):

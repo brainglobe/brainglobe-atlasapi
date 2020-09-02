@@ -115,8 +115,7 @@ def cli_modify_config(key=0, value=0, show=False):
 
 
 def _print_config():
-    """Print configuration.
-    """
+    """Print configuration."""
     config = read_config()
     string = ""
     for sect_name, sect_content in config.items():

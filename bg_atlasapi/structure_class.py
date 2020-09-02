@@ -71,6 +71,5 @@ class StructuresDict(UserDict):
         return self.data[int(item)]
 
     def __repr__(self):
-        """String representation of the class, print all regions names
-        """
+        """String representation of the class, print all regions names"""
         return self.tree.show(stdout=False)

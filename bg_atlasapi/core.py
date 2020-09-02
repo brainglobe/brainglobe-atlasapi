@@ -72,32 +72,27 @@ class Atlas:
 
     @property
     def resolution(self):
-        """Make resolution more accessible from class.
-        """
+        """Make resolution more accessible from class."""
         return self.metadata["resolution"]
 
     @property
     def orientation(self):
-        """Make orientation more accessible from class.
-        """
+        """Make orientation more accessible from class."""
         return self.metadata["orientation"]
 
     @property
     def shape(self):
-        """Make shape more accessible from class.
-        """
+        """Make shape more accessible from class."""
         return self.metadata["shape"]
 
     @property
     def hierarchy(self):
-        """Returns a Treelib.tree object with structures hierarchy.
-        """
+        """Returns a Treelib.tree object with structures hierarchy."""
         return self.structures.tree
 
     @property
     def lookup_df(self):
-        """Returns a dataframe with id, acronym and name for each structure.
-        """
+        """Returns a dataframe with id, acronym and name for each structure."""
         if self._lookup is None:
             self._lookup = pd.DataFrame(
                 dict(
@@ -249,9 +244,9 @@ class Atlas:
 
     def get_structure_ancestors(self, structure):
         """
-            Returns a list of acronyms for all 
-            ancestors of a given structure
-       """
+        Returns a list of acronyms for all
+        ancestors of a given structure
+        """
         ancestors_id = self._get_from_structure(
             structure, "structure_id_path"
         )[:-1]
@@ -260,8 +255,8 @@ class Atlas:
 
     def get_structure_descendants(self, structure):
         """
-            Returns a list of acronyms for all 
-            descendants of a given structure
+        Returns a list of acronyms for all
+        descendants of a given structure
         """
         structure = self._get_from_structure(structure, "acronym")
 

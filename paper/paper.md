@@ -1,5 +1,5 @@
 ---
-title: 'Brainglobe atlas API: a common interface for neuroanatomical atlases'
+title: 'BrainGlobe Atlas API: a common interface for neuroanatomical atlases'
 tags:
   - Python
   - neuroscience
@@ -36,7 +36,7 @@ bibliography: paper.bib
 # Summary
 Neuroscientists routinely perform experiments aimed at recording or manipulating neural activity, uncovering physiological processes underlying brain function or elucidating aspects of brain anatomy. Understanding how the brain generates behaviour ultimately depends on merging the results of these experiments into a unified picture of brain anatomy and function. Brain atlases are crucial in this endeavour: by outlining the organization of brain regions they provide a reference upon which our understanding of brain function can be anchored. More recently, digital high-resolution 3d atlases have been produced for several model organisms providing an invaluable resource for the research community. 
 Effective use of these atlases depends on the availability of an application programming interface (API) that enables researchers to develop software to access and query atlas data. However, while some atlases come with an API, these are generally specific for individual atlases, and this hinders the development and adoption of open-source neuroanatomy software. 
-The brainglobe atlas API (BG-Atlas API) overcomes this problem by providing a common interface for programmers to download and process data  across a variety of model organisms. By adopting the BG-Atlas API, software can then be developed agnostic to the atlas, increasing adoption and interoperability of packages in neuroscience and enabling direct integration of different experimental modalities and even comparisons across model organisms. 
+The BrainGlobe atlas API (BG-Atlas API) overcomes this problem by providing a common interface for programmers to download and process data  across a variety of model organisms. By adopting the BG-Atlas API, software can then be developed agnostic to the atlas, increasing adoption and interoperability of packages in neuroscience and enabling direct integration of different experimental modalities and even comparisons across model organisms. 
 
 # Statement of need 
 To facilitate the study of neural function, a long-standing approach has been to identify neuroanatomically defined brain regions: structures with defined function, connectivity and anatomical location. The study of these brain regions led to the development of a number of brain atlases for various species. Typically these atlases are made up of a reference image of a brain, voxel-wise annotations (e.g. a mapping from each voxel to a brain structure) and additional metadata such as region hierarchy (region A is a subdivision of region B). These atlases are used throughout neuroscience, for teaching, visualisation of data, and registration of imaging data to a common coordinate space.

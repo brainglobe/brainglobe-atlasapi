@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 import contextlib
 from io import StringIO
+import tifffile
+
+from bg_atlasapi.core import AdditionalRefDict
 
 
 def test_initialization(atlas):
@@ -24,6 +27,25 @@ def test_initialization(atlas):
             [0.0, 0.0, 0.0, 1.0],
         ],
     }
+
+    assert atlas.orientation == "asl"
+    assert atlas.shape == [132, 80, 114]
+    assert atlas.resolution == [100.0, 100.0, 100.0]
+
+
+def test_additional_ref_dict(temp_path):
+    fake_data = dict()
+    for k in ["1", "2"]:
+        stack = np.ones((10, 20, 30)) * int(k)
+        fake_data[k] = stack
+        tifffile.imsave(temp_path / f"{k}.tiff", stack)
+
+    add_ref_dict = AdditionalRefDict(fake_data.keys(), temp_path)
+
+    for k, stack in add_ref_dict.items():
+        assert add_ref_dict[k] == stack
+
+    assert add_ref_dict["3"] is None
 
 
 @pytest.mark.parametrize(

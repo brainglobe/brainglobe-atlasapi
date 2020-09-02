@@ -1,10 +1,20 @@
 import pytest
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas
+import tempfile
+import shutil
+from pathlib import Path
 
 
 @pytest.fixture()
 def atlas():
     return BrainGlobeAtlas("example_mouse_100um")
+
+
+@pytest.fixture()
+def temp_path():
+    path = Path(tempfile.mkdtemp())
+    yield path
+    shutil.rmtree(path)
 
 
 @pytest.fixture(scope="module")

@@ -87,19 +87,36 @@ def conf_from_url(url):
     return config
 
 
-def get_latest_atlases_version():
-    # TODO download version from online
-
-    versions = read_json("docs/atlases/latest_version.json")
-    return versions
-
-
 # --------------------------------- File I/O --------------------------------- #
 def read_json(path):
+    """Read a json file.
+
+    Parameters
+    ----------
+    path : str or Path object
+
+    Returns
+    -------
+    dict
+        Dictionary from the json
+
+    """
     with open(path, "r") as f:
         data = json.load(f)
     return data
 
 
 def read_tiff(path):
+    """Read a tiff file.
+
+    Parameters
+    ----------
+    path : str or Path object
+
+    Returns
+    -------
+    np.array
+        Numpy stack read from the tiff.
+
+    """
     return tifffile.imread(str(path))

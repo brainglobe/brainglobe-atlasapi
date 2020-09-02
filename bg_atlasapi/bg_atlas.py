@@ -114,11 +114,7 @@ class BrainGlobeAtlas(core.Atlas):
                 versions_conf["atlases"][self.atlas_name]
             )
         except KeyError:
-            return None
-
-
-
-            # raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
+            raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
 
     @property
     def local_full_name(self):
@@ -144,8 +140,10 @@ class BrainGlobeAtlas(core.Atlas):
     def remote_url(self):
         """Format complete url for download.
         """
+
         maj, min = self.remote_version
         name = f"{self.atlas_name}_v{maj}.{min}.tar.gz"
+
         return self._remote_url_base.format(name)
 
     def download_extract_file(self):

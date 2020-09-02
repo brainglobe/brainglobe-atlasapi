@@ -8,7 +8,6 @@ from bg_space import SpaceConvention
 
 from bg_atlasapi.utils import read_json, read_tiff
 from bg_atlasapi.structure_class import StructuresDict
-from bg_atlasapi.structure_tree_util import get_structures_tree
 from bg_atlasapi.descriptors import (
     METADATA_FILENAME,
     STRUCTURES_FILENAME,
@@ -49,25 +48,26 @@ class Atlas:
 
         # Instantiate SpaceConvention object describing the current atlas:
         self.space = SpaceConvention(
-            origin=self.metadata["orientation"],
-            shape=self.metadata["shape"],
-            resolution=self.metadata["resolution"],
+            origin=self.orientation,
+            shape=self.shape,
+            resolution=self.resolution,
         )
 
         self._reference = None
 
         try:
             self.additional_references = AdditionalRefDict(
-            references_list=self.metadata["additional_references"],
-            data_path=self.root_dir,
-        )
+                references_list=self.metadata["additional_references"],
+                data_path=self.root_dir,
+            )
         except KeyError:
-            warnings.warn("This atlas seems to be outdated as no additional_references list "
-                          "is found in metadata!")
+            warnings.warn(
+                "This atlas seems to be outdated as no additional_references list "
+                "is found in metadata!"
+            )
 
         self._annotation = None
         self._hemispheres = None
-        self._hierarchy = None
         self._lookup = None
 
     @property
@@ -77,12 +77,22 @@ class Atlas:
         return self.metadata["resolution"]
 
     @property
+    def orientation(self):
+        """Make orientation more accessible from class.
+        """
+        return self.metadata["orientation"]
+
+    @property
+    def shape(self):
+        """Make shape more accessible from class.
+        """
+        return self.metadata["shape"]
+
+    @property
     def hierarchy(self):
         """Returns a Treelib.tree object with structures hierarchy.
         """
-        if self._hierarchy is None:
-            self._hierarchy = get_structures_tree(self.structures_list)
-        return self._hierarchy
+        return self.structures.tree
 
     @property
     def lookup_df(self):

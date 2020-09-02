@@ -45,7 +45,7 @@ def get_structures_tree(structures_list):
 
     root = acronym_to_id_map["root"]
     tree = Tree()
-    tree.create_node(tag="root", identifier=root)
+    tree.create_node(tag=f"root ({root})", identifier=root)
 
     # Recursively iterate through hierarchy#
     for child in child_ids(root, structures_list):

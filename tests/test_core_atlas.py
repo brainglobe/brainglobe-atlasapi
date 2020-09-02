@@ -113,12 +113,12 @@ def test_hierarchy(atlas):
     with contextlib.redirect_stdout(temp_stdout):
         print(hier)
     output = temp_stdout.getvalue().strip()
-    assert output == "root\n└── grey\n    └── CH"
+    assert output == "root (997)\n└── grey (8)\n    └── CH (567)"
 
     assert {k: v.tag for k, v in hier.nodes.items()} == {
-        997: "root",
-        8: "grey",
-        567: "CH",
+        997: "root (997)",
+        8: "grey (8)",
+        567: "CH (567)",
     }
 
 

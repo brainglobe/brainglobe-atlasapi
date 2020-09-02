@@ -1,0 +1,10 @@
+sphinx
+sphinx_rtd_theme
+pydoc-markdown
+pytest-cov
+pytest
+gitpython
+coverage
+pre-commit
+black
+flake8

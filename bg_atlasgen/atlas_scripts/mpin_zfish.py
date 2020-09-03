@@ -95,9 +95,9 @@ def collect_all_inplace(
         collect_all_inplace(region, traversing_list, download_path, mesh_dict)
 
 
-def create_atlas(version, bg_root_dir):
+def create_atlas(working_dir, resolution):
     # Specify fixed information about the atlas:
-    RES_UM = 1
+    RES_UM = resolution
     ATLAS_NAME = "mpin_zfish"
     SPECIES = "Danio rerio"
     ATLAS_LINK = "http://fishatlas.neuro.mpg.de"
@@ -116,13 +116,13 @@ def create_atlas(version, bg_root_dir):
 
     # Download annotation and hemispheres from GIN repo:
     gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations.tar.gz"
-    compressed_zip_path = bg_root_dir / "annotations.tar"
+    compressed_zip_path = working_dir / "annotations.tar"
     retrieve_over_http(gin_url, compressed_zip_path)
 
     tar = tarfile.open(compressed_zip_path)
-    tar.extractall(path=bg_root_dir)
+    tar.extractall(path=working_dir)
 
-    extracted_dir = bg_root_dir / "mpin_zfish_annotations"
+    extracted_dir = working_dir / "mpin_zfish_annotations"
 
     annotation_stack = tifffile.imread(
         str(extracted_dir / "mpin_zfish_annotation.tif")
@@ -146,7 +146,7 @@ def create_atlas(version, bg_root_dir):
     ######################################
     regions_url = f"{BASE_URL}/neurons/get_brain_regions"
 
-    meshes_dir_path = bg_root_dir / "meshes_temp_download"
+    meshes_dir_path = working_dir / "meshes_temp_download"
     meshes_dir_path.mkdir(exist_ok=True)
 
     # Download structures hierarchy:
@@ -177,9 +177,9 @@ def create_atlas(version, bg_root_dir):
 
     # Wrap up, compress, and remove file:0
     print(f"Finalising atlas")
-    wrapup_atlas_from_data(
+    output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
-        atlas_minor_version=version,
+        atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
@@ -190,12 +190,14 @@ def create_atlas(version, bg_root_dir):
         annotation_stack=annotation_stack,
         structures_list=structures_list,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=working_dir,
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
         additional_references=additional_references,
     )
+
+    return output_filename
 
 
 if __name__ == "__main__":
@@ -203,4 +205,4 @@ if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "fish"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
-    create_atlas(__version__, bg_root_dir)
+    create_atlas(bg_root_dir, 1)

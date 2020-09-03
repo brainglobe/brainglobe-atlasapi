@@ -11,7 +11,7 @@ from tqdm import tqdm
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 
 
-def create_atlas(bg_root_dir, resolution):
+def create_atlas(working_dir, resolution):
 
     # Specify information about the atlas:
     RES_UM = resolution  # 100
@@ -22,7 +22,7 @@ def create_atlas(bg_root_dir, resolution):
     ORIENTATION = "asr"
 
     # Temporary folder for nrrd files download:
-    download_dir_path = bg_root_dir / "downloading_path"
+    download_dir_path = working_dir / "downloading_path"
     download_dir_path.mkdir(exist_ok=True)
 
     # Download annotated and template volume:
@@ -59,7 +59,7 @@ def create_atlas(bg_root_dir, resolution):
     structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)[:3]
 
     # Directory for mesh saving:
-    meshes_dir = bg_root_dir / "mesh_temp_download"
+    meshes_dir = working_dir / "mesh_temp_download"
 
     space = ReferenceSpaceApi()
     meshes_dict = dict()
@@ -98,7 +98,7 @@ def create_atlas(bg_root_dir, resolution):
         annotation_stack=annotated_volume,
         structures_list=structs_with_mesh,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
@@ -112,4 +112,4 @@ if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "example"
     bg_root_dir.mkdir(exist_ok=True)
 
-    create_atlas(bg_root_dir)
+    create_atlas(working_dir, 100)

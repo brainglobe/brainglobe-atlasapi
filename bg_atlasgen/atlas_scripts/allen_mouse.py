@@ -12,7 +12,7 @@ from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi import descriptors
 
 
-def create_atlas(version, res_um, bg_root_dir):
+def create_atlas(working_dir, resolution):
     # Specify information about the atlas:
     ATLAS_NAME = "allen_mouse"
     SPECIES = "Mus musculus"
@@ -21,7 +21,7 @@ def create_atlas(version, res_um, bg_root_dir):
     ORIENTATION = "asr"
 
     # Temporary folder for nrrd files download:
-    download_dir_path = bg_root_dir / "downloading_path"
+    download_dir_path = working_dir / "downloading_path"
     download_dir_path.mkdir(exist_ok=True)
 
     # Download annotated and template volume:
@@ -29,7 +29,7 @@ def create_atlas(version, res_um, bg_root_dir):
     spacecache = ReferenceSpaceCache(
         manifest=download_dir_path / "manifest.json",
         # downloaded files are stored relative to here
-        resolution=res_um,
+        resolution=resolution,
         reference_space_key="annotation/ccf_2017"
         # use the latest version of the CCF
     )
@@ -58,7 +58,7 @@ def create_atlas(version, res_um, bg_root_dir):
     structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
 
     # Directory for mesh saving:
-    meshes_dir = bg_root_dir / descriptors.MESHES_DIRNAME
+    meshes_dir = working_dir / descriptors.MESHES_DIRNAME
 
     space = ReferenceSpaceApi()
     meshes_dict = dict()
@@ -84,24 +84,26 @@ def create_atlas(version, res_um, bg_root_dir):
 
     # Wrap up, compress, and remove file:0
     print(f"Finalising atlas")
-    wrapup_atlas_from_data(
+    output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
-        atlas_minor_version=version,
+        atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(res_um,) * 3,
+        resolution=(resolution,) * 3,
         orientation=ORIENTATION,
         root_id=997,
         reference_stack=template_volume,
         annotation_stack=annotated_volume,
         structures_list=structs_with_mesh,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
     )
+
+    return output_filename
 
 
 if __name__ == "__main__":
@@ -110,4 +112,4 @@ if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_mouse"
     bg_root_dir.mkdir(exist_ok=True)
 
-    create_atlas(__version__, RES_UM, bg_root_dir)
+    create_atlas(bg_root_dir, RES_UM)

@@ -14,8 +14,8 @@ if __name__ == "__main__":
 
     repo = Repo(repo_path)
 
-    #repo.git.add(".")
-    #repo.git.commit('-m', 'test commit', author='luigi.petrucco@gmail.com')
+    # repo.git.add(".")
+    # repo.git.commit('-m', 'test commit', author='luigi.petrucco@gmail.com')
     repo.git.pull()
     repo.git.push()
 

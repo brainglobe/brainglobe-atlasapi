@@ -4,7 +4,7 @@ import numpy as np
 from collections import UserDict
 import warnings
 
-from bg_space import SpaceConvention
+from bg_space import AnatomicalSpace
 
 from bg_atlasapi.utils import read_json, read_tiff
 from bg_atlasapi.structure_class import StructuresDict
@@ -47,7 +47,7 @@ class Atlas:
         self.structures = StructuresDict(structures_list)
 
         # Instantiate SpaceConvention object describing the current atlas:
-        self.space = SpaceConvention(
+        self.space = AnatomicalSpace(
             origin=self.orientation,
             shape=self.shape,
             resolution=self.resolution,
@@ -88,7 +88,7 @@ class Atlas:
     @property
     def shape_um(self):
         """Make shape more accessible from class."""
-        return tuple([s*r for s, r in zip(self.shape, self.resolution)])
+        return tuple([s * r for s, r in zip(self.shape, self.resolution)])
 
     @property
     def hierarchy(self):

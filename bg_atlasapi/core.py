@@ -88,7 +88,7 @@ class Atlas:
     @property
     def shape_um(self):
         """Make shape more accessible from class."""
-        return tuple([s*r for s, r in zip(self.shape, self.resolution)])
+        return tuple([s * r for s, r in zip(self.shape, self.resolution)])
 
     @property
     def hierarchy(self):

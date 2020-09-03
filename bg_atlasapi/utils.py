@@ -9,8 +9,7 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
 def atlas_repr_from_name(name):
-    """Generate dictionary with atlas description given the name.
-    """
+    """Generate dictionary with atlas description given the name."""
     parts = name.split("_")
 
     # if atlas name with no version:
@@ -25,21 +24,24 @@ def atlas_repr_from_name(name):
     else:
         major_vers, minor_vers = None, None
 
-    return dict(name=atlas_name,
-                major_vers=major_vers,
-                minor_vers=minor_vers,
-                resolution=resolution_str[:-2])
+    return dict(
+        name=atlas_name,
+        major_vers=major_vers,
+        minor_vers=minor_vers,
+        resolution=resolution_str[:-2],
+    )
 
 
 def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
-    """Generate atlas name given a description.
-    """
+    """Generate atlas name given a description."""
     if major_vers is None and minor_vers is None:
         return f"{name}_{resolution}um"
     else:
         return f"{name}_{resolution}um_v{major_vers}.{minor_vers}"
 
+
 # ------------------------------- Web requests ------------------------------- #
+
 
 def check_internet_connection(
     url="http://www.google.com/", timeout=5, raise_error=True

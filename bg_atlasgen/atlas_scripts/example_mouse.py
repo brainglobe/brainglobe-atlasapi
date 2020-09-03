@@ -1,4 +1,4 @@
-__version__ = "0"
+__version__ = "1"
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
@@ -17,7 +17,7 @@ def create_atlas(working_dir, resolution):
     RES_UM = resolution  # 100
     ATLAS_NAME = "example_mouse"
     SPECIES = "Mus musculus"
-    ATLAS_LINK = "http://www.brain-map.org.com"
+    ATLAS_LINK = "http://www.brain-map.com"
     CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
     ORIENTATION = "asr"
 

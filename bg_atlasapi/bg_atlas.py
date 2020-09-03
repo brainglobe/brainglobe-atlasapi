@@ -138,15 +138,15 @@ class BrainGlobeAtlas(core.Atlas):
 
     @property
     def remote_url(self):
-        """Format complete url for download.
-        """
+        """Format complete url for download."""
+
         maj, min = self.remote_version
         name = f"{self.atlas_name}_v{maj}.{min}.tar.gz"
+
         return self._remote_url_base.format(name)
 
     def download_extract_file(self):
-        """Download and extract atlas from remote url.
-        """
+        """Download and extract atlas from remote url."""
         utils.check_internet_connection()
 
         # Get path to folder where data will be saved
@@ -181,8 +181,7 @@ class BrainGlobeAtlas(core.Atlas):
         return True
 
     def __repr__(self):
-        """Fancy print for the atlas providing authors information.
-        """
+        """Fancy print for the atlas providing authors information."""
         meta = self.metadata
         name_split = self.atlas_name.split("_")
         pretty_name = "{} {} atlas (res. {})".format(*name_split)

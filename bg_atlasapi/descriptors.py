@@ -47,5 +47,5 @@ REFERENCE_DTYPE = np.uint16
 ANNOTATION_DTYPE = np.uint32
 HEMISPHERES_DTYPE = np.uint8
 
-# Standard orientation origin: Anterior, Left, Superior (using BGSpace definition)
-ATLAS_ORIENTATION = "asl"
+# Standard orientation origin: Anterior, Superior, Right (using BG-Space definition)
+ATLAS_ORIENTATION = "asr"

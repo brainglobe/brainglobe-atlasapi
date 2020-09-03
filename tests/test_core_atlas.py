@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 import contextlib
 from io import StringIO
+import tifffile
+
+from bg_atlasapi.core import AdditionalRefDict
 
 
 def test_initialization(atlas):
@@ -25,13 +28,33 @@ def test_initialization(atlas):
         ],
     }
 
+    assert atlas.orientation == "asl"
+    assert atlas.shape == (132, 80, 114)
+    assert atlas.resolution == (100.0, 100.0, 100.0)
+    assert atlas.shape_um == (13200.0, 8000.0, 11400.0)
+
+
+def test_additional_ref_dict(temp_path):
+    fake_data = dict()
+    for k in ["1", "2"]:
+        stack = np.ones((10, 20, 30)) * int(k)
+        fake_data[k] = stack
+        tifffile.imsave(temp_path / f"{k}.tiff", stack)
+
+    add_ref_dict = AdditionalRefDict(fake_data.keys(), temp_path)
+
+    for k, stack in add_ref_dict.items():
+        assert add_ref_dict[k] == stack
+
+    assert add_ref_dict["3"] is None
+
 
 @pytest.mark.parametrize(
     "stack_name, val",
     [
         ("reference", [[[146, 155], [153, 157]], [[148, 150], [153, 153]]]),
         ("annotation", [[[59, 362], [59, 362]], [[59, 362], [59, 362]]]),
-        ("hemispheres", [[[1, 2], [1, 2]], [[1, 2], [1, 2]]]),
+        ("hemispheres", [[[2, 1], [2, 1]], [[2, 1], [2, 1]]]),
     ],
 )
 def test_stacks(atlas, stack_name, val):
@@ -65,13 +88,13 @@ def test_data_from_coords(atlas, coords):
         )
         == "root"
     )
-    assert atlas.hemisphere_from_coords(coords) == 1
-    assert atlas.hemisphere_from_coords(coords, as_string=True) == "left"
+    assert atlas.hemisphere_from_coords(coords) == atlas.right_hemisphere_value
+    assert atlas.hemisphere_from_coords(coords, as_string=True) == "right"
     assert (
         atlas.hemisphere_from_coords(
             [c * r for c, r in zip(coords, res)], microns=True, as_string=True
         )
-        == "left"
+        == "right"
     )
 
 
@@ -113,12 +136,12 @@ def test_hierarchy(atlas):
     with contextlib.redirect_stdout(temp_stdout):
         print(hier)
     output = temp_stdout.getvalue().strip()
-    assert output == "root\n└── grey\n    └── CH"
+    assert output == "root (997)\n└── grey (8)\n    └── CH (567)"
 
     assert {k: v.tag for k, v in hier.nodes.items()} == {
-        997: "root",
-        8: "grey",
-        567: "CH",
+        997: "root (997)",
+        8: "grey (8)",
+        567: "CH (567)",
     }
 
 

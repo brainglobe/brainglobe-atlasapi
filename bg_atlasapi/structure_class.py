@@ -2,6 +2,8 @@ import meshio as mio
 from collections import UserDict
 import warnings
 
+from bg_atlasapi.structure_tree_util import get_structures_tree
+
 
 class Structure(UserDict):
     """Class implementing the lazy loading of a mesh if the dictionary is
@@ -48,6 +50,8 @@ class StructuresDict(UserDict):
             sid = struct["id"]
             self.data[sid] = Structure(**struct, mesh=None)
 
+        self.tree = get_structures_tree(structures_list)
+
     def __getitem__(self, item):
         """Core implementation of the class support for different indexing.
 
@@ -67,9 +71,5 @@ class StructuresDict(UserDict):
         return self.data[int(item)]
 
     def __repr__(self):
-        """String representation of the class, print all regions names
-        """
-        # TODO consider changing this to printing the tree structure as it's a more concise visualisation
-        return "".join(
-            ["({}) \t- {}\n".format(k, v["acronym"]) for k, v in self.items()]
-        )
+        """String representation of the class, print all regions names"""
+        return self.tree.show(stdout=False)

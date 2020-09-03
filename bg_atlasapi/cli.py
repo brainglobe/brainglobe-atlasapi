@@ -15,21 +15,21 @@ def bg_cli(
     command, atlas_name=None, force=False, show=False, key=None, value=None
 ):
     """
-        Command line dispatcher. Given a command line call to `brainglobe`
-        it calls the correct function, depending on which `command` was passed. 
+    Command line dispatcher. Given a command line call to `brainglobe`
+    it calls the correct function, depending on which `command` was passed.
 
-        Arguments:
-        ----------
-        command: str. Name of the command:
-            - list: list available atlases
-            - install: isntall new atlas
-            - update: update an installed atlas
-            - config: modify config
+    Arguments:
+    ----------
+    command: str. Name of the command:
+        - list: list available atlases
+        - install: isntall new atlas
+        - update: update an installed atlas
+        - config: modify config
 
-        show: bool. If True when using `list` shows the local path of installed atlases
-                and when using 'config' it prints the modify config results.
-        atlas_name: ts. Used with `update` and `install`, name of the atlas to install
-        force: bool, used with `update`. If True it forces the update
+    show: bool. If True when using `list` shows the local path of installed atlases
+            and when using 'config' it prints the modify config results.
+    atlas_name: ts. Used with `update` and `install`, name of the atlas to install
+    force: bool, used with `update`. If True it forces the update
     """
 
     if command == "list":  # list atlases

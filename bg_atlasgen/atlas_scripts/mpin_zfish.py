@@ -1,4 +1,4 @@
-__version__ = "4"
+__version__ = "0"
 
 from pathlib import Path
 import warnings
@@ -16,7 +16,7 @@ from bg_atlasapi.utils import retrieve_over_http
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
 
 
-def download_line_stack(tg_line_name):
+def download_line_stack(bg_root_dir, tg_line_name):
     """Utility function to download a line from its name.
     """
     reference_url = f"{BASE_URL}/media/brain_browser/Lines/{tg_line_name}/AverageData/Tiff_File/Average_{tg_line_name}.zip"
@@ -106,13 +106,13 @@ def create_atlas(working_dir, resolution):
 
     # Download reference:
     #####################
-    reference_stack = download_line_stack("HuCGCaMP5G")
+    reference_stack = download_line_stack(working_dir, "HuCGCaMP5G")
 
     # Download accessory references:
     ################################
     additional_references = dict()
     for line in ["H2BGCaMP", "GAD1b"]:
-        additional_references[line] = download_line_stack(line)
+        additional_references[line] = download_line_stack(working_dir, line)
 
     # Download annotation and hemispheres from GIN repo:
     gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations.tar.gz"

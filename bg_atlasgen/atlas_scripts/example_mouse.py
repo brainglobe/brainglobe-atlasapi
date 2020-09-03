@@ -1,4 +1,4 @@
-__version__ = "4"
+__version__ = "0"
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
@@ -84,7 +84,7 @@ def create_atlas(working_dir, resolution):
         ]
 
     # Wrap up, compress, and remove file:
-    print(f"Finalising atlas")
+    print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

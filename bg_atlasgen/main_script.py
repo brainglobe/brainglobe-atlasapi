@@ -1,4 +1,5 @@
 from git import Repo
+from git.exc import GitCommandError
 from pathlib import Path
 import configparser
 import bg_atlasgen
@@ -8,7 +9,9 @@ from bg_atlasapi.utils import atlas_name_from_repr, atlas_repr_from_name
 
 # Main dictionary specifying which atlases to generate
 # and with which resolutions:
-GENERATION_DICT = dict(example_mouse=[100])
+GENERATION_DICT = dict(mpin_zfish=[1],
+                       allen_mouse=[100],
+                       example_mouse=[100],)
 
 
 cwd = Path.home() / "bg_auto"
@@ -17,10 +20,13 @@ cwd.mkdir(exist_ok=True)
 
 if __name__ == "__main__":
     repo_path = cwd / "atlas_repo"
-    repo_path.mkdir(exist_ok=True)
+    if repo_path.exists():
+        # Clear folder:
+        shutil.rmtree(repo_path)
+    repo_path.mkdir()
 
     print("Cloning atlases repo...")
-    repo = Repo.clone_from("https://gin.g-node.org/vigji/bg_test", repo_path)
+    repo = Repo.clone_from("https://gin.g-node.org/brainglobe/atlases", repo_path)
     # us = input("GIN-GNode user: ")
     # pw = input("GIN-GNode password: ")
 
@@ -48,11 +54,12 @@ if __name__ == "__main__":
     commit_log = "Updated: "
     for name, resolutions in GENERATION_DICT.items():
         status = atlases_repr[name]
-        module = import_module(f"atlas_gen.atlas_scripts.{name}")
+        module = import_module(f"bg_atlasgen.atlas_scripts.{name}")
         script_version = module.__version__
 
-        if bg_atlasgen_version >= status["major_vers"] and \
-                script_version > status["minor_vers"]:
+        if bg_atlasgen_version > status["major_vers"] or \
+                (bg_atlasgen_version > status["major_vers"] and
+                  script_version > status["minor_vers"]):
 
             # Loop over all resolutions:
             for resolution in resolutions:
@@ -79,9 +86,12 @@ if __name__ == "__main__":
                 commit_log += f"{output_filename}.name, "
 
     # Commit and push:
-    repo.git.add(".")
-    repo.git.commit('-m', commit_log)
-    repo.git.push()
+    try:
+        repo.git.add(".")
+        repo.git.commit('-m', commit_log)
+        repo.git.push()
+    except GitCommandError:
+        pass
 
     # Clear folder:
     shutil.rmtree(repo_path)

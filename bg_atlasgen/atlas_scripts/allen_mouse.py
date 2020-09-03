@@ -1,4 +1,4 @@
-__version__ = "3"
+__version__ = "0"
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi

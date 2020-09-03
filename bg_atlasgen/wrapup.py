@@ -17,6 +17,8 @@ from bg_atlasgen.stacks import (
     save_hemispheres,
     save_secondary_reference,
 )
+
+import bg_atlasgen
 from bg_atlasgen.structures import check_struct_consistency
 
 from bg_atlasapi import descriptors
@@ -25,7 +27,7 @@ from bg_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas
 # structure:
-ATLAS_VERSION = descriptors.ATLAS_MAJOR_V
+ATLAS_VERSION = bg_atlasgen.__version__
 
 
 def wrapup_atlas_from_data(
@@ -100,7 +102,7 @@ def wrapup_atlas_from_data(
     # are un um:
     original_shape = reference_stack.shape
     volume_shape = tuple(res * s for res, s in zip(resolution, original_shape))
-    space_convention = bgs.SpaceConvention(orientation, shape=volume_shape)
+    space_convention = bgs.AnatomicalSpace(orientation, shape=volume_shape)
 
     # Check consistency of structures .json file:
     check_struct_consistency(structures_list)

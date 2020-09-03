@@ -1,3 +1,4 @@
+__version__ = "0"
 import json
 from rich.progress import track
 import pandas as pd
@@ -15,26 +16,16 @@ from bg_atlasgen.mesh_utils import create_region_mesh, Region
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
 
+PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
-if __name__ == "__main__":
-    PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
-    # ---------------------------------------------------------------------------- #
-    #                                 PREP METADATA                                #
-    # ---------------------------------------------------------------------------- #
-    RES_UM = 25
-    VERSION = 1
+def create_atlas(working_dir, resolution=10):
     ATLAS_NAME = "kim_unified"
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://kimlab.io/brain-map/atlas/"
     CITATION = "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w"
-    ORIENTATION = "als"
+    ORIENTATION = "asr"
     ROOT_ID = 997
-
-    # ---------------------------------------------------------------------------- #
-    #                                PREP FILEPATHS                                #
-    # ---------------------------------------------------------------------------- #
-
     paxinos_allen_directory = Path(
         r"C:\Users\Federico\Downloads\kim_atlas_materials.tar\kim_atlas_materials"
     )
@@ -44,7 +35,6 @@ if __name__ == "__main__":
     # assume isotropic
     ANNOTATIONS_RES_UM = 10
 
-    version = "0.1"
 
     # Generated atlas path:
     bg_root_dir = Path.home() / ".brainglobe"
@@ -66,30 +56,20 @@ if __name__ == "__main__":
 
     # Load (and possibly downsample) annotated volume:
     #########################################
-    scaling_factor = ANNOTATIONS_RES_UM / RES_UM
-    print(
-        f"Loading: {annotations_image.name} and downscaling by: {scaling_factor}"
-    )
-    annotated_volume = load_any(
-        annotations_image,
-        x_scaling_factor=scaling_factor,
-        y_scaling_factor=scaling_factor,
-        z_scaling_factor=scaling_factor,
-        anti_aliasing=False,
-    )
+    ### Load annotation from Kim
 
-    # Download template volume:
+    # Download annotated and template volume:
     #########################################
     spacecache = ReferenceSpaceCache(
-        manifest=downloading_path / "manifest.json",
+        manifest=working_dir / "manifest.json",
         # downloaded files are stored relative to here
-        resolution=RES_UM,
+        resolution=resolution,
         reference_space_key="annotation/ccf_2017"
         # use the latest version of the CCF
     )
 
     # Download
-    print("Downloading template file")
+    annotated_volume, _ = spacecache.get_annotation_volume()
     template_volume, _ = spacecache.get_template_volume()
     print("Download completed...")
 
@@ -98,7 +78,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------- #
 
     # Parse region names & hierarchy
-    # ######################################
+    # ##############################
     df = pd.read_csv(structures_file)
     df = df.drop(columns=["Unnamed: 0", "parent_id", "parent_acronym"])
 
@@ -121,9 +101,7 @@ if __name__ == "__main__":
     with open(uncompr_atlas_path / "structures.json", "w") as f:
         json.dump(structures, f)
 
-    # ---------------------------------------------------------------------------- #
-    #                                CREATE MESHESH                                #
-    # ---------------------------------------------------------------------------- #
+    # Create meshes:
     print(f"Saving atlas data at {uncompr_atlas_path}")
     meshes_dir_path = uncompr_atlas_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
@@ -156,13 +134,11 @@ if __name__ == "__main__":
 
         node.data = Region(is_label)
 
-    # tree.show(data_property='has_label')
 
     # Mesh creation
     closing_n_iters = 2
     start = time.time()
     if PARALLEL:
-        print("Starting mesh creation in parallel")
 
         pool = mp.Pool(mp.cpu_count() - 2)
 
@@ -185,8 +161,6 @@ if __name__ == "__main__":
         except mp.pool.MaybeEncodingError:
             pass  # error with returning results from pool.map but we don't care
     else:
-        print("Starting mesh creation")
-
         for node in track(
             tree.nodes.values(),
             total=tree.size(),
@@ -238,13 +212,13 @@ if __name__ == "__main__":
 
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
-    wrapup_atlas_from_data(
+    output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
-        atlas_minor_version=VERSION,
+        atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(RES_UM,) * 3,
+        resolution=(resolution,) * 3,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=template_volume,
@@ -257,3 +231,5 @@ if __name__ == "__main__":
         compress=True,
         scale_meshes=True,
     )
+
+    return output_filename

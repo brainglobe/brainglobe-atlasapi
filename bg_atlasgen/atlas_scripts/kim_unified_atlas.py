@@ -11,8 +11,8 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 # import sys
 
 # sys.path.append("./")
-from atlas_gen.mesh_utils import create_region_mesh, Region
-from atlas_gen.wrapup import wrapup_atlas_from_data
+from bg_atlasgen.mesh_utils import create_region_mesh, Region
+from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
 
 

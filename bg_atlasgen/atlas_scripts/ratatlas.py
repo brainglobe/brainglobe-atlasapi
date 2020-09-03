@@ -1,8 +1,8 @@
-from atlas_gen.volume_utils import (
+from bg_atlasgen.volume_utils import (
     extract_volume_surface,
     load_labelled_volume,
 )
-from atlas_gen.metadata_utils import create_metadata_files
+from bg_atlasgen.metadata_utils import create_metadata_files
 from brainio.brainio import load_any
 
 

@@ -9,7 +9,7 @@ import tifffile
 from tifffile import imread
 
 from allensdk.core.structure_tree import StructureTree
-from atlas_gen.wrapup import wrapup_atlas_from_data
+from bg_atlasgen.wrapup import wrapup_atlas_from_data
 
 from bg_atlasapi.utils import retrieve_over_http
 

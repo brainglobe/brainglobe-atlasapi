@@ -1,4 +1,4 @@
-__version__ = "4"
+__version__ = "3"
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
@@ -8,14 +8,13 @@ from requests import exceptions
 from pathlib import Path
 from tqdm import tqdm
 
-from atlas_gen.wrapup import wrapup_atlas_from_data
+from bg_atlasgen.wrapup import wrapup_atlas_from_data
+from bg_atlasapi import descriptors
 
 
-def create_atlas(bg_root_dir, resolution):
-
+def create_atlas(version, res_um, bg_root_dir):
     # Specify information about the atlas:
-    RES_UM = resolution  # 100
-    ATLAS_NAME = "example_mouse"
+    ATLAS_NAME = "allen_mouse"
     SPECIES = "Mus musculus"
     ATLAS_LINK = "http://www.brain-map.org.com"
     CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
@@ -30,7 +29,7 @@ def create_atlas(bg_root_dir, resolution):
     spacecache = ReferenceSpaceCache(
         manifest=download_dir_path / "manifest.json",
         # downloaded files are stored relative to here
-        resolution=RES_UM,
+        resolution=res_um,
         reference_space_key="annotation/ccf_2017"
         # use the latest version of the CCF
     )
@@ -56,10 +55,10 @@ def create_atlas(bg_root_dir, resolution):
         if s["description"] == select_set
     ]
 
-    structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)[:3]
+    structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
 
     # Directory for mesh saving:
-    meshes_dir = bg_root_dir / "mesh_temp_download"
+    meshes_dir = bg_root_dir / descriptors.MESHES_DIRNAME
 
     space = ReferenceSpaceApi()
     meshes_dict = dict()
@@ -83,15 +82,15 @@ def create_atlas(bg_root_dir, resolution):
             for k in ["graph_id", "structure_set_ids", "graph_order"]
         ]
 
-    # Wrap up, compress, and remove file:
+    # Wrap up, compress, and remove file:0
     print(f"Finalising atlas")
-    output_filename = wrapup_atlas_from_data(
+    wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
-        atlas_minor_version=__version__,
+        atlas_minor_version=version,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(RES_UM,) * 3,
+        resolution=(res_um,) * 3,
         orientation=ORIENTATION,
         root_id=997,
         reference_stack=template_volume,
@@ -104,12 +103,11 @@ def create_atlas(bg_root_dir, resolution):
         compress=True,
     )
 
-    return output_filename
-
 
 if __name__ == "__main__":
+    RES_UM = 25
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "example"
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_mouse"
     bg_root_dir.mkdir(exist_ok=True)
 
-    create_atlas(bg_root_dir)
+    create_atlas(__version__, RES_UM, bg_root_dir)

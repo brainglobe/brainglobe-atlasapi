@@ -7,17 +7,17 @@ import tifffile
 import bg_space as bgs
 import meshio as mio
 
-from atlas_gen.metadata_utils import (
+from bg_atlasgen.metadata_utils import (
     create_metadata_files,
     generate_metadata_dict,
 )
-from atlas_gen.stacks import (
+from bg_atlasgen.stacks import (
     save_reference,
     save_annotation,
     save_hemispheres,
     save_secondary_reference,
 )
-from atlas_gen.structures import check_struct_consistency
+from bg_atlasgen.structures import check_struct_consistency
 
 from bg_atlasapi import descriptors
 from bg_atlasapi.utils import atlas_name_from_repr

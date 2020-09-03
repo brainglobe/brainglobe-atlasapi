@@ -19,7 +19,7 @@ except ModuleNotFoundError:
 import numpy as np
 from pathlib import Path
 import scipy
-from atlas_gen.volume_utils import create_masked_array
+from bg_atlasgen.volume_utils import create_masked_array
 
 # ---------------------------------------------------------------------------- #
 #                                 MESH CREATION                                #

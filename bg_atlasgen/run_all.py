@@ -1,4 +1,4 @@
-import atlas_gen.atlas_scripts as atlas_scripts
+import bg_atlasgen.atlas_scripts as atlas_scripts
 import pkgutil
 from importlib import import_module
 from pathlib import Path

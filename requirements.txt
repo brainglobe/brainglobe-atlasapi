@@ -7,4 +7,4 @@ meshio
 click
 rich
 tqdm>=4.46.1
-bg-space
+bg-space>=0.5.0

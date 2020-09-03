@@ -73,7 +73,7 @@ class Atlas:
     @property
     def resolution(self):
         """Make resolution more accessible from class."""
-        return self.metadata["resolution"]
+        return tuple(self.metadata["resolution"])
 
     @property
     def orientation(self):
@@ -83,7 +83,12 @@ class Atlas:
     @property
     def shape(self):
         """Make shape more accessible from class."""
-        return self.metadata["shape"]
+        return tuple(self.metadata["shape"])
+
+    @property
+    def shape_um(self):
+        """Make shape more accessible from class."""
+        return tuple([s*r for s, r in zip(self.shape, self.resolution)])
 
     @property
     def hierarchy(self):

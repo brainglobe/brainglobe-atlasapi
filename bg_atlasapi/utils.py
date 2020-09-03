@@ -8,8 +8,38 @@ from tqdm.auto import tqdm
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
-# ------------------------------- Web requests ------------------------------- #
+def atlas_repr_from_name(name):
+    """Generate dictionary with atlas description given the name.
+    """
+    parts = name.split("_")
 
+    # if atlas name with no version:
+    version_str = parts.pop() if not parts[-1].endswith("um") else None
+    resolution_str = parts.pop()
+
+    atlas_name = "_".join(parts)
+
+    # For unspecified version:
+    if version_str:
+        major_vers, minor_vers = version_str[2:].split(".")
+    else:
+        major_vers, minor_vers = None, None
+
+    return dict(name=atlas_name,
+                major_vers=major_vers,
+                minor_vers=minor_vers,
+                resolution=resolution_str[:-2])
+
+
+def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
+    """Generate atlas name given a description.
+    """
+    if major_vers is None and minor_vers is None:
+        return f"{name}_{resolution}um"
+    else:
+        return f"{name}_{resolution}um_v{major_vers}.{minor_vers}"
+
+# ------------------------------- Web requests ------------------------------- #
 
 def check_internet_connection(
     url="http://www.google.com/", timeout=5, raise_error=True

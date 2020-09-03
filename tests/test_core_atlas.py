@@ -29,8 +29,9 @@ def test_initialization(atlas):
     }
 
     assert atlas.orientation == "asl"
-    assert atlas.shape == [132, 80, 114]
-    assert atlas.resolution == [100.0, 100.0, 100.0]
+    assert atlas.shape == (132, 80, 114)
+    assert atlas.resolution == (100.0, 100.0, 100.0)
+    assert atlas.shape_um == (13200.0, 8000.0, 11400.0)
 
 
 def test_additional_ref_dict(temp_path):

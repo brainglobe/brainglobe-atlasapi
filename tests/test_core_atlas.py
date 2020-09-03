@@ -17,8 +17,8 @@ def test_initialization(atlas):
         "species": "Mus musculus",
         "symmetric": True,
         "resolution": [100.0, 100.0, 100.0],
-        "orientation": "asl",
-        "version": "0.3",
+        "orientation": "asr",
+        "version": atlas.metadata["version"],  # no target value for version
         "shape": [132, 80, 114],
         "trasform_to_bg": [
             [1.0, 0.0, 0.0, 0.0],
@@ -26,9 +26,10 @@ def test_initialization(atlas):
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ],
+        "additional_references": [],
     }
 
-    assert atlas.orientation == "asl"
+    assert atlas.orientation == "asr"
     assert atlas.shape == (132, 80, 114)
     assert atlas.resolution == (100.0, 100.0, 100.0)
     assert atlas.shape_um == (13200.0, 8000.0, 11400.0)

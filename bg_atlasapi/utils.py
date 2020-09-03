@@ -42,6 +42,15 @@ def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
 
 # ------------------------------- Web requests ------------------------------- #
 
+def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
+    """Generate atlas name given a description.
+    """
+    if major_vers is None and minor_vers is None:
+        return f"{name}_{resolution}um"
+    else:
+        return f"{name}_{resolution}um_v{major_vers}.{minor_vers}"
+
+# ------------------------------- Web requests ------------------------------- #
 
 def check_internet_connection(
     url="http://www.google.com/", timeout=5, raise_error=True

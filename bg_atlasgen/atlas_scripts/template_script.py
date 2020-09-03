@@ -1,3 +1,7 @@
+"""Template script for the generation of an atlas. Note that the script
+has to be renamed to match the name of the atlas (e.g. allen_mouse.py)
+"""
+
 __version__ = "0"  # will be used to set minor version of the atlas
 
 from bg_atlasgen.wrapup import wrapup_atlas_from_data

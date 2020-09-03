@@ -11,7 +11,7 @@ with open("README.md") as f:
 
 setup(
     name="bg-atlasapi",
-    version="0.1.1",
+    version="0.2.0",
     description="A lightweight python module to interact with "
     "atlases for systems neuroscience",
     long_description=long_description,

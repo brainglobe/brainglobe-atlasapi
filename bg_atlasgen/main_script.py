@@ -25,7 +25,7 @@ def delete_folder(path):
 # Main dictionary specifying which atlases to generate
 # and with which resolutions:
 GENERATION_DICT = dict(mpin_zfish=[1],
-                       allen_mouse=[10, 25, 100],
+                       allen_mouse=[10, 25, 50, 100],
                        example_mouse=[100],)
 
 

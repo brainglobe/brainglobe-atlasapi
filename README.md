@@ -114,3 +114,10 @@ pprint(VISp)
 ### Note on coordinates in `bg-atlasapi` 
 Working with both image coordinates and cartesian coordinates in the same space can be confusing! In `bg-atlasapi`, the origin is always assumed to be in the upper left corner of the image (sectioning along the first dimension), the "ij" convention. This means that when plotting meshes and points using cartesian systems, you might encounter confusing behaviors coming from the fact that in cartesian plots one axis is inverted with respect to  ij coordinates (vertical axis increases going up, image row indexes increase going down). To make things as consistent as possible, in `bg-atlasapi` the 0 of the meshes coordinates is assumed to coincide with the 0 index of the images stack, and meshes coordinates increase following the direction stack indexes increase.
 To deal with transformations between your data space and `bg-atlasapi`, you might find helpful the [bg-space](https://github.com/brainglobe/bg-space) package.
+
+# Contributing to bg-atlasapi
+**Contributors to bg-atlaspi are absolutely encouraged**, whether you want to fix bugs, add/request new features or simply ask questions.
+
+If you would like to contribute to `bg-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/BrancoLab/BrainRender) etc.\) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/bg-atlasapi). 
+
+Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/bg-atlasapi/issues) \(and the issues of the other repositories\)

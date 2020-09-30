@@ -1,6 +1,7 @@
 from pathlib import Path
 import tarfile
 import requests
+import pyinspect  # for better tracebacks
 
 from rich import print as rprint
 

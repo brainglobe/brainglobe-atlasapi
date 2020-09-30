@@ -116,7 +116,7 @@ class BrainGlobeAtlas(core.Atlas):
             )
         except KeyError:
             return None
-            #raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
+            # raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
 
     @property
     def local_full_name(self):

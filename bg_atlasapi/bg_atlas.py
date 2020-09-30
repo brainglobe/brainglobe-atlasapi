@@ -79,7 +79,6 @@ class BrainGlobeAtlas(core.Atlas):
                 f"[magenta2]Bgatlas_api: {self.atlas_name} not found locally. Downloading...[magenta2]"
             )
             self.download_extract_file()
-        
 
         # Instantiate after eventual download:
         super().__init__(self.brainglobe_dir / self.local_full_name)

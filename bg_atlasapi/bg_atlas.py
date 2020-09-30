@@ -72,6 +72,9 @@ class BrainGlobeAtlas(core.Atlas):
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
+            if self.remote_version is None:
+                raise ValueError(f"{atlas_name} is not a valid atlas name!")
+
             rprint(
                 f"[magenta2]Bgatlas_api: {self.atlas_name} not found locally. Downloading...[magenta2]"
             )
@@ -115,7 +118,7 @@ class BrainGlobeAtlas(core.Atlas):
                 versions_conf["atlases"][self.atlas_name]
             )
         except KeyError:
-            raise ValueError(f"{self.atlas_name} is not a valid atlas name!")
+            return None
 
     @property
     def local_full_name(self):
@@ -141,10 +144,10 @@ class BrainGlobeAtlas(core.Atlas):
     def remote_url(self):
         """Format complete url for download."""
 
-        maj, min = self.remote_version
-        name = f"{self.atlas_name}_v{maj}.{min}.tar.gz"
+        if self.remote_version is not None:
+            name = f"{self.atlas_name}_v{self.remote_version[0]}.{self.remote_version[1]}.tar.gz"
 
-        return self._remote_url_base.format(name)
+            return self._remote_url_base.format(name)
 
     def download_extract_file(self):
         """Download and extract atlas from remote url."""

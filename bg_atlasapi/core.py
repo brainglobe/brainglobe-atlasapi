@@ -248,9 +248,18 @@ class Atlas:
         return tuple([int(c) for c in coords])
 
     def get_structure_ancestors(self, structure):
-        """
-        Returns a list of acronyms for all
-        ancestors of a given structure
+        """Returns a list of acronyms for all ancestors of a given structure
+
+        Parameters
+        ----------
+        structure : str or int
+            Structure id or acronym
+
+        Returns
+        -------
+        list
+            List of descendants acronyms
+
         """
         ancestors_id = self._get_from_structure(
             structure, "structure_id_path"
@@ -259,9 +268,18 @@ class Atlas:
         return self._get_from_structure(ancestors_id, "acronym")
 
     def get_structure_descendants(self, structure):
-        """
-        Returns a list of acronyms for all
-        descendants of a given structure
+        """Returns a list of acronyms for all descendants of a given structure.
+
+        Parameters
+        ----------
+        structure : str or int
+            Structure id or acronym
+
+        Returns
+        -------
+        list
+            List of descendants acronyms
+
         """
         structure = self._get_from_structure(structure, "acronym")
 
@@ -272,6 +290,33 @@ class Atlas:
                 descendants.append(self._get_from_structure(struc, "acronym"))
 
         return descendants
+
+    def get_structure_mask(self, structure):
+        """Returns a stack with the mask for a specific structure (including all
+        sub-structures). This function is not particularly optimized, and might
+        take some hundreds of ms per run for some structures.
+
+        Parameters
+        ----------
+        structure : str or int
+            Structure id or acronym
+
+        Returns
+        -------
+        np.array
+            stack containing the mask array.
+
+        """
+        structure_id = self.structures[structure]["id"]
+        descendants = self.get_structure_descendants(structure)
+
+        mask_stack = np.zeros(self.shape, self.annotation.dtype)
+
+        for descendant in descendants:
+            descendant_id = self.structures[descendant]["id"]
+            mask_stack[self.annotation == descendant_id] = structure_id
+
+        return mask_stack
 
 
 class AdditionalRefDict(UserDict):

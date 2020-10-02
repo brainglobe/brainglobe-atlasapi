@@ -22,7 +22,7 @@ authors:
     affiliation: "2, 3, 4"
 
 affiliations:
- - name: Sainsbury Wellcome Centre, University College London. London, U.K.
+ - name: Sainsbury Wellcome Centre, University College London, London, U.K.
    index: 1
  - name: Institute of Neuroscience, Technical University of Munich, Munich, Germany
    index: 2

@@ -56,6 +56,6 @@ Currently six atlases across three species (larval zebrafish, mouse and human) a
 We hope that other developers will use the API, and develop tools that can be used across neuroscience and other research fields, increasing their reach, and preventing duplication of effort.
 
 # Acknowledgments
-We would like to thank Nouwar Mokayes for the assistance in packaging the Max Planck Zebrafish Brain Atlas within `BG-atlasAPI`. This work was funded by The Gatsby Charitable Foundation, The Wellcome Trust (214333/Z/18/Z) (T.W.M.), by an Investigator Award from The Wellcome Trust (096436/B/11/Z)(T.W.M.) and by the Deutsche Forschungsgemeinschaft (DFG,German Research Foundation) under Germany’s Excellence Strategy within the framework of the Munich Cluster for Systems Neurology (EXC 2145 SyNergy – ID 390857198).
+We would like to thank Nouwar Mokayes for the assistance in packaging the Max Planck Zebrafish Brain Atlas within `BG-atlasAPI`. This work was supported by grants from the Gatsby Charitable Foundation (GAT3361, T.W.M. and T.B.), Wellcome Trust (090843/F/09/Z, T.W.M. and T.B.; 214333/Z/18/Z, T.W.M.; 214352/Z/18/Z, T.B.) and by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany's Excellence Strategy within the framework of the Munich Cluster for Systems Neurology (EXC 2145 SyNergy – ID 390857198).
 
 # References

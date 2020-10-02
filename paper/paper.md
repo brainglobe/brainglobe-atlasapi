@@ -19,15 +19,17 @@ authors:
   - name: Troy W. Margrie
     affiliation: 1
   - name: Ruben Portugues
-    affiliation: "2, 3"
+    affiliation: "2, 3, 4"
 
 affiliations:
  - name: Sainsbury Wellcome Centre, University College London. London, U.K.
    index: 1
- - name: Institute of Neuroscience, Technical University of Munich. Munich, Germany
+ - name: Institute of Neuroscience, Technical University of Munich, Munich, Germany
    index: 2
- - name:  Max Planck Institute of Neurobiology. Munich, Germany
+ - name:  Max Planck Institute of Neurobiology, Research Group of Sensorimotor Control, Martinsried, Germany
    index: 3
+ - name: Munich Cluster for Systems Neurology (SyNergy), Munich, Germany
+   index: 4
 date: 19 August 2020
 bibliography: paper.bib
 

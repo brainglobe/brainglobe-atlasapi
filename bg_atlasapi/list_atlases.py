@@ -147,7 +147,9 @@ def show_atlases(show_local_path=False):
         if show_local_path:
             row.append(info["local"])
 
-        table.add_row(*row,)
+        table.add_row(
+            *row,
+        )
 
         if info["updated"] is not None:
             if not info["updated"]:

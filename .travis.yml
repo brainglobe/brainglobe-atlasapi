@@ -1,4 +1,5 @@
 stages:
+  - lint
   - test
   - name: deploy_test
     if:
@@ -10,12 +11,22 @@ stages:
 
 jobs:
   include:
-    - stage: test
-      name: "Ubuntu Xenial python 3.6"
+    - stage: lint
+      name: "Lint"
       language: python
       os: linux
       env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      dist: xenial
+      dist: bionic
+      python: 3.8
+      before_install: source travis/install_unix.sh
+      script: bash travis/lint.sh
+
+    - stage: test
+      name: "Ubuntu python 3.6"
+      language: python
+      os: linux
+      env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      dist: bionic
       python: 3.6
       before_install: source travis/install_unix.sh
       script: bash travis/test.sh
@@ -24,62 +35,26 @@ jobs:
         - coveralls
 
     - stage: test
-      name: "Ubuntu Xenial python 3.7"
+      name: "Ubuntu python 3.7"
       language: python
       os: linux
       env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      dist: xenial
+      dist: bionic
       python: 3.7
       before_install: source travis/install_unix.sh
       script: bash travis/test.sh
 
     - stage: test
-      name: "Ubuntu Xenial python 3.8"
+      name: "Ubuntu python 3.8"
       language: python
       os: linux
       env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      dist: xenial
+      dist: bionic
       python: 3.8
       before_install: source travis/install_unix.sh
       script: bash travis/test.sh
 
     - stage: test
-      name: "Windows Python 3.7"
-      language: shell
-      env: TRAVIS_PYTHON_VERSION=3.7
-      os: windows
-      before_install: source travis/install_windows.sh
-      script: bash travis/test.sh
-
-    - stage: test
-      name: "macOS Python 3.7"
-      os: osx
-      language: shell
-      env:
-      - TRAVIS_PYTHON_VERSION=3.7
-      - MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-      before_install: source travis/install_unix.sh
-      script: bash travis/test.sh
-
-    - stage: test
-      name: "Lint"
-      language: python
-      os: linux
-      env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      dist: xenial
-      python: 3.7
-      before_install: source travis/install_unix.sh
-      script: bash travis/lint.sh
-
-    - stage: deploy_test
-      name: "Windows Python 3.6"
-      language: shell
-      env: TRAVIS_PYTHON_VERSION=3.6
-      os: windows
-      before_install: source travis/install_windows.sh
-      script: bash travis/test.sh
-
-    - stage: deploy_test
       name: "Windows Python 3.8"
       language: shell
       env: TRAVIS_PYTHON_VERSION=3.8
@@ -87,8 +62,26 @@ jobs:
       before_install: source travis/install_windows.sh
       script: bash travis/test.sh
 
+    - stage: test
+      name: "macOS Python 3.8"
+      os: osx
+      language: shell
+      env:
+      - TRAVIS_PYTHON_VERSION=3.8
+      - MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+      before_install: source travis/install_unix.sh
+      script: bash travis/test.sh
+
     - stage: deploy_test
-      name: "macOS Python 3.6"
+      name: "Windows Python 3.7"
+      language: shell
+      env: TRAVIS_PYTHON_VERSION=3.7
+      os: windows
+      before_install: source travis/install_windows.sh
+      script: bash travis/test.sh
+
+    - stage: deploy_test
+      name: "macOS Python 3.7"
       os: osx
       language: shell
       env:
@@ -98,12 +91,12 @@ jobs:
       script: bash travis/test.sh
 
     - stage: deploy_test
-      name: "macOS Python 3.8"
-      os: osx
-      language: shell
-      env:
-      - TRAVIS_PYTHON_VERSION=3.8
-      - MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+      name: "Ubuntu Xenial python 3.8"
+      language: python
+      os: linux
+      env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      dist: xenial
+      python: 3.8
       before_install: source travis/install_unix.sh
       script: bash travis/test.sh
 

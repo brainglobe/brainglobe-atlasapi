@@ -108,7 +108,7 @@ jobs:
       script: bash travis/test.sh
 
     - stage: deploy
-      os: bionic
+      dist: bionic
       name: "Deploy Linux"
       language: python
       before_install: source travis/install_unix.sh

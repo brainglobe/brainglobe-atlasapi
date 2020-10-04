@@ -95,7 +95,7 @@ jobs:
       language: python
       os: linux
       env: MINICONDA_URL=http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-      dist: bionic
+      dist: xenial
       python: 3.8
       before_install: source travis/install_unix.sh
       script: bash travis/test.sh

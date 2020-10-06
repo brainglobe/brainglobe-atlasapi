@@ -4,6 +4,11 @@ repos:
     hooks:
     - id: black
       pass_filenames: true
+-  repo: https://github.com/hadialqattan/pycln
+    rev: v0.0.1-alpha.2 # Possible releases: https://github.com/hadialqattan/pycln/tags
+    hooks:
+      - id: pycln
+        args: [--config=pyproject.toml]
 -   repo: https://gitlab.com/pycqa/flake8
     rev: 3.7.9
     hooks:

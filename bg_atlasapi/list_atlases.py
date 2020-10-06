@@ -140,7 +140,7 @@ def show_atlases(show_local_path=False):
             if info["version"] == info["latest_version"]:
                 updated = "[green]:heavy_check_mark:[/green]"
             else:
-                updated = "[red dim]---"
+                updated = "[red dim]x"
 
         else:
             downloaded = ""

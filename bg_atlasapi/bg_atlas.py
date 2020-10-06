@@ -1,7 +1,6 @@
 from pathlib import Path
 import tarfile
 import requests
-
 from rich import print as rprint
 
 from bg_atlasapi import utils, config, core, descriptors

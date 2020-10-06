@@ -3,7 +3,14 @@ import tifffile
 import requests
 import logging
 import configparser
-from tqdm.auto import tqdm
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    TextColumn,
+    TransferSpeedColumn,
+    TimeRemainingColumn,
+    Progress,
+)
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -79,19 +86,35 @@ def retrieve_over_http(url, output_file_path):
         Full file destination for download.
 
     """
+    # Make Rich progress bar
+    progress = Progress(
+        TextColumn("[bold]Downloading...", justify="right"),
+        BarColumn(bar_width=None),
+        "{task.percentage:>3.1f}%",
+        "•",
+        DownloadColumn(),
+        "• speed:",
+        TransferSpeedColumn(),
+        "• ETA:",
+        TimeRemainingColumn(),
+    )
+
     CHUNK_SIZE = 4096
     response = requests.get(url, stream=True)
 
     try:
-        with tqdm.wrapattr(
-            open(output_file_path, "wb"),
-            "write",
-            miniters=1,
-            total=int(response.headers.get("content-length", 0)),
-            desc=output_file_path.name,
-        ) as fout:
-            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                fout.write(chunk)
+        with progress:
+            task_id = progress.add_task(
+                "download",
+                filename=output_file_path.name,
+                start=True,
+                total=int(response.headers.get("content-length", 0)),
+            )
+
+            with open(output_file_path, "wb") as fout:
+                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                    fout.write(chunk)
+                    progress.update(task_id, advance=len(chunk), refresh=True)
 
     except requests.exceptions.ConnectionError:
         output_file_path.unlink()

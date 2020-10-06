@@ -1,4 +1,5 @@
 from rich import print as rprint
+
 import shutil
 
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas, _version_str_from_tuple
@@ -24,20 +25,20 @@ def update_atlas(atlas_name, force=False):
     if not force:
         if atlas.check_latest_version():
             rprint(
-                f"[b][magenta2]bg_atlasapi: {atlas.atlas_name} is already updated "
+                f"[b][magenta]bg_atlasapi: {atlas.atlas_name} is already updated "
                 + f"(version: {_version_str_from_tuple(atlas.local_version)})[/b]"
             )
             return
 
     # Delete atlas folder
     rprint(
-        f"[b][magenta2]bg_atlasapi: updating {atlas.atlas_name}[/magenta2][/b]"
+        f"[b][magenta]bg_atlasapi: updating {atlas.atlas_name}[/magenta][/b]"
     )
     fld = atlas.brainglobe_dir / atlas.local_full_name
     shutil.rmtree(fld)
     if fld.exists():
         raise ValueError(
-            "Something went wrong while tryint to delete the old version of the atlas, aborting."
+            "Something went wrong while trying to delete the old version of the atlas, aborting."
         )
 
     # Download again

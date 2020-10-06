@@ -8,6 +8,7 @@
     https://travis-ci.com/brainglobe/bg-atlasapi)
 [![Coverage Status](https://coveralls.io/repos/github/brainglobe/brainatlas-api/badge.svg?branch=master)](https://coveralls.io/github/brainglobe/brainatlas-api?branch=master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.02668/status.svg)](https://doi.org/10.21105/joss.02668)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ![banner](https://github.com/brainglobe/bg-atlasapi/blob/master/docs/img/banner.jpeg)
@@ -18,7 +19,7 @@ The brainglobe atlas API (BG-AtlasAPI) provides a common interface for programme
 ## Atlases available
 
 A number of atlases are in development, but those available currently are:
-* The [Allen Mouse Brain Atlas](www.brain-map.org) at 10, 25 and 50 micron resolutions
+* The [Allen Mouse Brain Atlas](www.brain-map.org) at 10, 25, 50 and 100 micron resolutions
 * The [Allen Human Brain Atlas](www.brain-map.org) at 100 micron resolution
 * The [Max Planck Zebrafish Brain Atlas](http://fishatlas.neuro.mpg.de) at 1 micron resolution
 * The [Enhanced and Unified Mouse Brain Atlas](https://kimlab.io/brain-map/atlas/) at 25 micron resolution

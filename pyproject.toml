@@ -19,3 +19,25 @@ exclude = '''
   )/
 )
 '''
+
+
+[tool.pycln]
+include = '\bg_atlasapi'
+exclude = '''
+(
+  /(
+      \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | examples
+    | docs
+  )/
+)
+'''

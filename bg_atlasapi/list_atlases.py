@@ -160,4 +160,10 @@ def show_atlases(show_local_path=False):
             row.append(info["local"])
 
         table.add_row(*row)
-    rprint(Panel.fit(table, width=88, title="Brainglobe Atlases",))
+    rprint(
+        Panel.fit(
+            table,
+            width=88,
+            title="Brainglobe Atlases",
+        )
+    )

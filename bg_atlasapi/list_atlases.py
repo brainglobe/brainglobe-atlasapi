@@ -110,8 +110,8 @@ def show_atlases(show_local_path=False):
         if atlas not in atlases.keys():
             atlases[str(atlas)] = dict(
                 downloaded=False,
-                local="[red]---[/red]",
-                version="[red]---[/red]",
+                local="",
+                version="",
                 latest_version=str(available_atlases[atlas]),
                 updated=None,
             )

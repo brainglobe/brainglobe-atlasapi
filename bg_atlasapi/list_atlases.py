@@ -1,5 +1,6 @@
-from rich.table import Table, box, Style
+from rich.table import Table
 from rich import print as rprint
+from rich.panel import Panel
 
 from bg_atlasapi import config, utils, descriptors
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas
@@ -109,8 +110,8 @@ def show_atlases(show_local_path=False):
         if atlas not in atlases.keys():
             atlases[str(atlas)] = dict(
                 downloaded=False,
-                local="[red]---[/red]",
-                version="[red]---[/red]",
+                local="",
+                version="",
                 latest_version=str(available_atlases[atlas]),
                 updated=None,
             )
@@ -119,13 +120,14 @@ def show_atlases(show_local_path=False):
     table = Table(
         show_header=True,
         header_style="bold green",
-        title="\n\nBrainglobe Atlases",
+        show_lines=True,
         expand=False,
-        box=box.ROUNDED,
+        box=None,
     )
 
     table.add_column("Name", no_wrap=True, width=32)
     table.add_column("Downloaded", justify="center")
+    table.add_column("Updated", justify="center")
     table.add_column("Local version", justify="center")
     table.add_column("Latest version", justify="center")
     if show_local_path:
@@ -134,25 +136,34 @@ def show_atlases(show_local_path=False):
     for n, (atlas, info) in enumerate(atlases.items()):
         if info["downloaded"]:
             downloaded = "[green]:heavy_check_mark:[/green]"
+
+            if info["version"] == info["latest_version"]:
+                updated = "[green]:heavy_check_mark:[/green]"
+            else:
+                updated = "[red dim]x"
+
         else:
-            downloaded = "[red]---[/red]"
+            downloaded = ""
+            updated = ""
 
         row = [
-            "[b]" + atlas + "[/b]",
+            "[bold]" + atlas,
             downloaded,
-            info["version"],
-            info["latest_version"],
+            updated,
+            "[#c4c4c4]" + info["version"]
+            if "-" not in info["version"]
+            else "",
+            "[#c4c4c4]" + info["latest_version"],
         ]
 
         if show_local_path:
             row.append(info["local"])
 
         table.add_row(*row)
-
-        if info["updated"] is not None:
-            if not info["updated"]:
-                table.row_styles.append(
-                    Style(color="black", bgcolor="magenta2")
-                )
-
-    rprint(table)
+    rprint(
+        Panel.fit(
+            table,
+            width=88,
+            title="Brainglobe Atlases",
+        )
+    )

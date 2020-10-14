@@ -84,8 +84,6 @@ class BrainGlobeAtlas(core.Atlas):
 
         if check_latest:
             self.check_latest_version()
-        if print_authors:
-            print(self)
 
     @property
     def local_version(self):

@@ -1,4 +1,4 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import setup
 
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
@@ -20,7 +20,7 @@ setup(
     extras_require=dict(dev=requirements_dev),
     python_requires=">=3.6",
     entry_points={"console_scripts": ["brainglobe = bg_atlasapi.cli:bg_cli"]},
-    packages=find_namespace_packages(exclude=("docs", "tests*")),
+    packages=["bg_atlasapi"],
     include_package_data=True,
     url="https://github.com/brainglobe/bg-atlasapi",
     author="Luigi Petrucco, Federico Claudi, Adam Tyson",

@@ -54,7 +54,6 @@ class BrainGlobeAtlas(core.Atlas):
         brainglobe_dir=None,
         interm_download_dir=None,
         check_latest=True,
-        print_authors=True,
     ):
         self.atlas_name = atlas_name
 
@@ -90,8 +89,6 @@ class BrainGlobeAtlas(core.Atlas):
 
         if check_latest:
             self.check_latest_version()
-        if print_authors:
-            print(self)
 
     @property
     def local_version(self):

@@ -8,6 +8,15 @@ from bg_atlasapi.utils import atlas_name_from_repr, atlas_repr_from_name
 
 import errno, os, stat, shutil
 
+# Main dictionary specifying which atlases to generate
+# and with which resolutions:
+GENERATION_DICT = dict(mpin_zfish=[1],
+                       allen_mouse=[10, 25, 50, 100],
+                       example_mouse=[100],)
+
+
+CWD = Path.home() / "bg_auto"
+
 
 def handleRemoveReadonly(func, path, exc):
     excvalue = exc[1]
@@ -22,19 +31,11 @@ def delete_folder(path):
     shutil.rmtree(path, ignore_errors=False, onerror=handleRemoveReadonly)
 
 
-# Main dictionary specifying which atlases to generate
-# and with which resolutions:
-GENERATION_DICT = dict(mpin_zfish=[1],
-                       allen_mouse=[10, 25, 50, 100],
-                       example_mouse=[100],)
-
-
-cwd = Path(r"D:\bg_auto")#Path.home() / "bg_auto"
-cwd.mkdir(exist_ok=True)
+CWD.mkdir(exist_ok=True)
 
 
 if __name__ == "__main__":
-    repo_path = cwd / "atlas_repo"
+    repo_path = CWD / "atlas_repo"
     if repo_path.exists():
         repo = Repo(repo_path)
         repo.git.pull()
@@ -82,7 +83,7 @@ if __name__ == "__main__":
                 print(f"Generating {name}, {resolution} um...")
 
                 # Make working directory for atlas generation:
-                temp_dir = cwd / f"tempdir_{name}_{resolution}"
+                temp_dir = CWD / f"tempdir_{name}_{resolution}"
                 temp_dir.mkdir(exist_ok=True)
 
                 # Create and compress atlas:

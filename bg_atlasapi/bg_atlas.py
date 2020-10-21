@@ -2,7 +2,7 @@ from pathlib import Path
 import tarfile
 import requests
 
-# from rich import print
+from rich import print as rprint
 from rich.table import Table
 from rich.panel import Panel
 from rich.pretty import Pretty
@@ -79,7 +79,7 @@ class BrainGlobeAtlas(core.Atlas):
             if self.remote_version is None:
                 raise ValueError(f"{atlas_name} is not a valid atlas name!")
 
-            print(
+            rprint(
                 f"[magenta2]Bgatlas_api: {self.atlas_name} not found locally. Downloading...[magenta2]"
             )
             self.download_extract_file()
@@ -178,7 +178,7 @@ class BrainGlobeAtlas(core.Atlas):
         online = _version_str_from_tuple(self.remote_version)
 
         if local != online:
-            print(
+            rprint(
                 f"[b][magenta2]Bg_atlasapi[/b]: [b]{self.atlas_name}[/b] version [b]{local}[/b] is not the latest available ([b]{online}[/b]). "
                 + "To update the atlas run in the terminal:[/magenta2]\n"
                 + f"    [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
@@ -223,7 +223,7 @@ class BrainGlobeAtlas(core.Atlas):
             box=None,
             show_lines=False,
             title=self.atlas_name.replace("_", " ").capitalize(),
-            title_style=f"bold {orange} u",
+            title_style=f"bold {orange}",
         )
 
         # Add entries to table

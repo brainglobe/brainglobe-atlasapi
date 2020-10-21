@@ -6,13 +6,16 @@ import bg_atlasgen
 from importlib import import_module
 from bg_atlasapi.utils import atlas_name_from_repr, atlas_repr_from_name
 
-import errno, os, stat, shutil
+import errno
+import os
+import stat
+import shutil
 
 # Main dictionary specifying which atlases to generate
 # and with which resolutions:
-GENERATION_DICT = dict(mpin_zfish=[1],
-                       allen_mouse=[10, 25, 50, 100],
-                       example_mouse=[100],)
+GENERATION_DICT = dict(
+    mpin_zfish=[1], allen_mouse=[10, 25, 50, 100], example_mouse=[100],
+)
 
 
 CWD = Path.home() / "bg_auto"
@@ -21,7 +24,7 @@ CWD = Path.home() / "bg_auto"
 def handleRemoveReadonly(func, path, exc):
     excvalue = exc[1]
     if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
-        os.chmod(path, stat.S_IRWXU| stat.S_IRWXG| stat.S_IRWXO) # 0777
+        os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
         func(path)
     else:
         raise
@@ -43,7 +46,9 @@ if __name__ == "__main__":
         repo_path.mkdir(exist_ok=True)
 
         print("Cloning atlases repo...")
-        repo = Repo.clone_from("https://gin.g-node.org/brainglobe/atlases", repo_path)
+        repo = Repo.clone_from(
+            "https://gin.g-node.org/brainglobe/atlases", repo_path
+        )
     # us = input("GIN-GNode user: ")
     # pw = input("GIN-GNode password: ")
 
@@ -74,9 +79,10 @@ if __name__ == "__main__":
         module = import_module(f"bg_atlasgen.atlas_scripts.{name}")
         script_version = module.__version__
 
-        if bg_atlasgen_version > status["major_vers"] or \
-                (bg_atlasgen_version == status["major_vers"] and
-                  script_version > status["minor_vers"]):
+        if bg_atlasgen_version > status["major_vers"] or (
+            bg_atlasgen_version == status["major_vers"]
+            and script_version > status["minor_vers"]
+        ):
 
             # Loop over all resolutions:
             for resolution in resolutions:
@@ -95,7 +101,9 @@ if __name__ == "__main__":
 
                 # Update config file with new version:
                 k = atlas_name_from_repr(name, resolution)
-                conf["atlases"][k] = str(f"{bg_atlasgen_version}.{script_version}")
+                conf["atlases"][k] = str(
+                    f"{bg_atlasgen_version}.{script_version}"
+                )
                 with open(repo_path / "last_versions.conf", "w") as f:
                     conf.write(f)
 
@@ -105,7 +113,7 @@ if __name__ == "__main__":
     # Commit and push:
     try:
         repo.git.add(".")
-        repo.git.commit('-m', commit_log)
+        repo.git.commit("-m", commit_log)
     except GitCommandError:
         pass
 

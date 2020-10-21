@@ -112,4 +112,4 @@ if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "example"
     bg_root_dir.mkdir(exist_ok=True)
 
-    create_atlas(working_dir, 100)
+    # create_atlas(working_dir, 100)

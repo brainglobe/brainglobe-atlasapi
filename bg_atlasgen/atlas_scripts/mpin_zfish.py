@@ -17,8 +17,7 @@ BASE_URL = r"https://fishatlas.neuro.mpg.de"
 
 
 def download_line_stack(bg_root_dir, tg_line_name):
-    """Utility function to download a line from its name.
-    """
+    """Utility function to download a line from its name."""
     reference_url = f"{BASE_URL}/media/brain_browser/Lines/{tg_line_name}/AverageData/Tiff_File/Average_{tg_line_name}.zip"
     out_file_path = bg_root_dir / f"{tg_line_name}.zip"
     retrieve_over_http(reference_url, out_file_path)
@@ -29,7 +28,7 @@ def download_line_stack(bg_root_dir, tg_line_name):
 
 
 def add_path_inplace(parent):
-    """ Recursively traverse hierarchy of regions and append for each region
+    """Recursively traverse hierarchy of regions and append for each region
     the full path of substructures in brainglobe standard list.
 
     Parameters
@@ -51,7 +50,7 @@ def add_path_inplace(parent):
 def collect_all_inplace(
     node, traversing_list, download_path, mesh_dict,
 ):
-    """ Recursively traverse a region hierarchy, download meshes, and append
+    """Recursively traverse a region hierarchy, download meshes, and append
     regions to a list inplace.
 
     Parameters

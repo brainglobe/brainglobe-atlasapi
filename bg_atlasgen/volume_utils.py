@@ -18,19 +18,19 @@ import numpy as np
 
 def create_masked_array(volume, label, greater_than=False):
     """
-        Given a 2d o 3d numpy array and a 
-        label value, creates a masked binary
-        array which is 1 when volume == label
-        and 0 otherwise
+    Given a 2d o 3d numpy array and a
+    label value, creates a masked binary
+    array which is 1 when volume == label
+    and 0 otherwise
 
-        Parameters
-        ----------
-        volume: np.ndarray 
-            (2d or 3d array)
-        label: int, float or list of int. 
-            the masked array will be 1 where volume == label
-        greater_than: bool
-            if True, all voxels with value > label will be set to 1
+    Parameters
+    ----------
+    volume: np.ndarray
+        (2d or 3d array)
+    label: int, float or list of int.
+        the masked array will be 1 where volume == label
+    greater_than: bool
+        if True, all voxels with value > label will be set to 1
     """
     if not isinstance(volume, np.ndarray):
         raise ValueError(
@@ -64,14 +64,14 @@ def create_masked_array(volume, label, greater_than=False):
 
 def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):
     """
-        Load volume image from .nrrd file. 
-        It assume that voxels with value = 0 are empty while voxels with values > 0
-        are labelles (e.g. to indicate the location of a brain region in a reference atlas)
+    Load volume image from .nrrd file.
+    It assume that voxels with value = 0 are empty while voxels with values > 0
+    are labelles (e.g. to indicate the location of a brain region in a reference atlas)
 
-        :param data: str, path to file with volume data or 3d numpy array
-        :param vmin: float, values below this numner will be assigned an alpha=0 and not be visualized
-        :param **kwargs: kwargs to pass to the Volume class from vtkplotter
-        :param alpha: float in range [0, 1], transparency [for the part of volume with value > vmin]
+    :param data: str, path to file with volume data or 3d numpy array
+    :param vmin: float, values below this numner will be assigned an alpha=0 and not be visualized
+    :param **kwargs: kwargs to pass to the Volume class from vtkplotter
+    :param alpha: float in range [0, 1], transparency [for the part of volume with value > vmin]
     """
     # Load/check volumetric data
     if isinstance(data, str):  # load from file

@@ -120,15 +120,15 @@ def create_structures_csv(uncompr_atlas_path, root):
 
 def create_metadata_files(dest_dir, metadata_dict, structures, root_id):
     """
-        Automatic creation of 
-            . structures.csv
-            . README.txt
-        from an atlas files. All Files are saved in the uncompressed atlas folder
-        awaiting compression and upload to GIN.
+    Automatic creation of
+        . structures.csv
+        . README.txt
+    from an atlas files. All Files are saved in the uncompressed atlas folder
+    awaiting compression and upload to GIN.
 
-        :param uncompr_atlas_path: path to uncompressed atlas folder
-        :param metadata_dict: dict with atlas metadata
-        :param structures: list of dictionaries with structures hierarchical info
+    :param uncompr_atlas_path: path to uncompressed atlas folder
+    :param metadata_dict: dict with atlas metadata
+    :param structures: list of dictionaries with structures hierarchical info
     """
     # write metadata dict:
     with open(dest_dir / descriptors.METADATA_FILENAME, "w") as f:

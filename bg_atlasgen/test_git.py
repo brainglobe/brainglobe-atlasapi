@@ -18,4 +18,3 @@ if __name__ == "__main__":
     # repo.git.commit('-m', 'test commit', author='luigi.petrucco@gmail.com')
     repo.git.pull()
     repo.git.push()
-

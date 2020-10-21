@@ -37,33 +37,33 @@ def extract_mesh_from_mask(
     tol=0.0005,
     use_marching_cubes=False,
 ):
-    """ 
-        Returns a vtkplotter mesh actor with just the outer surface of a 
-        binary mask volume. It's faster though less accurate than 
-        extract_mesh_from_mask
+    """
+    Returns a vtkplotter mesh actor with just the outer surface of a
+    binary mask volume. It's faster though less accurate than
+    extract_mesh_from_mask
 
-        
-        Parameters
-        ----------
-        obj_filepath: str or Path object
-            path to where the .obj mesh file will be saved
-        volume: 3d np.ndarray
-        threshold: float
-            min value to threshold the volume for isosurface extraction
-        smooth: bool
-            if True the surface mesh is smoothed
-        use_marching_cubes: bool:
-            if true PyMCubes is used to extract the volume's surface
-            it's slower and less accurate than vtkplotter though.
-        mcubes_smooth: bool,
-            if True mcubes.smooth is used before applying marching cubes
-        closing_n_iters: int
-            number of iterations of closing morphological operation.
-            set to None to avoid applying morphological operations
-        decimate: bool
-            If True the number of vertices is reduced through decimation
-        tol: float
-            parameter for decimation, larger values correspond to more aggressive decimation
+
+    Parameters
+    ----------
+    obj_filepath: str or Path object
+        path to where the .obj mesh file will be saved
+    volume: 3d np.ndarray
+    threshold: float
+        min value to threshold the volume for isosurface extraction
+    smooth: bool
+        if True the surface mesh is smoothed
+    use_marching_cubes: bool:
+        if true PyMCubes is used to extract the volume's surface
+        it's slower and less accurate than vtkplotter though.
+    mcubes_smooth: bool,
+        if True mcubes.smooth is used before applying marching cubes
+    closing_n_iters: int
+        number of iterations of closing morphological operation.
+        set to None to avoid applying morphological operations
+    decimate: bool
+        If True the number of vertices is reduced through decimation
+    tol: float
+        parameter for decimation, larger values correspond to more aggressive decimation
 
     """
     # check savepath argument
@@ -124,23 +124,23 @@ def extract_mesh_from_mask(
 
 def create_region_mesh(args):
     """
-        Automates the creation of a region's mesh. Given a volume of annotations
-        and a structures tree, it takes the volume's region corresponding to the 
-        region of interest and all of it's children's labels and creates a mesh. 
-        It takes a tuple of arguments to facilitaed parallel processing with
-        multiprocessing.pool.map
+    Automates the creation of a region's mesh. Given a volume of annotations
+    and a structures tree, it takes the volume's region corresponding to the
+    region of interest and all of it's children's labels and creates a mesh.
+    It takes a tuple of arguments to facilitaed parallel processing with
+    multiprocessing.pool.map
 
-        Note, by default it avoids overwriting a structure's mesh if the
-        .obj file exists already.
+    Note, by default it avoids overwriting a structure's mesh if the
+    .obj file exists already.
 
-        Parameters
-        ----------
-        meshes_dir_path: pathlib Path object with folder where meshes are saved
-        tree: treelib.Tree with hierarchical structures information
-        node: tree's node corresponding to the region who's mesh is being created
-        labels: list of unique label annotations in annotated volume (list(np.unique(annotated_volume)))
-        annotaed_volume: 3d numpy array with annotaed volume
-        ROOT_ID: int, id of root structure (mesh creation is a bit more refined for that)
+    Parameters
+    ----------
+    meshes_dir_path: pathlib Path object with folder where meshes are saved
+    tree: treelib.Tree with hierarchical structures information
+    node: tree's node corresponding to the region who's mesh is being created
+    labels: list of unique label annotations in annotated volume (list(np.unique(annotated_volume)))
+    annotaed_volume: 3d numpy array with annotaed volume
+    ROOT_ID: int, id of root structure (mesh creation is a bit more refined for that)
     """
     # Split arguments
     (
@@ -192,8 +192,8 @@ def create_region_mesh(args):
 
 class Region(object):
     """
-        Class used to add metadata to treelib.Tree during atlas creation. Using this
-        means that you can then filter tree nodes depending on wether or not they have a mesh/label
+    Class used to add metadata to treelib.Tree during atlas creation. Using this
+    means that you can then filter tree nodes depending on wether or not they have a mesh/label
     """
 
     def __init__(self, has_label):
@@ -205,16 +205,16 @@ class Region(object):
 # ---------------------------------------------------------------------------- #
 def compare_mesh_and_volume(mesh, volume):
     """
-        Creates and interactive vtkplotter
-        visualisation to look at a reference volume
-        and a mesh at the same time. Can be used to 
-        assess the quality of the mesh extraction. 
+    Creates and interactive vtkplotter
+    visualisation to look at a reference volume
+    and a mesh at the same time. Can be used to
+    assess the quality of the mesh extraction.
 
-        Parameters:
-        -----------
+    Parameters:
+    -----------
 
-        mesh: vtkplotter Mesh
-        volume: np.array or vtkplotter Volume
+    mesh: vtkplotter Mesh
+    volume: np.array or vtkplotter Volume
     """
     if isinstance(volume, np.ndarray):
         volume = Volume(volume)
@@ -226,13 +226,13 @@ def compare_mesh_and_volume(mesh, volume):
 
 def inspect_meshses_folder(folder):
     """
-        Used to create an interactive vtkplotter visualisation
-        to scroll through all .obj files saved in a folder
+    Used to create an interactive vtkplotter visualisation
+    to scroll through all .obj files saved in a folder
 
-        Parameters
-        ----------
-        folder: str or Path object
-            path to folder with .obj files
+    Parameters
+    ----------
+    folder: str or Path object
+        path to folder with .obj files
     """
 
     if isinstance(folder, str):

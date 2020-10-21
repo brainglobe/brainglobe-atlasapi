@@ -31,11 +31,11 @@ def create_atlas(working_dir, resolution):
     ORIENTATION = ""
 
     # do stuff to create the atlas
-    template_volume = # volume with reference
-    annotated_volume = # volume with structures annotations
-    structures_list = # list of valid structure dictionaries
-    meshes_dict = # dictionary of files with region meshes
-    root_id = # id of the root structure
+    template_volume = None  # volume with reference
+    annotated_volume = None  # volume with structures annotations
+    structures_list = None  # list of valid structure dictionaries
+    meshes_dict = None  # dictionary of files with region meshes
+    root_id = None  # id of the root structure
 
     # Put here additional reference stacks
     # (different genotypes, filtered volumes, etc)

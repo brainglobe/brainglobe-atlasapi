@@ -30,11 +30,11 @@ def check_struct_consistency(structures):
 
 def get_structure_children(structures, region, use_tree=False):
     """
-        Given a list of dictionaries with structures data, 
-        and a structure from the list, this function returns
-        the structures in the list that are children of 
-        the given structure (region).
-        If use_tree is true it creates a StructureTree and uses that. 
+    Given a list of dictionaries with structures data,
+    and a structure from the list, this function returns
+    the structures in the list that are children of
+    the given structure (region).
+    If use_tree is true it creates a StructureTree and uses that.
     """
     if not isinstance(structures, list):
         raise ValueError("structures should be a list")
@@ -70,11 +70,11 @@ def get_structure_children(structures, region, use_tree=False):
 
 def get_structure_terminal_nodes(structures, region):
     """
-        Given a list of dictionaries with structures data, 
-        and a structure from the list, this function returns
-        the structures in the list that are children of 
-        the given structure (region) that are leafs of the 
-        struture tree
+    Given a list of dictionaries with structures data,
+    and a structure from the list, this function returns
+    the structures in the list that are children of
+    the given structure (region) that are leafs of the
+    struture tree
     """
 
     tree = get_structures_tree(structures)
@@ -98,8 +98,8 @@ class Region(object):
 
 def show_which_structures_have_mesh(structures, meshes_dir):
     """
-        It prints out a tree visualisation with 
-        True for the regions that a mesh and false for the others
+    It prints out a tree visualisation with
+    True for the regions that a mesh and false for the others
 
     """
     tree = get_structures_tree(structures)

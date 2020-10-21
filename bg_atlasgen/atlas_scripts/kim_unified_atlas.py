@@ -6,7 +6,6 @@ import numpy as np
 import time
 import multiprocessing as mp
 from pathlib import Path
-from brainio.brainio import load_any
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 
 # import sys
@@ -29,12 +28,11 @@ def create_atlas(working_dir, resolution=10):
     paxinos_allen_directory = Path(
         r"C:\Users\Federico\Downloads\kim_atlas_materials.tar\kim_atlas_materials"
     )
-    annotations_image = paxinos_allen_directory / "annotations_coronal.tif"
+    # annotations_image = paxinos_allen_directory / "annotations_coronal.tif"
     structures_file = paxinos_allen_directory / "structures.csv"
 
     # assume isotropic
-    ANNOTATIONS_RES_UM = 10
-
+    # ANNOTATIONS_RES_UM = 10
 
     # Generated atlas path:
     bg_root_dir = Path.home() / ".brainglobe"
@@ -56,7 +54,7 @@ def create_atlas(working_dir, resolution=10):
 
     # Load (and possibly downsample) annotated volume:
     #########################################
-    ### Load annotation from Kim
+    # Load annotation from Kim
 
     # Download annotated and template volume:
     #########################################
@@ -115,7 +113,7 @@ def create_atlas(working_dir, resolution=10):
     ]  # stuff we don't need meshes for
     for drop in drop_from_tree:
         print("Dropping from structures tree: ", drop)
-        dropped = tree.remove_subtree(
+        tree.remove_subtree(
             [nid for nid, n in tree.nodes.items() if n.tag == drop][0]
         )
 
@@ -133,7 +131,6 @@ def create_atlas(working_dir, resolution=10):
             is_label = False
 
         node.data = Region(is_label)
-
 
     # Mesh creation
     closing_n_iters = 2

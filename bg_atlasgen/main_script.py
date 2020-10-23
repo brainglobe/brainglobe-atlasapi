@@ -16,6 +16,7 @@ import shutil
 GENERATION_DICT = dict(
     mpin_zfish=[1],
     allen_mouse=[10, 25, 50, 100],
+    kim_mouse=[10, 25, 50, 100],
     example_mouse=[100],
 )
 

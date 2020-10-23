@@ -113,10 +113,7 @@ def create_atlas(working_dir, resolution):
 
     tree = get_structures_tree(structures)
 
-    rot_vol = np.rot90(annotated_volume, axes=(0, 1))
-    labels = np.unique(rot_vol).astype(np.int32)
-
-    # labels = np.unique(annotated_volume).astype(np.int32)
+    labels = np.unique(annotated_volume).astype(np.int32)
 
     for key, node in tree.nodes.items():
         if key in labels:
@@ -227,7 +224,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 25  # some resolution, in microns
+    resolution = 100  # some resolution, in microns
 
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"

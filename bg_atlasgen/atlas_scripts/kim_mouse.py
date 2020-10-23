@@ -1,65 +1,70 @@
 __version__ = "0"
 import json
+import imio
 from rich.progress import track
 import pandas as pd
+
 import numpy as np
 import time
+import tarfile
 import multiprocessing as mp
+
 from pathlib import Path
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
+from bg_atlasapi import utils
 
-# import sys
 
-# sys.path.append("./")
 from bg_atlasgen.mesh_utils import create_region_mesh, Region
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = True  # disable parallel mesh extraction for easier debugging
+PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
 
-def create_atlas(working_dir, resolution=10):
-    ATLAS_NAME = "kim_unified"
+def create_atlas(working_dir, resolution):
+    ATLAS_NAME = "kim_mouse"
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://kimlab.io/brain-map/atlas/"
     CITATION = "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w"
     ORIENTATION = "asr"
     ROOT_ID = 997
-    paxinos_allen_directory = Path(
-        r"C:\Users\Federico\Downloads\kim_atlas_materials.tar\kim_atlas_materials"
-    )
-    # annotations_image = paxinos_allen_directory / "annotations_coronal.tif"
-    structures_file = paxinos_allen_directory / "structures.csv"
+    ANNOTATIONS_RES_UM = 10
+    ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/kim_atlas_materials/raw/master/kim_atlas_materials.tar.gz"
 
-    # assume isotropic
-    # ANNOTATIONS_RES_UM = 10
+    # Temporary folder for  download:
+    download_dir_path = working_dir / "downloading_path"
+    download_dir_path.mkdir(exist_ok=True)
+    atlas_files_dir = download_dir_path / "atlas_files"
 
-    # Generated atlas path:
-    bg_root_dir = Path.home() / ".brainglobe"
-    bg_root_dir.mkdir(exist_ok=True)
+    ## Download atlas_file
+    utils.check_internet_connection()
 
-    # Temporary folder for nrrd files download:
-    temp_path = Path(r"C:\Users\Federico\.brainglobe\kimdev")
-    temp_path.mkdir(exist_ok=True)
-    downloading_path = temp_path / "downloading_path"
-    downloading_path.mkdir(exist_ok=True)
+    destination_path = download_dir_path / "atlas_download"
+    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
 
-    # Temporary folder for files before compressing:
-    uncompr_atlas_path = temp_path / ATLAS_NAME
-    uncompr_atlas_path.mkdir(exist_ok=True)
+    tar = tarfile.open(destination_path)
+    tar.extractall(path=atlas_files_dir)
+    tar.close()
+
+    destination_path.unlink()
+
+    structures_file = atlas_files_dir / "kim_atlas" / "structures.csv"
+    annotations_file = atlas_files_dir / "kim_atlas" / "annotation.tiff"
 
     # ---------------------------------------------------------------------------- #
     #                                 GET TEMPLATE                                 #
     # ---------------------------------------------------------------------------- #
 
     # Load (and possibly downsample) annotated volume:
-    #########################################
-    # Load annotation from Kim
+    scaling = ANNOTATIONS_RES_UM / resolution
+    annotated_volume = imio.load_img_stack(
+        annotations_file, scaling, scaling, scaling, anti_aliasing=False
+    )
 
     # Download annotated and template volume:
     #########################################
     spacecache = ReferenceSpaceCache(
-        manifest=working_dir / "manifest.json",
+        manifest=download_dir_path / "manifest.json",
         # downloaded files are stored relative to here
         resolution=resolution,
         reference_space_key="annotation/ccf_2017"
@@ -67,7 +72,6 @@ def create_atlas(working_dir, resolution=10):
     )
 
     # Download
-    annotated_volume, _ = spacecache.get_annotation_volume()
     template_volume, _ = spacecache.get_template_volume()
     print("Download completed...")
 
@@ -96,32 +100,16 @@ def create_atlas(working_dir, resolution=10):
             structure["structure_id_path"].append(structure["id"])
 
     # save regions list json:
-    with open(uncompr_atlas_path / "structures.json", "w") as f:
+    with open(download_dir_path / "structures.json", "w") as f:
         json.dump(structures, f)
 
     # Create meshes:
-    print(f"Saving atlas data at {uncompr_atlas_path}")
-    meshes_dir_path = uncompr_atlas_path / "meshes"
+    print(f"Saving atlas data at {download_dir_path}")
+    meshes_dir_path = download_dir_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
-    # Create and prune structures tree
     tree = get_structures_tree(structures)
-    drop_from_tree = [
-        "fiber_tracts",
-        "VentSys",
-        "bas",
-    ]  # stuff we don't need meshes for
-    for drop in drop_from_tree:
-        print("Dropping from structures tree: ", drop)
-        tree.remove_subtree(
-            [nid for nid, n in tree.nodes.items() if n.tag == drop][0]
-        )
 
-    print(
-        f"Number of brain regions: {tree.size()}, max tree depth: {tree.depth()}"
-    )
-
-    # Create a tree marking which brain regions are shown in the annotation
     labels = np.unique(annotated_volume).astype(np.int32)
 
     for key, node in tree.nodes.items():
@@ -222,7 +210,7 @@ def create_atlas(working_dir, resolution=10):
         annotation_stack=annotated_volume,
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
@@ -230,3 +218,12 @@ def create_atlas(working_dir, resolution=10):
     )
 
     return output_filename
+
+
+if __name__ == "__main__":
+    resolution = 100  # some resolution, in microns
+
+    # Generated atlas path:
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"
+    bg_root_dir.mkdir(exist_ok=True, parents=True)
+    create_atlas(bg_root_dir, resolution)

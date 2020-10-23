@@ -1,18 +1,19 @@
 __version__ = "0"
-import json
-import imio
-from rich.progress import track
-import pandas as pd
 
-import numpy as np
+import json
 import time
 import tarfile
+import tifffile
+
+import pandas as pd
+import numpy as np
 import multiprocessing as mp
 
+from rich.progress import track
 from pathlib import Path
+from scipy.ndimage import zoom
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from bg_atlasapi import utils
-
 
 from bg_atlasgen.mesh_utils import create_region_mesh, Region
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
@@ -32,7 +33,7 @@ def create_atlas(working_dir, resolution):
     ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/kim_atlas_materials/raw/master/kim_atlas_materials.tar.gz"
 
     # Temporary folder for  download:
-    download_dir_path = working_dir / "downloading_path"
+    download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
     atlas_files_dir = download_dir_path / "atlas_files"
 
@@ -57,8 +58,10 @@ def create_atlas(working_dir, resolution):
 
     # Load (and possibly downsample) annotated volume:
     scaling = ANNOTATIONS_RES_UM / resolution
-    annotated_volume = imio.load_img_stack(
-        annotations_file, scaling, scaling, scaling, anti_aliasing=False
+
+    annotated_volume = tifffile.imread(annotations_file)
+    annotated_volume = zoom(
+        annotated_volume, (scaling, scaling, scaling), order=0, prefilter=False
     )
 
     # Download annotated and template volume:
@@ -110,7 +113,10 @@ def create_atlas(working_dir, resolution):
 
     tree = get_structures_tree(structures)
 
-    labels = np.unique(annotated_volume).astype(np.int32)
+    rot_vol = np.rot90(annotated_volume, axes=(0, 1))
+    labels = np.unique(rot_vol).astype(np.int32)
+
+    # labels = np.unique(annotated_volume).astype(np.int32)
 
     for key, node in tree.nodes.items():
         if key in labels:
@@ -221,7 +227,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 100  # some resolution, in microns
+    resolution = 25  # some resolution, in microns
 
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"

@@ -18,7 +18,7 @@ import tifffile
 
 from tqdm import tqdm
 
-from vtkplotter import write, Volume
+from vedo import write, Volume
 
 
 import sys

@@ -1,10 +1,10 @@
 try:
-    from vtkplotter import Mesh, write, load, show, Volume
-    from vtkplotter.applications import Browser, Slicer
+    from vedo import Mesh, write, load, show, Volume
+    from vedo.applications import Browser, Slicer
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
-        "Mesh generation with these utils requires vtkplotter\n"
-        + '   please install with "pip install vtkplotter -U"'
+        "Mesh generation with these utils requires vedo\n"
+        + '   please install with "pip install vedo -U"'
     )
 
 try:
@@ -38,7 +38,7 @@ def extract_mesh_from_mask(
     use_marching_cubes=False,
 ):
     """
-    Returns a vtkplotter mesh actor with just the outer surface of a
+    Returns a vedo mesh actor with just the outer surface of a
     binary mask volume. It's faster though less accurate than
     extract_mesh_from_mask
 
@@ -54,7 +54,7 @@ def extract_mesh_from_mask(
         if True the surface mesh is smoothed
     use_marching_cubes: bool:
         if true PyMCubes is used to extract the volume's surface
-        it's slower and less accurate than vtkplotter though.
+        it's slower and less accurate than vedo though.
     mcubes_smooth: bool,
         if True mcubes.smooth is used before applying marching cubes
     closing_n_iters: int
@@ -139,7 +139,7 @@ def create_region_mesh(args):
     tree: treelib.Tree with hierarchical structures information
     node: tree's node corresponding to the region who's mesh is being created
     labels: list of unique label annotations in annotated volume (list(np.unique(annotated_volume)))
-    annotaed_volume: 3d numpy array with annotaed volume
+    annotated_volume: 3d numpy array with annotaed volume
     ROOT_ID: int, id of root structure (mesh creation is a bit more refined for that)
     """
     # Split arguments
@@ -153,7 +153,7 @@ def create_region_mesh(args):
         closing_n_iters,
     ) = args
 
-    # Avoid ovewriting existing mesh
+    # Avoid overwriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
     if savepath.exists():
         return
@@ -205,7 +205,7 @@ class Region(object):
 # ---------------------------------------------------------------------------- #
 def compare_mesh_and_volume(mesh, volume):
     """
-    Creates and interactive vtkplotter
+    Creates and interactive vedo
     visualisation to look at a reference volume
     and a mesh at the same time. Can be used to
     assess the quality of the mesh extraction.
@@ -213,8 +213,8 @@ def compare_mesh_and_volume(mesh, volume):
     Parameters:
     -----------
 
-    mesh: vtkplotter Mesh
-    volume: np.array or vtkplotter Volume
+    mesh: vedo Mesh
+    volume: np.array or vtkvedoplotter Volume
     """
     if isinstance(volume, np.ndarray):
         volume = Volume(volume)
@@ -224,9 +224,9 @@ def compare_mesh_and_volume(mesh, volume):
     vp.show()
 
 
-def inspect_meshses_folder(folder):
+def inspect_meshes_folder(folder):
     """
-    Used to create an interactive vtkplotter visualisation
+    Used to create an interactive vedo visualisation
     to scroll through all .obj files saved in a folder
 
     Parameters
@@ -249,4 +249,4 @@ if __name__ == "__main__":
     folder = (
         r"C:\Users\Federico\.brainglobe\temp\allen_human_500um_v0.1\meshes"
     )
-    inspect_meshses_folder(folder)
+    inspect_meshes_folder(folder)

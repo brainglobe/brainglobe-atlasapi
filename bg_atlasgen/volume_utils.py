@@ -3,14 +3,14 @@
     extracting surfaces from volumetric data ....
 """
 try:
-    from vtkplotter import Volume
+    from vedo import Volume
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
-        "Mesh generation with these utils requires vtkplotter\n"
-        + '   please install with "pip install vtkplotter -U"'
+        "Mesh generation with these utils requires vedo\n"
+        + '   please install with "pip install vedo -U"'
     )
 
-from brainio import brainio
+import imio
 
 import os
 import numpy as np
@@ -57,7 +57,7 @@ def create_masked_array(volume, label, greater_than=False):
     return arr
 
 
-# ----------------------------- vtkplotter utils ----------------------------- #
+# ----------------------------- vedo utils ----------------------------- #
 # This stuff is outdated, use the functions in mesh_utils.py
 # to extract meshes from volumes
 
@@ -70,7 +70,7 @@ def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):
 
     :param data: str, path to file with volume data or 3d numpy array
     :param vmin: float, values below this numner will be assigned an alpha=0 and not be visualized
-    :param **kwargs: kwargs to pass to the Volume class from vtkplotter
+    :param **kwargs: kwargs to pass to the Volume class from vedo
     :param alpha: float in range [0, 1], transparency [for the part of volume with value > vmin]
     """
     # Load/check volumetric data
@@ -79,7 +79,7 @@ def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):
             raise FileNotFoundError(f"Volume data file {data} not found")
 
         try:
-            data = brainio.load_any(data)
+            data = imio.load_any(data)
         except Exception as e:
             raise ValueError(
                 f"Could not load volume data from file: {data} - {e}"

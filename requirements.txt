@@ -5,5 +5,5 @@ pandas
 requests
 meshio
 click
-rich>=8.0.0
+rich>=9.0.0
 bg-space>=0.5.0

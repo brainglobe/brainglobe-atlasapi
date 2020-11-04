@@ -1,8 +1,8 @@
 from pathlib import Path
 import tarfile
 import requests
-
 from rich import print as rprint
+
 
 from bg_atlasapi import utils, config, core, descriptors
 
@@ -48,7 +48,6 @@ class BrainGlobeAtlas(core.Atlas):
         brainglobe_dir=None,
         interm_download_dir=None,
         check_latest=True,
-        print_authors=True,
     ):
         self.atlas_name = atlas_name
 
@@ -84,8 +83,6 @@ class BrainGlobeAtlas(core.Atlas):
 
         if check_latest:
             self.check_latest_version()
-        if print_authors:
-            print(self)
 
     @property
     def local_version(self):
@@ -182,13 +179,3 @@ class BrainGlobeAtlas(core.Atlas):
             )
             return False
         return True
-
-    def __repr__(self):
-        """Fancy print for the atlas providing authors information."""
-        meta = self.metadata
-        name_split = self.atlas_name.split("_")
-        pretty_name = "{} {} atlas (res. {})".format(*name_split)
-        pretty_string = (
-            f"{pretty_name}\nFrom: {meta['atlas_link']} ({meta['citation']} )"
-        )
-        return pretty_string

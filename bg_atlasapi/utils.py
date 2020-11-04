@@ -11,8 +11,60 @@ from rich.progress import (
     TimeRemainingColumn,
     Progress,
 )
+from rich.table import Table
+from rich.panel import Panel
+from rich.pretty import Pretty
+from rich.text import Text
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+
+def _rich_atlas_metadata(atlas_name, metadata):
+    orange = "#f59e42"
+    dimorange = "#b56510"
+    gray = "#A9A9A9"
+    mocassin = "#FFE4B5"
+    cit_name, cit_link = metadata["citation"].split(", ")
+
+    # Create a rich table
+    tb = Table(
+        box=None,
+        show_lines=False,
+        title=atlas_name.replace("_", " ").capitalize(),
+        title_style=f"bold {orange}",
+    )
+
+    # Add entries to table
+    tb.add_column(
+        style=f"bold {mocassin}",
+        justify="right",
+        min_width=8,
+        max_width=40,
+    )
+    tb.add_column(min_width=20, max_width=48)
+
+    tb.add_row(
+        "name:",
+        Text.from_markup(
+            metadata["name"] + f' [{gray}](v{metadata["version"]})'
+        ),
+    )
+    tb.add_row("species:", Text.from_markup(f'[i]{metadata["species"]}'))
+    tb.add_row("citation:", Text.from_markup(f"{cit_name} [{gray}]{cit_link}"))
+    tb.add_row("link:", Text.from_markup(metadata["atlas_link"]))
+
+    tb.add_row("")
+    tb.add_row(
+        "orientation:",
+        Text.from_markup(f"[bold]{metadata['orientation']}"),
+    )
+    tb.add_row("symmetric:", Pretty(metadata["symmetric"]))
+    tb.add_row("resolution:", Pretty(metadata["resolution"]))
+    tb.add_row("shape:", Pretty(metadata["shape"]))
+
+    # Fit into panel and yield
+    panel = Panel.fit(tb, border_style=dimorange)
+    return panel
 
 
 def atlas_repr_from_name(name):

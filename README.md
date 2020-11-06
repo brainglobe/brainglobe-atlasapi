@@ -19,8 +19,8 @@ The brainglobe atlas API (BG-AtlasAPI) provides a common interface for programme
 ## Atlases available
 
 A number of atlases are in development, but those available currently are:
-* The [Allen Mouse Brain Atlas](www.brain-map.org) at 10, 25, 50 and 100 micron resolutions
-* The [Allen Human Brain Atlas](www.brain-map.org) at 100 micron resolution
+* The [Allen Mouse Brain Atlas](https://www.brain-map.org) at 10, 25, 50 and 100 micron resolutions
+* The [Allen Human Brain Atlas](https://www.brain-map.org) at 100 micron resolution
 * The [Max Planck Zebrafish Brain Atlas](http://fishatlas.neuro.mpg.de) at 1 micron resolution
 * The [Enhanced and Unified Mouse Brain Atlas](https://kimlab.io/brain-map/atlas/) at 10, 25, 50 and 100 micron resolutions
 

@@ -23,6 +23,7 @@ A number of atlases are in development, but those available currently are:
 * The [Allen Human Brain Atlas](https://www.brain-map.org) at 100 micron resolution
 * The [Max Planck Zebrafish Brain Atlas](http://fishatlas.neuro.mpg.de) at 1 micron resolution
 * The [Enhanced and Unified Mouse Brain Atlas](https://kimlab.io/brain-map/atlas/) at 10, 25, 50 and 100 micron resolutions
+* The [Smoothed version of the Kim et al. mouse reference atlas](https://doi.org/10.1016/j.celrep.2014.12.014) at 10, 25, 50 and 100 micron resolutions
 
 ## Installation
 BG-AtlasAPI works with Python >3.6, and can be installed from PyPI with:

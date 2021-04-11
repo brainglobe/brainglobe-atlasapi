@@ -346,6 +346,7 @@ class Atlas:
         for descendant in descendants:
             descendant_id = self.structures[descendant]["id"]
             mask_stack[self.annotation == descendant_id] = structure_id
+        mask_stack[[self.annotation == structure_id]] = structure_id
 
         return mask_stack
 

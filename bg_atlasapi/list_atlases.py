@@ -52,6 +52,15 @@ def get_local_atlas_version(atlas_name):
     ][0]
 
 
+def get_all_atlases_lastversions():
+    """Read from URL all available last versions"""
+    available_atlases = utils.conf_from_url(
+        descriptors.remote_url_base.format("last_versions.conf")
+    )
+    available_atlases = dict(available_atlases["atlases"])
+    return available_atlases
+
+
 def get_atlases_lastversions():
     """
     Returns
@@ -60,11 +69,7 @@ def get_atlases_lastversions():
         A dictionary with metadata about already installed atlases.
     """
 
-    # Read from URL all available last versions:
-    available_atlases = utils.conf_from_url(
-        descriptors.remote_url_base.format("last_versions.conf")
-    )
-    available_atlases = dict(available_atlases["atlases"])
+    available_atlases = get_all_atlases_lastversions()
 
     # Get downloaded atlases looping over folders in brainglobe directory:
     atlases = {}
@@ -95,11 +100,7 @@ def show_atlases(show_local_path=False):
 
     """
 
-    # Get available_atlases:
-    available_atlases = utils.conf_from_url(
-        BrainGlobeAtlas._remote_url_base.format("last_versions.conf")
-    )
-    available_atlases = dict(available_atlases["atlases"])
+    available_atlases = get_all_atlases_lastversions()
 
     # Get local atlases:
     atlases = get_atlases_lastversions()

@@ -3,7 +3,6 @@ from rich import print as rprint
 from rich.panel import Panel
 
 from bg_atlasapi import config, utils, descriptors
-from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 """

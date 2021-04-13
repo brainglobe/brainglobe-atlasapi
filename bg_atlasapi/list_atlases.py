@@ -11,7 +11,7 @@ from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 """
 
 
-def get_downloaded_atlases(with_version=False):
+def get_downloaded_atlases():
     """Get a list of all the downloaded atlases and their version.
 
     Returns

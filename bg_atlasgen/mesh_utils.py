@@ -21,6 +21,36 @@ from pathlib import Path
 import scipy
 from bg_atlasgen.volume_utils import create_masked_array
 
+
+def region_mask_from_annotation(structure_id,
+                                annotation,
+                                structures_list,
+                                ):
+    """Generate mask for a structure from an annotation file
+    and a list of structures.
+
+    Parameters
+    ----------
+    structure_id : int
+        id of the structure
+    annotation : np.array
+        annotation stack for the atlas
+    structures_list : list
+        list of structure dictionaries
+
+    Returns
+    -------
+
+    """
+
+    mask_stack = np.zeros(annotation.shape, np.uint8)
+
+    for curr_structure in structures_list:
+        if structure_id in curr_structure["structure_id_path"]:
+            mask_stack[annotation == curr_structure["id"]] = 1
+
+    return mask_stack
+
 # ---------------------------------------------------------------------------- #
 #                                 MESH CREATION                                #
 # ---------------------------------------------------------------------------- #

@@ -10,8 +10,8 @@ tqdm>=4.46.1
 bg-space
 allensdk
 sphinx
-brainio>=0.0.16
-vtkplotter
+imio
+vedo
 recommonmark
 sphinx_rtd_theme
 pydoc-markdown
@@ -22,3 +22,4 @@ gitpython
 coverage
 pre-commit
 PyMCubes
+bg_atlasapi

@@ -1,6 +1,6 @@
 try:
     from vedo import Mesh, write, load, show, Volume
-    from vedo.applications import Browser, Slicer
+    from vedo.applications import Browser, SlicerPlotter
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
@@ -66,6 +66,7 @@ def extract_mesh_from_mask(
     decimate=True,
     tol=0.0005,
     use_marching_cubes=False,
+    extract_largest=False,
 ):
     """
     Returns a vedo mesh actor with just the outer surface of a
@@ -94,6 +95,9 @@ def extract_mesh_from_mask(
         If True the number of vertices is reduced through decimation
     tol: float
         parameter for decimation, larger values correspond to more aggressive decimation
+    extract_largest: bool
+        If True only the largest region are extracted. It can cause issues for
+        bilateral regions as only one will remain
 
     """
     # check savepath argument
@@ -144,7 +148,8 @@ def extract_mesh_from_mask(
     if decimate:
         mesh.clean(tol=tol)
 
-    mesh = mesh.extractLargestRegion()
+    if extract_largest:
+        mesh = mesh.extractLargestRegion()
 
     if obj_filepath is not None:
         write(mesh, str(obj_filepath))
@@ -249,7 +254,7 @@ def compare_mesh_and_volume(mesh, volume):
     if isinstance(volume, np.ndarray):
         volume = Volume(volume)
 
-    vp = Slicer(volume, bg2="white", showHisto=False)
+    vp = SlicerPlotter(volume, bg2="white", showHisto=False)
     vp.add(mesh.alpha(0.5))
     vp.show()
 

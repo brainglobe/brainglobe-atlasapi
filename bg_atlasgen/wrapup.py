@@ -49,6 +49,7 @@ def wrapup_atlas_from_data(
     compress=True,
     scale_meshes=False,
     additional_references=dict(),
+    additional_metadata={},
 ):
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -93,6 +94,8 @@ def wrapup_atlas_from_data(
         to ensure that they are specified in microns, regardless of the atlas resolution.
     additional_references: dict, optional
         (Default value = empty dict). Dictionary with secondary reference stacks.
+    additional_metadata: dict, optional
+        Additional metadata to write to metadata.json
     """
 
     # If no hemisphere file is given, assume the atlas is symmetric:
@@ -191,7 +194,13 @@ def wrapup_atlas_from_data(
     )
 
     # Create human readable .csv and .txt files:
-    create_metadata_files(dest_dir, metadata_dict, structures_list, root_id)
+    create_metadata_files(
+        dest_dir,
+        metadata_dict,
+        structures_list,
+        root_id,
+        additional_metadata=additional_metadata,
+    )
 
     # Compress if required:
     if compress:

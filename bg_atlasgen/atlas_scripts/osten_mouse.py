@@ -93,10 +93,7 @@ def create_atlas(working_dir, resolution):
         .str.split(pat="/")
         .map(lambda x: [int(i) for i in x])
     )
-    df["structure_id_path"] = (
-        df["structure_id_path"]
-        .map(lambda x: x[:-1])
-    )
+    df["structure_id_path"] = df["structure_id_path"].map(lambda x: x[:-1])
     structures = df.to_dict("records")
     structures[0000]["structure_id_path"] = [997]
     for structure in structures:
@@ -228,7 +225,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 100 # some resolution, in microns
+    resolution = 100  # some resolution, in microns
 
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "osten_mouse"

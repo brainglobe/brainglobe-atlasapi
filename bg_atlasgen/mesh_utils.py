@@ -22,10 +22,11 @@ import scipy
 from bg_atlasgen.volume_utils import create_masked_array
 
 
-def region_mask_from_annotation(structure_id,
-                                annotation,
-                                structures_list,
-                                ):
+def region_mask_from_annotation(
+    structure_id,
+    annotation,
+    structures_list,
+):
     """Generate mask for a structure from an annotation file
     and a list of structures.
 
@@ -50,6 +51,7 @@ def region_mask_from_annotation(structure_id,
             mask_stack[annotation == curr_structure["id"]] = 1
 
     return mask_stack
+
 
 # ---------------------------------------------------------------------------- #
 #                                 MESH CREATION                                #

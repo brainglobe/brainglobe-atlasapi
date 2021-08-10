@@ -48,7 +48,7 @@ def wrapup_atlas_from_data(
     cleanup_files=False,
     compress=True,
     scale_meshes=False,
-    additional_references=dict(),
+    additional_references={},
     additional_metadata={},
 ):
     """

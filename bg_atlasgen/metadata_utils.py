@@ -138,7 +138,7 @@ def create_metadata_files(
     # write metadata dict:
     with open(dest_dir / descriptors.METADATA_FILENAME, "w") as f:
         # only save additional metadata to json, don't include in readme
-        json.dump(metadata_dict | additional_metadata, f)
+        json.dump({**metadata_dict, **additional_metadata}, f)
 
     create_structures_csv(dest_dir, root_id)
     create_readme(dest_dir, metadata_dict, structures)

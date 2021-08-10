@@ -44,6 +44,7 @@ def wrapup_atlas_from_data(
     structures_list,
     meshes_dict,
     working_dir,
+    atlas_packager=None,
     hemispheres_stack=None,
     cleanup_files=False,
     compress=True,
@@ -82,6 +83,9 @@ def wrapup_atlas_from_data(
         dict of meshio-compatible mesh file paths in the form {sruct_id: meshpath}
     working_dir : str or Path obj
         Path where the atlas folder and compressed file will be generated.
+    atlas_packager : str or None
+        Credit for those responsible for converting the atlas into the BrainGlobe
+        format.
     hemispheres_stack : str or Path or numpy array, optional
         Hemisphere stack for the atlas. If str or Path, will be read with tifffile.
         If none is provided, atlas is assumed to be symmetric
@@ -191,6 +195,7 @@ def wrapup_atlas_from_data(
         shape=shape,
         transformation_mat=transformation_mat,
         additional_references=[k for k in additional_references.keys()],
+        atlas_packager=atlas_packager,
     )
 
     # Create human readable .csv and .txt files:

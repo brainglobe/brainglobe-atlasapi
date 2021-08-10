@@ -27,6 +27,7 @@ def generate_metadata_dict(
     shape,
     transformation_mat,
     additional_references,
+    atlas_packager,
 ):
 
     # Name should be author_species
@@ -69,6 +70,7 @@ def generate_metadata_dict(
         shape=shape,
         trasform_to_bg=tuple([tuple(m) for m in transformation_mat]),
         additional_references=additional_references,
+        atlas_packager=atlas_packager,
     )
 
 

@@ -27,6 +27,7 @@ def generate_metadata_dict(
     shape,
     transformation_mat,
     additional_references,
+    atlas_packager,
 ):
 
     # Name should be author_species
@@ -69,6 +70,7 @@ def generate_metadata_dict(
         shape=shape,
         trasform_to_bg=tuple([tuple(m) for m in transformation_mat]),
         additional_references=additional_references,
+        atlas_packager=atlas_packager,
     )
 
 
@@ -118,7 +120,9 @@ def create_structures_csv(uncompr_atlas_path, root):
     )
 
 
-def create_metadata_files(dest_dir, metadata_dict, structures, root_id):
+def create_metadata_files(
+    dest_dir, metadata_dict, structures, root_id, additional_metadata={}
+):
     """
     Automatic creation of
         . structures.csv
@@ -129,10 +133,12 @@ def create_metadata_files(dest_dir, metadata_dict, structures, root_id):
     :param uncompr_atlas_path: path to uncompressed atlas folder
     :param metadata_dict: dict with atlas metadata
     :param structures: list of dictionaries with structures hierarchical info
+    :param additional_metadata: Dict to add to atlas metadata
     """
     # write metadata dict:
     with open(dest_dir / descriptors.METADATA_FILENAME, "w") as f:
-        json.dump(metadata_dict, f)
+        # only save additional metadata to json, don't include in readme
+        json.dump({**metadata_dict, **additional_metadata}, f)
 
     create_structures_csv(dest_dir, root_id)
     create_readme(dest_dir, metadata_dict, structures)

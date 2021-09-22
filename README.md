@@ -125,3 +125,9 @@ To deal with transformations between your data space and `bg-atlasapi`, you migh
 If you would like to contribute to `bg-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/BrancoLab/BrainRender) etc.\) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/bg-atlasapi). 
 
 Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/bg-atlasapi/issues) \(and the issues of the other repositories\)
+
+---
+The BrainGlobe project is generously supported by the Sainsbury Wellcome Centre and the Institute of Neuroscience, Technical University of Munich, with funding from Wellcome, the Gatsby Charitable Foundation and the Munich Cluster for Systems Neurology - Synergy.
+
+<img src='https://brainglobe.info/images/logos_combined.png' width="550">
+

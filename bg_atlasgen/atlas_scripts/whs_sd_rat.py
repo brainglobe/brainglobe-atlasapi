@@ -100,13 +100,9 @@ def create_structure_hierarchy(structures, df, root_id):
     return structures
 
 
-def create_meshes(download_dir_path, structures, annotated_volume, root_id):
+def create_meshes(download_dir_path, tree, annotated_volume, labels, root_id):
     meshes_dir_path = download_dir_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
-
-    tree = get_structures_tree(structures)
-
-    labels = set(np.unique(annotated_volume).astype(np.int32))
 
     for key, node in tree.nodes.items():
         if key in labels:
@@ -240,6 +236,23 @@ def create_atlas(working_dir):
         atlas_files_dir / "WHS_SD_rat_T2star_v1.01.nii.gz", as_numpy=True
     )
 
+    # Remove structure with missing annotations
+    tree = get_structures_tree(structures)
+    labels = set(np.unique(annotation_stack).astype(np.int32))
+    existing_structures = []
+    for structure in structures:
+        stree = tree.subtree(structure["id"])
+        ids = set(stree.nodes.keys())
+        matched_labels = ids & labels
+        if matched_labels:
+            existing_structures.append(structure)
+        else:
+            node = tree.nodes[structure["id"]]
+            print(
+                f"{node.tag} not found in annotation volume, removing from list of structures..."
+            )
+    structures = existing_structures
+
     # Clean junk from reference file
     reference_stack *= annotation_stack > 0
 
@@ -253,9 +266,8 @@ def create_atlas(working_dir):
 
     # Create meshes:
     print(f"Saving atlas data at {download_dir_path}")
-    annotation_stack_for_mesh = annotation_stack
     meshes_dir_path = create_meshes(
-        download_dir_path, structures, annotation_stack_for_mesh, ROOT_ID
+        download_dir_path, tree, annotation_stack, labels, ROOT_ID
     )
 
     meshes_dict, structures_with_mesh = create_mesh_dict(

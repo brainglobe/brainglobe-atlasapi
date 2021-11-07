@@ -116,7 +116,7 @@ def create_meshes(download_dir_path, tree, annotated_volume, labels, root_id):
     start = time.time()
     if PARALLEL:
 
-        pool = mp.Pool(mp.cpu_count() - 2)
+        pool = mp.Pool(min(mp.cpu_count() - 2, 16))
 
         try:
             pool.map(
@@ -252,6 +252,7 @@ def create_atlas(working_dir):
                 f"{node.tag} not found in annotation volume, removing from list of structures..."
             )
     structures = existing_structures
+    tree = get_structures_tree(structures)
 
     # Clean junk from reference file
     reference_stack *= annotation_stack > 0

@@ -249,7 +249,7 @@ def compare_mesh_and_volume(mesh, volume):
     if isinstance(volume, np.ndarray):
         volume = Volume(volume)
 
-    vp = Slicer(volume, bg2="white", showHisto=False)
+    vp = SlicerPlotter(volume, bg2="white", showHisto=False)
     vp.add(mesh.alpha(0.5))
     vp.show()
 

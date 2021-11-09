@@ -22,10 +22,11 @@ import scipy
 from bg_atlasgen.volume_utils import create_masked_array
 
 
-def region_mask_from_annotation(structure_id,
-                                annotation,
-                                structures_list,
-                                ):
+def region_mask_from_annotation(
+    structure_id,
+    annotation,
+    structures_list,
+):
     """Generate mask for a structure from an annotation file
     and a list of structures.
 
@@ -51,6 +52,7 @@ def region_mask_from_annotation(structure_id,
 
     return mask_stack
 
+
 # ---------------------------------------------------------------------------- #
 #                                 MESH CREATION                                #
 # ---------------------------------------------------------------------------- #
@@ -66,6 +68,7 @@ def extract_mesh_from_mask(
     decimate=True,
     tol=0.0005,
     use_marching_cubes=False,
+    extract_largest=False,
 ):
     """
     Returns a vedo mesh actor with just the outer surface of a
@@ -94,6 +97,9 @@ def extract_mesh_from_mask(
         If True the number of vertices is reduced through decimation
     tol: float
         parameter for decimation, larger values correspond to more aggressive decimation
+    extract_largest: bool
+        If True only the largest region are extracted. It can cause issues for
+        bilateral regions as only one will remain
 
     """
     # check savepath argument
@@ -144,7 +150,8 @@ def extract_mesh_from_mask(
     if decimate:
         mesh.clean(tol=tol)
 
-    mesh = mesh.extractLargestRegion()
+    if extract_largest:
+        mesh = mesh.extractLargestRegion()
 
     if obj_filepath is not None:
         write(mesh, str(obj_filepath))

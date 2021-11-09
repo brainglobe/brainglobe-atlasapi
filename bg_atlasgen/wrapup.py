@@ -44,11 +44,13 @@ def wrapup_atlas_from_data(
     structures_list,
     meshes_dict,
     working_dir,
+    atlas_packager=None,
     hemispheres_stack=None,
     cleanup_files=False,
     compress=True,
     scale_meshes=False,
-    additional_references=dict(),
+    additional_references={},
+    additional_metadata={},
 ):
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -81,6 +83,9 @@ def wrapup_atlas_from_data(
         dict of meshio-compatible mesh file paths in the form {sruct_id: meshpath}
     working_dir : str or Path obj
         Path where the atlas folder and compressed file will be generated.
+    atlas_packager : str or None
+        Credit for those responsible for converting the atlas into the BrainGlobe
+        format.
     hemispheres_stack : str or Path or numpy array, optional
         Hemisphere stack for the atlas. If str or Path, will be read with tifffile.
         If none is provided, atlas is assumed to be symmetric
@@ -93,6 +98,8 @@ def wrapup_atlas_from_data(
         to ensure that they are specified in microns, regardless of the atlas resolution.
     additional_references: dict, optional
         (Default value = empty dict). Dictionary with secondary reference stacks.
+    additional_metadata: dict, optional
+        (Default value = empty dict). Additional metadata to write to metadata.json
     """
 
     # If no hemisphere file is given, assume the atlas is symmetric:
@@ -188,10 +195,17 @@ def wrapup_atlas_from_data(
         shape=shape,
         transformation_mat=transformation_mat,
         additional_references=[k for k in additional_references.keys()],
+        atlas_packager=atlas_packager,
     )
 
     # Create human readable .csv and .txt files:
-    create_metadata_files(dest_dir, metadata_dict, structures_list, root_id)
+    create_metadata_files(
+        dest_dir,
+        metadata_dict,
+        structures_list,
+        root_id,
+        additional_metadata=additional_metadata,
+    )
 
     # Compress if required:
     if compress:

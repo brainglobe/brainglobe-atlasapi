@@ -1,6 +1,6 @@
 try:
     from vedo import Mesh, write, load, show, Volume
-    from vedo.applications import Browser, Slicer
+    from vedo.applications import Browser, SlicerPlotter
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"

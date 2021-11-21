@@ -210,7 +210,7 @@ def create_atlas(working_dir):
     ), "No download link provided for atlas in ATLAS_FILE_URL"
 
     # Generated atlas path:
-    working_dir = working_dir / "brainglobe_workingdir" / ATLAS_NAME
+    working_dir = working_dir / ATLAS_NAME
     working_dir.mkdir(exist_ok=True, parents=True)
 
     download_dir_path = working_dir / "downloads"

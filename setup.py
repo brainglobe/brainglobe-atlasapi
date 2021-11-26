@@ -8,6 +8,7 @@ setup(
     version="0.0.2",
     description="Scripts generation atlases and utilities for BrainGlobe",
     install_requires=requirements,
+    extras_require={"allenmouse": ["allensdk"]},
     python_requires=">=3.8",
     entry_points={"console_scripts": []},
     packages=find_namespace_packages(exclude=("docs", "tests*")),

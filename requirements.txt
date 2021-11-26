@@ -8,7 +8,6 @@ click
 rich
 tqdm>=4.46.1
 bg-space
-allensdk
 sphinx
 imio
 vedo

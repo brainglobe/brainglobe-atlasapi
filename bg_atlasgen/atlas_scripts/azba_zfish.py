@@ -32,7 +32,7 @@ def create_atlas(working_dir, resolution):
     ATLAS_NAME = "azba_zfish"
     SPECIES = "Danio rerio"
     ATLAS_LINK = "http://www.azba.wayne.edu"
-    CITATION = "Kenney et al. 2021, https://doi.org/10.1101/2021.05.04.442625"
+    CITATION = "Kenney et al. 2021, https://doi.org/10.7554/elife.69988"
     ATLAS_FILE_URL = "http://www.azba.wayne.edu/2021-08-22_AZBA.tar.gz"
     ORIENTATION = "las"
     ROOT_ID = 9999 
@@ -41,6 +41,7 @@ def create_atlas(working_dir, resolution):
     
     
     #setup folder for downloading
+    working_dir = working_dir  / ATLAS_NAME
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
     atlas_path = download_dir_path / f"{ATLAS_NAME}"

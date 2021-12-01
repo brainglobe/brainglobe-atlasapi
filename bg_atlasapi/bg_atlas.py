@@ -7,7 +7,6 @@ from io import StringIO
 from bg_atlasapi.utils import _rich_atlas_metadata
 
 
-
 from bg_atlasapi import utils, config, core, descriptors
 
 

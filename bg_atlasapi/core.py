@@ -3,12 +3,10 @@ import pandas as pd
 import numpy as np
 from collections import UserDict
 import warnings
-from rich.console import Console
-from io import StringIO
 
 from bg_space import AnatomicalSpace
 
-from bg_atlasapi.utils import read_json, read_tiff, _rich_atlas_metadata
+from bg_atlasapi.utils import read_json, read_tiff
 from bg_atlasapi.structure_class import StructuresDict
 from bg_atlasapi.descriptors import (
     METADATA_FILENAME,
@@ -71,35 +69,6 @@ class Atlas:
         self._annotation = None
         self._hemispheres = None
         self._lookup = None
-
-    def __repr__(self):
-        """Fancy print for the atlas providing authors information."""
-        name_split = self.atlas_name.split("_")
-        pretty_name = "{} {} atlas (res. {})".format(*name_split)
-        return pretty_name
-
-    def __str__(self):
-        """
-        If the atlas metadat are to be printed
-        with the built in print function instead of rich's, then
-        print the rich panel as a string.
-
-        It will miss the colors.
-
-        """
-        buf = StringIO()
-        _console = Console(file=buf, force_jupyter=False)
-        _console.print(self)
-
-        return buf.getvalue()
-
-    def __rich_console__(self, *args):
-        """
-        Method for rich API's console protocol.
-        Prints the atlas metadata as a table nested in a panel
-        """
-        panel = _rich_atlas_metadata(self.atlas_name, self.metadata)
-        yield panel
 
     @property
     def resolution(self):

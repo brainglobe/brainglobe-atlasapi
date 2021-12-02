@@ -2,6 +2,9 @@ from pathlib import Path
 import tarfile
 import requests
 from rich import print as rprint
+from rich.console import Console
+from io import StringIO
+from bg_atlasapi.utils import _rich_atlas_metadata
 
 
 from bg_atlasapi import utils, config, core, descriptors
@@ -179,3 +182,32 @@ class BrainGlobeAtlas(core.Atlas):
             )
             return False
         return True
+
+    def __repr__(self):
+        """Fancy print providing atlas information."""
+        name_split = self.atlas_name.split("_")
+        pretty_name = "{} {} atlas (res. {})".format(*name_split)
+        return pretty_name
+
+    def __str__(self):
+        """
+        If the atlas metadat are to be printed
+        with the built in print function instead of rich's, then
+        print the rich panel as a string.
+
+        It will miss the colors.
+
+        """
+        buf = StringIO()
+        _console = Console(file=buf, force_jupyter=False)
+        _console.print(self)
+
+        return buf.getvalue()
+
+    def __rich_console__(self, *args):
+        """
+        Method for rich API's console protocol.
+        Prints the atlas metadata as a table nested in a panel
+        """
+        panel = _rich_atlas_metadata(self.atlas_name, self.metadata)
+        yield panel

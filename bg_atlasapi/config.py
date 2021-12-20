@@ -1,10 +1,21 @@
+"""Utilities for reading and modifying brainglob configuration.
+
+Configuration is stored in a file.  By default, the file is in
+stored in the directory "$HOME/.config/brainglobe".   
+This can be overridden with the environmental variable 
+BRAINGLOBE_CONFIG_DIR.
+"""
+
+import os
 import configparser
 from pathlib import Path
 from pkg_resources import resource_filename
 import click
 
 CONFIG_FILENAME = "bg_config.conf"
-CONFIG_PATH = Path(resource_filename("bg_atlasapi", CONFIG_FILENAME))
+CONFIG_DEFAULT_DIR = Path.home() / ".config" / "brainglobe"
+CONFIG_DIR = Path(os.environ.get("BRAINGLOBE_CONFIG_DIR", CONFIG_DEFAULT_DIR))
+CONFIG_PATH = CONFIG_DIR / CONFIG_FILENAME
 
 # 2 level dictionary for sections and values:
 DEFAULT_PATH = Path.home() / ".brainglobe"
@@ -33,6 +44,7 @@ def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
     for k, val in template.items():
         conf[k] = val
 
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         conf.write(f)
 

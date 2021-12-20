@@ -27,7 +27,7 @@ TEMPLATE_CONF_DICT = {
 }
 
 
-def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
+def write_default_config(path=None, template=None):
     """Write configuration file at first repo usage. In this way,
     we don't need to keep a confusing template config file in the repo.
 
@@ -39,6 +39,10 @@ def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
         Template of the config file to be written (optional).
 
     """
+    if path is None:
+        path = CONFIG_PATH
+    if template is None:
+        template = TEMPLATE_CONF_DICT
 
     conf = configparser.ConfigParser()
     for k, val in template.items():
@@ -49,7 +53,7 @@ def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
         conf.write(f)
 
 
-def read_config(path=CONFIG_PATH):
+def read_config(path=None):
     """Read BrainGlobe config.
 
     Parameters
@@ -62,6 +66,8 @@ def read_config(path=CONFIG_PATH):
     ConfigParser object
         brainglobe configuration
     """
+    if path is None:
+        path = CONFIG_PATH
 
     # If no config file exists yet, write the default one:
     if not path.exists():
@@ -73,7 +79,7 @@ def read_config(path=CONFIG_PATH):
     return conf
 
 
-def write_config_value(key, val, path=CONFIG_PATH):
+def write_config_value(key, val, path=None):
     """Write a new value in the config file. To make things simple, ignore
     sections and look directly for matching parameters names.
 
@@ -87,13 +93,16 @@ def write_config_value(key, val, path=CONFIG_PATH):
         Path of the config file (optional).
 
     """
+    if path is None:
+        path = CONFIG_PATH
+    
     conf = configparser.ConfigParser()
     conf.read(path)
     for sect_name, sect_dict in conf.items():
         if key in sect_dict.keys():
             conf[sect_name][key] = str(val)
 
-    with open(CONFIG_PATH, "w") as f:
+    with open(path, "w") as f:
         conf.write(f)
 
 

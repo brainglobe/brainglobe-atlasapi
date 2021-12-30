@@ -95,7 +95,7 @@ def write_config_value(key, val, path=None):
     """
     if path is None:
         path = CONFIG_PATH
-    
+
     conf = configparser.ConfigParser()
     conf.read(path)
     for sect_name, sect_dict in conf.items():

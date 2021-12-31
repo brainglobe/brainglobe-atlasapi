@@ -51,11 +51,12 @@ class BrainGlobeAtlas(core.Atlas):
         brainglobe_dir=None,
         interm_download_dir=None,
         check_latest=True,
+        config_dir=None,
     ):
         self.atlas_name = atlas_name
 
         # Read BrainGlobe configuration file:
-        conf = config.read_config()
+        conf = config.read_config(config_dir)
 
         # Use either input locations or locations from the config file,
         # and create directory if it does not exist:

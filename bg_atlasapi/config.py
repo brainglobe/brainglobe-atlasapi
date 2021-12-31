@@ -1,10 +1,20 @@
+"""Utilities for reading and modifying brainglob configuration.
+
+Configuration is stored in a file.  By default, the file is in
+stored in the directory "$HOME/.config/brainglobe".
+This can be overridden with the environmental variable
+BRAINGLOBE_CONFIG_DIR.
+"""
+
+import os
 import configparser
 from pathlib import Path
-from pkg_resources import resource_filename
 import click
 
 CONFIG_FILENAME = "bg_config.conf"
-CONFIG_PATH = Path(resource_filename("bg_atlasapi", CONFIG_FILENAME))
+CONFIG_DEFAULT_DIR = Path.home() / ".config" / "brainglobe"
+CONFIG_DIR = Path(os.environ.get("BRAINGLOBE_CONFIG_DIR", CONFIG_DEFAULT_DIR))
+CONFIG_PATH = CONFIG_DIR / CONFIG_FILENAME
 
 # 2 level dictionary for sections and values:
 DEFAULT_PATH = Path.home() / ".brainglobe"
@@ -16,7 +26,7 @@ TEMPLATE_CONF_DICT = {
 }
 
 
-def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
+def write_default_config(path=None, template=None):
     """Write configuration file at first repo usage. In this way,
     we don't need to keep a confusing template config file in the repo.
 
@@ -28,16 +38,21 @@ def write_default_config(path=CONFIG_PATH, template=TEMPLATE_CONF_DICT):
         Template of the config file to be written (optional).
 
     """
+    if path is None:
+        path = CONFIG_PATH
+    if template is None:
+        template = TEMPLATE_CONF_DICT
 
     conf = configparser.ConfigParser()
     for k, val in template.items():
         conf[k] = val
 
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         conf.write(f)
 
 
-def read_config(path=CONFIG_PATH):
+def read_config(path=None):
     """Read BrainGlobe config.
 
     Parameters
@@ -50,6 +65,8 @@ def read_config(path=CONFIG_PATH):
     ConfigParser object
         brainglobe configuration
     """
+    if path is None:
+        path = CONFIG_PATH
 
     # If no config file exists yet, write the default one:
     if not path.exists():
@@ -61,7 +78,7 @@ def read_config(path=CONFIG_PATH):
     return conf
 
 
-def write_config_value(key, val, path=CONFIG_PATH):
+def write_config_value(key, val, path=None):
     """Write a new value in the config file. To make things simple, ignore
     sections and look directly for matching parameters names.
 
@@ -75,13 +92,16 @@ def write_config_value(key, val, path=CONFIG_PATH):
         Path of the config file (optional).
 
     """
+    if path is None:
+        path = CONFIG_PATH
+
     conf = configparser.ConfigParser()
     conf.read(path)
     for sect_name, sect_dict in conf.items():
         if key in sect_dict.keys():
             conf[sect_name][key] = str(val)
 
-    with open(CONFIG_PATH, "w") as f:
+    with open(path, "w") as f:
         conf.write(f)
 
 

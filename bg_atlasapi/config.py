@@ -1,15 +1,14 @@
 """Utilities for reading and modifying brainglob configuration.
 
 Configuration is stored in a file.  By default, the file is in
-stored in the directory "$HOME/.config/brainglobe".   
-This can be overridden with the environmental variable 
+stored in the directory "$HOME/.config/brainglobe".
+This can be overridden with the environmental variable
 BRAINGLOBE_CONFIG_DIR.
 """
 
 import os
 import configparser
 from pathlib import Path
-from pkg_resources import resource_filename
 import click
 
 CONFIG_FILENAME = "bg_config.conf"

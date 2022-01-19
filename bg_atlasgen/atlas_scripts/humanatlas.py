@@ -13,7 +13,11 @@ from allensdk.core.structure_tree import StructureTree
 # import sys
 
 # sys.path.append("./")
-from bg_atlasgen.mesh_utils import create_region_mesh, Region
+from bg_atlasgen.mesh_utils import (
+    create_region_mesh,
+    Region,
+    inspect_meshes_folder,
+)
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
 
@@ -51,6 +55,7 @@ def prune_tree(tree):
 
 if __name__ == "__main__":
     PARALLEL = False  # disable parallel mesh extraction for easier debugging
+    TEST = False
 
     # ---------------------------------------------------------------------------- #
     #                                 PREP METADATA                                #
@@ -177,6 +182,8 @@ if __name__ == "__main__":
 
     # Mesh creation
     closing_n_iters = 2
+    decimate_fraction = 0.2
+    smooth = False  # smooth meshes after creation
     start = time.time()
     if PARALLEL:
         print("Starting mesh creation in parallel")
@@ -195,6 +202,8 @@ if __name__ == "__main__":
                         annotation,
                         ROOT_ID,
                         closing_n_iters,
+                        decimate_fraction,
+                        smooth,
                     )
                     for node in tree.nodes.values()
                 ],
@@ -224,6 +233,8 @@ if __name__ == "__main__":
                     volume,
                     ROOT_ID,
                     closing_n_iters,
+                    decimate_fraction,
+                    smooth,
                 )
             )
 
@@ -232,6 +243,10 @@ if __name__ == "__main__":
         round((time.time() - start) / 60, 2),
         " minutes",
     )
+
+    if TEST:
+        # create visualization of the various meshes
+        inspect_meshes_folder(meshes_dir_path)
 
     # Create meshes dict
     meshes_dict = dict()

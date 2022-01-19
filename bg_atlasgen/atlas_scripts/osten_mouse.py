@@ -37,7 +37,7 @@ def create_atlas(working_dir, resolution):
     download_dir_path.mkdir(exist_ok=True)
     atlas_files_dir = download_dir_path / "atlas_files"
 
-    ## Download atlas_file
+    # Download atlas_file
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download"
@@ -126,6 +126,8 @@ def create_atlas(working_dir, resolution):
 
     # Mesh creation
     closing_n_iters = 2
+    decimate_fraction = 0.2
+    smooth = False  # smooth meshes after creation
     start = time.time()
     if PARALLEL:
 
@@ -143,6 +145,8 @@ def create_atlas(working_dir, resolution):
                         rotated_annotations,
                         ROOT_ID,
                         closing_n_iters,
+                        decimate_fraction,
+                        smooth,
                     )
                     for node in tree.nodes.values()
                 ],
@@ -164,6 +168,8 @@ def create_atlas(working_dir, resolution):
                     rotated_annotations,
                     ROOT_ID,
                     closing_n_iters,
+                    decimate_fraction,
+                    smooth,
                 )
             )
 

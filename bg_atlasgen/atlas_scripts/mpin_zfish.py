@@ -48,10 +48,7 @@ def add_path_inplace(parent):
 
 
 def collect_all_inplace(
-    node,
-    traversing_list,
-    download_path,
-    mesh_dict,
+    node, traversing_list, download_path, mesh_dict,
 ):
     """Recursively traverse a region hierarchy, download meshes, and append
     regions to a list inplace.

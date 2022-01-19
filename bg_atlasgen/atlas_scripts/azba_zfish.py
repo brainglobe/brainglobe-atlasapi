@@ -13,13 +13,14 @@ import csv
 import time
 import tifffile
 import tarfile
+from random import choices
 
 import numpy as np
 import multiprocessing as mp
 
 from rich.progress import track
 from pathlib import Path
-from bg_atlasgen.mesh_utils import Region, create_region_mesh
+from bg_atlasgen.mesh_utils import Region, create_region_mesh, inspect_meshes_folder
 from bg_atlasapi.structure_tree_util import get_structures_tree
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi import utils
@@ -42,6 +43,7 @@ def create_atlas(working_dir, resolution):
     
     #setup folder for downloading
     working_dir = working_dir  / ATLAS_NAME
+    working_dir.mkdir(exist_ok=True)
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
     atlas_path = download_dir_path / f"{ATLAS_NAME}"
@@ -118,6 +120,9 @@ def create_atlas(working_dir, resolution):
     #mesh creation
     closing_n_iters = 2
     start = time.time()
+
+    decimate_fraction = 0.3
+    smooth = True
     
     if PARALLEL:
         
@@ -146,9 +151,9 @@ def create_atlas(working_dir, resolution):
     else:
         
         print("Multiprocessing disabled")
-        
-        for node in track(
-            tree.nodes.values(),
+        # nodes = list(tree.nodes.values())
+        # nodes = choices(nodes, k=10)
+        for node in track(tree.nodes.values(),
             total=tree.size(),
             description = "Creating meshes",
         ):
@@ -161,6 +166,8 @@ def create_atlas(working_dir, resolution):
                     annotated_volume,
                     ROOT_ID,
                     closing_n_iters,
+                    decimate_fraction,
+                    smooth
                 )
             )
    
@@ -186,8 +193,8 @@ def create_atlas(working_dir, resolution):
     print(f"In the end, {len(structures_with_mesh)} structures with mesh are kept")    
     
     #import reference file with tifffile so it can be read in wrapup_atlas_from_data
-    reference = tifffile.imread(reference_file)    
-    
+    reference = tifffile.imread(reference_file)
+    inspect_meshes_folder(meshes_dir_path)
     # wrap up atlas file
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(

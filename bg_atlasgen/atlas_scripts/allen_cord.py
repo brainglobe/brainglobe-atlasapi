@@ -1,29 +1,48 @@
-__version__ = "0"
+__version__ = "1"
 
 import json
 import time
 import tifffile
 import zipfile
 
+
 import pandas as pd
 import numpy as np
 import multiprocessing as mp
-
+from random import choices
+from loguru import logger
 from rich.progress import track
 from pathlib import Path
 
+# import sys
+
+# sys.path.append("./")
+
 from bg_atlasapi import utils
-from bg_atlasgen.mesh_utils import create_region_mesh, Region
+from bg_atlasgen.mesh_utils import (
+    create_region_mesh,
+    Region,
+    inspect_meshes_folder,
+)
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
+TEST = False
 
 
-def download_atlas_files(download_dir_path, atlas_file_url):
+def download_atlas_files(download_dir_path: Path, atlas_file_url: str) -> Path:
     utils.check_internet_connection()
 
     atlas_files_dir = download_dir_path / "atlas_files"
+
+    # only download data if they weren't already downloaded
+    if atlas_files_dir.exists():
+        print("Not downloading atlas since it was downloaded already already")
+        return atlas_files_dir / "SC_P56_Atlas_10x10x20_v5_2020"
+    else:
+        print("Downloading atlas data")
+
     destination_path = download_dir_path / "atlas_download"
     utils.retrieve_over_http(atlas_file_url, destination_path)
 
@@ -96,9 +115,22 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
 
     # Mesh creation
     closing_n_iters = 2
+    decimate_fraction = 0.2
+    smooth = False  # smooth meshes after creation
     start = time.time()
-    if PARALLEL:
 
+    # check how many regions to create the meshes for
+    nodes = list(tree.nodes.values())
+    if TEST:
+        logger.info(
+            f"Creating atlas in test mode: selecting 10 random regions for mesh creation"
+        )
+        nodes = choices(nodes, k=10)
+
+    if PARALLEL:
+        print(
+            f"Creating {tree.size()} meshes in parallel with {mp.cpu_count() - 2} CPU cores"
+        )
         pool = mp.Pool(mp.cpu_count() - 2)
 
         try:
@@ -113,17 +145,18 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
                         annotated_volume,
                         root_id,
                         closing_n_iters,
+                        decimate_fraction,
+                        smooth,
                     )
-                    for node in tree.nodes.values()
+                    for node in nodes
                 ],
             )
         except mp.pool.MaybeEncodingError:
             pass
     else:
+        print(f"Creating {len(nodes)} meshes")
         for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
+            nodes, total=len(nodes), description="Creating meshes",
         ):
             create_region_mesh(
                 (
@@ -134,6 +167,8 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
                     annotated_volume,
                     root_id,
                     closing_n_iters,
+                    decimate_fraction,
+                    smooth,
                 )
             )
 
@@ -142,6 +177,11 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
+
+    if TEST:
+        # create visualization of the various meshes
+        inspect_meshes_folder(meshes_dir_path)
+
     return meshes_dir_path
 
 
@@ -191,7 +231,7 @@ def create_atlas(working_dir):
     # Download atlas files from Mendeley
     atlas_files_dir = download_atlas_files(download_dir_path, ATLAS_FILE_URL)
 
-    ## Load files
+    # Load files
     structures_file = atlas_files_dir / "Atlas_Regions.csv"
     reference_file = atlas_files_dir / "Template.tif"
     annotations_file = atlas_files_dir / "Annotation.tif"
@@ -203,7 +243,7 @@ def create_atlas(working_dir):
     atlas_segments = pd.read_csv(segments_file)
     atlas_segments = dict(atlas_segments=atlas_segments.to_dict("records"))
 
-    ## Parse structure metadata
+    # Parse structure metadata
     structures = parse_structures(structures_file, ROOT_ID)
 
     # save regions list json:
@@ -247,7 +287,11 @@ def create_atlas(working_dir):
 
 
 if __name__ == "__main__":
+
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_cord"
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_cord_smooth"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
+
+    # generate atlas
+    print(f'Creating atlas and saving it at "{bg_root_dir}"')
     create_atlas(bg_root_dir)

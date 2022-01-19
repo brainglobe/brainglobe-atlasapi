@@ -1,4 +1,4 @@
-__version__ = "0"
+__version__ = "1"
 
 import json
 import time
@@ -13,8 +13,12 @@ from rich.progress import track
 from pathlib import Path
 from scipy.ndimage import zoom
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
-from bg_atlasapi import utils
 
+# import sys
+
+# sys.path.append("./")
+
+from bg_atlasapi import utils
 from bg_atlasgen.mesh_utils import create_region_mesh, Region
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
@@ -37,7 +41,7 @@ def create_atlas(working_dir, resolution):
     download_dir_path.mkdir(exist_ok=True)
     atlas_files_dir = download_dir_path / "atlas_files"
 
-    ## Download atlas_file
+    # Download atlas_file
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download"
@@ -126,6 +130,9 @@ def create_atlas(working_dir, resolution):
 
     # Mesh creation
     closing_n_iters = 2
+    decimate_fraction = 0.2
+    smooth = False  # smooth meshes after creation
+
     start = time.time()
     if PARALLEL:
 
@@ -143,6 +150,8 @@ def create_atlas(working_dir, resolution):
                         rotated_annotations,
                         ROOT_ID,
                         closing_n_iters,
+                        decimate_fraction,
+                        smooth,
                     )
                     for node in tree.nodes.values()
                 ],
@@ -164,6 +173,8 @@ def create_atlas(working_dir, resolution):
                     rotated_annotations,
                     ROOT_ID,
                     closing_n_iters,
+                    decimate_fraction,
+                    smooth,
                 )
             )
 
@@ -225,7 +236,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 50  # some resolution, in microns
+    resolution = 10  # some resolution, in microns (10, 25, 50, 100)
 
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"

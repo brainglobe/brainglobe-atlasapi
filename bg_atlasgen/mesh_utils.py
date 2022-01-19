@@ -15,17 +15,20 @@ except ModuleNotFoundError:
         + '   please install with "pip install PyMCubes -U"'
     )
 
-
+from loguru import logger
 import numpy as np
 from pathlib import Path
 import scipy
 from bg_atlasgen.volume_utils import create_masked_array
 
 
+# ---------------------------------------------------------------------------- #
+#                                 MESH CREATION                                #
+# ---------------------------------------------------------------------------- #
+
+
 def region_mask_from_annotation(
-    structure_id,
-    annotation,
-    structures_list,
+    structure_id, annotation, structures_list,
 ):
     """Generate mask for a structure from an annotation file
     and a list of structures.
@@ -53,20 +56,14 @@ def region_mask_from_annotation(
     return mask_stack
 
 
-# ---------------------------------------------------------------------------- #
-#                                 MESH CREATION                                #
-# ---------------------------------------------------------------------------- #
-
-
 def extract_mesh_from_mask(
     volume,
     obj_filepath=None,
     threshold=0.5,
-    smooth=False,
+    smooth: bool = False,
     mcubes_smooth=False,
     closing_n_iters=8,
-    decimate=True,
-    tol=0.0005,
+    decimate_fraction: float = 0.6,  # keep 60% of original fertices
     use_marching_cubes=False,
     extract_largest=False,
 ):
@@ -93,10 +90,13 @@ def extract_mesh_from_mask(
     closing_n_iters: int
         number of iterations of closing morphological operation.
         set to None to avoid applying morphological operations
-    decimate: bool
-        If True the number of vertices is reduced through decimation
+    decimate_fraction: float  in range [0, 1].
+        What fraction of the original number of vertices is to be kept. E.g. .5 means that
+        50% of the vertices are kept, the others are removed
     tol: float
-        parameter for decimation, larger values correspond to more aggressive decimation
+        parameter for decimation, larger values correspond to more aggressive decimation.
+        E.g. 0.02 -> points that are closer than 2% of the size of the meshe's bounding box are
+        identified and removed (only one is kep)
     extract_largest: bool
         If True only the largest region are extracted. It can cause issues for
         bilateral regions as only one will remain
@@ -140,18 +140,19 @@ def extract_mesh_from_mask(
             vertices, triangles = mcubes.marching_cubes(smooth, 0)
         else:
             vertices, triangles = mcubes.marching_cubes(volume, 0.5)
+
         #  create mesh
         mesh = Mesh((vertices, triangles))
 
     # Cleanup and save
-    if smooth:
-        mesh.smoothLaplacian()
-
-    if decimate:
-        mesh.clean(tol=tol)
-
     if extract_largest:
         mesh = mesh.extractLargestRegion()
+
+    # decimate
+    mesh.decimate(decimate_fraction, method="pro")
+
+    if smooth:
+        mesh.smoothLaplacian()
 
     if obj_filepath is not None:
         write(mesh, str(obj_filepath))
@@ -180,20 +181,22 @@ def create_region_mesh(args):
     ROOT_ID: int, id of root structure (mesh creation is a bit more refined for that)
     """
     # Split arguments
-    (
-        meshes_dir_path,
-        node,
-        tree,
-        labels,
-        annotated_volume,
-        ROOT_ID,
-        closing_n_iters,
-    ) = args
+    logger.debug(f"Creating mesh for region {args[1].identifier}")
+    meshes_dir_path = args[0]
+    node = args[1]
+    tree = args[2]
+    labels = args[3]
+    annotated_volume = args[4]
+    ROOT_ID = args[5]
+    closing_n_iters = args[6]
+    decimate_fraction = args[7]
+    smooth = args[8]
 
     # Avoid overwriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
-    if savepath.exists():
-        return
+    # if savepath.exists():
+    #     logger.debug(f"Mesh file save path exists already, skipping.")
+    #     return
 
     # Get lables for region and it's children
     stree = tree.subtree(node.identifier)
@@ -216,14 +219,18 @@ def create_region_mesh(args):
         else:
             if node.identifier == ROOT_ID:
                 extract_mesh_from_mask(
-                    mask, obj_filepath=savepath, smooth=True
+                    mask,
+                    obj_filepath=savepath,
+                    smooth=smooth,
+                    decimate_fraction=decimate_fraction,
                 )
             else:
                 extract_mesh_from_mask(
                     mask,
                     obj_filepath=savepath,
-                    smooth=True,
+                    smooth=smooth,
                     closing_n_iters=closing_n_iters,
+                    decimate_fraction=decimate_fraction,
                 )
 
 
@@ -278,7 +285,10 @@ def inspect_meshes_folder(folder):
     if not folder.exists():
         raise FileNotFoundError("The folder passed doesnt exist")
 
-    Browser(load(str(folder)))
+    mesh_files = folder.glob("*.obj")
+
+    Browser([load(str(mf)).c("w").lw(0.25).lc("k") for mf in mesh_files])
+    logger.debug("visualization ready")
     show()
 
 

@@ -64,14 +64,14 @@ def create_atlas(working_dir, resolution):
     #paths
     structures_file = atlas_path / "2021-08-22_AZBA_labels.csv"
     annotations_file = atlas_path / "2021-08-22_AZBA_segmentation.tif"
-    reference_file = atlas_path / "20180219_AZBA_topro_average_2020.tif"
-    reference_af = atlas_path / "20180628_AZBA_AF_average.tif"
+    reference_topro = atlas_path / "20180219_AZBA_topro_average_2020.tif"
+    reference_file = atlas_path / "20180628_AZBA_AF_average.tif"
     meshes_dir_path = atlas_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
     
-    #adding autofluorescence image as additional reference file, main reference file is topro
-    autofluo = tifffile.imread(reference_af)
-    ADDITIONAL_REFERENCES = {"autofluorescence" : autofluo}
+    #adding topro image as additional reference file, main reference file is autofl
+    topro = tifffile.imread(reference_topro)
+    ADDITIONAL_REFERENCES = {"TO-PRO" : topro}
     
     #open structures.csv and prep for dictionary parsing
     print("Creating structure tree")

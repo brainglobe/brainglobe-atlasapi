@@ -1,12 +1,18 @@
-__version__ = "0"
+__version__ = "1"
 
 from pathlib import Path
 import warnings
 import zipfile
 import requests
 import tarfile
-import tifffile
 from tifffile import imread
+from bg_atlasgen.mesh_utils import extract_mesh_from_mask
+import tarfile
+import zipfile
+from pathlib import Path
+
+import numpy as np
+from scipy.ndimage import binary_dilation, binary_erosion, binary_fill_holes
 
 from allensdk.core.structure_tree import StructureTree
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
@@ -24,7 +30,7 @@ def download_line_stack(bg_root_dir, tg_line_name):
     with zipfile.ZipFile(out_file_path, "r") as zip_ref:
         zip_ref.extractall(bg_root_dir)
 
-    return imread(str(next(bg_root_dir.glob("*.tif"))))
+    return imread(str(next(bg_root_dir.glob(f"*{tg_line_name}*.tif"))))
 
 
 def add_path_inplace(parent):
@@ -102,6 +108,7 @@ def create_atlas(working_dir, resolution):
     ATLAS_LINK = "http://fishatlas.neuro.mpg.de"
     CITATION = "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034"
     ORIENTATION = "lai"
+    ATLAS_PACKAGER = "Luigi Petrucco, luigi.petrucco@gmail.com"
 
     # Download reference:
     #####################
@@ -114,7 +121,7 @@ def create_atlas(working_dir, resolution):
         additional_references[line] = download_line_stack(working_dir, line)
 
     # Download annotation and hemispheres from GIN repo:
-    gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations.tar.gz"
+    gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations_meshes.tar.gz"
     compressed_zip_path = working_dir / "annotations.tar"
     retrieve_over_http(gin_url, compressed_zip_path)
 
@@ -123,11 +130,16 @@ def create_atlas(working_dir, resolution):
 
     extracted_dir = working_dir / "mpin_zfish_annotations"
 
-    annotation_stack = tifffile.imread(
+    annotation_stack = imread(
         str(extracted_dir / "mpin_zfish_annotation.tif")
     )
 
-    hemispheres_stack = tifffile.imread(
+    # Pad 1 voxel around the whole annotation:
+    annotation_stack[[0, -1], :, :] = 0
+    annotation_stack[:, [0, -1], :] = 0
+    annotation_stack[:, :, [0, -1]] = 0
+
+    hemispheres_stack = imread(
         str(extracted_dir / "mpin_zfish_hemispheres.tif")
     )
 
@@ -141,6 +153,30 @@ def create_atlas(working_dir, resolution):
         k: v.swapaxes(0, 2) for k, v in additional_references.items()
     }
 
+    # Improve the annotation by defining a region that encompasses the whole brain but
+    # not the eyes. This will be aside from the official hierarchy:
+    BRAIN_ID = 2  # add this as not defined in the source
+
+    # Ugly padding required not to have border artefacts in the binary operations:
+
+    shape_stack = list(annotation_stack.shape)
+    pad = 100
+    shape_stack[2] = shape_stack[2] + pad * 2
+    brain_mask = np.zeros(shape_stack, dtype=np.uint8)
+
+    # Exclude eyes from brain mask:
+    brain_mask[:, :, pad:-pad][(annotation_stack > 0) & (annotation_stack != 808)] = 255
+
+    # Perform binary operations:
+    brain_mask = binary_dilation(brain_mask, iterations=50)
+    brain_mask = binary_erosion(brain_mask, iterations=50)
+    brain_mask = binary_fill_holes(brain_mask)
+
+    # Remove padding:
+    brain_mask = brain_mask[:, :, pad:-pad]
+
+    annotation_stack[(annotation_stack == 0) & (brain_mask > 0)] = BRAIN_ID
+
     # Download structures tree and meshes:
     ######################################
     regions_url = f"{BASE_URL}/neurons/get_brain_regions"
@@ -152,11 +188,12 @@ def create_atlas(working_dir, resolution):
     structures = requests.get(regions_url).json()["brain_regions"]
 
     # Initiate dictionary with root info:
+    ROOT_ID = 1  # add this as not defined in the source
     structures_dict = {
         "name": "root",
-        "id": 0,
+        "id": ROOT_ID,
         "sub_regions": structures.copy(),
-        "structure_id_path": [0],
+        "structure_id_path": [ROOT_ID],
         "acronym": "root",
         "files": {
             "file_3D": "/media/Neurons_database/Brain_and_regions/Brains/Outline/Outline_new.txt"
@@ -174,6 +211,20 @@ def create_atlas(working_dir, resolution):
         structures_dict, structures_list, meshes_dir_path, meshes_dict
     )
 
+    # Artificially add entry for brain region:
+    brain_struct_entry = {
+        "name": "brain",
+        "id": BRAIN_ID,
+        "structure_id_path": [ROOT_ID, BRAIN_ID],
+        "acronym": "brain",
+        "rgb_triplet": [255, 255, 255],
+    }
+    structures_list.append(brain_struct_entry)
+
+    # Use recalculated meshes that are smoothed with Blender and uploaded in G-Node:
+    for sid in [ROOT_ID, BRAIN_ID]:
+        meshes_dict[sid] = extracted_dir / f"{sid}.stl"
+
     # Wrap up, compress, and remove file:0
     print(f"Finalising atlas")
     output_filename = wrapup_atlas_from_data(
@@ -184,7 +235,7 @@ def create_atlas(working_dir, resolution):
         species=SPECIES,
         resolution=(RES_UM,) * 3,
         orientation=ORIENTATION,
-        root_id=0,
+        root_id=1,
         reference_stack=reference_stack,
         annotation_stack=annotation_stack,
         structures_list=structures_list,
@@ -194,6 +245,7 @@ def create_atlas(working_dir, resolution):
         cleanup_files=False,
         compress=True,
         additional_references=additional_references,
+        atlas_packager=ATLAS_PACKAGER
     )
 
     return output_filename

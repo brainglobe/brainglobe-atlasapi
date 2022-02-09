@@ -7,7 +7,7 @@ Script to generate a Brainglobe compatible atlas object for the Adult Zebrafish 
 
 """
 
-__version__ = "0"
+__version__ = "1"
 
 import csv
 import time
@@ -194,7 +194,7 @@ def create_atlas(working_dir, resolution):
     
     #import reference file with tifffile so it can be read in wrapup_atlas_from_data
     reference = tifffile.imread(reference_file)
-    inspect_meshes_folder(meshes_dir_path)
+    # inspect_meshes_folder(meshes_dir_path)
     # wrap up atlas file
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(

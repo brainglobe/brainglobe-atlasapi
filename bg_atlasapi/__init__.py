@@ -1,5 +1,5 @@
 __author__ = """brainglobe"""
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas

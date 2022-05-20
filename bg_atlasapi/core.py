@@ -293,8 +293,9 @@ class Atlas:
 
     def get_structure_mask(self, structure):
         """Returns a stack with the mask for a specific structure (including all
-        sub-structures). This function is not particularly optimized, and might
-        take some hundreds of ms per run for some structures.
+        sub-structures).
+
+        This function might take a few seconds for structures with many children.
 
         Parameters
         ----------
@@ -305,17 +306,17 @@ class Atlas:
         -------
         np.array
             stack containing the mask array.
-
         """
         structure_id = self.structures[structure]["id"]
         descendants = self.get_structure_descendants(structure)
 
-        mask_stack = np.zeros(self.shape, self.annotation.dtype)
+        descendant_ids = [
+            self.structures[descendant]["id"] for descendant in descendants
+        ]
+        descendant_ids.append(structure_id)
 
-        for descendant in descendants:
-            descendant_id = self.structures[descendant]["id"]
-            mask_stack[self.annotation == descendant_id] = structure_id
-        mask_stack[self.annotation == structure_id] = structure_id
+        mask_stack = np.zeros(self.shape, self.annotation.dtype)
+        mask_stack[np.isin(self.annotation, descendant_ids)] = structure_id
 
         return mask_stack
 

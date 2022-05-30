@@ -8,7 +8,7 @@ Utilities and scripts for the generation of cleaned-up data for the `bg-atlasapi
 
 2) Clone your repo 
 ```bash
-git clone https://github.com/USERNAME/bg-atlasgen)
+git clone https://github.com/USERNAME/bg-atlasgen
 ```
 
 3) Install an editable version

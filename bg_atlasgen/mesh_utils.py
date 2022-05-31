@@ -1,6 +1,6 @@
 try:
     from vedo import Mesh, write, load, show, Volume
-    from vedo.applications import Browser, SlicerPlotter
+    from vedo.applications import Browser, Slicer3DPlotter
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
@@ -263,7 +263,7 @@ def compare_mesh_and_volume(mesh, volume):
     if isinstance(volume, np.ndarray):
         volume = Volume(volume)
 
-    vp = SlicerPlotter(volume, bg2="white", showHisto=False)
+    vp = Slicer3DPlotter(volume, bg2="white", showHisto=False)
     vp.add(mesh.alpha(0.5))
     vp.show()
 

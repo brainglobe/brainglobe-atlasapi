@@ -1,4 +1,6 @@
 # BG-AtlasGen
+#### For full instructions to add a new BrainGlobe atlas, please see [here](https://docs.brainglobe.info/bg-atlasapi/adding-a-new-atlas).
+
 
 Utilities and scripts for the generation of cleaned-up data for the `bg-atlasapi` module.
 

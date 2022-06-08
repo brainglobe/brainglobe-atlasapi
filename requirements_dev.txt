@@ -1,6 +1,3 @@
-sphinx
-sphinx_rtd_theme
-pydoc-markdown
 pytest-cov
 pytest
 gitpython

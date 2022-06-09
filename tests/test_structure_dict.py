@@ -1,9 +1,9 @@
-from bg_atlasapi.structure_class import StructuresDict
-from bg_atlasapi.utils import read_json
-from bg_atlasapi import descriptors
 import meshio as mio
 import pytest
 
+from bg_atlasapi import descriptors
+from bg_atlasapi.structure_class import StructuresDict
+from bg_atlasapi.utils import read_json
 
 structures_list = [
     {

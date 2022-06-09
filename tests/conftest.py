@@ -1,8 +1,10 @@
-import pytest
-from bg_atlasapi.bg_atlas import BrainGlobeAtlas
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
+
+import pytest
+
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 @pytest.fixture()

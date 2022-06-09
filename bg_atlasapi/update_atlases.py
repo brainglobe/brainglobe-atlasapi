@@ -1,5 +1,6 @@
-from rich import print as rprint
 import shutil
+
+from rich import print as rprint
 
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas, _version_str_from_tuple
 from bg_atlasapi.list_atlases import get_downloaded_atlases

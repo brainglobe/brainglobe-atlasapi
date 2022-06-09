@@ -1,9 +1,9 @@
-import pytest
-
-import pandas as pd
-import numpy as np
 import contextlib
 from io import StringIO
+
+import numpy as np
+import pandas as pd
+import pytest
 import tifffile
 
 from bg_atlasapi.core import AdditionalRefDict

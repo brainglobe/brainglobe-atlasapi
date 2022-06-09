@@ -1,9 +1,8 @@
-from rich.table import Table
 from rich import print as rprint
 from rich.panel import Panel
+from rich.table import Table
 
-from bg_atlasapi import config, utils, descriptors
-
+from bg_atlasapi import config, descriptors, utils
 
 """
     Some functionality to list all available and downloaded brainglobe atlases

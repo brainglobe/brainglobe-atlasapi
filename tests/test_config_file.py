@@ -1,10 +1,11 @@
-import pytest
+import shutil
 import tempfile
 from pathlib import Path
-from bg_atlasapi import config
+
+import pytest
 from click.testing import CliRunner
-from bg_atlasapi import bg_atlas, cli
-import shutil
+
+from bg_atlasapi import bg_atlas, cli, config
 
 
 @pytest.fixture()

@@ -6,9 +6,10 @@ This can be overridden with the environmental variable
 BRAINGLOBE_CONFIG_DIR.
 """
 
-import os
 import configparser
+import os
 from pathlib import Path
+
 import click
 
 CONFIG_FILENAME = "bg_config.conf"

@@ -6,14 +6,8 @@ import requests
 import tifffile
 from rich.panel import Panel
 from rich.pretty import Pretty
-from rich.progress import (
-    BarColumn,
-    DownloadColumn,
-    Progress,
-    TextColumn,
-    TimeRemainingColumn,
-    TransferSpeedColumn,
-)
+from rich.progress import (BarColumn, DownloadColumn, Progress, TextColumn,
+                           TimeRemainingColumn, TransferSpeedColumn)
 from rich.table import Table
 from rich.text import Text
 

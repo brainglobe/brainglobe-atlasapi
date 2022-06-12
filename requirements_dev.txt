@@ -2,7 +2,7 @@ black
 coverage
 flake8
 gitpython
-mypy
+isort
 pre - commit
 pytest
 pytest - cov

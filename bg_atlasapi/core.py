@@ -6,14 +6,9 @@ import numpy as np
 import pandas as pd
 from bg_space import AnatomicalSpace
 
-from bg_atlasapi.descriptors import (
-    ANNOTATION_FILENAME,
-    HEMISPHERES_FILENAME,
-    MESHES_DIRNAME,
-    METADATA_FILENAME,
-    REFERENCE_FILENAME,
-    STRUCTURES_FILENAME,
-)
+from bg_atlasapi.descriptors import (ANNOTATION_FILENAME, HEMISPHERES_FILENAME,
+                                     MESHES_DIRNAME, METADATA_FILENAME,
+                                     REFERENCE_FILENAME, STRUCTURES_FILENAME)
 from bg_atlasapi.structure_class import StructuresDict
 from bg_atlasapi.utils import read_json, read_tiff
 

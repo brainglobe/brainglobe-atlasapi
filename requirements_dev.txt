@@ -1,7 +1,8 @@
-pytest-cov
-pytest
-gitpython
-coverage
-pre-commit
 black
+coverage
 flake8
+gitpython
+mypy
+pre - commit
+pytest
+pytest - cov

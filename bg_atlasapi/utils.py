@@ -1,19 +1,20 @@
-import json
-import tifffile
-import requests
-import logging
 import configparser
+import json
+import logging
+
+import requests
+import tifffile
+from rich.panel import Panel
+from rich.pretty import Pretty
 from rich.progress import (
     BarColumn,
     DownloadColumn,
-    TextColumn,
-    TransferSpeedColumn,
-    TimeRemainingColumn,
     Progress,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
 )
 from rich.table import Table
-from rich.panel import Panel
-from rich.pretty import Pretty
 from rich.text import Text
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)

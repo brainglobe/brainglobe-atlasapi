@@ -1,5 +1,6 @@
-from bg_atlasapi import update_atlases
 import pytest
+
+from bg_atlasapi import update_atlases
 
 
 def test_update():

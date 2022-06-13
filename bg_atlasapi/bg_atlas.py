@@ -1,14 +1,13 @@
-from pathlib import Path
 import tarfile
+from io import StringIO
+from pathlib import Path
+
 import requests
 from rich import print as rprint
 from rich.console import Console
-from io import StringIO
+
+from bg_atlasapi import config, core, descriptors, utils
 from bg_atlasapi.utils import _rich_atlas_metadata
-
-
-from bg_atlasapi import utils, config, core, descriptors
-
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 

@@ -1,6 +1,7 @@
-import meshio as mio
-from collections import UserDict
 import warnings
+from collections import UserDict
+
+import meshio as mio
 
 from bg_atlasapi.structure_tree_util import get_structures_tree
 

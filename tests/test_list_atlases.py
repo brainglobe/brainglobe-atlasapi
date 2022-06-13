@@ -1,8 +1,8 @@
 from bg_atlasapi.list_atlases import (
-    get_downloaded_atlases,
     get_atlases_lastversions,
-    show_atlases,
+    get_downloaded_atlases,
     get_local_atlas_version,
+    show_atlases,
 )
 
 

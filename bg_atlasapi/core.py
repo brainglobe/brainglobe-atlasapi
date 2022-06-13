@@ -1,21 +1,21 @@
-from pathlib import Path
-import pandas as pd
-import numpy as np
-from collections import UserDict
 import warnings
+from collections import UserDict
+from pathlib import Path
 
+import numpy as np
+import pandas as pd
 from bg_space import AnatomicalSpace
 
-from bg_atlasapi.utils import read_json, read_tiff
-from bg_atlasapi.structure_class import StructuresDict
 from bg_atlasapi.descriptors import (
-    METADATA_FILENAME,
-    STRUCTURES_FILENAME,
-    REFERENCE_FILENAME,
     ANNOTATION_FILENAME,
     HEMISPHERES_FILENAME,
     MESHES_DIRNAME,
+    METADATA_FILENAME,
+    REFERENCE_FILENAME,
+    STRUCTURES_FILENAME,
 )
+from bg_atlasapi.structure_class import StructuresDict
+from bg_atlasapi.utils import read_json, read_tiff
 
 
 class Atlas:

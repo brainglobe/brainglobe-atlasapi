@@ -1,6 +1,8 @@
-import pytest
-import tempfile
 import shutil
+import tempfile
+
+import pytest
+
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 
 

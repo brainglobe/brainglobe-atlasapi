@@ -1,10 +1,8 @@
-sphinx
-sphinx_rtd_theme
-pydoc-markdown
-pytest-cov
-pytest
-gitpython
-coverage
-pre-commit
 black
+coverage
 flake8
+gitpython
+isort
+pre - commit
+pytest
+pytest - cov

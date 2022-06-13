@@ -1,7 +1,8 @@
-from bg_atlasapi.list_atlases import show_atlases
-from bg_atlasapi.update_atlases import update_atlas, install_atlas
-from bg_atlasapi.config import cli_modify_config
 import click
+
+from bg_atlasapi.config import cli_modify_config
+from bg_atlasapi.list_atlases import show_atlases
+from bg_atlasapi.update_atlases import install_atlas, update_atlas
 
 
 @click.command()

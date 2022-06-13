@@ -1,4 +1,5 @@
 from click.testing import CliRunner
+
 from bg_atlasapi import cli, config
 
 

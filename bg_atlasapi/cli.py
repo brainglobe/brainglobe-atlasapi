@@ -5,7 +5,7 @@ from bg_atlasapi.list_atlases import show_atlases
 from bg_atlasapi.update_atlases import install_atlas, update_atlas
 
 
-@click.command()
+@click.command(context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument("command")
 @click.option("-s", "--show", is_flag=True)
 @click.option("-a", "--atlas_name")

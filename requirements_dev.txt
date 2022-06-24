@@ -3,6 +3,6 @@ coverage
 flake8
 gitpython
 isort
-pre - commit
+pre-commit
 pytest
-pytest - cov
+pytest-cov

@@ -161,7 +161,9 @@ class BrainGlobeAtlas(core.Atlas):
         destination_path = self.interm_download_dir / COMPRESSED_FILENAME
 
         # Try to download atlas data
-        utils.retrieve_over_http(self.remote_url, destination_path, self.fn_update)
+        utils.retrieve_over_http(
+            self.remote_url, destination_path, self.fn_update
+        )
 
         # Uncompress in brainglobe path:
         tar = tarfile.open(destination_path)

@@ -129,8 +129,9 @@ def check_internet_connection(
     return False
 
 
-def retrieve_over_http(url, output_file_path,
-                       fn_update: Callable[[int, int], None] = None):
+def retrieve_over_http(
+    url, output_file_path, fn_update: Callable[[int, int], None] = None
+):
     """Download file from remote location, with progress bar.
 
     Parameters
@@ -176,7 +177,7 @@ def retrieve_over_http(url, output_file_path,
                     fout.write(chunk)
                     adv = len(chunk)
                     progress.update(task_id, advance=adv, refresh=True)
-                    
+
                     if fn_update:
                         # update handler with completed and total bytes
                         advanced += adv

@@ -38,6 +38,9 @@ class BrainGlobeAtlas(core.Atlas):
         instantiation and to suppress warnings.
     print_authors : bool (optional)
         If true, disable default listing of the atlas reference.
+    fn_update : Callable
+        Handler function to update during download. Takes completed and total
+        bytes.
 
     """
 
@@ -51,8 +54,10 @@ class BrainGlobeAtlas(core.Atlas):
         interm_download_dir=None,
         check_latest=True,
         config_dir=None,
+        fn_update=None,
     ):
         self.atlas_name = atlas_name
+        self.fn_update = fn_update
 
         # Read BrainGlobe configuration file:
         conf = config.read_config(config_dir)
@@ -156,7 +161,9 @@ class BrainGlobeAtlas(core.Atlas):
         destination_path = self.interm_download_dir / COMPRESSED_FILENAME
 
         # Try to download atlas data
-        utils.retrieve_over_http(self.remote_url, destination_path)
+        utils.retrieve_over_http(
+            self.remote_url, destination_path, self.fn_update
+        )
 
         # Uncompress in brainglobe path:
         tar = tarfile.open(destination_path)

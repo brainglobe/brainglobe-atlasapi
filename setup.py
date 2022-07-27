@@ -1,13 +1,25 @@
+from os import path
+
 from setuptools import find_namespace_packages, setup
 
-with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
+this_directory = path.abspath(path.dirname(__file__))
 
-with open("requirements_dev.txt") as f:
-    requirements_dev = f.read().splitlines()
-
-with open("README.md") as f:
+with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
+
+requirements = [
+    "bg-space >= 0.5.0",
+    "click",
+    "meshio",
+    "numpy",
+    "pandas",
+    "requests",
+    "rich >= 9.0.0",
+    "tifffile",
+    "treelib"
+
+]
+
 
 setup(
     name="bg-atlasapi",
@@ -17,8 +29,19 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=requirements,
-    extras_require=dict(dev=requirements_dev),
-    python_requires=">=3.6",
+    extras_require={
+        "dev": [
+            "black",
+            "pytest-cov",
+            "pytest",
+            "gitpython",
+            "coverage>=5.0.3",
+            "bump2version",
+            "pre-commit",
+            "flake8",
+            "check-manifest",
+        ]
+    },    python_requires=">=3.6",
     entry_points={"console_scripts": ["brainglobe = bg_atlasapi.cli:bg_cli"]},
     packages=find_namespace_packages(exclude=("docs", "tests*")),
     include_package_data=True,

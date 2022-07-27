@@ -4,12 +4,18 @@
 [![PyPI](https://img.shields.io/pypi/v/bg-atlasapi.svg)](https://pypi.org/project/bg-atlasapi/)
 [![Wheel](https://img.shields.io/pypi/wheel/bg-atlasapi.svg)](https://pypi.org/project/bg-atlasapi)
 [![Development Status](https://img.shields.io/pypi/status/brainatlas-api.svg)](https://github.com/SainsburyWellcomeCentre/brainatlas-api)
+[![Downloads](https://pepy.tech/badge/bg-atlasapi)](https://pepy.tech/project/bg-atlasapi)
 [![Tests](https://img.shields.io/github/workflow/status/brainglobe/bg-atlasapi/tests)](
     https://github.com/brainglobe/bg-atlasapi/actions)
-[![Coverage Status](https://coveralls.io/repos/github/brainglobe/brainatlas-api/badge.svg?branch=master)](https://coveralls.io/github/brainglobe/brainatlas-api?branch=master)
+[![codecov](https://codecov.io/gh/brainglobe/bg-atlasapi/branch/master/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/bg-atlasapi)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.02668/status.svg)](https://doi.org/10.21105/joss.02668)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![Contributions](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg)](https://docs.brainglobe.info/cellfinder/contributing)
+[![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/cellfinder)
+[![Twitter](https://img.shields.io/twitter/follow/brain_globe?style=social)](https://twitter.com/brain_globe)
 
 ![banner](https://github.com/brainglobe/bg-atlasapi/blob/master/docs/img/banner.jpeg)
 

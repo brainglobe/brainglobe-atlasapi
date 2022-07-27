@@ -16,8 +16,7 @@ requirements = [
     "requests",
     "rich >= 9.0.0",
     "tifffile",
-    "treelib"
-
+    "treelib",
 ]
 
 
@@ -41,7 +40,8 @@ setup(
             "flake8",
             "check-manifest",
         ]
-    },    python_requires=">=3.6",
+    },
+    python_requires=">=3.6",
     entry_points={"console_scripts": ["brainglobe = bg_atlasapi.cli:bg_cli"]},
     packages=find_namespace_packages(exclude=("docs", "tests*")),
     include_package_data=True,

@@ -1,9 +1,0 @@
-bg-space>=0.5.0
-click
-meshio
-numpy
-pandas
-requests
-rich>=9.0.0
-tifffile
-treelib

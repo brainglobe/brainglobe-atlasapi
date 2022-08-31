@@ -1,0 +1,226 @@
+__version__ = "0"
+__atlas__ = "princeton_mouse"
+
+import tifffile
+import os.path
+import numpy as np
+import pandas as pd
+import json
+import time
+import multiprocessing as mp
+
+from rich.progress import track
+from pathlib import Path
+from bg_atlasapi import utils
+from scipy.ndimage import zoom
+
+from bg_atlasgen.mesh_utils import create_region_mesh, Region
+from bg_atlasgen.wrapup import wrapup_atlas_from_data
+from bg_atlasapi.structure_tree_util import get_structures_tree
+
+PARALLEL = False
+
+def create_atlas(working_dir, resolution):
+    # Specify information about the atlas:
+    ATLAS_NAME = __atlas__
+    SPECIES = "Mus musculus"
+    ATLAS_LINK = "https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links/"
+    CITATION = "Pisano et al 2021, https://doi.org/10.1016/j.celrep.2021.109721"
+    ORIENTATION = "las"
+    ROOT_ID = 997
+    ATLAS_RES = 20
+    PACKAGER = "Sam Clothier. sam.clothier.18@ucl.ac.uk"
+
+    # Download the atlas tissue and annotation TIFFs:
+    ######################################
+
+    reference_download_url = "https://brainmaps.princeton.edu/pma_tissue"
+    annotation_download_url = "https://brainmaps.princeton.edu/pma_annotations"
+
+    # Temporary folder for nrrd files download:
+    download_dir_path = working_dir / "downloads"
+    download_dir_path.mkdir(exist_ok=True)
+
+    utils.check_internet_connection()
+    reference_dest_path = download_dir_path / "reference_download.tif"
+    annotation_dest_path = download_dir_path / "annotation_download.tif"
+
+    if not os.path.isfile(reference_dest_path):
+        print('Downloading tissue volume...')
+        utils.retrieve_over_http(reference_download_url, reference_dest_path)
+    if not os.path.isfile(annotation_dest_path):
+        print("Downloading annotation stack...")
+        utils.retrieve_over_http(annotation_download_url, annotation_dest_path)
+    print("Download complete.")
+
+    template_volume = tifffile.imread(reference_dest_path)
+    template_volume = np.array(template_volume)
+    annotated_volume = tifffile.imread(annotation_dest_path)
+    annotated_volume = np.array(annotated_volume)
+
+    scaling = ATLAS_RES / resolution
+    annotated_volume = zoom(
+        annotated_volume, (scaling, scaling, scaling), order=0, prefilter=False
+    )
+
+    # Download structures tree and define regions:
+    ######################################
+
+    structures_download_url = "https://brainmaps.princeton.edu/pma_id_table"
+    structures_dest_path = download_dir_path / "structures_download.csv"
+    if not os.path.isfile(structures_dest_path):
+        utils.retrieve_over_http(structures_download_url, structures_dest_path)
+
+    structures = pd.read_csv(structures_dest_path)
+    structures = structures.drop(columns=['parent_name','parent_acronym','voxels_in_structure'])
+    
+    # create structure_id_path column
+    def get_inheritance_list_from(id_val):
+        inheritance_list = [id_val]
+        def add_parent_id(child_id):
+            if child_id != 997: # don't look for the parent of the root area
+                parent_id = structures.loc[structures['id'] == child_id, 'parent_structure_id'].values[0]
+                inheritance_list.insert(0, int(parent_id))
+                add_parent_id(parent_id)
+        add_parent_id(id_val)
+        return inheritance_list
+    structures['structure_id_path'] = structures['id'].map(lambda x: get_inheritance_list_from(x))
+
+    # create rgb_triplet column
+    structures['rgb_triplet'] = '[255, 255, 255]'
+    structures['rgb_triplet'] = structures['rgb_triplet'].map(lambda x: json.loads(x))
+
+    # order dataframe and convert to list of dictionaries specifying parameters for each area
+    structures = structures[['acronym', 'id', 'name', 'structure_id_path','rgb_triplet']]
+    structs_dict = structures.to_dict(orient='records')
+    print(structs_dict)
+
+    # save regions list json:
+    with open(download_dir_path / "structures.json", "w") as f:
+        json.dump(structs_dict, f)
+
+
+    # Create region meshes:
+    ######################################
+
+    print(f"Saving atlas data at {download_dir_path}")
+    meshes_dir_path = download_dir_path / "meshes"
+    meshes_dir_path.mkdir(exist_ok=True)
+
+    tree = get_structures_tree(structs_dict)
+    rotated_annotations = np.rot90(annotated_volume, axes=(0, 2))
+
+    labels = np.unique(rotated_annotations).astype(np.int32)
+    for key, node in tree.nodes.items():
+        if key in labels:
+            is_label = True
+        else:
+            is_label = False
+        node.data = Region(is_label)
+
+    # Mesh creation
+    closing_n_iters = 2
+    decimate_fraction = 0.2
+    smooth = False  # smooth meshes after creation
+    start = time.time()
+    if PARALLEL:
+        pool = mp.Pool(mp.cpu_count() - 2)
+        try:
+            pool.map(
+                create_region_mesh,
+                [
+                    (
+                        meshes_dir_path,
+                        node,
+                        tree,
+                        labels,
+                        rotated_annotations,
+                        ROOT_ID,
+                        closing_n_iters,
+                        decimate_fraction,
+                        smooth,
+                    )
+                    for node in tree.nodes.values()
+                ],
+            )
+        except mp.pool.MaybeEncodingError:
+            pass  # error with returning results from pool.map but we don't care
+    else:
+        for node in track(
+            tree.nodes.values(),
+            total=tree.size(),
+            description="Creating meshes",
+        ):
+            create_region_mesh(
+                (
+                    meshes_dir_path,
+                    node,
+                    tree,
+                    labels,
+                    rotated_annotations,
+                    ROOT_ID,
+                    closing_n_iters,
+                    decimate_fraction,
+                    smooth,
+                )
+            )
+    print(
+        "Finished mesh extraction in: ",
+        round((time.time() - start) / 60, 2),
+        " minutes",
+    )
+
+    # Create meshes dict
+    meshes_dict = dict()
+    structs_with_mesh = []
+    for s in structs_dict:
+        # Check if a mesh was created
+        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        if not mesh_path.exists():
+            print(f"No mesh file exists for: {s}, ignoring it")
+            continue
+        else:
+            # Check that the mesh actually exists (i.e. not empty)
+            if mesh_path.stat().st_size < 512:
+                print(f"obj file for {s} is too small, ignoring it.")
+                continue
+
+        structs_with_mesh.append(s)
+        meshes_dict[s["id"]] = mesh_path
+
+    print(
+        f"In the end, {len(structs_with_mesh)} structures with mesh are kept"
+    )
+
+    # Wrap up, compress, and remove file:
+    print(f"Finalising atlas")
+    output_filename = wrapup_atlas_from_data(
+        atlas_name=ATLAS_NAME,
+        atlas_minor_version=__version__,
+        citation=CITATION,
+        atlas_link=ATLAS_LINK,
+        species=SPECIES,
+        resolution=(resolution,) * 3,
+        orientation=ORIENTATION,
+        root_id=997,
+        reference_stack=template_volume,
+        annotation_stack=annotated_volume,
+        structures_list=structs_with_mesh,
+        meshes_dict=meshes_dict,
+        working_dir=working_dir,
+        atlas_packager=PACKAGER,
+        hemispheres_stack=None,
+        cleanup_files=False,
+        compress=True,
+    )
+
+    return output_filename
+
+
+if __name__ == "__main__":
+    RES_UM = 20
+    # Generated atlas path:
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / __atlas__
+    bg_root_dir.mkdir(exist_ok=True, parents=True)
+
+    create_atlas(bg_root_dir, RES_UM)

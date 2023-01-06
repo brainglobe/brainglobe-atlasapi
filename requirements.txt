@@ -24,3 +24,4 @@ PyMCubes
 bg_atlasapi
 xmltodict
 SimpleITK
+loguru

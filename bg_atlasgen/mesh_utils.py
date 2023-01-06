@@ -1,6 +1,6 @@
 try:
     from vedo import Mesh, write, load, show, Volume
-    from vedo.applications import Browser, SlicerPlotter
+    from vedo.applications import Browser, Slicer3DPlotter
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
@@ -28,7 +28,9 @@ from bg_atlasgen.volume_utils import create_masked_array
 
 
 def region_mask_from_annotation(
-    structure_id, annotation, structures_list,
+    structure_id,
+    annotation,
+    structures_list,
 ):
     """Generate mask for a structure from an annotation file
     and a list of structures.
@@ -121,10 +123,10 @@ def extract_mesh_from_mask(
 
     # Apply morphological transformations
     if closing_n_iters is not None:
-        volume = scipy.ndimage.morphology.binary_fill_holes(volume)
+        volume = scipy.ndimage.morphology.binary_fill_holes(volume).astype(int)
         volume = scipy.ndimage.morphology.binary_closing(
             volume, iterations=closing_n_iters
-        )
+        ).astype(int)
 
     if not use_marching_cubes:
         # Use faster algorithm
@@ -263,7 +265,7 @@ def compare_mesh_and_volume(mesh, volume):
     if isinstance(volume, np.ndarray):
         volume = Volume(volume)
 
-    vp = SlicerPlotter(volume, bg2="white", showHisto=False)
+    vp = Slicer3DPlotter(volume, bg2="white", showHisto=False)
     vp.add(mesh.alpha(0.5))
     vp.show()
 

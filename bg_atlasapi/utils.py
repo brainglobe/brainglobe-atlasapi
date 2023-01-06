@@ -1,7 +1,7 @@
 import configparser
 import json
 import logging
-from typing import Callable
+from typing import Callable, Optional
 
 import requests
 import tifffile
@@ -130,7 +130,9 @@ def check_internet_connection(
 
 
 def retrieve_over_http(
-    url, output_file_path, fn_update: Callable[[int, int], None] = None
+    url,
+    output_file_path,
+    fn_update: Optional[Callable[[int, int], None]] = None,
 ):
     """Download file from remote location, with progress bar.
 

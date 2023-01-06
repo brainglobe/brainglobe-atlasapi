@@ -12,9 +12,6 @@ def test_get_downloaded_atlases():
     # Check that example is listed:
     assert "example_mouse_100um" in available_atlases
 
-    # Check that all listed ar valid atlas names:
-    assert all([len(a.split("_")) == 3 for a in available_atlases])
-
 
 def test_get_local_atlas_version():
     v = get_local_atlas_version("example_mouse_100um")

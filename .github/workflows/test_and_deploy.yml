@@ -14,15 +14,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Run all supported Python versions on linux
-        python-version: ["3.7", "3.8", "3.9"]
-        os: [ubuntu-latest]
-        # Include one windows and macos run
+        # Run across a mixture of Python versions and operating systems
         include:
+        - os: ubuntu-latest
+          python-version: "3.11"
         - os: macos-latest
-          python-version: "3.9"
+          python-version: "3.10"
         - os: windows-latest
           python-version: "3.9"
+        - os: ubuntu-latest
+          python-version: "3.8"
 
     steps:
       - uses: brainglobe/actions/test@v1

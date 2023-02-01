@@ -1,8 +1,22 @@
 from setuptools import setup, find_namespace_packages
 
-with open("requirements.txt") as f:
-    requirements = f.read().splitlines()
-
+requirements = [
+    "numpy",
+    "tifffile",
+    "treelib",
+    "pandas",
+    "requests",
+    "meshio",
+    "rich",
+    "tqdm>=4.46.1",
+    "imio",
+    "vedo",
+    "PyMCubes",
+    "bg_atlasapi",
+    "xmltodict",
+    "SimpleITK",
+    "loguru",
+]
 setup(
     name="bg-atlasgen",
     version="0.0.2",

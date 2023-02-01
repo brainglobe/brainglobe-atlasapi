@@ -156,7 +156,9 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     else:
         print(f"Creating {len(nodes)} meshes")
         for node in track(
-            nodes, total=len(nodes), description="Creating meshes",
+            nodes,
+            total=len(nodes),
+            description="Creating meshes",
         ):
             create_region_mesh(
                 (

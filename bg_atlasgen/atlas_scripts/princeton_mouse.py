@@ -20,12 +20,15 @@ from bg_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False
 
+
 def create_atlas(working_dir, resolution):
     # Specify information about the atlas:
     ATLAS_NAME = __atlas__
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links/"
-    CITATION = "Pisano et al 2021, https://doi.org/10.1016/j.celrep.2021.109721"
+    CITATION = (
+        "Pisano et al 2021, https://doi.org/10.1016/j.celrep.2021.109721"
+    )
     ORIENTATION = "las"
     ROOT_ID = 997
     ATLAS_RES = 20
@@ -46,7 +49,7 @@ def create_atlas(working_dir, resolution):
     annotation_dest_path = download_dir_path / "annotation_download.tif"
 
     if not os.path.isfile(reference_dest_path):
-        print('Downloading tissue volume...')
+        print("Downloading tissue volume...")
         utils.retrieve_over_http(reference_download_url, reference_dest_path)
     if not os.path.isfile(annotation_dest_path):
         print("Downloading annotation stack...")
@@ -72,33 +75,45 @@ def create_atlas(working_dir, resolution):
         utils.retrieve_over_http(structures_download_url, structures_dest_path)
 
     structures = pd.read_csv(structures_dest_path)
-    structures = structures.drop(columns=['parent_name','parent_acronym','voxels_in_structure'])
-    
+    structures = structures.drop(
+        columns=["parent_name", "parent_acronym", "voxels_in_structure"]
+    )
+
     # create structure_id_path column
     def get_inheritance_list_from(id_val):
         inheritance_list = [id_val]
+
         def add_parent_id(child_id):
-            if child_id != 997: # don't look for the parent of the root area
-                parent_id = structures.loc[structures['id'] == child_id, 'parent_structure_id'].values[0]
+            if child_id != 997:  # don't look for the parent of the root area
+                parent_id = structures.loc[
+                    structures["id"] == child_id, "parent_structure_id"
+                ].values[0]
                 inheritance_list.insert(0, int(parent_id))
                 add_parent_id(parent_id)
+
         add_parent_id(id_val)
         return inheritance_list
-    structures['structure_id_path'] = structures['id'].map(lambda x: get_inheritance_list_from(x))
+
+    structures["structure_id_path"] = structures["id"].map(
+        lambda x: get_inheritance_list_from(x)
+    )
 
     # create rgb_triplet column
-    structures['rgb_triplet'] = '[255, 255, 255]'
-    structures['rgb_triplet'] = structures['rgb_triplet'].map(lambda x: json.loads(x))
+    structures["rgb_triplet"] = "[255, 255, 255]"
+    structures["rgb_triplet"] = structures["rgb_triplet"].map(
+        lambda x: json.loads(x)
+    )
 
     # order dataframe and convert to list of dictionaries specifying parameters for each area
-    structures = structures[['acronym', 'id', 'name', 'structure_id_path','rgb_triplet']]
-    structs_dict = structures.to_dict(orient='records')
+    structures = structures[
+        ["acronym", "id", "name", "structure_id_path", "rgb_triplet"]
+    ]
+    structs_dict = structures.to_dict(orient="records")
     print(structs_dict)
 
     # save regions list json:
     with open(download_dir_path / "structures.json", "w") as f:
         json.dump(structs_dict, f)
-
 
     # Create region meshes:
     ######################################

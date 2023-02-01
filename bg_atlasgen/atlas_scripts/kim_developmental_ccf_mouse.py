@@ -59,7 +59,14 @@ def get_structure_id_path_from_id(id, id_dict, root_id):
     return structure_id_path
 
 
-def create_atlas(working_dir, resolution, reference_key, reference_filename, mesh_creation, existing_mesh_dir_path=None):
+def create_atlas(
+    working_dir,
+    resolution,
+    reference_key,
+    reference_filename,
+    mesh_creation,
+    existing_mesh_dir_path=None,
+):
     """"""
     ATLAS_NAME = f"kim_dev_mouse_{reference_key}"
     SPECIES = "Mus musculus"
@@ -81,9 +88,7 @@ def create_atlas(working_dir, resolution, reference_key, reference_filename, mes
 
     utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
 
-    with zipfile.ZipFile(
-        download_dir_path / "atlas_download", "r"
-    ) as zip_ref:
+    with zipfile.ZipFile(download_dir_path / "atlas_download", "r") as zip_ref:
         zip_ref.extractall(atlas_files_dir)
 
     destination_path.unlink()
@@ -101,10 +106,7 @@ def create_atlas(working_dir, resolution, reference_key, reference_filename, mes
         / "KimLabDevCCFv001_Annotations_ASL_Oriented_10um.nii.gz"
     )
     template_file = (
-        atlas_files_dir
-        / "KimLabDevCCFv001"
-        / "10um"
-        / reference_filename
+        atlas_files_dir / "KimLabDevCCFv001" / "10um" / reference_filename
     )
 
     # ---------------------------------------------------------------------------- #
@@ -170,9 +172,7 @@ def create_atlas(working_dir, resolution, reference_key, reference_filename, mes
 
     tree = get_structures_tree(structures)
 
-    rotated_annotations = np.rot90(
-        annotated_volume, axes=(0, 2)
-    )
+    rotated_annotations = np.rot90(annotated_volume, axes=(0, 2))
 
     labels = np.unique(rotated_annotations).astype(np.int32)
     for key, node in tree.nodes.items():
@@ -262,7 +262,7 @@ def create_atlas(working_dir, resolution, reference_key, reference_filename, mes
     print(
         f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
     )
-  
+
     # ---------------------------------------------------------------------------- #
     #                                    WRAP UP                                   #
     # ---------------------------------------------------------------------------- #
@@ -298,12 +298,12 @@ if __name__ == "__main__":
     with one atlas per reference. To avoid re-generating the meshes for each creation,
     the script should be run once with mesh_creation = 'generate'. This will generate
     the standard template atlas with the meshes. For the rest of the references,
-    use mesh_creation = 'copy' and set the existing_mesh_dir_path 
+    use mesh_creation = 'copy' and set the existing_mesh_dir_path
     to the previously-generated meshes.
-    
-    Note the decimate fraction is set to 0.04 to further reduce size of this large atlas. 
+
+    Note the decimate fraction is set to 0.04 to further reduce size of this large atlas.
     """
-    resolution = 10          # some resolution, in microns (10, 25, 50, 100)
+    resolution = 10  # some resolution, in microns (10, 25, 50, 100)
 
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"
@@ -311,11 +311,13 @@ if __name__ == "__main__":
 
     # First create the standard template, including all meshes
 
-    create_atlas(bg_root_dir,
-                 resolution,
-                 reference_key="stp",
-                 reference_filename="CCFv3_average_template_ASL_Oriented_u16_10um.nii.gz",
-                 mesh_creation="generate")
+    create_atlas(
+        bg_root_dir,
+        resolution,
+        reference_key="stp",
+        reference_filename="CCFv3_average_template_ASL_Oriented_u16_10um.nii.gz",
+        mesh_creation="generate",
+    )
 
     # Now get the mesh path from the previously generated atlas and use this
     # for all other atlases
@@ -333,9 +335,11 @@ if __name__ == "__main__":
     existing_mesh_dir_path = bg_root_dir / "downloads" / "meshes"
 
     for reference_key, reference_filename in additional_references.items():
-            create_atlas(bg_root_dir,
-                         resolution,
-                         reference_key,
-                         reference_filename,
-                         mesh_creation="copy",
-                         existing_mesh_dir_path=existing_mesh_dir_path)
+        create_atlas(
+            bg_root_dir,
+            resolution,
+            reference_key,
+            reference_filename,
+            mesh_creation="copy",
+            existing_mesh_dir_path=existing_mesh_dir_path,
+        )

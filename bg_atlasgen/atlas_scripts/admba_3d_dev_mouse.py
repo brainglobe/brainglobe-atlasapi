@@ -27,7 +27,7 @@ PARALLEL = True
 
 def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
     utils.check_internet_connection()
-    
+
     atlas_files_dir = download_dir_path / ATLAS_NAME
     try:
         download_name = ATLAS_NAME + "_atlas.zip"
@@ -35,10 +35,10 @@ def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
         download_name = ATLAS_NAME / "_atlas.zip"
     destination_path = download_dir_path / download_name
     utils.retrieve_over_http(atlas_file_url, destination_path)
-    
+
     with zipfile.ZipFile(destination_path, "r") as zip_ref:
         zip_ref.extractall(atlas_files_dir)
-    
+
     return atlas_files_dir
 
 
@@ -53,13 +53,19 @@ def parse_structures(structures_file, root_id):
     no_items = df.shape[0]
     # Random values for RGB
     # could use this instead?
-    rgb_list = [[
-        np.random.randint(0, 255), np.random.randint(0, 255),
-        np.random.randint(0, 255)] for i in range(no_items)]
-    rgb_list = pd.DataFrame(rgb_list, columns=['red', 'green', 'blue'])
-    
+    rgb_list = [
+        [
+            np.random.randint(0, 255),
+            np.random.randint(0, 255),
+            np.random.randint(0, 255),
+        ]
+        for i in range(no_items)
+    ]
+    rgb_list = pd.DataFrame(rgb_list, columns=["red", "green", "blue"])
+
     df["rgb_triplet"] = rgb_list.apply(
-        lambda x: [x.red.item(), x.green.item(), x.blue.item()], axis=1)
+        lambda x: [x.red.item(), x.green.item(), x.blue.item()], axis=1
+    )
     df["structure_id_path"] = df.apply(lambda x: [x.id], axis=1)
     structures = df.to_dict("records")
     structures = create_structure_hierarchy(structures, df, root_id)
@@ -83,36 +89,36 @@ def create_structure_hierarchy(structures, df, root_id):
         else:
             structure["name"] = "root"
             structure["acronym"] = "root"
-        
+
         del structure["parent_structure_id"]
-    
+
     return structures
 
 
 def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     meshes_dir_path = download_dir_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
-    
+
     tree = get_structures_tree(structures)
-    
+
     labels = np.unique(annotated_volume).astype(np.int32)
-    
+
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
         else:
             is_label = False
         node.data = Region(is_label)
-    
+
     # Mesh creation
     closing_n_iters = 2
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
     if PARALLEL:
-        
+
         pool = mp.Pool(mp.cpu_count() - 2)
-        
+
         try:
             pool.map(
                 create_region_mesh,
@@ -135,9 +141,9 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
             pass
     else:
         for node in track(
-                tree.nodes.values(),
-                total=tree.size(),
-                description="Creating meshes",
+            tree.nodes.values(),
+            total=tree.size(),
+            description="Creating meshes",
         ):
             create_region_mesh(
                 (
@@ -152,7 +158,7 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
                     smooth,
                 )
             )
-    
+
     print(
         "Finished mesh extraction in: ",
         round((time.time() - start) / 60, 2),
@@ -175,10 +181,10 @@ def create_mesh_dict(structures, meshes_dir_path):
             if mesh_path.stat().st_size < 512:
                 print(f"obj file for {s} is too small, ignoring it.")
                 continue
-        
+
         structures_with_mesh.append(s)
         meshes_dict[s["id"]] = mesh_path
-    
+
     print(
         f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
     )
@@ -188,6 +194,7 @@ def create_mesh_dict(structures, meshes_dir_path):
 @dataclasses.dataclass
 class AtlasConfig:
     """Data class to configure atlas creation."""
+
     atlas_name: str
     species: str
     atlas_link: str
@@ -203,21 +210,26 @@ class AtlasConfig:
     atlas_packager: str
 
 
-def create_atlas(working_dir: Path = Path.home(),
-                 atlas_config: "AtlasConfig" = None):
-    assert len(atlas_config.orientation) == 3, \
-        f"Orientation is not 3 characters, Got {atlas_config.orientation}"
-    assert len(atlas_config.resolution) == 3, \
-        f"Resolution is not correct, Got {atlas_config.resolution}"
-    assert atlas_config.atlas_file_url, \
-        f"No download link provided for atlas in {atlas_config.atlas_file_url}"
+def create_atlas(
+    working_dir: Path = Path.home(), atlas_config: "AtlasConfig" = None
+):
+    assert (
+        len(atlas_config.orientation) == 3
+    ), f"Orientation is not 3 characters, Got {atlas_config.orientation}"
+    assert (
+        len(atlas_config.resolution) == 3
+    ), f"Resolution is not correct, Got {atlas_config.resolution}"
+    assert (
+        atlas_config.atlas_file_url
+    ), f"No download link provided for atlas in {atlas_config.atlas_file_url}"
     if type(working_dir) == str:
         working_dir = Path(working_dir)
     # Generated atlas path:
-    working_dir = (working_dir / "brainglobe_workingdir" /
-                   atlas_config.atlas_name)
+    working_dir = (
+        working_dir / "brainglobe_workingdir" / atlas_config.atlas_name
+    )
     working_dir.mkdir(exist_ok=True, parents=True)
-    
+
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
     if path.isdir(atlas_config.atlas_file_url):
@@ -227,40 +239,45 @@ def create_atlas(working_dir: Path = Path.home(),
         # Download atlas files from link provided
         print("Downloading atlas from link: ", atlas_config.atlas_file_url)
         atlas_files_dir = download_atlas_files(
-            download_dir_path, atlas_config.atlas_file_url,
-            atlas_config.atlas_name)
+            download_dir_path,
+            atlas_config.atlas_file_url,
+            atlas_config.atlas_name,
+        )
         ## Load files
-    
+
     structures_file = atlas_files_dir / (
-        [f for f in listdir(atlas_files_dir) if "region_ids_ADMBA" in f][0])
-    
+        [f for f in listdir(atlas_files_dir) if "region_ids_ADMBA" in f][0]
+    )
+
     reference_file = atlas_files_dir / (
-        [f for f in listdir(atlas_files_dir) if "atlasVolume.mhd" in f][0])
-    
+        [f for f in listdir(atlas_files_dir) if "atlasVolume.mhd" in f][0]
+    )
+
     annotations_file = atlas_files_dir / (
-        [f for f in listdir(atlas_files_dir) if "annotation.mhd" in f][0])
+        [f for f in listdir(atlas_files_dir) if "annotation.mhd" in f][0]
+    )
     # segments_file = atlas_files_dir / "Segments.csv"
-    
+
     annotated_volume = io.imread(annotations_file)
     template_volume = io.imread(reference_file)
-    
+
     ## Parse structure metadata
     structures = parse_structures(structures_file, atlas_config.root_id)
-    
+
     # save regions list json:
     with open(download_dir_path / "structures.json", "w") as f:
         json.dump(structures, f)
-    
+
     # Create meshes:
     print(f"Saving atlas data at {download_dir_path}")
     meshes_dir_path = create_meshes(
         download_dir_path, structures, annotated_volume, atlas_config.root_id
     )
-    
+
     meshes_dict, structures_with_mesh = create_mesh_dict(
         structures, meshes_dir_path
     )
-    
+
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
@@ -281,7 +298,7 @@ def create_atlas(working_dir: Path = Path.home(),
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
-        scale_meshes=True
+        scale_meshes=True,
     )
     print("Done. Atlas generated at: ", output_filename)
     return output_filename
@@ -291,7 +308,7 @@ if __name__ == "__main__":
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    
+
     # set up E11.5 atlas settings and use as template for rest of brains
     e11_5_config = AtlasConfig(
         atlas_name="admba_3d_e11_5_mouse",
@@ -363,7 +380,7 @@ if __name__ == "__main__":
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000030_3Drecon-ADMBA-P56_pub",
         resolution=(25, 25, 25),
     )
-    
+
     # atlases to create
     configs = (
         e11_5_config,
@@ -375,7 +392,7 @@ if __name__ == "__main__":
         p28_config,
         p56_config,
     )
-    
+
     # create each atlas
     for config in configs:
         create_atlas(bg_root_dir, config)

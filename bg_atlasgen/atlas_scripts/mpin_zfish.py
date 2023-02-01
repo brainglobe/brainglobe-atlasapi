@@ -54,7 +54,10 @@ def add_path_inplace(parent):
 
 
 def collect_all_inplace(
-    node, traversing_list, download_path, mesh_dict,
+    node,
+    traversing_list,
+    download_path,
+    mesh_dict,
 ):
     """Recursively traverse a region hierarchy, download meshes, and append
     regions to a list inplace.
@@ -130,9 +133,7 @@ def create_atlas(working_dir, resolution):
 
     extracted_dir = working_dir / "mpin_zfish_annotations"
 
-    annotation_stack = imread(
-        str(extracted_dir / "mpin_zfish_annotation.tif")
-    )
+    annotation_stack = imread(str(extracted_dir / "mpin_zfish_annotation.tif"))
 
     # Pad 1 voxel around the whole annotation:
     annotation_stack[[0, -1], :, :] = 0
@@ -165,7 +166,9 @@ def create_atlas(working_dir, resolution):
     brain_mask = np.zeros(shape_stack, dtype=np.uint8)
 
     # Exclude eyes from brain mask:
-    brain_mask[:, :, pad:-pad][(annotation_stack > 0) & (annotation_stack != 808)] = 255
+    brain_mask[:, :, pad:-pad][
+        (annotation_stack > 0) & (annotation_stack != 808)
+    ] = 255
 
     # Perform binary operations:
     brain_mask = binary_dilation(brain_mask, iterations=50)
@@ -245,7 +248,7 @@ def create_atlas(working_dir, resolution):
         cleanup_files=False,
         compress=True,
         additional_references=additional_references,
-        atlas_packager=ATLAS_PACKAGER
+        atlas_packager=ATLAS_PACKAGER,
     )
 
     return output_filename

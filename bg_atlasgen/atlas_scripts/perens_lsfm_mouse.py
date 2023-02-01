@@ -14,6 +14,7 @@ import SimpleITK as sitk
 from rich.progress import track
 from pathlib import Path
 from scipy.ndimage import zoom
+
 # from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from bg_atlasapi import utils
 
@@ -29,7 +30,7 @@ PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
 ##############################################################################
 def get_id_from_acronym(df, acronym):
-    '''
+    """
     Get Allen's brain atlas ID from brain region acronym(s)
 
     Call:
@@ -41,7 +42,7 @@ def get_id_from_acronym(df, acronym):
 
     Returns:
         ID (int or list of ints) : brain region ID(s) corresponding to input acronym(s)
-    '''
+    """
 
     # create as list if necessary
     if not isinstance(acronym, list):
@@ -50,17 +51,17 @@ def get_id_from_acronym(df, acronym):
     if len(acronym) > 1:
         ID_list = []
         for acro in acronym:
-            ID = df['id'][df['acronym'] == acro].item()
+            ID = df["id"][df["acronym"] == acro].item()
             ID_list.append(ID)
         return ID_list
     else:
-        return df['id'][df['acronym'] == acronym[0]].item()
+        return df["id"][df["acronym"] == acronym[0]].item()
 
     # return df['id'][df['acronym']  == acronym].item() # OLD VERSION
 
 
 def get_acronym_from_id(df, ID):
-    '''
+    """
     Get Allen's brain atlas acronym from brain region ID(s)
 
     Call:
@@ -72,7 +73,7 @@ def get_acronym_from_id(df, ID):
 
     Returns:
         acronym (string or list of strings) : brain region acronym(s) corresponding to input ID(s)
-    '''
+    """
 
     # create as list if necessary
     if not isinstance(ID, list):
@@ -81,18 +82,18 @@ def get_acronym_from_id(df, ID):
     if len(ID) > 1:
         acronym_list = []
         for id in ID:
-            acronym = df['acronym'][df['id'] == id].item()
+            acronym = df["acronym"][df["id"] == id].item()
             acronym_list.append(acronym)
         return acronym_list
     else:
-        return df['acronym'][df['id'] == ID[0]].item()
+        return df["acronym"][df["id"] == ID[0]].item()
 
 
 def tree_traverse_child2parent(df, child_id, ids):
-    parent = df['parent_id'][df['id'] == child_id].item()
+    parent = df["parent_id"][df["id"] == child_id].item()
 
     if not np.isnan(parent):
-        id = df['id'][df['id'] == parent].item()
+        id = df["id"][df["id"] == parent].item()
         ids.append(id)
         tree_traverse_child2parent(df, parent, ids)
         return ids
@@ -101,7 +102,7 @@ def tree_traverse_child2parent(df, child_id, ids):
 
 
 def get_all_parents(df, key):
-    '''
+    """
     Get all parent IDs/acronyms in Allen's brain atlas hierarchical structure'
 
     Call:
@@ -113,10 +114,12 @@ def get_all_parents(df, key):
 
     Returns:
         parents (list) : brain region acronym corresponding to input ID
-    '''
+    """
 
     if isinstance(key, str):  # if input is acronym convert to ID
-        list_parent_ids = tree_traverse_child2parent(df, get_id_from_acronym(df, key), [])
+        list_parent_ids = tree_traverse_child2parent(
+            df, get_id_from_acronym(df, key), []
+        )
     elif isinstance(key, int):
         list_parent_ids = tree_traverse_child2parent(df, key, [])
 
@@ -164,12 +167,31 @@ def create_atlas(working_dir, resolution):
     destination_path.unlink()
 
     # structures_file = atlas_files_dir  / "LSFM-mouse-brain-atlas-master" / "LSFM_atlas_files" / "ARA2_annotation_info.csv"
-    structures_file = atlas_files_dir / "LSFM-mouse-brain-atlas-master" / "LSFM_atlas_files" / "ARA2_annotation_info_avail_regions.csv"
-    annotations_file = atlas_files_dir / "LSFM-mouse-brain-atlas-master" / "LSFM_atlas_files" / "gubra_ano_olf.nii.gz"
-    reference_file = atlas_files_dir / "LSFM-mouse-brain-atlas-master" / "LSFM_atlas_files" / "gubra_template_olf.nii.gz"
+    structures_file = (
+        atlas_files_dir
+        / "LSFM-mouse-brain-atlas-master"
+        / "LSFM_atlas_files"
+        / "ARA2_annotation_info_avail_regions.csv"
+    )
+    annotations_file = (
+        atlas_files_dir
+        / "LSFM-mouse-brain-atlas-master"
+        / "LSFM_atlas_files"
+        / "gubra_ano_olf.nii.gz"
+    )
+    reference_file = (
+        atlas_files_dir
+        / "LSFM-mouse-brain-atlas-master"
+        / "LSFM_atlas_files"
+        / "gubra_template_olf.nii.gz"
+    )
 
-    annotated_volume = sitk.GetArrayFromImage(sitk.ReadImage(str(annotations_file)))
-    template_volume = sitk.GetArrayFromImage(sitk.ReadImage(str(reference_file)))
+    annotated_volume = sitk.GetArrayFromImage(
+        sitk.ReadImage(str(annotations_file))
+    )
+    template_volume = sitk.GetArrayFromImage(
+        sitk.ReadImage(str(reference_file))
+    )
     annotated_volume = np.rot90(annotated_volume, axes=(0, 2))
     template_volume = np.rot90(template_volume, axes=(0, 2))
 
@@ -187,11 +209,11 @@ def create_atlas(working_dir, resolution):
     parents = []
     rgb = []
     for index, row in df.iterrows():
-        temp_id = row['id']
+        temp_id = row["id"]
         temp_parents = get_all_parents(df, temp_id)
         parents.append(temp_parents[::-1])
 
-        temp_rgb = [row['red'], row['green'], row['blue']]
+        temp_rgb = [row["red"], row["green"], row["blue"]]
         rgb.append(temp_rgb)
 
     df = df.drop(columns=["parent_id", "red", "green", "blue"])
@@ -253,9 +275,9 @@ def create_atlas(working_dir, resolution):
             pass  # error with returning results from pool.map but we don't care
     else:
         for node in track(
-                tree.nodes.values(),
-                total=tree.size(),
-                description="Creating meshes",
+            tree.nodes.values(),
+            total=tree.size(),
+            description="Creating meshes",
         ):
             create_region_mesh(
                 (

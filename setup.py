@@ -41,7 +41,7 @@ setup(
             "check-manifest",
         ]
     },
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     entry_points={"console_scripts": ["brainglobe = bg_atlasapi.cli:bg_cli"]},
     packages=find_namespace_packages(exclude=("docs", "tests*")),
     include_package_data=True,
@@ -62,6 +62,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
     ],

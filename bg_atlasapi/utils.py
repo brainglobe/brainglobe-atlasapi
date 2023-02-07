@@ -101,7 +101,7 @@ def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
         return f"{name}_{resolution}um_v{major_vers}.{minor_vers}"
 
 
-# ------------------------------- Web requests ------------------------------- #
+### Web requests
 
 
 def check_internet_connection(
@@ -124,7 +124,8 @@ def check_internet_connection(
             print("No internet connection available.")
         else:
             raise ConnectionError(
-                "No internet connection, try again when you are connected to the internet."
+                "No internet connection, try again when you are "
+                "connected to the internet."
             )
     return False
 
@@ -211,7 +212,9 @@ def conf_from_url(url):
     return config
 
 
-# --------------------------------- File I/O --------------------------------- #
+### File I/O
+
+
 def read_json(path):
     """Read a json file.
 

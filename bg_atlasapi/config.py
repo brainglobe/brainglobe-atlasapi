@@ -127,7 +127,8 @@ def cli_modify_config(key=0, value=0, show=False):
             click.echo(path.parent.exists())
             if not path.parent.exists():
                 click.echo(
-                    f"{value} is not a valid path. Path must be a valid path string, and its parent must exist!"
+                    f"{value} is not a valid path. Path must be "
+                    "a valid path string, and its parent must exist!"
                 )
                 return
         write_config_value(key, value)

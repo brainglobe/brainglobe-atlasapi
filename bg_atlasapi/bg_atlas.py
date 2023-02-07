@@ -82,7 +82,8 @@ class BrainGlobeAtlas(core.Atlas):
                 raise ValueError(f"{atlas_name} is not a valid atlas name!")
 
             rprint(
-                f"[magenta2]Bgatlas_api: {self.atlas_name} not found locally. Downloading...[magenta2]"
+                f"[magenta2]Bgatlas_api: {self.atlas_name} "
+                "not found locally. Downloading...[magenta2]"
             )
             self.download_extract_file()
 
@@ -135,7 +136,8 @@ class BrainGlobeAtlas(core.Atlas):
         # If multiple folders exist, raise error:
         if len(candidate_dirs) > 1:
             raise FileExistsError(
-                f"Multiple versions of atlas {self.atlas_name} in {self.brainglobe_dir}"
+                f"Multiple versions of atlas {self.atlas_name} in "
+                f"{self.brainglobe_dir}"
             )
         # If no one exist, return None:
         elif len(candidate_dirs) == 0:
@@ -149,7 +151,10 @@ class BrainGlobeAtlas(core.Atlas):
         """Format complete url for download."""
 
         if self.remote_version is not None:
-            name = f"{self.atlas_name}_v{self.remote_version[0]}.{self.remote_version[1]}.tar.gz"
+            name = (
+                f"{self.atlas_name}_v{self.remote_version[0]}."
+                f"{self.remote_version[1]}.tar.gz"
+            )
 
             return self._remote_url_base.format(name)
 
@@ -183,9 +188,11 @@ class BrainGlobeAtlas(core.Atlas):
 
         if local != online:
             rprint(
-                f"[b][magenta2]Bg_atlasapi[/b]: [b]{self.atlas_name}[/b] version [b]{local}[/b] is not the latest available ([b]{online}[/b]). "
-                + "To update the atlas run in the terminal:[/magenta2]\n"
-                + f"    [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
+                f"[b][magenta2]Bg_atlasapi[/b]: "
+                f"[b]{self.atlas_name}[/b] version [b]{local}[/b]"
+                f"is not the latest available ([b]{online}[/b]). "
+                "To update the atlas run in the terminal:[/magenta2]\n"
+                f"    [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
             )
             return False
         return True

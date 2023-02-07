@@ -28,8 +28,8 @@ def test_lastversions():
     assert example_atlas["version"] == local_v
     assert all(
         [
-            int(l) <= int(r)
-            for l, r in zip(
+            int(last) <= int(r)
+            for last, r in zip(
                 example_atlas["latest_version"].split("."), local_v.split(".")
             )
         ]

@@ -12,7 +12,9 @@ from bg_atlasapi.core import AdditionalRefDict
 def test_initialization(atlas):
     assert atlas.metadata == {
         "name": "example_mouse",
-        "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
+        "citation": (
+            "Wang et al 2020, " "https://doi.org/10.1016/j.cell.2020.04.007"
+        ),
         "atlas_link": "http://www.brain-map.org",
         "species": "Mus musculus",
         "symmetric": True,

@@ -27,9 +27,10 @@ def bg_cli(
         - update: update an installed atlas
         - config: modify config
 
-    show: bool. If True when using `list` shows the local path of installed atlases
-            and when using 'config' it prints the modify config results.
-    atlas_name: ts. Used with `update` and `install`, name of the atlas to install
+    show: bool. If True when using `list` shows the local path of installed
+    atlases and when using 'config' it prints the modify config results.
+    atlas_name: ts. Used with `update` and `install`, name of the atlas to
+    install
     force: bool, used with `update`. If True it forces the update
     """
 

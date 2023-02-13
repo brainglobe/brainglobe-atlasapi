@@ -36,7 +36,8 @@ class Atlas:
 
         # Load structures list:
         structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
-        self.structures_list = structures_list  # keep to generate tree and dataframe views when necessary
+        # keep to generate tree and dataframe views when necessary
+        self.structures_list = structures_list
 
         # Add entry for file paths:
         for struct in structures_list:
@@ -62,7 +63,8 @@ class Atlas:
             )
         except KeyError:
             warnings.warn(
-                "This atlas seems to be outdated as no additional_references list "
+                "This atlas seems to be outdated as no "
+                "additional_references list "
                 "is found in metadata!"
             )
 
@@ -292,10 +294,12 @@ class Atlas:
         return descendants
 
     def get_structure_mask(self, structure):
-        """Returns a stack with the mask for a specific structure (including all
+        """
+        Returns a stack with the mask for a specific structure (including all
         sub-structures).
 
-        This function might take a few seconds for structures with many children.
+        This function might take a few seconds for structures with many
+        children.
 
         Parameters
         ----------
@@ -334,7 +338,6 @@ class AdditionalRefDict(UserDict):
 
     def __getitem__(self, ref_name):
         if ref_name not in self.keys():
-
             if ref_name not in self.references_list:
                 warnings.warn(
                     f"No reference named {ref_name} "

@@ -25,8 +25,10 @@ def update_atlas(atlas_name, force=False):
     if not force:
         if atlas.check_latest_version():
             rprint(
-                f"[b][magenta2]bg_atlasapi: {atlas.atlas_name} is already updated "
-                + f"(version: {_version_str_from_tuple(atlas.local_version)})[/b]"
+                f"[b][magenta2]bg_atlasapi: {atlas.atlas_name} "
+                "is already updated "
+                f"(version: {_version_str_from_tuple(atlas.local_version)})"
+                "[/b]"
             )
             return
 
@@ -38,7 +40,8 @@ def update_atlas(atlas_name, force=False):
     shutil.rmtree(fld)
     if fld.exists():
         raise ValueError(
-            "Something went wrong while tryint to delete the old version of the atlas, aborting."
+            "Something went wrong while tryint to delete the old version "
+            "of the atlas, aborting."
         )
 
     # Download again
@@ -69,7 +72,8 @@ def install_atlas(atlas_name):
     available_atlases = get_downloaded_atlases()
     if atlas_name in available_atlases:
         rprint(
-            f"[b][magenta2]Bg_atlasapi: installing {atlas_name}: atlas already installed![/magenta2][/b]"
+            f"[b][magenta2]Bg_atlasapi: installing {atlas_name}: "
+            "atlas already installed![/magenta2][/b]"
         )
         return
 

@@ -105,7 +105,6 @@ def show_atlases(show_local_path=False):
 
     # Get atlases not yet downloaded:
     for atlas in available_atlases.keys():
-
         if atlas not in atlases.keys():
             atlases[str(atlas)] = dict(
                 downloaded=False,

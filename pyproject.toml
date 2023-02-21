@@ -66,6 +66,12 @@ exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=bg_atlasapi"
+filterwarnings = [
+    "error",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310', 'py311']

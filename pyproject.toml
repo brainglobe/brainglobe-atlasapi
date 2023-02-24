@@ -1,10 +1,96 @@
+[project]
+name = "bg-atlasapi"
+description = "A lightweight python module to interact with atlases for systems neuroscience"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Luigi Petrucco, Federico Claudi, Adam Tyson", email = "code@adamltyson.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "bg-space >= 0.5.0",
+    "click",
+    "meshio",
+    "numpy",
+    "pandas",
+    "requests",
+    "rich >= 9.0.0",
+    "tifffile",
+    "treelib",
+]
+dynamic = ["version"]
+
+[project.urls]
+"Homepage" = "https://brainglobe.info/atlas-api"
+"Source Code" = "https://github.com/brainglobe/bg-atlasapi"
+"Bug Tracker" = "https://github.com/brainglobe/bg-atlasapi/issues"
+"Documentation" = "https://docs.brainglobe.info/bg-atlasapi"
+
+[project.optional-dependencies]
+dev = [
+    "check-manifest",
+    "gitpython",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+]
+
+[build-system]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "setuptools_scm[toml]>=6.2",
+]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+brainglobe = "bg_atlasapi.cli:bg_cli"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["bg_atlasapi*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=bg_atlasapi"
+
 [tool.black]
-target-version = ['py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310', 'py311']
 skip-string-normalization = false
 line-length = 79
+
+[tool.setuptools_scm]
+
+[tool.check-manifest]
+ignore = [
+  "*.yaml",
+  "tox.ini",
+  "tests/*",
+  "tests/test_unit/*",
+  "tests/test_integration/*",
+]
 
 [tool.ruff]
 line-length = 79
 exclude = ["__init__.py","build",".eggs"]
 select = ["I", "E", "F"]
 fix = true
+
+[tool.cibuildwheel]
+build = "cp38-* cp39-* cp310-* cp311-*"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]

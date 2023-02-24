@@ -68,7 +68,7 @@ exclude = ["tests*"]
 addopts = "--cov=bg_atlasapi"
 
 [tool.black]
-target-version = ['py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310', 'py311']
 skip-string-normalization = false
 line-length = 79
 

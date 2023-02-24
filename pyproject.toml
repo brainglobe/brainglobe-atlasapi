@@ -1,21 +1,85 @@
+[project]
+name = "bg-atlasgen"
+description = "Scripts generation atlases and utilities for BrainGlobe"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Luigi Petrucco, Federico Claudi, Adam Tyson", email = "code@adamltyson.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "PyMCubes",
+    "SimpleITK",
+    "bg_atlasapi",
+    "imio",
+    "loguru",
+    "meshio",
+    "numpy",
+    "pandas",
+    "requests",
+    "rich",
+    "tifffile",
+    "tqdm>=4.46.1",
+    "treelib",
+    "vedo",
+    "xmltodict",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/brainglobe/bg-atlasgen"
+
+[project.optional-dependencies]
+allenmouse = [
+    "allensdk",
+]
+
+[build-system]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "setuptools_scm[toml]>=6.2",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["bg_atlasgen*"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=bg_atlasgen"
+
 [tool.black]
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py38', 'py39', 'py310', 'py311']
 skip-string-normalization = false
 line-length = 79
-exclude = '''
-(
-  /(
-      \.eggs
-    | \.git
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-    | examples
-  )/
-)
-'''
+
+[tool.setuptools_scm]
+
+[tool.check-manifest]
+ignore = [
+  "*.yaml",
+  "tox.ini",
+  "tests/*",
+  "tests/test_unit/*",
+  "tests/test_integration/*",
+]
+
+[tool.ruff]
+line-length = 79
+exclude = ["__init__.py","build",".eggs"]
+select = ["I", "E", "F"]
+fix = true

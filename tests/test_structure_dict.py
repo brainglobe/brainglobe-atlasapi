@@ -33,6 +33,7 @@ structures_list = [
 ]
 
 
+@pytest.mark.filterwarnings("ignore:No mesh filename for region root")
 def test_structure_indexing():
     structures_dict = StructuresDict(structures_list)
     print(structures_dict)

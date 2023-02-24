@@ -77,12 +77,10 @@ line-length = 79
 [tool.check-manifest]
 ignore = [
   "*.yaml",
-  ".bumpversion.cfg",
   "tox.ini",
   "tests/*",
   "tests/test_unit/*",
   "tests/test_integration/*",
-  ".flake8"
 ]
 
 [tool.ruff]

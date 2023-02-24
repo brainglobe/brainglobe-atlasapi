@@ -67,7 +67,7 @@ include = ["bg_atlasapi*"]
 exclude = ["tests*"]
 
 [tool.pytest.ini_options]
-addopts = "--cov={{cookiecutter.module_name}}"
+addopts = "--cov=bg_atlasapi"
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310']

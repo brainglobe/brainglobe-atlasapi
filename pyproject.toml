@@ -83,9 +83,3 @@ line-length = 79
 exclude = ["__init__.py","build",".eggs"]
 select = ["I", "E", "F"]
 fix = true
-
-[tool.cibuildwheel]
-build = "cp38-* cp39-* cp310-* cp311-*"
-
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]

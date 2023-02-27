@@ -1,24 +1,21 @@
 __version__ = "1"
 
 import json
-import time
-import tarfile
-
-import pandas as pd
-import numpy as np
 import multiprocessing as mp
-
-from rich.progress import track
+import time
+import zipfile
 from pathlib import Path
+
+import imio
+import numpy as np
+import pandas as pd
+from bg_atlasapi import utils
+from bg_atlasapi.structure_tree_util import get_structures_tree
+from rich.progress import track
 from scipy.ndimage import zoom
 
-from bg_atlasapi import utils
-from bg_atlasgen.mesh_utils import create_region_mesh, Region
+from bg_atlasgen.mesh_utils import Region, create_region_mesh
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
-from bg_atlasapi.structure_tree_util import get_structures_tree
-import imio
-import zipfile
-import os
 
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
@@ -47,7 +44,6 @@ def get_structure_id_path_from_id(id, id_dict, root_id):
         return structure_id_path
 
     while True:
-
         parent = int(id_dict[id])
         structure_id_path.insert(0, parent)
 
@@ -141,7 +137,6 @@ def create_atlas(
 
     structures = []
     for row in range(df.shape[0]):
-
         entry = {
             "acronym": df["Acronym"][row],
             "id": int(df["ID"][row]),  # from np.int for JSON serialization
@@ -184,7 +179,6 @@ def create_atlas(
         node.data = Region(is_label)
 
     if mesh_creation == "generate":
-
         closing_n_iters = 2
         decimate_fraction = 0.04
         smooth = False  # smooth meshes after creation
@@ -192,7 +186,6 @@ def create_atlas(
         start = time.time()
 
         if PARALLEL:
-
             pool = mp.Pool(mp.cpu_count() - 2)
 
             try:

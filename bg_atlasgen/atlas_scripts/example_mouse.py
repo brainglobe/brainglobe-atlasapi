@@ -1,18 +1,17 @@
 __version__ = "2"
 
+from pathlib import Path
+
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
-
 from requests import exceptions
-from pathlib import Path
 from tqdm import tqdm
 
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 
 
 def create_atlas(working_dir, resolution):
-
     # Specify information about the atlas:
     RES_UM = resolution  # 100
     ATLAS_NAME = "example_mouse"

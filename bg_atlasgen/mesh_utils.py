@@ -1,5 +1,5 @@
 try:
-    from vedo import Mesh, write, load, show, Volume
+    from vedo import Mesh, Volume, load, show, write
     from vedo.applications import Browser, Slicer3DPlotter
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
@@ -15,12 +15,13 @@ except ModuleNotFoundError:
         + '   please install with "pip install PyMCubes -U"'
     )
 
-from loguru import logger
-import numpy as np
 from pathlib import Path
-import scipy
-from bg_atlasgen.volume_utils import create_masked_array
 
+import numpy as np
+import scipy
+from loguru import logger
+
+from bg_atlasgen.volume_utils import create_masked_array
 
 # ---------------------------------------------------------------------------- #
 #                                 MESH CREATION                                #

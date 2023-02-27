@@ -1,23 +1,18 @@
 __version__ = "1"
 
-from pathlib import Path
+import tarfile
 import warnings
-import zipfile
-import requests
-import tarfile
-from tifffile import imread
-from bg_atlasgen.mesh_utils import extract_mesh_from_mask
-import tarfile
 import zipfile
 from pathlib import Path
 
 import numpy as np
-from scipy.ndimage import binary_dilation, binary_erosion, binary_fill_holes
-
+import requests
 from allensdk.core.structure_tree import StructureTree
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
-
 from bg_atlasapi.utils import retrieve_over_http
+from scipy.ndimage import binary_dilation, binary_erosion, binary_fill_holes
+from tifffile import imread
+
+from bg_atlasgen.wrapup import wrapup_atlas_from_data
 
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
 
@@ -229,7 +224,7 @@ def create_atlas(working_dir, resolution):
         meshes_dict[sid] = extracted_dir / f"{sid}.stl"
 
     # Wrap up, compress, and remove file:0
-    print(f"Finalising atlas")
+    print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

@@ -10,30 +10,27 @@ Script to generate a Brainglobe compatible atlas object for the Adult Zebrafish 
 __version__ = "1"
 
 import csv
-import time
-import tifffile
+import multiprocessing as mp
 import tarfile
-from random import choices
+import time
+from pathlib import Path
 
 import numpy as np
-import multiprocessing as mp
-
+import tifffile
+from bg_atlasapi import utils
+from bg_atlasapi.structure_tree_util import get_structures_tree
 from rich.progress import track
-from pathlib import Path
+
 from bg_atlasgen.mesh_utils import (
     Region,
     create_region_mesh,
-    inspect_meshes_folder,
 )
-from bg_atlasapi.structure_tree_util import get_structures_tree
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
-from bg_atlasapi import utils
 
 PARALLEL = False  # Disable for debugging mesh creation
 
 
 def create_atlas(working_dir, resolution):
-
     # metadata
     ATLAS_NAME = "azba_zfish"
     SPECIES = "Danio rerio"
@@ -135,7 +132,6 @@ def create_atlas(working_dir, resolution):
     smooth = True
 
     if PARALLEL:
-
         print("Multiprocessing mesh creation...")
         pool = mp.Pool(int(mp.cpu_count() / 2))
 
@@ -159,7 +155,6 @@ def create_atlas(working_dir, resolution):
             pass
 
     else:
-
         print("Multiprocessing disabled")
         # nodes = list(tree.nodes.values())
         # nodes = choices(nodes, k=10)

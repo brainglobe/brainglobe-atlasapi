@@ -1,32 +1,29 @@
 __version__ = "0"
 
 import json
-import time
-import tarfile
-import tifffile
-import subprocess
-
-import pandas as pd
-import numpy as np
 import multiprocessing as mp
-import SimpleITK as sitk
-
-from rich.progress import track
+import tarfile
+import time
 from pathlib import Path
-from scipy.ndimage import zoom
+
+import numpy as np
+import pandas as pd
+import SimpleITK as sitk
 
 # from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from bg_atlasapi import utils
-
-from bg_atlasgen.mesh_utils import create_region_mesh, Region
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
+from rich.progress import track
+
+from bg_atlasgen.mesh_utils import Region, create_region_mesh
+from bg_atlasgen.wrapup import wrapup_atlas_from_data
 
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
 
 # %%
 ### Additional functions #####################################################
+
 
 ##############################################################################
 def get_id_from_acronym(df, acronym):
@@ -146,7 +143,6 @@ def create_atlas(working_dir, resolution):
     CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
     ORIENTATION = "rai"
     ROOT_ID = 997
-    ANNOTATIONS_RES_UM = 20
     ATLAS_FILE_URL = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
 
     # Temporary folder for  download:
@@ -252,7 +248,6 @@ def create_atlas(working_dir, resolution):
     closing_n_iters = 2
     start = time.time()
     if PARALLEL:
-
         pool = mp.Pool(mp.cpu_count() - 2)
 
         try:

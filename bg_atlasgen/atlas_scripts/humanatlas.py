@@ -1,25 +1,25 @@
 import json
-from rich.progress import track
-import pandas as pd
-import numpy as np
-import time
 import multiprocessing as mp
+import time
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 import treelib
-from brainio import brainio
 import urllib3
 from allensdk.core.structure_tree import StructureTree
+from bg_atlasapi.structure_tree_util import get_structures_tree
+from brainio import brainio
+from rich.progress import track
 
 # import sys
-
 # sys.path.append("./")
 from bg_atlasgen.mesh_utils import (
-    create_region_mesh,
     Region,
+    create_region_mesh,
     inspect_meshes_folder,
 )
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
-from bg_atlasapi.structure_tree_util import get_structures_tree
 
 
 def prune_tree(tree):

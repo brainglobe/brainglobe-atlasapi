@@ -13,7 +13,7 @@ from bg_atlasapi import utils
 from bg_atlasapi.structure_tree_util import get_structures_tree
 from rich.progress import track
 
-from bg_atlasgen.mesh_utils import create_region_mesh, Region
+from bg_atlasgen.mesh_utils import Region, create_region_mesh
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
 
 PARALLEL = True
@@ -117,7 +117,6 @@ def create_meshes(download_dir_path, tree, annotated_volume, labels, root_id):
     smooth = False  # smooth meshes after creation
     start = time.time()
     if PARALLEL:
-
         pool = mp.Pool(min(mp.cpu_count() - 2, 16))
 
         try:

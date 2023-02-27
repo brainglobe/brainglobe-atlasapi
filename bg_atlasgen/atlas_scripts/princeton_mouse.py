@@ -1,22 +1,22 @@
 __version__ = "0"
 __atlas__ = "princeton_mouse"
 
-import tifffile
+import json
+import multiprocessing as mp
 import os.path
+import time
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-import json
-import time
-import multiprocessing as mp
-
-from rich.progress import track
-from pathlib import Path
+import tifffile
 from bg_atlasapi import utils
+from bg_atlasapi.structure_tree_util import get_structures_tree
+from rich.progress import track
 from scipy.ndimage import zoom
 
-from bg_atlasgen.mesh_utils import create_region_mesh, Region
+from bg_atlasgen.mesh_utils import Region, create_region_mesh
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
-from bg_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False
 
@@ -208,7 +208,7 @@ def create_atlas(working_dir, resolution):
     )
 
     # Wrap up, compress, and remove file:
-    print(f"Finalising atlas")
+    print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

@@ -2,25 +2,22 @@ __version__ = "0"
 
 import dataclasses
 import json
+import multiprocessing as mp
 import time
 import zipfile
-
 from os import listdir, path
+from pathlib import Path
 from typing import Tuple
 
-import pandas as pd
 import numpy as np
-import multiprocessing as mp
-
-from rich.progress import track
-from pathlib import Path
-
+import pandas as pd
 from bg_atlasapi import utils
-from bg_atlasgen.mesh_utils import create_region_mesh, Region
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
-
+from rich.progress import track
 from skimage import io
+
+from bg_atlasgen.mesh_utils import Region, create_region_mesh
+from bg_atlasgen.wrapup import wrapup_atlas_from_data
 
 PARALLEL = True
 
@@ -116,7 +113,6 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     smooth = False  # smooth meshes after creation
     start = time.time()
     if PARALLEL:
-
         pool = mp.Pool(mp.cpu_count() - 2)
 
         try:

@@ -1,27 +1,25 @@
 __version__ = "1"
 
 import json
-import time
-import tarfile
-import tifffile
-
-import pandas as pd
-import numpy as np
 import multiprocessing as mp
-
-from rich.progress import track
+import tarfile
+import time
 from pathlib import Path
-from scipy.ndimage import zoom
+
+import numpy as np
+import pandas as pd
+import tifffile
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 
 # import sys
-
 # sys.path.append("./")
-
 from bg_atlasapi import utils
-from bg_atlasgen.mesh_utils import create_region_mesh, Region
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
 from bg_atlasapi.structure_tree_util import get_structures_tree
+from rich.progress import track
+from scipy.ndimage import zoom
+
+from bg_atlasgen.mesh_utils import Region, create_region_mesh
+from bg_atlasgen.wrapup import wrapup_atlas_from_data
 
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
@@ -135,7 +133,6 @@ def create_atlas(working_dir, resolution):
 
     start = time.time()
     if PARALLEL:
-
         pool = mp.Pool(mp.cpu_count() - 2)
 
         try:

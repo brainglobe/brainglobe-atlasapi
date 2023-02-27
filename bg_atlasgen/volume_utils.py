@@ -10,9 +10,9 @@ except ModuleNotFoundError:
         + '   please install with "pip install vedo -U"'
     )
 
-import imio
-
 import os
+
+import imio
 import numpy as np
 
 

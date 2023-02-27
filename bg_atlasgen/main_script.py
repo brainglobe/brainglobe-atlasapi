@@ -1,15 +1,16 @@
-from git import Repo
-from git.exc import GitCommandError
-from pathlib import Path
 import configparser
-import bg_atlasgen
-from importlib import import_module
-from bg_atlasapi.utils import atlas_name_from_repr, atlas_repr_from_name
-
 import errno
 import os
-import stat
 import shutil
+import stat
+from importlib import import_module
+from pathlib import Path
+
+from bg_atlasapi.utils import atlas_name_from_repr, atlas_repr_from_name
+from git import Repo
+from git.exc import GitCommandError
+
+import bg_atlasgen
 
 # Main dictionary specifying which atlases to generate
 # and with which resolutions:
@@ -87,7 +88,6 @@ if __name__ == "__main__":
             bg_atlasgen_version == status["major_vers"]
             and script_version > status["minor_vers"]
         ):
-
             # Loop over all resolutions:
             for resolution in resolutions:
                 print(f"Generating {name}, {resolution} um...")

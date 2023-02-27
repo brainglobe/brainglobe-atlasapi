@@ -1,29 +1,26 @@
 import json
-import tarfile
 import shutil
+import tarfile
 from pathlib import Path
 
-import tifffile
 import bg_space as bgs
 import meshio as mio
+import tifffile
+from bg_atlasapi import descriptors
+from bg_atlasapi.utils import atlas_name_from_repr
 
+import bg_atlasgen
 from bg_atlasgen.metadata_utils import (
     create_metadata_files,
     generate_metadata_dict,
 )
 from bg_atlasgen.stacks import (
-    save_reference,
     save_annotation,
     save_hemispheres,
+    save_reference,
     save_secondary_reference,
 )
-
-import bg_atlasgen
 from bg_atlasgen.structures import check_struct_consistency
-
-from bg_atlasapi import descriptors
-from bg_atlasapi.utils import atlas_name_from_repr
-
 
 # This should be changed every time we make changes in the atlas
 # structure:
@@ -137,7 +134,6 @@ def wrapup_atlas_from_data(
 
     # write tiff stacks:
     for stack, saving_function in zip(stack_list, saving_fun_list):
-
         if isinstance(stack, str) or isinstance(stack, Path):
             stack = tifffile.imread(stack)
 

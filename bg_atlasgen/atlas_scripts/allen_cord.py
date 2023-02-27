@@ -1,31 +1,29 @@
 __version__ = "1"
 
 import json
-import time
-import tifffile
-import zipfile
-
-
-import pandas as pd
-import numpy as np
 import multiprocessing as mp
-from random import choices
-from loguru import logger
-from rich.progress import track
+import time
+import zipfile
 from pathlib import Path
+from random import choices
+
+import numpy as np
+import pandas as pd
+import tifffile
 
 # import sys
-
 # sys.path.append("./")
-
 from bg_atlasapi import utils
+from bg_atlasapi.structure_tree_util import get_structures_tree
+from loguru import logger
+from rich.progress import track
+
 from bg_atlasgen.mesh_utils import (
-    create_region_mesh,
     Region,
+    create_region_mesh,
     inspect_meshes_folder,
 )
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
-from bg_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
 TEST = False
@@ -123,7 +121,7 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     nodes = list(tree.nodes.values())
     if TEST:
         logger.info(
-            f"Creating atlas in test mode: selecting 10 random regions for mesh creation"
+            "Creating atlas in test mode: selecting 10 random regions for mesh creation"
         )
         nodes = choices(nodes, k=10)
 
@@ -289,7 +287,6 @@ def create_atlas(working_dir):
 
 
 if __name__ == "__main__":
-
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_cord_smooth"
     bg_root_dir.mkdir(exist_ok=True, parents=True)

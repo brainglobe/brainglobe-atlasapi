@@ -1,15 +1,15 @@
 __version__ = "2"
 
+from pathlib import Path
+
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
-
+from bg_atlasapi import descriptors
 from requests import exceptions
-from pathlib import Path
 from tqdm import tqdm
 
 from bg_atlasgen.wrapup import wrapup_atlas_from_data
-from bg_atlasapi import descriptors
 
 
 def create_atlas(working_dir, resolution):
@@ -83,7 +83,7 @@ def create_atlas(working_dir, resolution):
         ]
 
     # Wrap up, compress, and remove file:0
-    print(f"Finalising atlas")
+    print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

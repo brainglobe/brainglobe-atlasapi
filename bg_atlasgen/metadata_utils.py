@@ -1,18 +1,18 @@
 """
-    Automatic creation of 
+    Automatic creation of
         . structures.csv
         . README.txt
 """
-import re
 import json
+import re
 from datetime import datetime
-from bg_atlasapi import descriptors
 
 import requests
-from requests.exceptions import MissingSchema, InvalidURL, ConnectionError
+from bg_atlasapi import descriptors
+from bg_atlasapi.structure_tree_util import get_structures_tree
+from requests.exceptions import ConnectionError, InvalidURL, MissingSchema
 
 from bg_atlasgen.structure_json_to_csv import convert_structure_json_to_csv
-from bg_atlasapi.structure_tree_util import get_structures_tree
 
 
 def generate_metadata_dict(
@@ -29,7 +29,6 @@ def generate_metadata_dict(
     additional_references,
     atlas_packager,
 ):
-
     # Name should be author_species
     assert len(name.split("_")) >= 2
 

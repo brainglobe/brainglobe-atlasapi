@@ -1,5 +1,6 @@
-from git import Repo
 from pathlib import Path
+
+from git import Repo
 
 GENERATION_DICT = dict(example_mouse=[100])
 

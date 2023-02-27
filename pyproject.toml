@@ -61,6 +61,10 @@ include = ["bg_atlasgen*"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=bg_atlasgen"
+filterwarnings = [
+    "error",
+]
+
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310', 'py311']

@@ -82,7 +82,7 @@ class BrainGlobeAtlas(core.Atlas):
                 raise ValueError(f"{atlas_name} is not a valid atlas name!")
 
             rprint(
-                f"[magenta2]Bgatlas_api: {self.atlas_name} "
+                f"[magenta2]bg_atlasapi: {self.atlas_name} "
                 "not found locally. Downloading...[magenta2]"
             )
             self.download_extract_file()
@@ -188,7 +188,7 @@ class BrainGlobeAtlas(core.Atlas):
 
         if local != online:
             rprint(
-                f"[b][magenta2]Bg_atlasapi[/b]: "
+                f"[b][magenta2]bg_atlasapi[/b]: "
                 f"[b]{self.atlas_name}[/b] version [b]{local}[/b]"
                 f"is not the latest available ([b]{online}[/b]). "
                 "To update the atlas run in the terminal:[/magenta2]\n"

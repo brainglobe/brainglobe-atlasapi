@@ -40,7 +40,7 @@ def update_atlas(atlas_name, force=False):
     shutil.rmtree(fld)
     if fld.exists():
         raise ValueError(
-            "Something went wrong while tryint to delete the old version "
+            "Something went wrong while trying to delete the old version "
             "of the atlas, aborting."
         )
 
@@ -72,7 +72,7 @@ def install_atlas(atlas_name):
     available_atlases = get_downloaded_atlases()
     if atlas_name in available_atlases:
         rprint(
-            f"[b][magenta2]Bg_atlasapi: installing {atlas_name}: "
+            f"[b][magenta2]bg_atlasapi: installing {atlas_name}: "
             "atlas already installed![/magenta2][/b]"
         )
         return

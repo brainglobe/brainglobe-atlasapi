@@ -14,7 +14,7 @@
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.02668/status.svg)](https://doi.org/10.21105/joss.02668)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Contributions](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg)](https://docs.brainglobe.info/cellfinder/contributing)
-[![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/cellfinder)
+[![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/documentation/bg-atlasapi/index.html)
 [![Twitter](https://img.shields.io/twitter/follow/brain_globe?style=social)](https://twitter.com/brain_globe)
 
 ![banner](https://github.com/brainglobe/bg-atlasapi/blob/master/docs/img/banner.jpeg)
@@ -45,7 +45,7 @@ pip install bg-atlasapi
 ```
 
 ## Usage
-Full information can be found in the [documentation](https://docs.brainglobe.info/bg-atlasapi/usage)
+Full information can be found in the [documentation](https://brainglobe.info/documentation/bg-atlasapi/index.html)
 ### Python API
 **List of atlases**
 
@@ -135,11 +135,6 @@ To deal with transformations between your data space and `bg-atlasapi`, you migh
 # Contributing to bg-atlasapi
 **Contributors to bg-atlaspi are absolutely encouraged**, whether you want to fix bugs, add/request new features or simply ask questions.
 
-If you would like to contribute to `bg-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/brainglobe/brainrender) etc.) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/bg-atlasapi). Please also see the [contributing guide](https://github.com/brainglobe/.github/blob/main/CONTRIBUTING.md).
+If you would like to contribute to `bg-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/brainglobe/brainrender) etc.) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/bg-atlasapi). Please also see the [developers guide](https://brainglobe.info/developers/index.html).
 
-Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/bg-atlasapi/issues) \(and the issues of the other repositories\)
-
----
-The BrainGlobe project is generously supported by the Sainsbury Wellcome Centre and the Institute of Neuroscience, Technical University of Munich, with funding from Wellcome, the Gatsby Charitable Foundation and the Munich Cluster for Systems Neurology - Synergy.
-
-<img src='https://brainglobe.info/images/logos_combined.png' width="550">
+Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/bg-atlasapi/issues) (and the issues of the other repositories).

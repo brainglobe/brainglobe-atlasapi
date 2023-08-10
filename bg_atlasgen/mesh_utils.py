@@ -132,7 +132,7 @@ def extract_mesh_from_mask(
     if not use_marching_cubes:
         # Use faster algorithm
         volume = Volume(volume)
-        mesh = volume.clone().isosurface(threshold=threshold).cap()
+        mesh = volume.clone().isosurface(value=threshold).cap()
     else:
         print(
             "The marching cubes algorithm might be rotated compared to your volume data"

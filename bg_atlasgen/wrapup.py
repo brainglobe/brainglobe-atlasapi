@@ -158,14 +158,14 @@ def wrapup_atlas_from_data(
     for mesh_id, meshfile in meshes_dict.items():
         mesh = mio.read(meshfile)
 
+        if scale_meshes:
+            # Scale the mesh to the desired resolution, BEFORE transforming:
+            mesh.points *= resolution
+
         # Reorient points:
         mesh.points = space_convention.map_points_to(
             descriptors.ATLAS_ORIENTATION, mesh.points
         )
-
-        # Scale the mesh to be in microns, if necessary:
-        if scale_meshes:
-            mesh.points *= resolution
 
         # Save in meshes dir:
         mio.write(mesh_dest_dir / f"{mesh_id}.obj", mesh)

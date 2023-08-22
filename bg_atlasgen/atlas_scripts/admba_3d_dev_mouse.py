@@ -218,7 +218,7 @@ def create_atlas(
     assert (
         atlas_config.atlas_file_url
     ), f"No download link provided for atlas in {atlas_config.atlas_file_url}"
-    if type(working_dir) == str:
+    if isinstance(working_dir, str):
         working_dir = Path(working_dir)
     # Generated atlas path:
     working_dir = (

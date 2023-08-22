@@ -12,8 +12,8 @@ def check_struct_consistency(structures):
     -------
 
     """
-    assert type(structures) == list
-    assert type(structures[0]) == dict
+    assert isinstance(structures, list)
+    assert isinstance(structures[0], dict)
 
     # Check that all structures have the correct keys and value types:
     for struct in structures:

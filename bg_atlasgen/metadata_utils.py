@@ -48,14 +48,14 @@ def generate_metadata_dict(
             )
 
     # Enforce correct format for symmetric, resolution and shape:
-    assert type(symmetric) == bool
+    assert isinstance(symmetric, bool)
     assert len(resolution) == 3
     assert len(shape) == 3
 
     resolution = tuple([float(v) for v in resolution])
     shape = tuple(int(v) for v in shape)
 
-    assert type(additional_references) == list
+    assert isinstance(additional_references, list)
 
     return dict(
         name=name,

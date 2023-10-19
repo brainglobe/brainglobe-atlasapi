@@ -172,7 +172,7 @@ def retrieve_over_http(
             if tot == 0:
                 try:
                     tot = get_download_size(url)
-                except Exception as e:
+                except Exception:
                     tot = 0
 
             task_id = progress.add_task(
@@ -188,7 +188,9 @@ def retrieve_over_http(
                     fout.write(chunk)
                     adv = len(chunk)
                     completed += adv
-                    progress.update(task_id, completed=min(completed, tot), refresh=True)
+                    progress.update(
+                        task_id, completed=min(completed, tot), refresh=True
+                    )
 
                     if fn_update:
                         # update handler with completed and total bytes
@@ -222,15 +224,17 @@ def get_download_size(url: str) -> int:
     """
     try:
         # Replace the 'raw' in the url with 'src'
-        url_split = url.split('/')
-        url_split[5] = 'src'
-        url = '/'.join(url_split)
+        url_split = url.split("/")
+        url_split[5] = "src"
+        url = "/".join(url_split)
 
         response = requests.get(url)
         response.raise_for_status()
 
         response_string = response.content.decode("utf-8")
-        size_string = re.search('([0-9]+.[0-9] [MGK]B)|([0-9]+ [MGK]B)', response_string)
+        size_string = re.search(
+            "([0-9]+.[0-9] [MGK]B)|([0-9]+ [MGK]B)", response_string
+        )
 
         if not size_string:
             raise ValueError("File size information not found in the response")
@@ -239,11 +243,11 @@ def get_download_size(url: str) -> int:
         size = float(size_string[:-3])
         prefix = size_string[-2]
 
-        if prefix == 'G':
+        if prefix == "G":
             size *= 1e9
-        elif prefix == 'M':
+        elif prefix == "M":
             size *= 1e6
-        elif prefix == 'K':
+        elif prefix == "K":
             size *= 1e3
         else:
             raise ValueError("File size information not found in the response")
@@ -252,9 +256,9 @@ def get_download_size(url: str) -> int:
 
     except requests.exceptions.HTTPError as e:
         raise e
-    except ValueError as e:
+    except ValueError:
         raise ValueError("File size information not found in the response.")
-    except IndexError as e:
+    except IndexError:
         raise IndexError("Improperly formatted URL")
 
 

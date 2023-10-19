@@ -1,6 +1,7 @@
 import configparser
 import json
 import logging
+import re
 from typing import Callable, Optional
 
 import requests
@@ -169,7 +170,10 @@ def retrieve_over_http(
             tot = int(response.headers.get("content-length", 0))
 
             if tot == 0:
-                tot = get_download_size(url)
+                try:
+                    tot = get_download_size(url)
+                except Exception as e:
+                    tot = 0
 
             task_id = progress.add_task(
                 "download",
@@ -216,24 +220,33 @@ def get_download_size(url: str) -> int:
         ValueError: If the file size cannot be extracted from the response.
 
     """
-    # Replace the 'raw' in the url with 'src'
-    url_split = url.split('/')
-    url_split[5] = 'src'
-    url = '/'.join(url_split)
-
     try:
+        # Replace the 'raw' in the url with 'src'
+        url_split = url.split('/')
+        url_split[5] = 'src'
+        url = '/'.join(url_split)
+
         response = requests.get(url)
         response.raise_for_status()
 
-        start_marker = b">"
-        end_marker = b" MB"
-        end = response.content.find(end_marker)
-        start = response.content[:end].rfind(start_marker) + 1
+        response_string = response.content.decode("utf-8")
+        size_string = re.search('([0-9]+.[0-9] [MGK]B)|([0-9]+ [MGK]B)', response_string)
 
-        if start == -1 or end == -1:
+        if not size_string:
             raise ValueError("File size information not found in the response")
 
-        size = float(response.content[start:end]) * 1e6
+        size_string = size_string.group()
+        size = float(size_string[:-3])
+        prefix = size_string[-2]
+
+        if prefix == 'G':
+            size *= 1e9
+        elif prefix == 'M':
+            size *= 1e6
+        elif prefix == 'K':
+            size *= 1e3
+        else:
+            raise ValueError("File size information not found in the response")
 
         return int(size)
 
@@ -241,6 +254,8 @@ def get_download_size(url: str) -> int:
         raise e
     except ValueError as e:
         raise ValueError("File size information not found in the response.")
+    except IndexError as e:
+        raise IndexError("Improperly formatted URL")
 
 
 def conf_from_url(url):

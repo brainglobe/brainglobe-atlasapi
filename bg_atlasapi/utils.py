@@ -105,7 +105,7 @@ def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
 
 
 def check_internet_connection(
-        url="http://www.google.com/", timeout=5, raise_error=True
+    url="http://www.google.com/", timeout=5, raise_error=True
 ):
     """Check that there is an internet connection
     url : str
@@ -131,9 +131,9 @@ def check_internet_connection(
 
 
 def retrieve_over_http(
-        url,
-        output_file_path,
-        fn_update: Optional[Callable[[int, int], None]] = None,
+    url,
+    output_file_path,
+    fn_update: Optional[Callable[[int, int], None]] = None,
 ):
     """Download file from remote location, with progress bar.
 
@@ -179,16 +179,16 @@ def retrieve_over_http(
             )
 
             with open(output_file_path, "wb") as fout:
-                advanced = 0
+                completed = 0
                 for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
                     fout.write(chunk)
                     adv = len(chunk)
-                    progress.update(task_id, advance=adv, refresh=True)
+                    completed += adv
+                    progress.update(task_id, completed=min(completed, tot), refresh=True)
 
                     if fn_update:
                         # update handler with completed and total bytes
-                        advanced += adv
-                        fn_update(advanced, tot)
+                        fn_update(completed, tot)
 
     except requests.exceptions.ConnectionError:
         output_file_path.unlink()

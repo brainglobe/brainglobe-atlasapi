@@ -105,7 +105,7 @@ def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
 
 
 def check_internet_connection(
-    url="http://www.google.com/", timeout=5, raise_error=True
+        url="http://www.google.com/", timeout=5, raise_error=True
 ):
     """Check that there is an internet connection
     url : str
@@ -131,9 +131,9 @@ def check_internet_connection(
 
 
 def retrieve_over_http(
-    url,
-    output_file_path,
-    fn_update: Optional[Callable[[int, int], None]] = None,
+        url,
+        output_file_path,
+        fn_update: Optional[Callable[[int, int], None]] = None,
 ):
     """Download file from remote location, with progress bar.
 
@@ -167,6 +167,10 @@ def retrieve_over_http(
     try:
         with progress:
             tot = int(response.headers.get("content-length", 0))
+
+            if tot == 0:
+                tot = get_download_size(url)
+
             task_id = progress.add_task(
                 "download",
                 filename=output_file_path.name,
@@ -191,6 +195,52 @@ def retrieve_over_http(
         raise requests.exceptions.ConnectionError(
             f"Could not download file from {url}"
         )
+
+
+def get_download_size(url: str) -> int:
+    """Get file size based on the MB value found on the "src" page of each atlas
+
+    Parameters
+    ----------
+    url : str
+        atlas file url (in a repo, make sure the "raw" url is passed)
+
+    Returns
+    -------
+    int
+        size of the file to download
+
+    Raises
+    ------
+        requests.exceptions.HTTPError: If there's an issue with the HTTP request.
+        ValueError: If the file size cannot be extracted from the response.
+
+    """
+    # Replace the 'raw' in the url with 'src'
+    url_split = url.split('/')
+    url_split[5] = 'src'
+    url = '/'.join(url_split)
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+
+        start_marker = b">"
+        end_marker = b" MB"
+        end = response.content.find(end_marker)
+        start = response.content[:end].rfind(start_marker) + 1
+
+        if start == -1 or end == -1:
+            raise ValueError("File size information not found in the response")
+
+        size = float(response.content[start:end]) * 1e6
+
+        return int(size)
+
+    except requests.exceptions.HTTPError as e:
+        raise e
+    except ValueError as e:
+        raise ValueError("File size information not found in the response.")
 
 
 def conf_from_url(url):

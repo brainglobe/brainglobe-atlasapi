@@ -204,7 +204,7 @@ def retrieve_over_http(
 
 
 def get_download_size(url: str) -> int:
-    """Get file size based on the MB value found on the "src" page of each atlas
+    """Get file size based on the MB value on the "src" page of each atlas
 
     Parameters
     ----------
@@ -218,7 +218,7 @@ def get_download_size(url: str) -> int:
 
     Raises
     ------
-        requests.exceptions.HTTPError: If there's an issue with the HTTP request.
+        requests.exceptions.HTTPError: If there's an issue with HTTP request.
         ValueError: If the file size cannot be extracted from the response.
 
     """
@@ -232,14 +232,16 @@ def get_download_size(url: str) -> int:
         response.raise_for_status()
 
         response_string = response.content.decode("utf-8")
-        size_string = re.search(
+        search_result = re.search(
             "([0-9]+.[0-9] [MGK]B)|([0-9]+ [MGK]B)", response_string
         )
 
-        if not size_string:
-            raise ValueError("File size information not found in the response")
+        assert search_result is not None
 
-        size_string = size_string.group()
+        size_string = search_result.group()
+
+        assert size_string is not None
+
         size = float(size_string[:-3])
         prefix = size_string[-2]
 

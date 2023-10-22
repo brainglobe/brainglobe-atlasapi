@@ -22,7 +22,7 @@ def test_get_download_size_bad_url():
 
 
 def test_get_download_size_no_size_url():
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         utils.get_download_size(
             "https://gin.g-node.org/BrainGlobe/atlases/src/master/last_versions.conf"
         )

@@ -1,6 +1,7 @@
 import configparser
 import json
 import logging
+import re
 from typing import Callable, Optional
 
 import requests
@@ -167,6 +168,13 @@ def retrieve_over_http(
     try:
         with progress:
             tot = int(response.headers.get("content-length", 0))
+
+            if tot == 0:
+                try:
+                    tot = get_download_size(url)
+                except Exception:
+                    tot = 0
+
             task_id = progress.add_task(
                 "download",
                 filename=output_file_path.name,
@@ -175,22 +183,84 @@ def retrieve_over_http(
             )
 
             with open(output_file_path, "wb") as fout:
-                advanced = 0
+                completed = 0
                 for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
                     fout.write(chunk)
                     adv = len(chunk)
-                    progress.update(task_id, advance=adv, refresh=True)
+                    completed += adv
+                    progress.update(
+                        task_id, completed=min(completed, tot), refresh=True
+                    )
 
                     if fn_update:
                         # update handler with completed and total bytes
-                        advanced += adv
-                        fn_update(advanced, tot)
+                        fn_update(completed, tot)
 
     except requests.exceptions.ConnectionError:
         output_file_path.unlink()
         raise requests.exceptions.ConnectionError(
             f"Could not download file from {url}"
         )
+
+
+def get_download_size(url: str) -> int:
+    """Get file size based on the MB value on the "src" page of each atlas
+
+    Parameters
+    ----------
+    url : str
+        atlas file url (in a repo, make sure the "raw" url is passed)
+
+    Returns
+    -------
+    int
+        size of the file to download
+
+    Raises
+    ------
+        requests.exceptions.HTTPError: If there's an issue with HTTP request.
+        ValueError: If the file size cannot be extracted from the response.
+        IndexError: If the url is not formatted as expected
+
+    """
+    try:
+        # Replace the 'raw' in the url with 'src'
+        url_split = url.split("/")
+        url_split[5] = "src"
+        url = "/".join(url_split)
+
+        response = requests.get(url)
+        response.raise_for_status()
+
+        response_string = response.content.decode("utf-8")
+        search_result = re.search(
+            r"([0-9]+\.[0-9] [MGK]B)|([0-9]+ [MGK]B)", response_string
+        )
+
+        assert search_result is not None
+
+        size_string = search_result.group()
+
+        assert size_string is not None
+
+        size = float(size_string[:-3])
+        prefix = size_string[-2]
+
+        if prefix == "G":
+            size *= 1e9
+        elif prefix == "M":
+            size *= 1e6
+        elif prefix == "K":
+            size *= 1e3
+
+        return int(size)
+
+    except requests.exceptions.HTTPError as e:
+        raise e
+    except AssertionError:
+        raise ValueError("File size information not found in the response.")
+    except IndexError:
+        raise IndexError("Improperly formatted URL")
 
 
 def conf_from_url(url):

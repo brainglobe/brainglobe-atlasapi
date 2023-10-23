@@ -220,6 +220,7 @@ def get_download_size(url: str) -> int:
     ------
         requests.exceptions.HTTPError: If there's an issue with HTTP request.
         ValueError: If the file size cannot be extracted from the response.
+        IndexError: If the url is not formatted as expected
 
     """
     try:
@@ -233,7 +234,7 @@ def get_download_size(url: str) -> int:
 
         response_string = response.content.decode("utf-8")
         search_result = re.search(
-            "([0-9]+.[0-9] [MGK]B)|([0-9]+ [MGK]B)", response_string
+            r"([0-9]+\.[0-9] [MGK]B)|([0-9]+ [MGK]B)", response_string
         )
 
         assert search_result is not None
@@ -251,14 +252,12 @@ def get_download_size(url: str) -> int:
             size *= 1e6
         elif prefix == "K":
             size *= 1e3
-        else:
-            raise ValueError("File size information not found in the response")
 
         return int(size)
 
     except requests.exceptions.HTTPError as e:
         raise e
-    except ValueError:
+    except AssertionError:
         raise ValueError("File size information not found in the response.")
     except IndexError:
         raise IndexError("Improperly formatted URL")

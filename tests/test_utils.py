@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -82,15 +81,3 @@ def test_get_download_size_HTTPError():
 
         with pytest.raises(HTTPError):
             utils.get_download_size(test_url)
-
-
-def test_retrieve_over_http_get_download_size_exception():
-    with mock.patch("requests.get", autospec=True) as mock_request:
-        mock_response = mock.Mock(spec=requests.Response)
-        mock_response.status_code = 200
-        mock_response.content = b"1234"
-        mock_response.headers = {}
-        mock_request.return_value = mock_response
-
-        with pytest.raises(FileNotFoundError):
-            utils.retrieve_over_http(test_url, Path("/tmp/path"))

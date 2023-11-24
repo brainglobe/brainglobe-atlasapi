@@ -17,8 +17,6 @@
 [![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/documentation/bg-atlasapi/index.html)
 [![Twitter](https://img.shields.io/twitter/follow/brain_globe?style=social)](https://twitter.com/brain_globe)
 
-![banner](https://github.com/brainglobe/bg-atlasapi/blob/master/docs/img/banner.jpeg)
-
 
 The brainglobe atlas API (BG-AtlasAPI) provides a common interface for programmers to download and process brain atlas data from multiple sources.
 

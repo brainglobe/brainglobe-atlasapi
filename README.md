@@ -5,7 +5,7 @@
 [![Wheel](https://img.shields.io/pypi/wheel/bg-atlasapi.svg)](https://pypi.org/project/bg-atlasapi)
 [![Development Status](https://img.shields.io/pypi/status/brainatlas-api.svg)](https://github.com/SainsburyWellcomeCentre/brainatlas-api)
 [![Downloads](https://pepy.tech/badge/bg-atlasapi)](https://pepy.tech/project/bg-atlasapi)
-[![Tests](https://img.shields.io/github/workflow/status/brainglobe/bg-atlasapi/tests)](
+[![Tests](https://img.shields.io/github/actions/workflow/status/brainglobe/bg-atlasapi/test_and_deploy.yml?branch=main)](
     https://github.com/brainglobe/bg-atlasapi/actions)
 [![codecov](https://codecov.io/gh/brainglobe/bg-atlasapi/branch/master/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/bg-atlasapi)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)

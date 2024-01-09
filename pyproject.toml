@@ -12,12 +12,11 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.9",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "bg-space >= 0.5.0",
     "click",
@@ -74,7 +73,7 @@ markers = [
 ]
 
 [tool.black]
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py39', 'py310', 'py311']
 skip-string-normalization = false
 line-length = 79
 
@@ -99,14 +98,13 @@ fix = true
 legacy_tox_ini = """
 # For more information about tox, see https://tox.readthedocs.io/en/latest/
 [tox]
-envlist = py{37,38,39,310}
+envlist = py{38,39,310,311}
 
 [gh-actions]
 python =
-    3.7: py37
-    3.8: py38
     3.9: py39
     3.10: py310
+    3.11: py311
 
 [testenv]
 extras =

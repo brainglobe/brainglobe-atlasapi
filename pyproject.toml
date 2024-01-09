@@ -39,7 +39,6 @@ dynamic = ["version"]
 [project.optional-dependencies]
 dev = [
     "check-manifest",
-    "gitpython",
     "pre-commit",
     "pytest",
     "pytest-cov",

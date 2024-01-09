@@ -136,3 +136,10 @@ To deal with transformations between your data space and `bg-atlasapi`, you migh
 If you would like to contribute to `bg-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/brainglobe/brainrender) etc.) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/bg-atlasapi). Please also see the [developers guide](https://brainglobe.info/developers/index.html).
 
 Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/bg-atlasapi/issues) (and the issues of the other repositories).
+
+## Citation
+If you find the BrainGlobe Atlas API useful, please cite the paper in your work:
+
+>Claudi, F., Petrucco, L., Tyson, A. L., Branco, T., Margrie, T. W. and Portugues, R. (2020). BrainGlobe Atlas API: a common interface for neuroanatomical atlases. Journal of Open Source Software, 5(54), 2668, https://doi.org/10.21105/joss.02668
+
+**Don't forget to cite the developers of the atlas that you used!**

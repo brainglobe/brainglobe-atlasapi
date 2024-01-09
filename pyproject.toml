@@ -32,10 +32,10 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://brainglobe.info/atlas-api"
+"Homepage" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
 "Source Code" = "https://github.com/brainglobe/bg-atlasapi"
 "Bug Tracker" = "https://github.com/brainglobe/bg-atlasapi/issues"
-"Documentation" = "https://docs.brainglobe.info/bg-atlasapi"
+"Documentation" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
 
 [project.optional-dependencies]
 dev = [

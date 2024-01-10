@@ -12,12 +12,11 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.9",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "bg-space >= 0.5.0",
     "click",
@@ -32,15 +31,14 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://brainglobe.info/atlas-api"
+"Homepage" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
 "Source Code" = "https://github.com/brainglobe/bg-atlasapi"
 "Bug Tracker" = "https://github.com/brainglobe/bg-atlasapi/issues"
-"Documentation" = "https://docs.brainglobe.info/bg-atlasapi"
+"Documentation" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
 
 [project.optional-dependencies]
 dev = [
     "check-manifest",
-    "gitpython",
     "pre-commit",
     "pytest",
     "pytest-cov",
@@ -74,7 +72,7 @@ markers = [
 ]
 
 [tool.black]
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py39', 'py310', 'py311']
 skip-string-normalization = false
 line-length = 79
 
@@ -95,8 +93,20 @@ exclude = ["__init__.py","build",".eggs"]
 select = ["I", "E", "F"]
 fix = true
 
-[tool.cibuildwheel]
-build = "cp38-* cp39-* cp310-* cp311-*"
+[tool.tox]
+legacy_tox_ini = """
+# For more information about tox, see https://tox.readthedocs.io/en/latest/
+[tox]
+envlist = py{38,39,310,311}
 
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]
+[gh-actions]
+python =
+    3.9: py39
+    3.10: py310
+    3.11: py311
+
+[testenv]
+extras =
+    dev
+commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml
+"""

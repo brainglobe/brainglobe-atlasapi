@@ -1,5 +1,12 @@
-__author__ = """brainglobe"""
-__version__ = "1.0.2"
+from importlib.metadata import PackageNotFoundError, metadata
+
+try:
+    __version__ = metadata("bg-atlasapi")["Version"]
+    __author__ = metadata("bg-atlasapi")["Author"]
+    del metadata
+except PackageNotFoundError:
+    # package is not installed
+    pass
 
 
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas

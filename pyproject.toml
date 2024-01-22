@@ -45,6 +45,19 @@ allenmouse = [
     "allensdk",
 ]
 
+dev = [
+  "pytest",
+  "pytest-cov",
+  "pytest-mock",
+  "coverage",
+  "tox",
+  "black",
+  "mypy",
+  "pre-commit",
+  "ruff",
+  "setuptools_scm",
+]
+
 [build-system]
 requires = [
     "setuptools>=45",
@@ -58,12 +71,6 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 include = ["bg_atlasgen*"]
-
-[tool.pytest.ini_options]
-addopts = "--cov=bg_atlasgen"
-filterwarnings = [
-    "error",
-]
 
 
 [tool.black]

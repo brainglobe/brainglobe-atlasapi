@@ -9,7 +9,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: neuroinformatics-unit/actions/lint@v1
+      - uses: neuroinformatics-unit/actions/lint@v2
 
   test:
     needs: lint
@@ -25,10 +25,8 @@ jobs:
           python-version: "3.10"
         - os: windows-latest
           python-version: "3.9"
-        - os: ubuntu-latest
-          python-version: "3.8"
 
     steps:
-      - uses: neuroinformatics-unit/actions/test@v1
+      - uses: neuroinformatics-unit/actions/test@v2
         with:
           python-version: ${{ matrix.python-version }}

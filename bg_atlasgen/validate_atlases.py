@@ -1,6 +1,7 @@
 """Script to validate atlases"""
 
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -104,6 +105,36 @@ def check_additional_references():
     pass
 
 
+def validate_mesh_structure_pairs(atlas_name: str, atlas_path: Path):
+    # json_path = Path(atlas_path / "structures.json")
+    atlas = BrainGlobeAtlas(atlas_name)
+
+    obj_path = Path(atlas_path / "meshes")
+
+    ids_from_bg_atlas_api = list(atlas.structures.keys())
+    ids_from_mesh_files = [
+        int(Path(file).stem)
+        for file in os.listdir(obj_path)
+        if file.endswith(".obj")
+    ]
+
+    in_mesh_not_bg = []
+    for id in ids_from_mesh_files:
+        if id not in ids_from_bg_atlas_api:
+            in_mesh_not_bg.append(id)
+
+    in_bg_not_mesh = []
+    for id in ids_from_bg_atlas_api:
+        if id not in ids_from_mesh_files:
+            in_bg_not_mesh.append(id)
+
+    if len(in_mesh_not_bg) or len(in_bg_not_mesh):
+        raise AssertionError(
+            f"Structures with ID {in_bg_not_mesh} are in the atlas, but don't have a corresponding mesh file; "
+            f"Structures with IDs {in_mesh_not_bg} have a mesh file, but are not accessible through the atlas."
+        )
+
+
 def validate_atlas(atlas_name, version, all_validation_functions):
     """Validates the latest version of a given atlas"""
 
@@ -124,6 +155,11 @@ def validate_atlas(atlas_name, version, all_validation_functions):
         (),
         # check_additional_references()
         (),
+        # validate_mesh_structure_pairs(atlas_name: str, atlas_path: Path):
+        (
+            atlas_name,
+            Path(get_brainglobe_dir() / f"{atlas_name}_v{version}"),
+        ),
     ]
 
     # list to store the errors of the failed validations
@@ -148,6 +184,7 @@ if __name__ == "__main__":
         open_for_visual_check,
         validate_checksum,
         check_additional_references,
+        validate_mesh_structure_pairs,
     ]
 
     valid_atlases = []

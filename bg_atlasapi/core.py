@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from bg_space import AnatomicalSpace
+from brainglobe_space import AnatomicalSpace
 
 from bg_atlasapi.descriptors import (
     ANNOTATION_FILENAME,

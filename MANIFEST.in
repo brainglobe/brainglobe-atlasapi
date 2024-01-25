@@ -1,3 +1,4 @@
+include CITATION.cff
 include LICENSE
 include README.md
 include requirements.txt

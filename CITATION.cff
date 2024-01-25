@@ -58,5 +58,3 @@ preferred-citation:
   title: "BrainGlobe Atlas API: a common interface for neuroanatomical atlases"
   issue: 54
   volume: 5
-citation-sentence: >-
-  This work makes use of the BrainGlobe AtlasAPI for processing atlas data from multiple sources.

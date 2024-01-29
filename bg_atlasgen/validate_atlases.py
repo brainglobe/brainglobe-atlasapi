@@ -10,13 +10,18 @@ from bg_atlasapi.config import get_brainglobe_dir
 from bg_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
+    get_local_atlas_version,
 )
 from bg_atlasapi.update_atlases import update_atlas
 
 
-def validate_atlas_files(atlas_path: Path):
+def validate_atlas_files(atlas: BrainGlobeAtlas):
     """Checks if basic files exist in the atlas folder"""
 
+    atlas_path = (
+        Path(get_brainglobe_dir())
+        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+    )
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
     expected_files = [
         "annotation.tiff",
@@ -90,28 +95,31 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
     return True
 
 
-def open_for_visual_check():
+def open_for_visual_check(atlas: BrainGlobeAtlas):
     # implement visual checks later
     pass
 
 
-def validate_checksum():
+def validate_checksum(atlas: BrainGlobeAtlas):
     # implement later
     pass
 
 
-def check_additional_references():
+def check_additional_references(atlas: BrainGlobeAtlas):
     # check additional references are different, but have same dimensions
     pass
 
 
-def validate_mesh_structure_pairs(atlas_name: str, atlas_path: Path):
-    # json_path = Path(atlas_path / "structures.json")
-    atlas = BrainGlobeAtlas(atlas_name)
+def validate_mesh_structure_pairs(atlas: BrainGlobeAtlas):
+    """Ensure mesh files (.obj) exist for each expected structure in the atlas."""
+    ids_from_bg_atlas_api = list(atlas.structures.keys())
 
+    atlas_path = (
+        Path(get_brainglobe_dir())
+        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+    )
     obj_path = Path(atlas_path / "meshes")
 
-    ids_from_bg_atlas_api = list(atlas.structures.keys())
     ids_from_mesh_files = [
         int(Path(file).stem)
         for file in os.listdir(obj_path)
@@ -135,7 +143,7 @@ def validate_mesh_structure_pairs(atlas_name: str, atlas_path: Path):
         )
 
 
-def validate_atlas(atlas_name, version, all_validation_functions):
+def validate_atlas(atlas_name, version, validation_functions):
     """Validates the latest version of a given atlas"""
 
     print(atlas_name, version)
@@ -144,34 +152,16 @@ def validate_atlas(atlas_name, version, all_validation_functions):
     if not updated:
         update_atlas(atlas_name)
 
-    validation_function_parameters = [
-        # validate_atlas_files(atlas_path: Path)
-        (Path(get_brainglobe_dir() / f"{atlas_name}_v{version}"),),
-        # validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas)
-        (BrainGlobeAtlas(atlas_name),),
-        # open_for_visual_check()
-        (),
-        # validate_checksum()
-        (),
-        # check_additional_references()
-        (),
-        # validate_mesh_structure_pairs(atlas_name: str, atlas_path: Path):
-        (
-            atlas_name,
-            Path(get_brainglobe_dir() / f"{atlas_name}_v{version}"),
-        ),
-    ]
-
     # list to store the errors of the failed validations
-    failed_validations = []
-    successful_validations = []
+    failed_validations = {atlas_name: []}
+    successful_validations = {atlas_name: []}
 
-    for i, validation_function in enumerate(all_validation_functions):
+    for i, validation_function in enumerate(validation_functions):
         try:
-            validation_function(*validation_function_parameters[i])
-            successful_validations.append((atlas_name, validation_function))
+            validation_function(BrainGlobeAtlas(atlas_name))
+            successful_validations[atlas_name].append(validation_function)
         except AssertionError as error:
-            failed_validations.append((atlas_name, validation_function, error))
+            failed_validations[atlas_name].append((validation_function, error))
 
     return successful_validations, failed_validations
 

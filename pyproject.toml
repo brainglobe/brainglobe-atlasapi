@@ -2,9 +2,9 @@
 name = "bg-atlasapi"
 description = "A lightweight python module to interact with atlases for systems neuroscience"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 authors = [
-    {name = "Luigi Petrucco, Federico Claudi, Adam Tyson", email = "code@adamltyson.com"},
+    { name = "Luigi Petrucco, Federico Claudi, Adam Tyson", email = "code@adamltyson.com" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -18,7 +18,7 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "bg-space >= 0.5.0",
+    "brainglobe-space >= 1.0.0",
     "click",
     "meshio",
     "numpy",
@@ -37,19 +37,10 @@ dynamic = ["version"]
 "Documentation" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
 
 [project.optional-dependencies]
-dev = [
-    "check-manifest",
-    "pre-commit",
-    "pytest",
-    "pytest-cov",
-]
+dev = ["check-manifest", "pre-commit", "pytest", "pytest-cov"]
 
 [build-system]
-requires = [
-    "setuptools>=45",
-    "wheel",
-    "setuptools_scm[toml]>=6.2",
-]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
@@ -64,12 +55,8 @@ exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=bg_atlasapi"
-filterwarnings = [
-    "error",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-]
+filterwarnings = ["error"]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.black]
 target-version = ['py39', 'py310', 'py311']
@@ -80,16 +67,16 @@ line-length = 79
 
 [tool.check-manifest]
 ignore = [
-  "*.yaml",
-  "tox.ini",
-  "tests/*",
-  "tests/test_unit/*",
-  "tests/test_integration/*",
+    "*.yaml",
+    "tox.ini",
+    "tests/*",
+    "tests/test_unit/*",
+    "tests/test_integration/*",
 ]
 
 [tool.ruff]
 line-length = 79
-exclude = ["__init__.py","build",".eggs"]
+exclude = ["__init__.py", "build", ".eggs"]
 select = ["I", "E", "F"]
 fix = true
 
@@ -108,5 +95,5 @@ python =
 [testenv]
 extras =
     dev
-commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml
+commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml -W ignore::DeprecationWarning
 """

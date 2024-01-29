@@ -48,5 +48,5 @@ ANNOTATION_DTYPE = np.uint32
 HEMISPHERES_DTYPE = np.uint8
 
 # Standard orientation origin: Anterior, Superior, Right
-# (using BG-Space definition)
+# (using brainglobe-space definition)
 ATLAS_ORIENTATION = "asr"

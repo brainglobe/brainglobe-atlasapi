@@ -26,9 +26,10 @@ abstract: >-
   A common interface for programmers to download and process
   brain atlas data from multiple sources.
 license: BSD-3-Clause
-commit: 70335e4bdd87a32b413088fc5ac4f3144bbbd20c
-version: 1.0.2
-date-released: '2023-03-21'
+commit: fc8828d2b7797354083ceef07bcd8ddce1020ead
+version: 1.0.3
+date-released: '2024-01-29'
+year: 2024
 preferred-citation:
   type: article
   authors:

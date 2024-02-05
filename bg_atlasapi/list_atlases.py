@@ -148,9 +148,11 @@ def show_atlases(show_local_path=False):
             "[bold]" + atlas,
             downloaded,
             updated,
-            "[#c4c4c4]" + info["version"]
-            if "-" not in info["version"]
-            else "",
+            (
+                "[#c4c4c4]" + info["version"]
+                if "-" not in info["version"]
+                else ""
+            ),
             "[#c4c4c4]" + info["latest_version"],
         ]
 

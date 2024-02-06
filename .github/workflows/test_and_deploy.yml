@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: neuroinformatics-unit/actions/lint@v1
-  
+
   manifest:
     runs-on: ubuntu-latest
     steps:

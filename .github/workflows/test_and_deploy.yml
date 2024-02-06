@@ -1,15 +1,27 @@
 name: tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "main"
+    tags:
+      - "v**"
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  lint:
+  linting:
     runs-on: ubuntu-latest
     steps:
       - uses: neuroinformatics-unit/actions/lint@v1
 
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neuroinformatics-unit/actions/check_manifest@v2
+
   test:
-    needs: lint
+    needs: [linting, manifest]
     name: ${{ matrix.os }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:

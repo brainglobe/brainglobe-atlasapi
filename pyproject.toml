@@ -2,9 +2,9 @@
 name = "bg-atlasgen"
 description = "Scripts generation atlases and utilities for BrainGlobe"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 authors = [
-    {name = "Luigi Petrucco, Federico Claudi, Adam Tyson", email = "code@adamltyson.com"},
+    { name = "Luigi Petrucco, Federico Claudi, Adam Tyson", email = "code@adamltyson.com" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -41,29 +41,23 @@ dynamic = ["version"]
 Homepage = "https://github.com/brainglobe/bg-atlasgen"
 
 [project.optional-dependencies]
-allenmouse = [
-    "allensdk",
-]
+allenmouse = ["allensdk"]
 
 dev = [
-  "pytest",
-  "pytest-cov",
-  "pytest-mock",
-  "coverage",
-  "tox",
-  "black",
-  "mypy",
-  "pre-commit",
-  "ruff",
-  "setuptools_scm",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "coverage",
+    "tox",
+    "black",
+    "mypy",
+    "pre-commit",
+    "ruff",
+    "setuptools_scm",
 ]
 
 [build-system]
-requires = [
-    "setuptools>=45",
-    "wheel",
-    "setuptools_scm[toml]>=6.2",
-]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -82,17 +76,36 @@ line-length = 79
 
 [tool.check-manifest]
 ignore = [
-  "*.yaml",
-  "tox.ini",
-  "tests/*",
-  "tests/test_unit/*",
-  "tests/test_integration/*",
+    "*.yaml",
+    "tox.ini",
+    "tests/*",
+    "tests/test_unit/*",
+    "tests/test_integration/*",
 ]
 
 [tool.ruff]
 line-length = 79
-exclude = ["__init__.py","build",".eggs"]
+exclude = ["__init__.py", "build", ".eggs"]
 select = ["I", "E", "F"]
 # E501 Line too long
 ignore = ["E501"]
 fix = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py{39,310,311}
+
+[gh-actions]
+python =
+    3.9: py39
+    3.10: py310
+    3.11: py311
+
+[testenv]
+extras =
+    dev
+commands =
+    pytest -v --color=yes --cov=bg_atlasgen --cov-report=xml
+
+"""

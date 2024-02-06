@@ -1,0 +1,8 @@
+exclude .pre-commit-config.yaml
+
+include LICENSE
+include README.md
+
+graft bg_atlasgen *.py
+
+prune tests

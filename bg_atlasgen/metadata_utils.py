@@ -3,6 +3,7 @@
         . structures.csv
         . README.txt
 """
+
 import json
 import re
 from datetime import datetime

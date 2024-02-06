@@ -1,6 +1,5 @@
 """Script to validate atlases"""
 
-
 import os
 from pathlib import Path
 

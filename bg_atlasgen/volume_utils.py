@@ -2,6 +2,7 @@
     Code useful for dealing with volumetric data (e.g. allen annotation volume for the mouse atlas)
     extracting surfaces from volumetric data ....
 """
+
 try:
     from vedo import Volume
 except ModuleNotFoundError:

@@ -30,7 +30,7 @@ def create_atlas(working_dir, resolution):
         manifest=download_dir_path / "manifest.json",
         # downloaded files are stored relative to here
         resolution=RES_UM,
-        reference_space_key="annotation/ccf_2017"
+        reference_space_key="annotation/ccf_2017",
         # use the latest version of the CCF
     )
 

@@ -23,6 +23,7 @@ dependencies = [
     "meshio",
     "numpy",
     "pandas",
+    "pyarrow",
     "requests",
     "rich >= 9.0.0",
     "tifffile",
@@ -95,5 +96,5 @@ python =
 [testenv]
 extras =
     dev
-commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml -W ignore::DeprecationWarning
+commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml
 """

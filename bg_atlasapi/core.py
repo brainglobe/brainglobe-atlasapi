@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from brainglobe_space import AnatomicalSpace
 
-from brainglobe_atlasapi.descriptors import (
+from bg_atlasapi.descriptors import (
     ANNOTATION_FILENAME,
     HEMISPHERES_FILENAME,
     MESHES_DIRNAME,
@@ -14,8 +14,8 @@ from brainglobe_atlasapi.descriptors import (
     REFERENCE_FILENAME,
     STRUCTURES_FILENAME,
 )
-from brainglobe_atlasapi.structure_class import StructuresDict
-from brainglobe_atlasapi.utils import read_json, read_tiff
+from bg_atlasapi.structure_class import StructuresDict
+from bg_atlasapi.utils import read_json, read_tiff
 
 
 class Atlas:

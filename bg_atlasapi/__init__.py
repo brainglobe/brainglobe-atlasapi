@@ -9,5 +9,5 @@ except PackageNotFoundError:
     pass
 
 
-from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
-from brainglobe_atlasapi.list_atlases import show_atlases
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas
+from bg_atlasapi.list_atlases import show_atlases

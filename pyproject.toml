@@ -45,17 +45,17 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-brainglobe = "brainglobe_atlasapi.cli:bg_cli"
+brainglobe = "bg_atlasapi.cli:bg_cli"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["brainglobe_atlasapi*"]
+include = ["bg_atlasapi*"]
 exclude = ["tests*"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=brainglobe_atlasapi"
+addopts = "--cov=bg_atlasapi"
 filterwarnings = ["error"]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
@@ -96,5 +96,5 @@ python =
 [testenv]
 extras =
     dev
-commands = pytest -v --color=yes --cov=brainglobe_atlasapi --cov-report=xml
+commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml
 """

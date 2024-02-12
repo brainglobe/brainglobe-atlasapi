@@ -2,17 +2,12 @@ import shutil
 
 from rich import print as rprint
 
-from brainglobe_atlasapi.bg_atlas import (
-    Bbrainglobe_atlasapilas,
-    _version_str_from_tuple,
-)
-from brainglobe_atlasapi.list_atlases import get_downloaded_atlases
-
-brainglobe_atlasapi
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas, _version_str_from_tuple
+from bg_atlasapi.list_atlases import get_downloaded_atlases
 
 
 def update_atlas(atlas_name, force=False):
-    """Updates a brainglobe_atlasapi atlas from the latest
+    """Updates a bg_atlasapi atlas from the latest
     available version online.
 
     Arguments:
@@ -25,21 +20,21 @@ def update_atlas(atlas_name, force=False):
     """
 
     atlas = BrainGlobeAtlas(atlas_name=atlas_name)
-brainglobe_atlasapi
+
     # Check if we need to update
     if not force:
         if atlas.check_latest_version():
             rprint(
-                f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} "
+                f"[b][magenta2]bg_atlasapi: {atlas.atlas_name} "
                 "is already updated "
                 f"(version: {_version_str_from_tuple(atlas.local_version)})"
                 "[/b]"
-            )brainglobe_atlasapi
+            )
             return
 
     # Delete atlas folder
     rprint(
-        f"[b][magenta2]brainglobe_atlasapi: updating {atlas.atlas_name}[/magenta2][/b]"
+        f"[b][magenta2]bg_atlasapi: updating {atlas.atlas_name}[/magenta2][/b]"
     )
     fld = atlas.brainglobe_dir / atlas.local_full_name
     shutil.rmtree(fld)
@@ -49,12 +44,12 @@ brainglobe_atlasapi
             "of the atlas, aborting."
         )
 
-    # Download againbrainglobe_atlasapi
+    # Download again
     atlas.download_extract_file()
 
     # Check that everything went well
     rprint(
-        f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} updated to version: "
+        f"[b][magenta2]bg_atlasapi: {atlas.atlas_name} updated to version: "
         + f"{_version_str_from_tuple(atlas.remote_version)}[/magenta2][/b]"
     )
 
@@ -72,12 +67,12 @@ def install_atlas(atlas_name):
     # Check input:
     if not isinstance(atlas_name, str):
         raise ValueError(f"atlas name should be a string, not {atlas_name}")
-brainglobe_atlasapi
+
     # Check if already downloaded:
     available_atlases = get_downloaded_atlases()
     if atlas_name in available_atlases:
         rprint(
-            f"[b][magenta2]brainglobe_atlasapi: installing {atlas_name}: "
+            f"[b][magenta2]bg_atlasapi: installing {atlas_name}: "
             "atlas already installed![/magenta2][/b]"
         )
         return

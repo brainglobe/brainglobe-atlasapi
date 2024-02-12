@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 def test_versions(atlas):

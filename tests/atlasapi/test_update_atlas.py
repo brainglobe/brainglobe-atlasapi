@@ -1,6 +1,6 @@
 import pytest
 
-from brainglobe_atlasapi import update_atlases
+from bg_atlasapi import update_atlases
 
 
 def test_update():

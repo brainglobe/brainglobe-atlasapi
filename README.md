@@ -47,9 +47,9 @@ Full information can be found in the [documentation](https://brainglobe.info/doc
 ### Python API
 **List of atlases**
 
-To see a list of atlases use `brainglobe_atlasapi.show_atlases`
+To see a list of atlases use `bg_atlasapi.show_atlases`
 ```python
-from brainglobe_atlasapi import show_atlases
+from bg_atlasapi import show_atlases
 show_atlases()
 #                                Brainglobe Atlases
 # ╭──────────────────────────────────┬────────────┬───────────────┬──────────────╮
@@ -74,7 +74,7 @@ All the features of each atlas can be accessed via the `BrainGlobeAtlas` class.
 e.g. for the 25um Allen Mouse Brain Atlas:
 
 ```python
-from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 atlas = BrainGlobeAtlas("allen_mouse_25um")
 ```
 

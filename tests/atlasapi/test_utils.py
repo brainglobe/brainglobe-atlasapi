@@ -4,7 +4,7 @@ import pytest
 import requests
 from requests import HTTPError
 
-from brainglobe_atlasapiatlasapiatlasapiatlasapi import utils
+from bg_atlasapi import utils
 
 test_url = "https://gin.g-node.org/BrainGlobe/atlases/raw/master/example_mouse_100um_v1.2.tar.gz"
 

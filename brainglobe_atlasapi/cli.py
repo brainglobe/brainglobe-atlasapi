@@ -1,8 +1,8 @@
 import click
 
-from bg_atlasapi.config import cli_modify_config
-from bg_atlasapi.list_atlases import show_atlases
-from bg_atlasapi.update_atlases import install_atlas, update_atlas
+from brainglobe_atlasapi.config import cli_modify_config
+from brainglobe_atlasapi.list_atlases import show_atlases
+from brainglobe_atlasapi.update_atlases import install_atlas, update_atlas
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})

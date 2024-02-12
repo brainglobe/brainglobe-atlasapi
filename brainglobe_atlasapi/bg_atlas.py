@@ -6,8 +6,8 @@ import requests
 from rich import print as rprint
 from rich.console import Console
 
-from bg_atlasapi import config, core, descriptors, utils
-from bg_atlasapi.utils import _rich_atlas_metadata
+from brainglobe_atlasapi import config, core, descriptors, utils
+from brainglobe_atlasapi.utils import _rich_atlas_metadata
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
@@ -82,7 +82,7 @@ class BrainGlobeAtlas(core.Atlas):
                 raise ValueError(f"{atlas_name} is not a valid atlas name!")
 
             rprint(
-                f"[magenta2]bg_atlasapi: {self.atlas_name} "
+                f"[magenta2]brainglobe_atlasapi: {self.atlas_name} "
                 "not found locally. Downloading...[magenta2]"
             )
             self.download_extract_file()
@@ -188,7 +188,7 @@ class BrainGlobeAtlas(core.Atlas):
 
         if local != online:
             rprint(
-                f"[b][magenta2]bg_atlasapi[/b]: "
+                f"[b][magenta2]brainglobe_atlasapi[/b]: "
                 f"[b]{self.atlas_name}[/b] version [b]{local}[/b]"
                 f"is not the latest available ([b]{online}[/b]). "
                 "To update the atlas run in the terminal:[/magenta2]\n"

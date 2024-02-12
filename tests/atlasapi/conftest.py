@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from bg_atlasapi.bg_atlas import BrainGlobeAtlas
+from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 @pytest.fixture()

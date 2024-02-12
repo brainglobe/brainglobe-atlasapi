@@ -6,7 +6,7 @@ from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
 
-from bg_atlasapi import config, descriptors, utils
+from brainglobe_atlasapi import config, descriptors, utils
 
 
 def get_downloaded_atlases():

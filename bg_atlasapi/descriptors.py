@@ -3,7 +3,7 @@ import numpy as np
 # Base url of the gin repository:
 remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
 
-# Major version of atlases used by current bg-atlasapi release:
+# Major version of atlases used by current brainglobe-atlasapi release:
 ATLAS_MAJOR_V = 0
 
 # Entries and types from this template will be used to check atlas info

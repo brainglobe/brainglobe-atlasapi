@@ -1,5 +1,5 @@
 [project]
-name = "bg-atlasapi"
+name = "brainglobe-atlasapi"
 description = "A lightweight python module to interact with atlases for systems neuroscience"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -32,10 +32,10 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
-"Source Code" = "https://github.com/brainglobe/bg-atlasapi"
-"Bug Tracker" = "https://github.com/brainglobe/bg-atlasapi/issues"
-"Documentation" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
+"Homepage" = "https://brainglobe.info/documentation/brainglobe-atlasapi/index.html"
+"Source Code" = "https://github.com/brainglobe/brainglobe-atlasapi"
+"Bug Tracker" = "https://github.com/brainglobe/brainglobe-atlasapi/issues"
+"Documentation" = "https://brainglobe.info/documentation/brainglobe-atlasapi/index.html"
 
 [project.optional-dependencies]
 dev = ["check-manifest", "pre-commit", "pytest", "pytest-cov"]

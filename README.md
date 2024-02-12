@@ -1,24 +1,24 @@
-# BG-atlasAPI
+# brainglobe-atlasapi
 
-[![Python Version](https://img.shields.io/pypi/pyversions/bg-atlasapi.svg)](https://pypi.org/project/bg-atlasapi)
-[![PyPI](https://img.shields.io/pypi/v/bg-atlasapi.svg)](https://pypi.org/project/bg-atlasapi/)
-[![Wheel](https://img.shields.io/pypi/wheel/bg-atlasapi.svg)](https://pypi.org/project/bg-atlasapi)
+[![Python Version](https://img.shields.io/pypi/pyversions/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
+[![PyPI](https://img.shields.io/pypi/v/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi/)
+[![Wheel](https://img.shields.io/pypi/wheel/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
 [![Development Status](https://img.shields.io/pypi/status/brainatlas-api.svg)](https://github.com/SainsburyWellcomeCentre/brainatlas-api)
-[![Downloads](https://pepy.tech/badge/bg-atlasapi)](https://pepy.tech/project/bg-atlasapi)
-[![Tests](https://img.shields.io/github/actions/workflow/status/brainglobe/bg-atlasapi/test_and_deploy.yml?branch=main)](
-    https://github.com/brainglobe/bg-atlasapi/actions)
-[![codecov](https://codecov.io/gh/brainglobe/bg-atlasapi/branch/master/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/bg-atlasapi)
+[![Downloads](https://pepy.tech/badge/brainglobe-atlasapi)](https://pepy.tech/project/brainglobe-atlasapi)
+[![Tests](https://img.shields.io/github/actions/workflow/status/brainglobe/brainglobe-atlasapi/test_and_deploy.yml?branch=main)](
+    https://github.com/brainglobe/brainglobe-atlasapi/actions)
+[![codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/branch/master/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.02668/status.svg)](https://doi.org/10.21105/joss.02668)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Contributions](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg)](https://docs.brainglobe.info/cellfinder/contributing)
-[![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/documentation/bg-atlasapi/index.html)
+[![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/documentation/brainglobe-atlasapi/index.html)
 [![Twitter](https://img.shields.io/twitter/follow/brain_globe?style=social)](https://twitter.com/brain_globe)
 
 
-The brainglobe atlas API (BG-AtlasAPI) provides a common interface for programmers to download and process brain atlas data from multiple sources.
+The brainglobe atlas API (brainglobe-atlasapi) provides a common interface for programmers to download and process brain atlas data from multiple sources.
 
 ## Atlases available
 
@@ -37,13 +37,13 @@ A number of atlases are in development, but those available currently are:
 * [Kim Lab Developmental CCF (P56)](https://data.mendeley.com/datasets/2svx788ddf/1) at 10 micron resolution with 8 reference images - STP, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2)
 
 ## Installation
-BG-AtlasAPI works with Python >3.6, and can be installed from PyPI with:
+brainglobe-atlasapi works with Python >3.6, and can be installed from PyPI with:
 ```bash
-pip install bg-atlasapi
+pip install brainglobe-atlasapi
 ```
 
 ## Usage
-Full information can be found in the [documentation](https://brainglobe.info/documentation/bg-atlasapi/index.html)
+Full information can be found in the [documentation](https://brainglobe.info/documentation/brainglobe-atlasapi/index.html)
 ### Python API
 **List of atlases**
 
@@ -126,16 +126,16 @@ pprint(VISp)
 #  'structure_id_path': [997, 8, 567, 688, 695, 315, 669, 385]}
 ```
 
-### Note on coordinates in `bg-atlasapi`
-Working with both image coordinates and cartesian coordinates in the same space can be confusing! In `bg-atlasapi`, the origin is always assumed to be in the upper left corner of the image (sectioning along the first dimension), the "ij" convention. This means that when plotting meshes and points using cartesian systems, you might encounter confusing behaviors coming from the fact that in cartesian plots one axis is inverted with respect to  ij coordinates (vertical axis increases going up, image row indexes increase going down). To make things as consistent as possible, in `bg-atlasapi` the 0 of the meshes coordinates is assumed to coincide with the 0 index of the images stack, and meshes coordinates increase following the direction stack indexes increase.
-To deal with transformations between your data space and `bg-atlasapi`, you might find the [brainglobe-space](https://github.com/brainglobe/brainglobe-space) package helpful.
+### Note on coordinates in `brainglobe-atlasapi`
+Working with both image coordinates and cartesian coordinates in the same space can be confusing! In `brainglobe-atlasapi`, the origin is always assumed to be in the upper left corner of the image (sectioning along the first dimension), the "ij" convention. This means that when plotting meshes and points using cartesian systems, you might encounter confusing behaviors coming from the fact that in cartesian plots one axis is inverted with respect to  ij coordinates (vertical axis increases going up, image row indexes increase going down). To make things as consistent as possible, in `brainglobe-atlasapi` the 0 of the meshes coordinates is assumed to coincide with the 0 index of the images stack, and meshes coordinates increase following the direction stack indexes increase.
+To deal with transformations between your data space and `brainglobe-atlasapi`, you might find the [brainglobe-space](https://github.com/brainglobe/brainglobe-space) package helpful.
 
-# Contributing to bg-atlasapi
+# Contributing to brainglobe-atlasapi
 **Contributors to bg-atlaspi are absolutely encouraged**, whether you want to fix bugs, add/request new features or simply ask questions.
 
-If you would like to contribute to `bg-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/brainglobe/brainrender) etc.) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/bg-atlasapi). Please also see the [developers guide](https://brainglobe.info/developers/index.html).
+If you would like to contribute to `brainglobe-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/brainglobe/brainrender) etc.) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/brainglobe-atlasapi). Please also see the [developers guide](https://brainglobe.info/developers/index.html).
 
-Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/bg-atlasapi/issues) (and the issues of the other repositories).
+Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/brainglobe-atlasapi/issues) (and the issues of the other repositories).
 
 ## Citation
 If you find the BrainGlobe Atlas API useful, please cite the paper in your work:

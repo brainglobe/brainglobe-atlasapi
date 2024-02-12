@@ -4,4 +4,9 @@ include README.md
 include requirements.txt
 
 exclude .codecov.yml
+exclude .pre-commit-config.yaml
+
+graft brainglobe_atlasapi *.py
+
+prune tests
 prune tutorials

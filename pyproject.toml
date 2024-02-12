@@ -67,13 +67,7 @@ line-length = 79
 [tool.setuptools_scm]
 
 [tool.check-manifest]
-ignore = [
-    "*.yaml",
-    "tox.ini",
-    "tests/*",
-    "tests/test_unit/*",
-    "tests/test_integration/*",
-]
+ignore = ["*.yaml", "tox.ini", "tests/*"]
 
 [tool.ruff]
 line-length = 79

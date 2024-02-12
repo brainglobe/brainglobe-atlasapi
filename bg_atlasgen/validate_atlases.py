@@ -1,5 +1,6 @@
 """Script to validate atlases"""
 
+import json
 import os
 from pathlib import Path
 
@@ -151,18 +152,20 @@ def validate_atlas(atlas_name, version, validation_functions):
     if not updated:
         update_atlas(atlas_name)
 
-    # list to store the errors of the failed validations
-    failed_validations = {atlas_name: []}
-    successful_validations = {atlas_name: []}
+    validation_results = {atlas_name: []}
 
-    for i, validation_function in enumerate(validation_functions):
+    for i, validation_function in enumerate(all_validation_functions):
         try:
             validation_function(BrainGlobeAtlas(atlas_name))
-            successful_validations[atlas_name].append(validation_function)
+            validation_results[atlas_name].append(
+                (validation_function.__name__, None, str("Pass"))
+            )
         except AssertionError as error:
-            failed_validations[atlas_name].append((validation_function, error))
+            validation_results[atlas_name].append(
+                (validation_function.__name__, str(error), str("Fail"))
+            )
 
-    return successful_validations, failed_validations
+    return validation_results
 
 
 if __name__ == "__main__":
@@ -178,17 +181,29 @@ if __name__ == "__main__":
 
     valid_atlases = []
     invalid_atlases = []
+    validation_results = {}
+
     for atlas_name, version in get_all_atlases_lastversions().items():
-        successful_validations, failed_validations = validate_atlas(
+        temp_validation_results = validate_atlas(
             atlas_name, version, all_validation_functions
         )
-        for item in successful_validations:
-            valid_atlases.append(item)
-        for item in failed_validations:
-            invalid_atlases.append(item)
+        validation_results.update(temp_validation_results)
 
-    print("Summary")
-    print("### Valid atlases ###")
-    print(valid_atlases)
-    print("### Invalid atlases ###")
-    print(invalid_atlases)
+    print("Validation has been completed")
+    print("Find validation_results.json in ~/.brainglobe/atlases/validation/")
+
+    # Get the directory path
+    output_dir_path = str(get_brainglobe_dir() / "atlases/validation")
+
+    # Create the directory if it doesn't exist
+    if not os.path.exists(output_dir_path):
+        os.makedirs(output_dir_path)
+
+    # Open a file for writing (will overwrite any files from previous runs!)
+    with open(
+        str(
+            get_brainglobe_dir() / "atlases/validation/validation_results.json"
+        ),
+        "w",
+    ) as file:
+        json.dump(validation_results, file)

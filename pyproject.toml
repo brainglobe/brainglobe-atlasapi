@@ -72,8 +72,10 @@ ignore = ["*.yaml", "tox.ini", "tests/*"]
 [tool.ruff]
 line-length = 79
 exclude = ["__init__.py", "build", ".eggs"]
-select = ["I", "E", "F"]
 fix = true
+
+[tool.ruff.lint]
+select = ["I", "E", "F"]
 
 [tool.tox]
 legacy_tox_ini = """

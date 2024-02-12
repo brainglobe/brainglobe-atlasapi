@@ -37,7 +37,8 @@ def update_atlas(atlas_name, force=False):
 
     # Delete atlas folder
     rprint(
-        f"[b][magenta2]brainglobe_atlasapi: updating {atlas.atlas_name}[/magenta2][/b]"
+        "[b][magenta2]brainglobe_atlasapi: "
+        f"updating {atlas.atlas_name}[/magenta2][/b]"
     )
     fld = atlas.brainglobe_dir / atlas.local_full_name
     shutil.rmtree(fld)
@@ -52,8 +53,9 @@ def update_atlas(atlas_name, force=False):
 
     # Check that everything went well
     rprint(
-        f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} updated to version: "
-        + f"{_version_str_from_tuple(atlas.remote_version)}[/magenta2][/b]"
+        "[b][magenta2]brainglobe_atlasapi: "
+        f"{atlas.atlas_name} updated to version: "
+        f"{_version_str_from_tuple(atlas.remote_version)}[/magenta2][/b]"
     )
 
 

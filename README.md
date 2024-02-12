@@ -1,3 +1,8 @@
+# This package has moved!
+
+This package has been renamed to `brainglobe-atlasapi`.
+To continue receiving updates, please switch over to using [the new package](https://github.com/brainglobe/brainglobe-atlasapi).
+
 # BG-atlasAPI
 
 [![Python Version](https://img.shields.io/pypi/pyversions/bg-atlasapi.svg)](https://pypi.org/project/bg-atlasapi)

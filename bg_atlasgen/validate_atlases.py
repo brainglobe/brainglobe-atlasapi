@@ -154,7 +154,7 @@ def validate_atlas(atlas_name, version, validation_functions):
 
     validation_results = {atlas_name: []}
 
-    for i, validation_function in enumerate(all_validation_functions):
+    for i, validation_function in enumerate(validation_functions):
         try:
             validation_function(BrainGlobeAtlas(atlas_name))
             validation_results[atlas_name].append(

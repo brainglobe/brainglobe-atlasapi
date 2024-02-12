@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from bg_atlasapi import bg_atlas, cli, config
+from brainglobe_atlasapi import bg_atlas, cli, config
 
 
 @pytest.fixture()
@@ -27,7 +27,7 @@ def test_config_creation(conf_path):
 
 
 # Ugly test zone: here we use the terminal commands, which edit the config
-# file in the bg_atlasapi repo from which the tests are being run.
+# file in the brainglobe_atlasapi repo from which the tests are being run.
 # This is not the cleanest way, the alternative would be to run this test in
 # a new env.
 @pytest.mark.slow

@@ -8,11 +8,11 @@ from pathlib import Path
 import numpy as np
 import requests
 from allensdk.core.structure_tree import StructureTree
-from bg_atlasapi.utils import retrieve_over_http
 from scipy.ndimage import binary_dilation, binary_erosion, binary_fill_holes
 from tifffile import imread
 
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.utils import retrieve_over_http
 
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
 
@@ -140,7 +140,7 @@ def create_atlas(working_dir, resolution):
     )
 
     # meshes from the website and stacks do not have the same orientation.
-    # Therefore, flip axes of the stacks so that bg-space reorientation is used on
+    # Therefore, flip axes of the stacks so that brainglobe-space reorientation is used on
     # the meshes:
     annotation_stack = annotation_stack.swapaxes(0, 2)
     hemispheres_stack = hemispheres_stack.swapaxes(0, 2)

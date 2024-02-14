@@ -6,11 +6,14 @@ import stat
 from importlib import import_module
 from pathlib import Path
 
-from bg_atlasapi.utils import atlas_name_from_repr, atlas_repr_from_name
+import brainglobe_atlasapi.atlas_generation
 from git import Repo
 from git.exc import GitCommandError
 
-import bg_atlasgen
+from brainglobe_atlasapi.utils import (
+    atlas_name_from_repr,
+    atlas_repr_from_name,
+)
 
 # Main dictionary specifying which atlases to generate
 # and with which resolutions:
@@ -71,7 +74,9 @@ if __name__ == "__main__":
         atlases_repr[repr.pop("name")] = repr
 
     # Major version is given by version of the atlas_gen module:
-    bg_atlasgen_version = bg_atlasgen.__version__
+    brainglobe_atlasapi.atlas_generation_version = (
+        brainglobe_atlasapi.atlas_generation.__version__
+    )
 
     # Path to the scripts to generate the atlases:
     atlas_gen_path = Path(__file__).parent
@@ -81,11 +86,16 @@ if __name__ == "__main__":
     commit_log = "Updated: "
     for name, resolutions in GENERATION_DICT.items():
         status = atlases_repr[name]
-        module = import_module(f"bg_atlasgen.atlas_scripts.{name}")
+        module = import_module(
+            f"brainglobe_atlasapi.atlas_generation.atlas_scripts.{name}"
+        )
         script_version = module.__version__
 
-        if bg_atlasgen_version > status["major_vers"] or (
-            bg_atlasgen_version == status["major_vers"]
+        if brainglobe_atlasapi.atlas_generation_version > status[
+            "major_vers"
+        ] or (
+            brainglobe_atlasapi.atlas_generation_version
+            == status["major_vers"]
             and script_version > status["minor_vers"]
         ):
             # Loop over all resolutions:
@@ -105,8 +115,8 @@ if __name__ == "__main__":
 
                 # Update config file with new version:
                 k = atlas_name_from_repr(name, resolution)
-                conf["atlases"][k] = str(
-                    f"{bg_atlasgen_version}.{script_version}"
+                conf["brainglobe_atlasapi.atlas_generation"] = str(
+                    f"{brainglobe_atlasapi.atlas_generation_version}.{script_version}"
                 )
                 with open(repo_path / "last_versions.conf", "w") as f:
                     conf.write(f)

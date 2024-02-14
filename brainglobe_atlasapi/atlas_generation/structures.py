@@ -1,5 +1,5 @@
-from bg_atlasapi.descriptors import STRUCTURE_TEMPLATE as STEMPLATE
-from bg_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.descriptors import STRUCTURE_TEMPLATE as STEMPLATE
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def check_struct_consistency(structures):

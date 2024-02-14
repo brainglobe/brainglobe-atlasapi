@@ -9,13 +9,16 @@ from pathlib import Path
 import imio
 import numpy as np
 import pandas as pd
-from bg_atlasapi import utils
-from bg_atlasapi.structure_tree_util import get_structures_tree
 from rich.progress import track
 from scipy.ndimage import zoom
 
-from bg_atlasgen.mesh_utils import Region, create_region_mesh
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    Region,
+    create_region_mesh,
+)
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 

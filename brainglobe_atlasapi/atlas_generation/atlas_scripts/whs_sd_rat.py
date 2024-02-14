@@ -1,75 +1,82 @@
-__version__ = "1"
+__version__ = "0"
 
 import json
 import multiprocessing as mp
 import time
 import zipfile
 from pathlib import Path
-from random import choices
 
+import imio
 import numpy as np
-import pandas as pd
-import tifffile
-
-# import sys
-# sys.path.append("./")
-from bg_atlasapi import utils
-from bg_atlasapi.structure_tree_util import get_structures_tree
-from loguru import logger
+import xmltodict
 from rich.progress import track
 
-from bg_atlasgen.mesh_utils import (
+from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
-    inspect_meshes_folder,
 )
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
-TEST = False
 
 
-def download_atlas_files(download_dir_path: Path, atlas_file_url: str) -> Path:
+def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
+    atlas_files_dir = download_dir_path / ATLAS_NAME
+
+    if atlas_files_dir.exists():
+        return atlas_files_dir
+
     utils.check_internet_connection()
 
-    atlas_files_dir = download_dir_path / "atlas_files"
-
-    # only download data if they weren't already downloaded
-    if atlas_files_dir.exists():
-        print("Not downloading atlas since it was downloaded already already")
-        return atlas_files_dir / "SC_P56_Atlas_10x10x20_v5_2020"
-    else:
-        print("Downloading atlas data")
-
-    destination_path = download_dir_path / "atlas_download"
+    download_name = ATLAS_NAME + "_atlas.zip"
+    destination_path = download_dir_path / download_name
     utils.retrieve_over_http(atlas_file_url, destination_path)
 
     with zipfile.ZipFile(destination_path, "r") as zip_ref:
         zip_ref.extractall(atlas_files_dir)
 
-    atlas_files_dir = atlas_files_dir / "SC_P56_Atlas_10x10x20_v5_2020"
     return atlas_files_dir
 
 
-def parse_structures(structures_file, root_id):
-    df = pd.read_csv(structures_file)
-    df = df.rename(columns={"parent_ID": "parent_structure_id"})
-    df = df.drop(
-        columns=[
-            "output_id",
-            "parent_acronym",
-            "children_acronym",
-            "children_IDs",
-        ]
-    )
+def parse_structures_xml(root, path=None, structures=None):
+    structures = structures or []
+    path = path or []
 
-    df["rgb_triplet"] = df.apply(lambda x: [x.red, x.green, x.blue], axis=1)
-    df["structure_id_path"] = df.apply(lambda x: [x.id], axis=1)
+    rgb_triplet = tuple(int(root["@color"][i : i + 2], 16) for i in (1, 3, 5))
+    id = int(root["@id"])
+    struct = {
+        "name": root["@name"],
+        "acronym": root["@abbreviation"],
+        "id": int(root["@id"]),
+        "structure_id_path": path + [id],
+        "rgb_triplet": rgb_triplet,
+    }
+    structures.append(struct)
 
-    df = df.drop(columns=["red", "green", "blue"])
+    if "label" in root:
+        if isinstance(root["label"], list):
+            for label in root["label"]:
+                parse_structures_xml(
+                    label, path=path + [id], structures=structures
+                )
+        else:
+            parse_structures_xml(
+                root["label"], path=path + [id], structures=structures
+            )
 
-    structures = df.to_dict("records")
-    structures = create_structure_hierarchy(structures, df, root_id)
+    return structures
+
+
+def parse_structures(structures_file: Path):
+    root = xmltodict.parse(structures_file.read_text())["milf"]["structure"]
+    root["@abbreviation"] = "root"
+    root["@color"] = "#ffffff"
+    root["@id"] = "10000"
+    root["@name"] = "Root"
+
+    structures = parse_structures_xml(root)
     return structures
 
 
@@ -96,19 +103,15 @@ def create_structure_hierarchy(structures, df, root_id):
     return structures
 
 
-def create_meshes(download_dir_path, structures, annotated_volume, root_id):
+def create_meshes(download_dir_path, tree, annotated_volume, labels, root_id):
     meshes_dir_path = download_dir_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
-    tree = get_structures_tree(structures)
-
-    labels = np.unique(annotated_volume).astype(np.int32)
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
         else:
             is_label = False
-
         node.data = Region(is_label)
 
     # Mesh creation
@@ -116,20 +119,8 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
-
-    # check how many regions to create the meshes for
-    nodes = list(tree.nodes.values())
-    if TEST:
-        logger.info(
-            "Creating atlas in test mode: selecting 10 random regions for mesh creation"
-        )
-        nodes = choices(nodes, k=10)
-
     if PARALLEL:
-        print(
-            f"Creating {tree.size()} meshes in parallel with {mp.cpu_count() - 2} CPU cores"
-        )
-        pool = mp.Pool(mp.cpu_count() - 2)
+        pool = mp.Pool(min(mp.cpu_count() - 2, 16))
 
         try:
             pool.map(
@@ -146,16 +137,15 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
                         decimate_fraction,
                         smooth,
                     )
-                    for node in nodes
+                    for node in tree.nodes.values()
                 ],
             )
         except mp.pool.MaybeEncodingError:
             pass
     else:
-        print(f"Creating {len(nodes)} meshes")
         for node in track(
-            nodes,
-            total=len(nodes),
+            tree.nodes.values(),
+            total=tree.size(),
             description="Creating meshes",
         ):
             create_region_mesh(
@@ -177,11 +167,6 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-
-    if TEST:
-        # create visualization of the various meshes
-        inspect_meshes_folder(meshes_dir_path)
-
     return meshes_dir_path
 
 
@@ -210,41 +195,79 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 def create_atlas(working_dir):
-    ATLAS_NAME = "allen_cord"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://data.mendeley.com/datasets/4rrggzv5d5/1"
+    ATLAS_NAME = "whs_sd_rat"
+    SPECIES = "Rattus norvegicus"
+    ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"
     CITATION = (
-        "Fiederling et al. 2021, https://doi.org/10.1101/2021.05.06.443008"
+        "Papp et al 2014, https://doi.org/10.1016/j.neuroimage.2014.04.001"
     )
-    ORIENTATION = "asr"
-    RESOLUTION = (20, 10, 10)
-    ROOT_ID = 250
-    ATLAS_FILE_URL = (
-        "https://md-datasets-cache-zipfiles-prod.s3.eu-west-1."
-        "amazonaws.com/4rrggzv5d5-1.zip"
+    ORIENTATION = "lpi"
+    RESOLUTION = (39, 39, 39)
+    ROOT_ID = 10000
+    ATLAS_FILE_URL = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+    ATLAS_PACKAGER = (
+        "Ben Kantor, Tel Aviv University, Israel, benkantor@mail.tau.ac.il"
     )
-    ATLAS_PACKAGER = "MetaCell LLC, Ltd."
+
+    assert len(ORIENTATION) == 3, (
+        "Orientation is not 3 characters, Got" + ORIENTATION
+    )
+    assert len(RESOLUTION) == 3, "Resolution is not correct, Got " + RESOLUTION
+    assert (
+        ATLAS_FILE_URL
+    ), "No download link provided for atlas in ATLAS_FILE_URL"
+
+    # Generated atlas path:
+    working_dir = working_dir / ATLAS_NAME
+    working_dir.mkdir(exist_ok=True, parents=True)
 
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
 
-    # Download atlas files from Mendeley
-    atlas_files_dir = download_atlas_files(download_dir_path, ATLAS_FILE_URL)
-
-    # Load files
-    structures_file = atlas_files_dir / "Atlas_Regions.csv"
-    reference_file = atlas_files_dir / "Template.tif"
-    annotations_file = atlas_files_dir / "Annotation.tif"
-    segments_file = atlas_files_dir / "Segments.csv"
-
-    annotated_volume = tifffile.imread(annotations_file)
-    template_volume = tifffile.imread(reference_file)
-
-    atlas_segments = pd.read_csv(segments_file)
-    atlas_segments = dict(atlas_segments=atlas_segments.to_dict("records"))
+    # Download atlas files from link provided
+    print("Downloading atlas from link: ", ATLAS_FILE_URL)
+    atlas_files_dir = download_atlas_files(
+        download_dir_path, ATLAS_FILE_URL, ATLAS_NAME
+    )
+    atlas_files_dir = atlas_files_dir / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 
     # Parse structure metadata
-    structures = parse_structures(structures_file, ROOT_ID)
+    structures = parse_structures(
+        atlas_files_dir / "WHS_SD_rat_atlas_v4_labels.ilf"
+    )
+
+    # Load files
+    annotation_stack = imio.load_any(
+        atlas_files_dir / "WHS_SD_rat_atlas_v4.nii.gz", as_numpy=True
+    ).astype(np.int64)
+    reference_stack = imio.load_any(
+        atlas_files_dir / "WHS_SD_rat_T2star_v1.01.nii.gz", as_numpy=True
+    )
+
+    # Remove structure with missing annotations
+    tree = get_structures_tree(structures)
+    labels = set(np.unique(annotation_stack).astype(np.int32))
+    existing_structures = []
+    for structure in structures:
+        stree = tree.subtree(structure["id"])
+        ids = set(stree.nodes.keys())
+        matched_labels = ids & labels
+        if matched_labels:
+            existing_structures.append(structure)
+        else:
+            node = tree.nodes[structure["id"]]
+            print(
+                f"{node.tag} not found in annotation volume, removing from list of structures..."
+            )
+    structures = existing_structures
+    tree = get_structures_tree(structures)
+
+    # Clean junk from reference file
+    reference_stack *= annotation_stack > 0
+
+    # Create hemispheres stack
+    hemispheres_stack = np.full(reference_stack.shape, 2, dtype=np.uint8)
+    hemispheres_stack[:244] = 1
 
     # save regions list json:
     with open(download_dir_path / "structures.json", "w") as f:
@@ -253,8 +276,9 @@ def create_atlas(working_dir):
     # Create meshes:
     print(f"Saving atlas data at {download_dir_path}")
     meshes_dir_path = create_meshes(
-        download_dir_path, structures, annotated_volume, ROOT_ID
+        download_dir_path, tree, annotation_stack, labels, ROOT_ID
     )
+
     meshes_dict, structures_with_mesh = create_mesh_dict(
         structures, meshes_dir_path
     )
@@ -270,17 +294,16 @@ def create_atlas(working_dir):
         resolution=RESOLUTION,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
-        reference_stack=template_volume,
-        annotation_stack=annotated_volume,
+        reference_stack=reference_stack,
+        annotation_stack=annotation_stack,
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=working_dir,
         atlas_packager=ATLAS_PACKAGER,
-        hemispheres_stack=None,
+        hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
-        additional_metadata=atlas_segments,
     )
 
     return output_filename
@@ -288,9 +311,6 @@ def create_atlas(working_dir):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_cord_smooth"
+    bg_root_dir = Path.home() / "brainglobe_workingdir"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-
-    # generate atlas
-    print(f'Creating atlas and saving it at "{bg_root_dir}"')
     create_atlas(bg_root_dir)

@@ -21,7 +21,9 @@ import numpy as np
 import scipy
 from loguru import logger
 
-from bg_atlasgen.volume_utils import create_masked_array
+from brainglobe_atlasapi.atlas_generation.volume_utils import (
+    create_masked_array,
+)
 
 # ---------------------------------------------------------------------------- #
 #                                 MESH CREATION                                #

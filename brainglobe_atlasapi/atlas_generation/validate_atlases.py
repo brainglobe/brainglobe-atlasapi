@@ -5,14 +5,15 @@ import os
 from pathlib import Path
 
 import numpy as np
-from bg_atlasapi import BrainGlobeAtlas
-from bg_atlasapi.config import get_brainglobe_dir
-from bg_atlasapi.list_atlases import (
+
+from brainglobe_atlasapi import BrainGlobeAtlas
+from brainglobe_atlasapi.config import get_brainglobe_dir
+from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
     get_local_atlas_version,
 )
-from bg_atlasapi.update_atlases import update_atlas
+from brainglobe_atlasapi.update_atlases import update_atlas
 
 
 def validate_atlas_files(atlas: BrainGlobeAtlas):

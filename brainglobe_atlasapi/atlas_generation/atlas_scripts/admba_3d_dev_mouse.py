@@ -11,13 +11,16 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-from bg_atlasapi import utils
-from bg_atlasapi.structure_tree_util import get_structures_tree
 from rich.progress import track
 from skimage import io
 
-from bg_atlasgen.mesh_utils import Region, create_region_mesh
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    Region,
+    create_region_mesh,
+)
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
 
@@ -182,7 +185,8 @@ def create_mesh_dict(structures, meshes_dir_path):
         meshes_dict[s["id"]] = mesh_path
 
     print(
-        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+        f"In the end, {len(structures_with_mesh)} "
+        "structures with mesh are kept"
     )
     return meshes_dict, structures_with_mesh
 
@@ -195,9 +199,10 @@ class AtlasConfig:
     species: str
     atlas_link: str
     atlas_file_url: str
-    #: Input orientation in 3-letter notation using the NumPy system with origin
-    #: at top left corner of first plane. Axis 0 = front to back, 1 = top to
-    #: bottom, 2 = left to right. Output orientation will be ASR.
+    #: Input orientation in 3-letter notation using the NumPy system with
+    #: origin at top left corner of first plane.
+    #: Axis 0 = front to back, 1 = top to bottom, 2 = left to right.
+    #: Output orientation will be ASR.
     orientation: str
     #: Resolution to match the output orientation of ASR.
     resolution: Tuple[float, float, float]
@@ -315,7 +320,9 @@ if __name__ == "__main__":
         resolution=(16, 16, 20),
         citation="Young et al. 2021, https://doi.org/10.7554/eLife.61408",
         root_id=15564,
-        atlas_packager="Pradeep Rajasekhar, WEHI, Australia, rajasekhardotp@wehidotedudotau; David Young, UCSF, United States, davedotyoung@ucsfdotedu",
+        atlas_packager="Pradeep Rajasekhar, WEHI, Australia, "
+        "rajasekhardotp@wehidotedudotau; David Young, UCSF, "
+        "United States, davedotyoung@ucsfdotedu",
     )
 
     # E13.5 atlas, with updated name and URLs

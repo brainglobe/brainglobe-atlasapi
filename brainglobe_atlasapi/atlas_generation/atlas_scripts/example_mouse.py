@@ -8,7 +8,7 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
 
-from bg_atlasgen.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 
 def create_atlas(working_dir, resolution):

@@ -161,19 +161,20 @@ If you find the BrainGlobe Atlas API useful, please cite the paper in your work:
 
 ---
 
-# brainglobe-atlasgen
+# Atlas Generation and Adding a New Atlas
 
-For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/bg-atlasapi/adding-a-new-atlas.html).
+For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe_atlasapi/adding-a-new-atlas.html).
 
-This source code Utilities and scripts for the generation of cleaned-up data for the `bg-atlasapi` module.
+The `brainglobe_atlasapi.atlas_generation` submodule contains code for the generation of cleaned-up data, for the main `brainglobe_atlasapi` module.
+This code was previously the `bg-atlasgen` module.
 
 ## To contribute
 
 1. Fork this repo
 2. Clone your repo
-3. Run `git clone https://github.com/USERNAME/bg-atlasgen`
+3. Run `git clone https://github.com/brainglobe/brainglobe-atlasapi`
 4. Install an editable version of the package; by running `pip install -e .` within the cloned directory
-5. Create a script to package your atlas, and place into `brainglobe_atlasgen/atlas_scripts`. Please see other scripts for examples.
+5. Create a script to package your atlas, and place into `brainglobe_atlasapi/atlas_generation/atlas_scripts`. Please see other scripts for examples.
 
 Your script should contain everything required to run.
 The raw data should be hosted on a publicly accessible repository so that anyone can run the script to recreate the atlas.

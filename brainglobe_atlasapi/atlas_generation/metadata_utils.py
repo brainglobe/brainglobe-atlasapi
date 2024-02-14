@@ -9,11 +9,13 @@ import re
 from datetime import datetime
 
 import requests
-from bg_atlasapi import descriptors
-from bg_atlasapi.structure_tree_util import get_structures_tree
 from requests.exceptions import ConnectionError, InvalidURL, MissingSchema
 
-from bg_atlasgen.structure_json_to_csv import convert_structure_json_to_csv
+from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi.atlas_generation.structure_json_to_csv import (
+    convert_structure_json_to_csv,
+)
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def generate_metadata_dict(

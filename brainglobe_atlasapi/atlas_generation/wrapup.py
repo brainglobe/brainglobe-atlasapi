@@ -3,28 +3,30 @@ import shutil
 import tarfile
 from pathlib import Path
 
-import bg_space as bgs
+import brainglobe_space as bgs
 import meshio as mio
 import tifffile
-from bg_atlasapi import descriptors
-from bg_atlasapi.utils import atlas_name_from_repr
 
-import bg_atlasgen
-from bg_atlasgen.metadata_utils import (
+import brainglobe_atlasapi.atlas_generation
+from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     create_metadata_files,
     generate_metadata_dict,
 )
-from bg_atlasgen.stacks import (
+from brainglobe_atlasapi.atlas_generation.stacks import (
     save_annotation,
     save_hemispheres,
     save_reference,
     save_secondary_reference,
 )
-from bg_atlasgen.structures import check_struct_consistency
+from brainglobe_atlasapi.atlas_generation.structures import (
+    check_struct_consistency,
+)
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas
 # structure:
-ATLAS_VERSION = bg_atlasgen.__version__
+ATLAS_VERSION = brainglobe_atlasapi.atlas_generation.__version__
 
 
 def wrapup_atlas_from_data(

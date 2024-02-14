@@ -1,5 +1,6 @@
 import tifffile
-from bg_atlasapi import descriptors
+
+from brainglobe_atlasapi import descriptors
 
 
 def write_stack(stack, filename):

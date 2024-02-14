@@ -2,14 +2,14 @@ import os
 
 import numpy as np
 import pytest
-from bg_atlasapi import BrainGlobeAtlas
-from bg_atlasapi.config import get_brainglobe_dir
 
-from bg_atlasgen.validate_atlases import (
+from brainglobe_atlasapi import BrainGlobeAtlas
+from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     _assert_close,
     validate_atlas_files,
     validate_mesh_matches_image_extents,
 )
+from brainglobe_atlasapi.config import get_brainglobe_dir
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def test_validate_mesh_matches_image_extents(atlas):
 def test_validate_mesh_matches_image_extents_negative(mocker, atlas):
     flipped_annotation_image = np.transpose(atlas.annotation)
     mocker.patch(
-        "bg_atlasapi.BrainGlobeAtlas.annotation",
+        "brainglobe_atlasapi.BrainGlobeAtlas.annotation",
         new_callable=mocker.PropertyMock,
         return_value=flipped_annotation_image,
     )

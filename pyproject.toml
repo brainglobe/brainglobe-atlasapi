@@ -1,6 +1,6 @@
 [project]
 name = "brainglobe-atlasapi"
-description = "A lightweight python module to interact with atlases for systems neuroscience"
+description = "A lightweight python module to interact with atlases for systems neuroscience, and for generating atlases for the API."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
@@ -19,15 +19,25 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "brainglobe-space >= 1.0.0",
+    "brainglobe-utils >= 0.4.0",
     "click",
+    "loguru",
     "meshio",
+    "meshio",
+    "numpy",
     "numpy",
     "pandas",
     "pyarrow",
+    "PyMCubes",
     "requests",
     "rich >= 9.0.0",
+    "rich",
+    "SimpleITK",
     "tifffile",
+    "tqdm>=4.46.1",
     "treelib",
+    "vedo",
+    "xmltodict",
 ]
 dynamic = ["version"]
 
@@ -38,14 +48,25 @@ dynamic = ["version"]
 "Documentation" = "https://brainglobe.info/documentation/brainglobe-atlasapi/index.html"
 
 [project.optional-dependencies]
-dev = ["check-manifest", "pre-commit", "pytest", "pytest-cov"]
+dev = [
+    "black",
+    "check-manifest",
+    "coverage",
+    "mypy",
+    "pre-commit",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest",
+    "ruff",
+    "setuptools_scm",
+    "tox",
+]
+
+allenmouse = ["allensdk"]
 
 [build-system]
 requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
-
-[project.scripts]
-brainglobe = "brainglobe_atlasapi.cli:bg_cli"
 
 [tool.setuptools]
 include-package-data = true
@@ -66,9 +87,6 @@ line-length = 79
 
 [tool.setuptools_scm]
 
-[tool.check-manifest]
-ignore = ["*.yaml", "tox.ini", "tests/*"]
-
 [tool.ruff]
 line-length = 79
 exclude = ["__init__.py", "build", ".eggs"]
@@ -79,9 +97,8 @@ select = ["I", "E", "F"]
 
 [tool.tox]
 legacy_tox_ini = """
-# For more information about tox, see https://tox.readthedocs.io/en/latest/
 [tox]
-envlist = py{38,39,310,311}
+envlist = py{39,310,311}
 
 [gh-actions]
 python =

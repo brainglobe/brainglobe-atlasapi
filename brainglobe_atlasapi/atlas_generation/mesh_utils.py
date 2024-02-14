@@ -25,9 +25,9 @@ from brainglobe_atlasapi.atlas_generation.volume_utils import (
     create_masked_array,
 )
 
-# ---------------------------------------------------------------------------- #
-#                                 MESH CREATION                                #
-# ---------------------------------------------------------------------------- #
+# ----------------- #
+#   MESH CREATION   #
+# ----------------- #
 
 
 def region_mask_from_annotation(
@@ -96,12 +96,14 @@ def extract_mesh_from_mask(
         number of iterations of closing morphological operation.
         set to None to avoid applying morphological operations
     decimate_fraction: float  in range [0, 1].
-        What fraction of the original number of vertices is to be kept. E.g. .5 means that
-        50% of the vertices are kept, the others are removed
+        What fraction of the original number of vertices is to be kept.
+        EG .5 means that 50% of the vertices are kept,
+        the others are removed.
     tol: float
-        parameter for decimation, larger values correspond to more aggressive decimation.
-        E.g. 0.02 -> points that are closer than 2% of the size of the meshe's bounding box are
-        identified and removed (only one is kep)
+        parameter for decimation, with larger values corresponding
+        to more aggressive decimation.
+        EG 0.02 -> points that are closer than 2% of the size of the mesh's
+        bounding box are identified and removed (only one is kept).
     extract_largest: bool
         If True only the largest region are extracted. It can cause issues for
         bilateral regions as only one will remain
@@ -121,7 +123,8 @@ def extract_mesh_from_mask(
     # Check volume argument
     if np.min(volume) > 0 or np.max(volume) < 1:
         raise ValueError(
-            "Argument volume should be a binary mask with only 0s and 1s when passing a np.ndarray"
+            "Argument volume should be a binary mask with only "
+            "0s and 1s when passing a np.ndarray"
         )
 
     # Apply morphological transformations
@@ -137,7 +140,8 @@ def extract_mesh_from_mask(
         mesh = volume.clone().isosurface(value=threshold).cap()
     else:
         print(
-            "The marching cubes algorithm might be rotated compared to your volume data"
+            "The marching cubes algorithm might be rotated "
+            "compared to your volume data"
         )
         # Apply marching cubes and save to .obj
         if mcubes_smooth:
@@ -181,9 +185,11 @@ def create_region_mesh(args):
     meshes_dir_path: pathlib Path object with folder where meshes are saved
     tree: treelib.Tree with hierarchical structures information
     node: tree's node corresponding to the region who's mesh is being created
-    labels: list of unique label annotations in annotated volume (list(np.unique(annotated_volume)))
+    labels: list of unique label annotations in annotated volume,
+    (list(np.unique(annotated_volume)))
     annotated_volume: 3d numpy array with annotaed volume
-    ROOT_ID: int, id of root structure (mesh creation is a bit more refined for that)
+    ROOT_ID: int,
+    id of root structure (mesh creation is a bit more refined for that)
     """
     # Split arguments
     logger.debug(f"Creating mesh for region {args[1].identifier}")
@@ -241,17 +247,18 @@ def create_region_mesh(args):
 
 class Region(object):
     """
-    Class used to add metadata to treelib.Tree during atlas creation. Using this
-    means that you can then filter tree nodes depending on wether or not they have a mesh/label
+    Class used to add metadata to treelib.Tree during atlas creation.
+    Using this means that you can then filter tree nodes depending on
+    whether or not they have a mesh/label
     """
 
     def __init__(self, has_label):
         self.has_label = has_label
 
 
-# ---------------------------------------------------------------------------- #
-#                                MESH INSPECTION                               #
-# ---------------------------------------------------------------------------- #
+# ------------------- #
+#   MESH INSPECTION   #
+# ------------------- #
 def compare_mesh_and_volume(mesh, volume):
     """
     Creates and interactive vedo

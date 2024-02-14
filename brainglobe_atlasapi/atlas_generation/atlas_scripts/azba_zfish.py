@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script to generate a Brainglobe compatible atlas object for the Adult Zebrafish Brain Atlas (AZBA)
+Script to generate a Brainglobe compatible atlas object
+for the Adult Zebrafish Brain Atlas (AZBA)
 
 @author: Kailyn Fields, kailyn.fields@wayne.edu
-
 """
 
 __version__ = "1"
@@ -70,7 +70,8 @@ def create_atlas(working_dir, resolution):
     meshes_dir_path = atlas_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
-    # adding topro image as additional reference file, main reference file is autofl
+    # adding topro image as additional reference file,
+    # main reference file is autofl
     topro = tifffile.imread(reference_topro)
     ADDITIONAL_REFERENCES = {"TO-PRO": topro}
 
@@ -86,7 +87,8 @@ def create_atlas(working_dir, resolution):
     for row in zfishDictReader:
         hierarchy.append(row)
 
-    # make string to int and list of int conversions in 'id', 'structure_id_path', and 'rgb_triplet' key values
+    # make string to int and list of int conversions in
+    # 'id', 'structure_id_path', and 'rgb_triplet' key values
     for i in range(0, len(hierarchy)):
         hierarchy[i]["id"] = int(hierarchy[i]["id"])
     for j in range(0, len(hierarchy)):
@@ -101,8 +103,10 @@ def create_atlas(working_dir, resolution):
         except ValueError:
             hierarchy[k]["rgb_triplet"] = [255, 255, 255]
 
-    # remove clear label (id 0) from hierarchy. ITK-Snap uses this to label unlabeled areas, but this convention
-    # interferes with the root mask generation and is unnecessary for this application
+    # remove clear label (id 0) from hierarchy.
+    # ITK-Snap uses this to label unlabeled areas,
+    # but this convention interferes with the root mask generation
+    # and is unnecessary for this application
     hierarchy.remove(hierarchy[1])
 
     # use tifffile to read annotated file
@@ -111,7 +115,8 @@ def create_atlas(working_dir, resolution):
     print(f"Saving atlas data at {atlas_path}")
     tree = get_structures_tree(hierarchy)
     print(
-        f"Number of brain regions: {tree.size()}, max tree depth: {tree.depth()}"
+        f"Number of brain regions: {tree.size()}, "
+        f"max tree depth: {tree.depth()}"
     )
 
     # generate binary mask for mesh creation
@@ -201,10 +206,12 @@ def create_atlas(working_dir, resolution):
         meshes_dict[s["id"]] = mesh_path
 
     print(
-        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+        f"In the end, {len(structures_with_mesh)} "
+        "structures with mesh are kept"
     )
 
-    # import reference file with tifffile so it can be read in wrapup_atlas_from_data
+    # import reference file with tifffile so
+    # it can be read in wrapup_atlas_from_data
     reference = tifffile.imread(reference_file)
     # inspect_meshes_folder(meshes_dir_path)
     # wrap up atlas file

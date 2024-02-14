@@ -23,7 +23,6 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
 
-# %%
 ### Additional functions #####################################################
 
 
@@ -36,11 +35,13 @@ def get_id_from_acronym(df, acronym):
         get_id_from_acronym(df, acronym)
 
     Args:
-        df      (pandas dataframe)          : atlas table file [see atlas.load_table()]
-        acronym (string or list of strings) : brain region acronym(s)
+        df      (pandas dataframe):
+            atlas table file [see atlas.load_table()]
+        acronym (string or list of strings): brain region acronym(s)
 
     Returns:
-        ID (int or list of ints) : brain region ID(s) corresponding to input acronym(s)
+        ID (int or list of ints):
+            brain region ID(s) corresponding to input acronym(s)
     """
 
     # create as list if necessary
@@ -67,11 +68,12 @@ def get_acronym_from_id(df, ID):
         get_acronym_from_ID(df, acronym)
 
     Args:
-        df (pandas dataframe)   : atlas table dataframe [see atlas.load_table()]
-        ID (int or list of int) : brain region ID(s)
+        df (pandas dataframe): atlas table dataframe [see atlas.load_table()]
+        ID (int or list of int): brain region ID(s)
 
     Returns:
-        acronym (string or list of strings) : brain region acronym(s) corresponding to input ID(s)
+        acronym (string or list of strings):
+        brain region acronym(s) corresponding to input ID(s)
     """
 
     # create as list if necessary
@@ -164,7 +166,6 @@ def create_atlas(working_dir, resolution):
 
     destination_path.unlink()
 
-    # structures_file = atlas_files_dir  / "LSFM-mouse-brain-atlas-master" / "LSFM_atlas_files" / "ARA2_annotation_info.csv"
     structures_file = (
         atlas_files_dir
         / "LSFM-mouse-brain-atlas-master"
@@ -195,9 +196,9 @@ def create_atlas(working_dir, resolution):
 
     print("Download completed...")
 
-    # ---------------------------------------------------------------------------- #
-    #                             STRUCTURES HIERARCHY                             #
-    # ---------------------------------------------------------------------------- #
+    # ------------------------ #
+    #   STRUCTURES HIERARCHY   #
+    # ------------------------ #
 
     # Parse region names & hierarchy
     # ##############################
@@ -269,7 +270,8 @@ def create_atlas(working_dir, resolution):
                 ],
             )
         except mp.pool.MaybeEncodingError:
-            pass  # error with returning results from pool.map but we don't care
+            # error with returning results from pool.map but we don't care
+            pass
     else:
         for node in track(
             tree.nodes.values(),
@@ -313,12 +315,13 @@ def create_atlas(working_dir, resolution):
         meshes_dict[s["id"]] = mesh_path
 
     print(
-        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+        f"In the end, {len(structures_with_mesh)} "
+        "structures with mesh are kept"
     )
 
-    # ---------------------------------------------------------------------------- #
-    #                                    WRAP UP                                   #
-    # ---------------------------------------------------------------------------- #
+    # ----------- #
+    #   WRAP UP   #
+    # ----------- #
 
     # Wrap up, compress, and remove file:
     print("Finalising atlas")

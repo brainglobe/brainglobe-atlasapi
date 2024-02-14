@@ -44,12 +44,16 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
 def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
     """
     Helper function to check if the mesh and the annotation coordinate
-    are closer to each other than an arbitrary tolerance value times the pixel size.
+    are closer to each other than an arbitrary tolerance value
+    times the pixel size.
+
     The default tolerance value is 10.
     """
     assert abs(mesh_coord - annotation_coord) <= diff_tolerance * pixel_size, (
-        f"Mesh coordinate {mesh_coord} and annotation coordinate {annotation_coord}",
-        f"differ by more than {diff_tolerance} times pixel size {pixel_size}",
+        f"Mesh coordinate {mesh_coord} and "
+        f"annotation coordinate {annotation_coord}",
+        f"differ by more than {diff_tolerance} "
+        f"times pixel size {pixel_size}",
     )
     return True
 
@@ -67,7 +71,8 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
     y_min, y_max = np.min(y_range), np.max(y_range)
     x_min, x_max = np.min(x_range), np.max(x_range)
 
-    # minimum and maximum values of the annotation image scaled by the atlas resolution
+    # minimum and maximum values of the annotation image
+    # scaled by the atlas resolution
     z_min_scaled, z_max_scaled = z_min * resolution[0], z_max * resolution[0]
     y_min_scaled, y_max_scaled = y_min * resolution[1], y_max * resolution[1]
     x_min_scaled, x_max_scaled = x_min * resolution[2], x_max * resolution[2]
@@ -112,7 +117,10 @@ def check_additional_references(atlas: BrainGlobeAtlas):
 
 
 def validate_mesh_structure_pairs(atlas: BrainGlobeAtlas):
-    """Ensure mesh files (.obj) exist for each expected structure in the atlas."""
+    """
+    Ensure mesh files (.obj) exist for each expected structure
+    in the atlas.
+    """
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     atlas_path = (
@@ -139,8 +147,10 @@ def validate_mesh_structure_pairs(atlas: BrainGlobeAtlas):
 
     if len(in_mesh_not_bg) or len(in_bg_not_mesh):
         raise AssertionError(
-            f"Structures with ID {in_bg_not_mesh} are in the atlas, but don't have a corresponding mesh file; "
-            f"Structures with IDs {in_mesh_not_bg} have a mesh file, but are not accessible through the atlas."
+            f"Structures with ID {in_bg_not_mesh} are in the atlas, "
+            "but don't have a corresponding mesh file; "
+            f"Structures with IDs {in_mesh_not_bg} have a mesh file, "
+            "but are not accessible through the atlas."
         )
 
 

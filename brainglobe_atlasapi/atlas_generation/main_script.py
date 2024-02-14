@@ -6,10 +6,10 @@ import stat
 from importlib import import_module
 from pathlib import Path
 
-import brainglobe_atlasapi.atlas_generation
 from git import Repo
 from git.exc import GitCommandError
 
+import brainglobe_atlasapi.atlas_generation
 from brainglobe_atlasapi.utils import (
     atlas_name_from_repr,
     atlas_repr_from_name,

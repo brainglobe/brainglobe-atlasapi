@@ -47,7 +47,8 @@ def get_structure_children(structures, region, use_tree=False):
 
     if "id" not in region.keys() or "structure_id_path" not in region.keys():
         raise ValueError(
-            'Incomplete structures dicts, need both "id" and "structure_id_path"'
+            "Incomplete structures dicts, "
+            "need both 'id' and 'structure_id_path'"
         )
 
     if not use_tree:

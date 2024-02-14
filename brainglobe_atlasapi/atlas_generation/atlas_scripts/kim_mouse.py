@@ -56,9 +56,9 @@ def create_atlas(working_dir, resolution):
     structures_file = atlas_files_dir / "kim_atlas" / "structures.csv"
     annotations_file = atlas_files_dir / "kim_atlas" / "annotation.tiff"
 
-    # ---------------------------------------------------------------------------- #
-    #                                 GET TEMPLATE                                 #
-    # ---------------------------------------------------------------------------- #
+    # ---------------- #
+    #   GET TEMPLATE   #
+    # ---------------- #
 
     # Load (and possibly downsample) annotated volume:
     scaling = ANNOTATIONS_RES_UM / resolution
@@ -82,9 +82,9 @@ def create_atlas(working_dir, resolution):
     template_volume, _ = spacecache.get_template_volume()
     print("Download completed...")
 
-    # ---------------------------------------------------------------------------- #
-    #                             STRUCTURES HIERARCHY                             #
-    # ---------------------------------------------------------------------------- #
+    # ------------------------ #
+    #   STRUCTURES HIERARCHY   #
+    # ------------------------ #
 
     # Parse region names & hierarchy
     # ##############################
@@ -156,7 +156,8 @@ def create_atlas(working_dir, resolution):
                 ],
             )
         except mp.pool.MaybeEncodingError:
-            pass  # error with returning results from pool.map but we don't care
+            # error with returning results from pool.map but we don't care
+            pass
     else:
         for node in track(
             tree.nodes.values(),
@@ -202,12 +203,13 @@ def create_atlas(working_dir, resolution):
         meshes_dict[s["id"]] = mesh_path
 
     print(
-        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+        f"In the end, {len(structures_with_mesh)} "
+        "structures with mesh are kept"
     )
 
-    # ---------------------------------------------------------------------------- #
-    #                                    WRAP UP                                   #
-    # ---------------------------------------------------------------------------- #
+    # ----------- #
+    #   WRAP UP   #
+    # ----------- #
 
     # Wrap up, compress, and remove file:
     print("Finalising atlas")

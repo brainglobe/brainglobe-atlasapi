@@ -1,5 +1,6 @@
 """
-    Code useful for dealing with volumetric data (e.g. allen annotation volume for the mouse atlas)
+    Code useful for dealing with volumetric data
+    (e.g. allen annotation volume for the mouse atlas)
     extracting surfaces from volumetric data ....
 """
 
@@ -66,13 +67,17 @@ def create_masked_array(volume, label, greater_than=False):
 def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):
     """
     Load volume image from .nrrd file.
-    It assume that voxels with value = 0 are empty while voxels with values > 0
-    are labelles (e.g. to indicate the location of a brain region in a reference atlas)
 
-    :param data: str, path to file with volume data or 3d numpy array
-    :param vmin: float, values below this numner will be assigned an alpha=0 and not be visualized
-    :param **kwargs: kwargs to pass to the Volume class from vedo
-    :param alpha: float in range [0, 1], transparency [for the part of volume with value > vmin]
+    Assume that voxels with value = 0 are empty while voxels with values > 0
+    are labels.
+    (EG to indicate the location of a brain region in a reference atlas)
+
+    :param data: str, path to file with volume data or 3d numpy array.
+    :param vmin: float, values below this number will be assigned an alpha=0
+    and not be visualized.
+    :param **kwargs: kwargs to pass to the Volume class from vedo.
+    :param alpha: float in [0,1],
+    transparency [for the part of volume with value > vmin].
     """
     # Load/check volumetric data
     if isinstance(data, str):  # load from file

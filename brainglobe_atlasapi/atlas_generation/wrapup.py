@@ -69,36 +69,45 @@ def wrapup_atlas_from_data(
     resolution : tuple
         Three elements tuple, resolution on three axes
     orientation :
-        Orientation of the original atlas (tuple describing origin for BGSpace).
+        Orientation of the original atlas
+        (tuple describing origin for BGSpace).
     root_id :
         Id of the root element of the atlas.
     reference_stack : str or Path or numpy array
-        Reference stack for the atlas. If str or Path, will be read with tifffile.
+        Reference stack for the atlas.
+        If str or Path, will be read with tifffile.
     annotation_stack : str or Path or numpy array
-        Annotation stack for the atlas. If str or Path, will be read with tifffile.
+        Annotation stack for the atlas.
+        If str or Path, will be read with tifffile.
     structures_list : list of dict
         List of valid dictionary for structures.
     meshes_dict : dict
-        dict of meshio-compatible mesh file paths in the form {sruct_id: meshpath}
+        dict of meshio-compatible mesh file paths in the form
+        {sruct_id: meshpath}
     working_dir : str or Path obj
         Path where the atlas folder and compressed file will be generated.
     atlas_packager : str or None
-        Credit for those responsible for converting the atlas into the BrainGlobe
-        format.
+        Credit for those responsible for converting the atlas
+        into the BrainGlobe format.
     hemispheres_stack : str or Path or numpy array, optional
-        Hemisphere stack for the atlas. If str or Path, will be read with tifffile.
-        If none is provided, atlas is assumed to be symmetric
+        Hemisphere stack for the atlas.
+        If str or Path, will be read with tifffile.
+        If none is provided, atlas is assumed to be symmetric.
     cleanup_files : bool, optional
          (Default value = False)
     compress : bool, optional
          (Default value = True)
     scale_meshes: bool, optional
-        (Default values = False). If True the meshes points are scaled by the resolution
-        to ensure that they are specified in microns, regardless of the atlas resolution.
+        (Default values = False).
+        If True the meshes points are scaled by the resolution
+        to ensure that they are specified in microns,
+        regardless of the atlas resolution.
     additional_references: dict, optional
-        (Default value = empty dict). Dictionary with secondary reference stacks.
+        (Default value = empty dict).
+        Dictionary with secondary reference stacks.
     additional_metadata: dict, optional
-        (Default value = empty dict). Additional metadata to write to metadata.json
+        (Default value = empty dict).
+        Additional metadata to write to metadata.json
     """
 
     # If no hemisphere file is given, assume the atlas is symmetric:

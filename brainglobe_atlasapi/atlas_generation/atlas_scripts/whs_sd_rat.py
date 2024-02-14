@@ -189,7 +189,8 @@ def create_mesh_dict(structures, meshes_dir_path):
         meshes_dict[s["id"]] = mesh_path
 
     print(
-        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+        f"In the end, {len(structures_with_mesh)} "
+        "structures with mesh are kept"
     )
     return meshes_dict, structures_with_mesh
 
@@ -257,7 +258,8 @@ def create_atlas(working_dir):
         else:
             node = tree.nodes[structure["id"]]
             print(
-                f"{node.tag} not found in annotation volume, removing from list of structures..."
+                f"{node.tag} not found in annotation volume, "
+                "removing from list of structures..."
             )
     structures = existing_structures
     tree = get_structures_tree(structures)

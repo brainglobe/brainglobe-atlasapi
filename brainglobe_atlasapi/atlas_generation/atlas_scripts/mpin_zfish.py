@@ -19,7 +19,11 @@ BASE_URL = r"https://fishatlas.neuro.mpg.de"
 
 def download_line_stack(bg_root_dir, tg_line_name):
     """Utility function to download a line from its name."""
-    reference_url = f"{BASE_URL}/media/brain_browser/Lines/{tg_line_name}/AverageData/Tiff_File/Average_{tg_line_name}.zip"
+    reference_url = (
+        f"{BASE_URL}/media/brain_browser/Lines/"
+        f"{tg_line_name}/AverageData/Tiff_File/"
+        f"Average_{tg_line_name}.zip"
+    )
     out_file_path = bg_root_dir / f"{tg_line_name}.zip"
     retrieve_over_http(reference_url, out_file_path)
     with zipfile.ZipFile(out_file_path, "r") as zip_ref:
@@ -140,8 +144,8 @@ def create_atlas(working_dir, resolution):
     )
 
     # meshes from the website and stacks do not have the same orientation.
-    # Therefore, flip axes of the stacks so that brainglobe-space reorientation is used on
-    # the meshes:
+    # Therefore, flip axes of the stacks so that brainglobe-space
+    # reorientation is used on the meshes:
     annotation_stack = annotation_stack.swapaxes(0, 2)
     hemispheres_stack = hemispheres_stack.swapaxes(0, 2)
     reference_stack = reference_stack.swapaxes(0, 2)
@@ -149,11 +153,13 @@ def create_atlas(working_dir, resolution):
         k: v.swapaxes(0, 2) for k, v in additional_references.items()
     }
 
-    # Improve the annotation by defining a region that encompasses the whole brain but
-    # not the eyes. This will be aside from the official hierarchy:
+    # Improve the annotation by defining a region that encompasses
+    # the whole brain but not the eyes.
+    # This will be aside from the official hierarchy:
     BRAIN_ID = 2  # add this as not defined in the source
 
-    # Ugly padding required not to have border artefacts in the binary operations:
+    # Ugly padding required not to have border
+    # artefacts in the binary operations:
 
     shape_stack = list(annotation_stack.shape)
     pad = 100
@@ -194,7 +200,8 @@ def create_atlas(working_dir, resolution):
         "structure_id_path": [ROOT_ID],
         "acronym": "root",
         "files": {
-            "file_3D": "/media/Neurons_database/Brain_and_regions/Brains/Outline/Outline_new.txt"
+            "file_3D": "/media/Neurons_database/Brain_and_regions"
+            "/Brains/Outline/Outline_new.txt"
         },
         "color": "#ffffff",
     }
@@ -202,7 +209,8 @@ def create_atlas(working_dir, resolution):
     # Go through the regions hierarchy and create the structure path entry:
     add_path_inplace(structures_dict)
 
-    # Create empty list and collect all regions traversing the regions hierarchy:
+    # Create empty list and collect all regions
+    # traversing the regions hierarchy:
     structures_list = []
     meshes_dict = {}
     collect_all_inplace(
@@ -219,7 +227,8 @@ def create_atlas(working_dir, resolution):
     }
     structures_list.append(brain_struct_entry)
 
-    # Use recalculated meshes that are smoothed with Blender and uploaded in G-Node:
+    # Use recalculated meshes that are smoothed
+    # with Blender and uploaded in G-Node:
     for sid in [ROOT_ID, BRAIN_ID]:
         meshes_dict[sid] = extracted_dir / f"{sid}.stl"
 

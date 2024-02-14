@@ -107,7 +107,8 @@ def create_atlas(working_dir, resolution):
         lambda x: json.loads(x)
     )
 
-    # order dataframe and convert to list of dictionaries specifying parameters for each area
+    # order dataframe and convert to list of dictionaries
+    # specifying parameters for each area
     structures = structures[
         ["acronym", "id", "name", "structure_id_path", "rgb_triplet"]
     ]
@@ -162,7 +163,8 @@ def create_atlas(working_dir, resolution):
                 ],
             )
         except mp.pool.MaybeEncodingError:
-            pass  # error with returning results from pool.map but we don't care
+            # Error with returning results from pool.map, but we don't care
+            pass
     else:
         for node in track(
             tree.nodes.values(),

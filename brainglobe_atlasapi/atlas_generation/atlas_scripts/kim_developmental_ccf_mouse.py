@@ -70,7 +70,10 @@ def create_atlas(
     ATLAS_NAME = f"kim_dev_mouse_{reference_key}"
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://data.mendeley.com/datasets/2svx788ddf/1"
-    CITATION = "Kim, Yongsoo (2022), “KimLabDevCCFv001”, Mendeley Data, V1, doi: 10.17632/2svx788ddf.1"
+    CITATION = (
+        "Kim, Yongsoo (2022), “KimLabDevCCFv001”, Mendeley Data, "
+        "V1, doi: 10.17632/2svx788ddf.1"
+    )
     ORIENTATION = "asl"
     ROOT_ID = 99999999
     ANNOTATIONS_RES_UM = 10
@@ -108,9 +111,9 @@ def create_atlas(
         atlas_files_dir / "KimLabDevCCFv001" / "10um" / reference_filename
     )
 
-    # ---------------------------------------------------------------------------- #
-    #                                 GET TEMPLATE                                 #
-    # ---------------------------------------------------------------------------- #
+    # ---------------- #
+    #   GET TEMPLATE   #
+    # ---------------- #
 
     # Load (and possibly downsample) annotated volume:
     scaling = ANNOTATIONS_RES_UM / resolution
@@ -122,9 +125,9 @@ def create_atlas(
         annotated_volume, (scaling, scaling, scaling), order=0, prefilter=False
     )
 
-    # ---------------------------------------------------------------------------- #
-    #                             STRUCTURES HIERARCHY                             #
-    # ---------------------------------------------------------------------------- #
+    # ------------------------ #
+    #   STRUCTURES HIERARCHY   #
+    # ------------------------ #
 
     # Parse region names & hierarchy
     df = pd.read_csv(structures_file)
@@ -156,9 +159,9 @@ def create_atlas(
     with open(download_dir_path / "structures.json", "w") as f:
         json.dump(structures, f)
 
-    # ---------------------------------------------------------------------------- #
-    #                             Create Meshes                                    #
-    # ---------------------------------------------------------------------------- #
+    # ----------------- #
+    #   Create Meshes   #
+    # ----------------- #
 
     print(f"Saving atlas data at {download_dir_path}")
 
@@ -210,7 +213,8 @@ def create_atlas(
                     ],
                 )
             except mp.pool.MaybeEncodingError:
-                pass  # error with returning results from pool.map but we don't care
+                # error with returning results from pool.map but we don't care
+                pass
         else:
             for node in track(
                 tree.nodes.values(),
@@ -256,12 +260,13 @@ def create_atlas(
         meshes_dict[s["id"]] = mesh_path
 
     print(
-        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+        f"In the end, {len(structures_with_mesh)} "
+        "structures with mesh are kept"
     )
 
-    # ---------------------------------------------------------------------------- #
-    #                                    WRAP UP                                   #
-    # ---------------------------------------------------------------------------- #
+    # ----------- #
+    #   WRAP UP   #
+    # ----------- #
 
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
@@ -290,14 +295,16 @@ def create_atlas(
 
 if __name__ == "__main__":
     """
-    This atlas is too large to package into a single atlas. Hence it is split
-    with one atlas per reference. To avoid re-generating the meshes for each creation,
-    the script should be run once with mesh_creation = 'generate'. This will generate
-    the standard template atlas with the meshes. For the rest of the references,
-    use mesh_creation = 'copy' and set the existing_mesh_dir_path
-    to the previously-generated meshes.
+    This atlas is too large to package into a single atlas.
+    Hence it is split with one atlas per reference.
+    To avoid re-generating the meshes for each creation,
+    the script should be run once with mesh_creation = 'generate'.
+    This will generate the standard template atlas with the meshes.
+    For the rest of the references, use mesh_creation = 'copy',
+    and set the existing_mesh_dir_path to the previously-generated meshes.
 
-    Note the decimate fraction is set to 0.04 to further reduce size of this large atlas.
+    Note the decimate fraction is set to 0.04
+    to further reduce size of this large atlas.
     """
     resolution = 10  # some resolution, in microns (10, 25, 50, 100)
 
@@ -319,13 +326,20 @@ if __name__ == "__main__":
     # for all other atlases
 
     additional_references = {
-        "idisco": "KimLabDevCCFv001_iDiscoLSFM2CCF_avgTemplate_ASL_Oriented_10um.nii.gz",
-        "mri_a0": "KimLabDevCCFv001_P56_MRI-a02CCF_avgTemplate_ASL_Oriented_10um.nii.gz",
-        "mri_adc": "KimLabDevCCFv001_P56_MRI-adc2CCF_avgTemplate_ASL_Oriented_10um.nii.gz",
-        "mri_dwi": "KimLabDevCCFv001_P56_MRI-dwi2CCF_avgTemplate_ASL_Oriented_10um.nii.gz",
-        "mri_fa": "KimLabDevCCFv001_P56_MRI-fa2CCF_avgTemplate_ASL_Oriented_10um.nii.gz",
-        "mri_mtr": "KimLabDevCCFv001_P56_MRI-MTR2CCF_avgTemplate_ASL_Oriented_10um.nii.gz",
-        "mri_t2": "KimLabDevCCFv001_P56_MRI-T22CCF_avgTemplate_ASL_Oriented_10um.nii.gz",
+        "idisco": "KimLabDevCCFv001_iDiscoLSFM2CCF_"
+        "avgTemplate_ASL_Oriented_10um.nii.gz",
+        "mri_a0": "KimLabDevCCFv001_P56_MRI-a02CCF_"
+        "avgTemplate_ASL_Oriented_10um.nii.gz",
+        "mri_adc": "KimLabDevCCFv001_P56_MRI-adc2CCF_"
+        "avgTemplate_ASL_Oriented_10um.nii.gz",
+        "mri_dwi": "KimLabDevCCFv001_P56_MRI-dwi2CCF_"
+        "avgTemplate_ASL_Oriented_10um.nii.gz",
+        "mri_fa": "KimLabDevCCFv001_P56_MRI-fa2CCF_"
+        "avgTemplate_ASL_Oriented_10um.nii.gz",
+        "mri_mtr": "KimLabDevCCFv001_P56_MRI-MTR2CCF_"
+        "avgTemplate_ASL_Oriented_10um.nii.gz",
+        "mri_t2": "KimLabDevCCFv001_P56_MRI-T22CCF_"
+        "avgTemplate_ASL_Oriented_10um.nii.gz",
     }
 
     existing_mesh_dir_path = bg_root_dir / "downloads" / "meshes"

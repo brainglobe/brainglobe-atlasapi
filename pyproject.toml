@@ -96,5 +96,5 @@ python =
 [testenv]
 extras =
     dev
-commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml
+commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml -W ignore::DeprecationWarning
 """

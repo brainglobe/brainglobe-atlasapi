@@ -110,8 +110,37 @@ def check_additional_references(atlas: BrainGlobeAtlas):
     pass
 
 
-def validate_mesh_structure_pairs(atlas: BrainGlobeAtlas):
-    """Ensure mesh files (.obj) exist for each expected structure in the atlas."""
+def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
+    """Checks if all the structures in the atlas have a corresponding mesh file"""
+
+    ids_from_bg_atlas_api = list(atlas.structures.keys())
+
+    atlas_path = (
+        Path(get_brainglobe_dir())
+        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+    )
+    obj_path = Path(atlas_path / "meshes")
+
+    ids_from_mesh_files = [
+        int(Path(file).stem)
+        for file in os.listdir(obj_path)
+        if file.endswith(".obj")
+    ]
+
+    in_bg_not_mesh = []
+    for id in ids_from_bg_atlas_api:
+        if id not in ids_from_mesh_files:
+            in_bg_not_mesh.append(id)
+
+    if len(in_bg_not_mesh) != 0:
+        raise AssertionError(
+            f"Structures with IDs {in_bg_not_mesh} are in the atlas, but don't have a corresponding mesh file."
+        )
+
+
+def catch_missing_structures(atlas: BrainGlobeAtlas):
+    """Checks if all the mesh files in the atlas folder are listed as a structure in the atlas"""
+
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     atlas_path = (
@@ -131,14 +160,8 @@ def validate_mesh_structure_pairs(atlas: BrainGlobeAtlas):
         if id not in ids_from_bg_atlas_api:
             in_mesh_not_bg.append(id)
 
-    in_bg_not_mesh = []
-    for id in ids_from_bg_atlas_api:
-        if id not in ids_from_mesh_files:
-            in_bg_not_mesh.append(id)
-
-    if len(in_mesh_not_bg) or len(in_bg_not_mesh):
+    if len(in_mesh_not_bg) != 0:
         raise AssertionError(
-            f"Structures with ID {in_bg_not_mesh} are in the atlas, but don't have a corresponding mesh file; "
             f"Structures with IDs {in_mesh_not_bg} have a mesh file, but are not accessible through the atlas."
         )
 
@@ -176,7 +199,8 @@ if __name__ == "__main__":
         open_for_visual_check,
         validate_checksum,
         check_additional_references,
-        validate_mesh_structure_pairs,
+        catch_missing_mesh_files,
+        catch_missing_structures,
     ]
 
     valid_atlases = []

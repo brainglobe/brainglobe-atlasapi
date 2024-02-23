@@ -1,12 +1,3 @@
-from warnings import warn
-
-warn(
-    "This package has been renamed. "
-    "To continue receiving updates, please use brainglobe-atlasapi instead of this package. "
-    "https://github.com/brainglobe/brainglobe-atlasapi",
-    DeprecationWarning,
-)
-
 from importlib.metadata import PackageNotFoundError, metadata
 
 try:

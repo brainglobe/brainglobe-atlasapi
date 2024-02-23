@@ -6,6 +6,8 @@ import pytest
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     _assert_close,
+    catch_missing_mesh_files,
+    catch_missing_structures,
     validate_atlas_files,
     validate_mesh_matches_image_extents,
 )
@@ -32,6 +34,17 @@ def atlas_with_bad_reference_file():
     os.rename(good_name, bad_name)
     yield BrainGlobeAtlas("allen_mouse_100um")
     os.rename(bad_name, good_name)
+
+
+@pytest.fixture
+def atlas_with_missing_structure():
+    atlas = BrainGlobeAtlas("osten_mouse_100um")
+    modified_structures = atlas.structures.copy()
+    modified_structures.pop(688)
+
+    modified_atlas = BrainGlobeAtlas("osten_mouse_100um")
+    modified_atlas.structures = modified_structures
+    return modified_atlas
 
 
 def test_validate_mesh_matches_image_extents(atlas):
@@ -69,3 +82,42 @@ def test_assert_close_negative():
         AssertionError, match="differ by more than 10 times pixel size"
     ):
         _assert_close(99.5, 30, 2)
+
+
+def test_catch_missing_mesh_files(atlas):
+    """
+    Tests if catch_missing_mesh_files function raises an error,
+    when there is at least one structure in the atlas that doesn't have
+    a corresponding obj file.
+
+    Expected behaviour:
+    True for "allen_mouse_10um" (structure 545 doesn't have an obj file):
+    fails the validation function,
+    raises an error --> no output from this test function
+    """
+
+    with pytest.raises(
+        AssertionError,
+        match=r"Structures with IDs \[.*?\] are in the atlas, "
+        "but don't have a corresponding mesh file.",
+    ):
+        catch_missing_mesh_files(atlas)
+
+
+def test_catch_missing_structures(atlas_with_missing_structure):
+    """
+    Tests if catch_missing_structures function raises an error,
+    when there is at least one orphan obj file (doesn't have a
+    corresponding structure in the atlas)
+
+    Expected behaviour:
+    Currently no atlas fails the validation function this way so the
+    [] is always empty --> this test function should always raise an error
+    """
+
+    with pytest.raises(
+        AssertionError,
+        match=r"Structures with IDs \[.*?\] have a mesh file, "
+        "but are not accessible through the atlas.",
+    ):
+        catch_missing_structures(atlas_with_missing_structure)

@@ -1,6 +1,6 @@
 [project]
 name = "brainglobe-atlasapi"
-description = "A lightweight python module to interact with atlases for systems neuroscience, and for generating atlases for the API."
+description = "A lightweight python module to interact with and generate atlases for systems neuroscience."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

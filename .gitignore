@@ -1,9 +1,11 @@
-bg_atlasapi/bg_config.conf
+brainglobe_atlasapi/bg_config.conf
 
 workspace.py
 .vscode/
 
 # Byte-compiled / optimized / DLL files
+__pycache__
+*.__pycache__
 __pycache__/
 *.py[cod]
 *$py.class
@@ -137,7 +139,6 @@ dmypy.json
 .idea/
 .vs/
 *.~lock.*
-
 
 # macOS
 *.DS_Store

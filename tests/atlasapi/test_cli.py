@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 
-from bg_atlasapi import cli, config
+from brainglobe_atlasapi import cli, config
 
 
 # This testing of the command line application does not really

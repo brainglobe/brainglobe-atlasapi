@@ -13,7 +13,7 @@ jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
-      - uses: neuroinformatics-unit/actions/lint@v1
+      - uses: neuroinformatics-unit/actions/lint@v2
 
   manifest:
     runs-on: ubuntu-latest
@@ -36,22 +36,17 @@ jobs:
           python-version: "3.9"
 
     steps:
-      - uses: neuroinformatics-unit/actions/test@v1
+      - uses: neuroinformatics-unit/actions/test@v2
         with:
           python-version: ${{ matrix.python-version }}
 
   build_sdist_wheels:
     name: Build source distribution and wheel
     needs: [test]
-    if: (
-        github.event_name == 'push' && github.ref_type == 'tag'
-      ) || (
-        github.event_name == 'pull_request' &&
-        contains(github.event.pull_request.labels.*.name, 'Test packaging')
-      )
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
-    - uses: neuroinformatics-unit/actions/build_sdist_wheels@v1
+    - uses: neuroinformatics-unit/actions/build_sdist_wheels@v2
 
   upload_all:
     name: Publish build distributions

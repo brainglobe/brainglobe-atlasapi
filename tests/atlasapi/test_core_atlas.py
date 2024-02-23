@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 import tifffile
 
-from bg_atlasapi.core import AdditionalRefDict
+from brainglobe_atlasapi.core import AdditionalRefDict
 
 
 def test_initialization(atlas):

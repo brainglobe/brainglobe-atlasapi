@@ -19,9 +19,9 @@ authors:
     affiliation: 'Sainsbury Wellcome Centre, University College London'
     orcid: 'https://orcid.org/0000-0003-3225-1130'
     email: code@adamltyson.com
-repository-code: 'https://github.com/brainglobe/bg-atlasapi'
+repository-code: 'https://github.com/brainglobe/brainglobe-atlasapi'
 url: >-
-  https://brainglobe.info/documentation/bg-atlasapi/index.html
+  https://brainglobe.info/documentation/brainglobe-atlasapi/index.html
 abstract: >-
   A common interface for programmers to download and process
   brain atlas data from multiple sources.

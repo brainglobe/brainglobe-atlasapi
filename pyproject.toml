@@ -1,6 +1,6 @@
 [project]
-name = "bg-atlasapi"
-description = "A lightweight python module to interact with atlases for systems neuroscience"
+name = "brainglobe-atlasapi"
+description = "A lightweight python module to interact with and generate atlases for systems neuroscience."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
@@ -19,43 +19,64 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "brainglobe-space >= 1.0.0",
+    "brainglobe-utils >= 0.4.0",
     "click",
+    "loguru",
     "meshio",
+    "meshio",
+    "numpy",
     "numpy",
     "pandas",
     "pyarrow",
+    "PyMCubes",
     "requests",
     "rich >= 9.0.0",
+    "rich",
+    "SimpleITK",
     "tifffile",
+    "tqdm>=4.46.1",
     "treelib",
+    "vedo",
+    "xmltodict",
 ]
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
-"Source Code" = "https://github.com/brainglobe/bg-atlasapi"
-"Bug Tracker" = "https://github.com/brainglobe/bg-atlasapi/issues"
-"Documentation" = "https://brainglobe.info/documentation/bg-atlasapi/index.html"
+"Homepage" = "https://brainglobe.info/documentation/brainglobe-atlasapi/index.html"
+"Source Code" = "https://github.com/brainglobe/brainglobe-atlasapi"
+"Bug Tracker" = "https://github.com/brainglobe/brainglobe-atlasapi/issues"
+"Documentation" = "https://brainglobe.info/documentation/brainglobe-atlasapi/index.html"
 
 [project.optional-dependencies]
-dev = ["check-manifest", "pre-commit", "pytest", "pytest-cov"]
+dev = [
+    "black",
+    "check-manifest",
+    "coverage",
+    "mypy",
+    "pre-commit",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest",
+    "ruff",
+    "setuptools_scm",
+    "tox",
+]
+
+allenmouse = ["allensdk"]
 
 [build-system]
 requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
-[project.scripts]
-brainglobe = "bg_atlasapi.cli:bg_cli"
-
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["bg_atlasapi*"]
+include = ["brainglobe_atlasapi*"]
 exclude = ["tests*"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=bg_atlasapi"
+addopts = "--cov=brainglobe_atlasapi"
 filterwarnings = ["error"]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
@@ -66,26 +87,18 @@ line-length = 79
 
 [tool.setuptools_scm]
 
-[tool.check-manifest]
-ignore = [
-    "*.yaml",
-    "tox.ini",
-    "tests/*",
-    "tests/test_unit/*",
-    "tests/test_integration/*",
-]
-
 [tool.ruff]
 line-length = 79
 exclude = ["__init__.py", "build", ".eggs"]
-select = ["I", "E", "F"]
 fix = true
+
+[tool.ruff.lint]
+select = ["I", "E", "F"]
 
 [tool.tox]
 legacy_tox_ini = """
-# For more information about tox, see https://tox.readthedocs.io/en/latest/
 [tox]
-envlist = py{38,39,310,311}
+envlist = py{39,310,311}
 
 [gh-actions]
 python =
@@ -96,5 +109,5 @@ python =
 [testenv]
 extras =
     dev
-commands = pytest -v --color=yes --cov=bg_atlasapi --cov-report=xml -W ignore::DeprecationWarning
+commands = pytest -v --color=yes --cov=brainglobe_atlasapi --cov-report=xml
 """

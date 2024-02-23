@@ -2,12 +2,15 @@ import shutil
 
 from rich import print as rprint
 
-from bg_atlasapi.bg_atlas import BrainGlobeAtlas, _version_str_from_tuple
-from bg_atlasapi.list_atlases import get_downloaded_atlases
+from brainglobe_atlasapi.bg_atlas import (
+    BrainGlobeAtlas,
+    _version_str_from_tuple,
+)
+from brainglobe_atlasapi.list_atlases import get_downloaded_atlases
 
 
 def update_atlas(atlas_name, force=False):
-    """Updates a bg_atlasapi atlas from the latest
+    """Updates a brainglobe_atlasapi atlas from the latest
     available version online.
 
     Arguments:
@@ -25,7 +28,7 @@ def update_atlas(atlas_name, force=False):
     if not force:
         if atlas.check_latest_version():
             rprint(
-                f"[b][magenta2]bg_atlasapi: {atlas.atlas_name} "
+                f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} "
                 "is already updated "
                 f"(version: {_version_str_from_tuple(atlas.local_version)})"
                 "[/b]"
@@ -34,7 +37,8 @@ def update_atlas(atlas_name, force=False):
 
     # Delete atlas folder
     rprint(
-        f"[b][magenta2]bg_atlasapi: updating {atlas.atlas_name}[/magenta2][/b]"
+        "[b][magenta2]brainglobe_atlasapi: "
+        f"updating {atlas.atlas_name}[/magenta2][/b]"
     )
     fld = atlas.brainglobe_dir / atlas.local_full_name
     shutil.rmtree(fld)
@@ -49,8 +53,9 @@ def update_atlas(atlas_name, force=False):
 
     # Check that everything went well
     rprint(
-        f"[b][magenta2]bg_atlasapi: {atlas.atlas_name} updated to version: "
-        + f"{_version_str_from_tuple(atlas.remote_version)}[/magenta2][/b]"
+        "[b][magenta2]brainglobe_atlasapi: "
+        f"{atlas.atlas_name} updated to version: "
+        f"{_version_str_from_tuple(atlas.remote_version)}[/magenta2][/b]"
     )
 
 
@@ -72,7 +77,7 @@ def install_atlas(atlas_name):
     available_atlases = get_downloaded_atlases()
     if atlas_name in available_atlases:
         rprint(
-            f"[b][magenta2]bg_atlasapi: installing {atlas_name}: "
+            f"[b][magenta2]brainglobe_atlasapi: installing {atlas_name}: "
             "atlas already installed![/magenta2][/b]"
         )
         return

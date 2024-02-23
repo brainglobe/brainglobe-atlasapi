@@ -3,7 +3,7 @@ from collections import UserDict
 
 import meshio as mio
 
-from bg_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 class Structure(UserDict):

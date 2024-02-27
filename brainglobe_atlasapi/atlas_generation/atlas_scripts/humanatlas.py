@@ -8,6 +8,8 @@ import pandas as pd
 import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
+
+### I had to install manually
 from brainio import brainio
 from rich.progress import track
 

@@ -158,7 +158,7 @@ def extract_mesh_from_mask(
         mesh = mesh.extractLargestRegion()
 
     # decimate
-    mesh.decimate(decimate_fraction, method="pro")
+    mesh.decimate_pro(decimate_fraction)
 
     if smooth:
         mesh.smoothLaplacian()

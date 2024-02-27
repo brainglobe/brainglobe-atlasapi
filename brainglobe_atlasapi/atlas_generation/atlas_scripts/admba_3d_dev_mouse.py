@@ -12,7 +12,10 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from rich.progress import track
+
+######## I had to manually install this
 from skimage import io
+########
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -227,7 +230,7 @@ def create_atlas(
         working_dir = Path(working_dir)
     # Generated atlas path:
     working_dir = (
-        working_dir / "brainglobe_workingdir" / atlas_config.atlas_name
+        working_dir / "admba_3d_dev_mouse" / atlas_config.atlas_name
     )
     working_dir.mkdir(exist_ok=True, parents=True)
 

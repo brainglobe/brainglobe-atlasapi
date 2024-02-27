@@ -14,7 +14,9 @@ except ModuleNotFoundError:
 
 import os
 
+######## I had to manually install this
 import imio
+########
 import numpy as np
 
 

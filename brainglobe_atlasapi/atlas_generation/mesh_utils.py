@@ -161,7 +161,7 @@ def extract_mesh_from_mask(
     mesh.decimate_pro(decimate_fraction)
 
     if smooth:
-        mesh.smoothLaplacian()
+        mesh.smooth()
 
     if obj_filepath is not None:
         write(mesh, str(obj_filepath))

@@ -133,8 +133,10 @@ def create_atlas(
     df = pd.read_csv(structures_file)
     clean_up_df_entries(df)
 
-    df.loc[len(df)] = ["root", ROOT_ID, "root", ROOT_ID]
-    df.append(["root", ROOT_ID, "root", ROOT_ID])
+    new_row = pd.DataFrame(
+        [["root", ROOT_ID, "root", ROOT_ID]], columns=df.columns
+    )
+    df = pd.concat([df, new_row], ignore_index=True)
 
     id_dict = dict(zip(df["ID"], df["Parent ID"]))
 

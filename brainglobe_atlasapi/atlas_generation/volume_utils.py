@@ -14,10 +14,7 @@ except ModuleNotFoundError:
 
 import os
 
-######## I had to manually install this
 import brainglobe_utils.image_io as image_io
-
-########
 import numpy as np
 
 

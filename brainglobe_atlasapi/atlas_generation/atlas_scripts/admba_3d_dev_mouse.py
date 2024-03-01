@@ -14,7 +14,6 @@ import pandas as pd
 from rich.progress import track
 from skimage import io
 
-########
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,

@@ -12,8 +12,6 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from rich.progress import track
-
-######## I had to manually install this
 from skimage import io
 
 ########

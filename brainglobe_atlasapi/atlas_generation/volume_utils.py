@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 import os
 
 ######## I had to manually install this
-import imio
+import brainglobe_utils.image_io as image_io
 
 ########
 import numpy as np
@@ -88,7 +88,7 @@ def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):
             raise FileNotFoundError(f"Volume data file {data} not found")
 
         try:
-            data = imio.load_any(data)
+            data = image_io.load_any(data)
         except Exception as e:
             raise ValueError(
                 f"Could not load volume data from file: {data} - {e}"

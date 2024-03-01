@@ -37,6 +37,10 @@ dependencies = [
     "treelib",
     "vedo",
     "xmltodict",
+    "scikit-image",
+    "brainio",
+    "brainglobe-utils",
+
 ]
 dynamic = ["version"]
 

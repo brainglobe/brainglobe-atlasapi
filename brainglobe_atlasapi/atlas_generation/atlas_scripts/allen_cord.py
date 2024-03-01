@@ -221,10 +221,7 @@ def create_atlas(working_dir):
     ORIENTATION = "asr"
     RESOLUTION = (20, 10, 10)
     ROOT_ID = 250
-    ATLAS_FILE_URL = (
-        "https://md-datasets-cache-zipfiles-prod.s3.eu-west-1."
-        "amazonaws.com/4rrggzv5d5-1.zip"
-    )
+    ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/4rrggzv5d5-1.zip"
     ATLAS_PACKAGER = "MetaCell LLC, Ltd."
 
     download_dir_path = working_dir / "downloads"

@@ -226,9 +226,7 @@ def create_atlas(
     if isinstance(working_dir, str):
         working_dir = Path(working_dir)
     # Generated atlas path:
-    working_dir = (
-        working_dir / "brainglobe_workingdir" / atlas_config.atlas_name
-    )
+    working_dir = working_dir / "admba_3d_dev_mouse" / atlas_config.atlas_name
     working_dir.mkdir(exist_ok=True, parents=True)
 
     download_dir_path = working_dir / "downloads"

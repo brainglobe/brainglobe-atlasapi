@@ -23,7 +23,7 @@ The brainglobe atlas API (brainglobe-atlasapi) provides a common interface for p
 
 A number of atlases are in development, but those available currently are:
 
-- [Allen Mouse Brain Atlas](https://www.brain-map.org) at 10, 25, 50 and 100 micron resolutions
+- [Allen Mouse Brain Atlas](https://doi.org/10.1016/j.cell.2020.04.007) at 10, 25, 50 and 100 micron resolutions
 - [Allen Human Brain Atlas](https://www.brain-map.org) at 100 micron resolution
 - [Max Planck Zebrafish Brain Atlas](http://fishatlas.neuro.mpg.de) at 1 micron resolution
 - [Enhanced and Unified Mouse Brain Atlas](https://kimlab.io/brain-map/atlas/) at 10, 25, 50 and 100 micron resolutions
@@ -31,7 +31,7 @@ A number of atlases are in development, but those available currently are:
 - [Gubra's LSFM mouse brain atlas](https://doi.org/10.1007/s12021-020-09490-8) at 20 micron resolution
 - [3D version of the Allen mouse spinal cord atlas](https://doi.org/10.1101/2021.05.06.443008) at 20 x 10 x 10 micron resolution
 - [AZBA: A 3D Adult Zebrafish Brain Atlas](https://doi.org/10.1101/2021.05.04.442625) at 4 micron resolution
-- [Waxholm Space atlas of the Sprague Dawley rat brain](https://doi.org/10.1016/j.neuroimage.2014.04.001) at 39 micron resolution
+- [Waxholm Space atlas of the Sprague Dawley rat brain](https://doi.org/10.1038/s41592-023-02034-3) at 39 micron resolution
 - [3D Edge-Aware Refined Atlases Derived from the Allen Developing Mouse Brain Atlases](https://doi.org/10.7554/eLife.61408) (E13, E15, E18, P4, P14, P28 & P56)
 - [Princeton Mouse Brain Atlas](https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links) at 20 micron resolution
 - [Kim Lab Developmental CCF (P56)](https://data.mendeley.com/datasets/2svx788ddf/1) at 10 micron resolution with 8 reference images - STP, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2)
@@ -147,7 +147,7 @@ To deal with transformations between your data space and `brainglobe-atlasapi`, 
 **Contributors to bg-atlaspi are absolutely encouraged**, whether you want to fix bugs, add/request new features or simply ask questions.
 
 If you would like to contribute to `brainglobe-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/brainglobe/brainrender) etc.) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/brainglobe-atlasapi).
-Please also see the [developers guide](https://brainglobe.info/developers/index.html).
+Please also see the [developers guide](https://brainglobe.info/community/developers/index.html).
 
 Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/brainglobe-atlasapi/issues) (and the issues of the other repositories).
 
@@ -163,7 +163,7 @@ If you find the BrainGlobe Atlas API useful, please cite the paper in your work:
 
 # Atlas Generation and Adding a New Atlas
 
-For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe_atlasapi/adding-a-new-atlas.html).
+For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe-atlasapi/adding-a-new-atlas.html).
 
 The `brainglobe_atlasapi.atlas_generation` submodule contains code for the generation of cleaned-up data, for the main `brainglobe_atlasapi` module.
 This code was previously the `bg-atlasgen` module.

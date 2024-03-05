@@ -23,7 +23,7 @@ The brainglobe atlas API (brainglobe-atlasapi) provides a common interface for p
 
 A number of atlases are in development, but those available currently are:
 
-- [Allen Mouse Brain Atlas](https://www.brain-map.org) at 10, 25, 50 and 100 micron resolutions
+- [Allen Mouse Brain Atlas](https://doi.org/10.1016/j.cell.2020.04.007) at 10, 25, 50 and 100 micron resolutions
 - [Allen Human Brain Atlas](https://www.brain-map.org) at 100 micron resolution
 - [Max Planck Zebrafish Brain Atlas](http://fishatlas.neuro.mpg.de) at 1 micron resolution
 - [Enhanced and Unified Mouse Brain Atlas](https://kimlab.io/brain-map/atlas/) at 10, 25, 50 and 100 micron resolutions

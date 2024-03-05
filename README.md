@@ -163,7 +163,7 @@ If you find the BrainGlobe Atlas API useful, please cite the paper in your work:
 
 # Atlas Generation and Adding a New Atlas
 
-For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe_atlasapi/adding-a-new-atlas.html).
+For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe-atlasapi/adding-a-new-atlas.html).
 
 The `brainglobe_atlasapi.atlas_generation` submodule contains code for the generation of cleaned-up data, for the main `brainglobe_atlasapi` module.
 This code was previously the `bg-atlasgen` module.

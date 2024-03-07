@@ -232,6 +232,7 @@ def create_atlas(working_dir, resolution):
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
+        scale_meshes=True,
     )
 
     return output_filename

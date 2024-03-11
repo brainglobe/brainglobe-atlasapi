@@ -127,9 +127,8 @@ def create_atlas(working_dir, resolution):
     meshes_dir_path.mkdir(exist_ok=True)
 
     tree = get_structures_tree(structs_dict)
-    rotated_annotations = np.rot90(annotated_volume, axes=(0, 2))
 
-    labels = np.unique(rotated_annotations).astype(np.int32)
+    labels = np.unique(annotated_volume).astype(np.int32)
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
@@ -153,7 +152,7 @@ def create_atlas(working_dir, resolution):
                         node,
                         tree,
                         labels,
-                        rotated_annotations,
+                        annotated_volume,
                         ROOT_ID,
                         closing_n_iters,
                         decimate_fraction,
@@ -177,7 +176,7 @@ def create_atlas(working_dir, resolution):
                     node,
                     tree,
                     labels,
-                    rotated_annotations,
+                    annotated_volume,
                     ROOT_ID,
                     closing_n_iters,
                     decimate_fraction,
@@ -232,6 +231,7 @@ def create_atlas(working_dir, resolution):
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
+        scale_meshes=True,
     )
 
     return output_filename

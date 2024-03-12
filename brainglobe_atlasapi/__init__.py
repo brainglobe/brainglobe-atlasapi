@@ -2,7 +2,7 @@ from importlib.metadata import PackageNotFoundError, metadata
 
 try:
     __version__ = metadata("brainglobe-atlasapi")["Version"]
-    __author__ = metadata("brainglobe-atlasapi")["Author"]
+    __author__ = metadata("brainglobe-atlasapi")["Author-email"]
     del metadata
 except PackageNotFoundError:
     # package is not installed

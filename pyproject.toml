@@ -35,7 +35,6 @@ dependencies = [
     "vedo",
     "xmltodict",
     "scikit-image",
-    "brainio"
 ]
 dynamic = ["version"]
 

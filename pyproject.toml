@@ -22,15 +22,12 @@ dependencies = [
     "click",
     "loguru",
     "meshio",
-    "meshio",
-    "numpy",
     "numpy",
     "pandas",
     "pyarrow",
     "PyMCubes",
     "requests",
     "rich >= 9.0.0",
-    "rich",
     "SimpleITK",
     "tifffile",
     "tqdm>=4.46.1",
@@ -38,7 +35,6 @@ dependencies = [
     "vedo",
     "xmltodict",
     "scikit-image",
-    "brainio"
 ]
 dynamic = ["version"]
 

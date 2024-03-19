@@ -4,17 +4,6 @@
     extracting surfaces from volumetric data ....
 """
 
-try:
-    from vedo import Volume
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "Mesh generation with these utils requires vedo\n"
-        + '   please install with "pip install vedo -U"'
-    )
-
-import os
-
-import brainglobe_utils.image_io as image_io
 import numpy as np
 
 
@@ -57,52 +46,3 @@ def create_masked_array(volume, label, greater_than=False):
     else:
         arr[volume > label] = 1
     return arr
-
-
-# ----------------------------- vedo utils ----------------------------- #
-# This stuff is outdated, use the functions in mesh_utils.py
-# to extract meshes from volumes
-
-
-def load_labelled_volume(data, vmin=0, alpha=1, **kwargs):
-    """
-    Load volume image from .nrrd file.
-
-    Assume that voxels with value = 0 are empty while voxels with values > 0
-    are labels.
-    (EG to indicate the location of a brain region in a reference atlas)
-
-    :param data: str, path to file with volume data or 3d numpy array.
-    :param vmin: float, values below this number will be assigned an alpha=0
-    and not be visualized.
-    :param **kwargs: kwargs to pass to the Volume class from vedo.
-    :param alpha: float in [0,1],
-    transparency [for the part of volume with value > vmin].
-    """
-    # Load/check volumetric data
-    if isinstance(data, str):  # load from file
-        if not os.path.isfile(data):
-            raise FileNotFoundError(f"Volume data file {data} not found")
-
-        try:
-            data = image_io.load_any(data)
-        except Exception as e:
-            raise ValueError(
-                f"Could not load volume data from file: {data} - {e}"
-            )
-
-    elif not isinstance(data, np.ndarray):
-        raise ValueError(
-            f"Data should be a filepath or np array, not: {data.__type__}"
-        )
-
-    # Create volume and set transparency range
-    vol = Volume(data, alpha=alpha, **kwargs)
-
-    otf = vol.GetProperty().GetScalarOpacity()
-    otf.RemoveAllPoints()
-    otf.AddPoint(vmin, 0)  # set to transparent
-    otf.AddPoint(vmin + 0.1, alpha)  # set to opaque
-    otf.AddPoint(data.max(), alpha)
-
-    return vol

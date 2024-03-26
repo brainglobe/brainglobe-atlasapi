@@ -10,9 +10,8 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     catch_missing_mesh_files,
     catch_missing_structures,
     validate_atlas_files,
-    validate_mesh_matches_image_extents,
     validate_image_dimensions,
-    validate_additional_references
+    validate_mesh_matches_image_extents,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
 
@@ -38,23 +37,27 @@ def atlas_with_bad_reference_file():
     yield BrainGlobeAtlas("allen_mouse_100um")
     os.rename(bad_name, good_name)
 
+
 @pytest.fixture
 def atlas_with_bad_reference_tiff_content():
     """A fixture providing an invalid version of Allen Mouse atlas for testing.
     The atlas will have a misnamed template file that won't be found by the API
     This fixture also does the clean-up after the test has run
     """
-    BrainGlobeAtlas("allen_mouse_100um") # ensure atlas is locally downloaded
-    actual_name = get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference.tiff"
+    BrainGlobeAtlas("allen_mouse_100um")  # ensure atlas is locally downloaded
+    actual_name = (
+        get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference.tiff"
+    )
     backup_name = (
         get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference_backup.tiff"
     )
     os.rename(actual_name, backup_name)
-    too_small_reference = np.ones((3,3,3), dtype=np.uint16)
+    too_small_reference = np.ones((3, 3, 3), dtype=np.uint16)
     tifffile.imwrite(actual_name, too_small_reference)
     yield BrainGlobeAtlas("allen_mouse_100um")
     os.remove(actual_name)
     os.rename(backup_name, actual_name)
+
 
 @pytest.fixture
 def atlas_with_missing_structure():
@@ -146,8 +149,12 @@ def test_catch_missing_structures(atlas_with_missing_structure):
 def test_atlas_image_dimensions_match(atlas):
     assert validate_image_dimensions(atlas)
 
-def test_atlas_image_dimensions_match_negative(atlas_with_bad_reference_tiff_content):
+
+def test_atlas_image_dimensions_match_negative(
+    atlas_with_bad_reference_tiff_content,
+):
     with pytest.raises(
-        AssertionError, match="Annotation and reference image do not have the same dimensions"
+        AssertionError,
+        match="Annotation and reference image do not have the same dimensions",
     ):
         validate_image_dimensions(atlas_with_bad_reference_tiff_content)

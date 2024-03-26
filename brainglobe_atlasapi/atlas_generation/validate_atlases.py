@@ -115,9 +115,11 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
     """
     Check that annotation and reference image have the same dimensions.
     """
-    assert atlas.annotation.shape == atlas.reference.shape, \
-        "Annotation and reference image do not have the same dimensions."
+    assert (
+        atlas.annotation.shape == atlas.reference.shape
+    ), "Annotation and reference image do not have the same dimensions."
     return True
+
 
 def validate_additional_references(atlas: BrainGlobeAtlas):
     """
@@ -125,10 +127,12 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
     """
     if atlas.additional_references:
         for additional_reference in atlas.additional_references:
-            assert additional_reference.shape == atlas.reference.shape, \
-                "Additional reference has unexpected dimension."
-            assert not np.all(additional_reference==atlas.reference), \
-                "Additional reference is not different to main reference."
+            assert (
+                additional_reference.shape == atlas.reference.shape
+            ), "Additional reference has unexpected dimension."
+            assert not np.all(
+                additional_reference == atlas.reference
+            ), "Additional reference is not different to main reference."
     return True
 
 

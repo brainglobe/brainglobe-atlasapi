@@ -127,14 +127,19 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
     """
     Check that additional references are different, but have same dimensions
     """
-    if atlas.additional_references:
-        for additional_reference in atlas.additional_references:
-            assert (
-                additional_reference.shape == atlas.reference.shape
-            ), "Additional reference has unexpected dimension."
-            assert not np.all(
-                additional_reference == atlas.reference
-            ), "Additional reference is not different to main reference."
+    for (
+        additional_reference_name
+    ) in atlas.additional_references.references_list:
+        additional_reference = atlas.additional_references[
+            additional_reference_name
+        ]
+        assert additional_reference.shape == atlas.reference.shape, (
+            f"Additional reference {additional_reference} "
+            "has unexpected dimension."
+        )
+        assert not np.all(
+            additional_reference == atlas.reference
+        ), "Additional reference is not different to main reference."
     return True
 
 

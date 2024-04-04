@@ -9,11 +9,13 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     _assert_close,
     catch_missing_mesh_files,
     catch_missing_structures,
+    validate_additional_references,
     validate_atlas_files,
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
+from brainglobe_atlasapi.core import AdditionalRefDict
 
 
 @pytest.fixture
@@ -68,6 +70,54 @@ def atlas_with_missing_structure():
     modified_atlas = BrainGlobeAtlas("osten_mouse_100um")
     modified_atlas.structures = modified_structures
     return modified_atlas
+
+
+@pytest.fixture
+def atlas_with_valid_additional_reference():
+    """A fixture providing a testing-only version of the Allen Mouse atlas.
+    The instance of the atlas returned has an additional reference
+    consisting of an array of 1, of the correct size.
+    This fixture also does the clean-up after the test has run.
+    """
+    allen_100 = BrainGlobeAtlas(
+        "allen_mouse_100um"
+    )  # ensure atlas is locally downloaded
+    additional_reference_name = (
+        get_brainglobe_dir()
+        / "allen_mouse_100um_v1.2/additional_reference.tiff"
+    )
+    additional_reference = np.ones(allen_100.reference.shape, dtype=np.uint16)
+    allen_100.additional_references = AdditionalRefDict(
+        ["mock_additional_reference"],
+        data_path=get_brainglobe_dir() / "allen_mouse_100um_v1.2",
+    )
+    tifffile.imwrite(additional_reference_name, additional_reference)
+    yield allen_100
+    os.remove(additional_reference_name)
+
+
+@pytest.fixture
+def atlas_with_reference_matching_additional_reference():
+    """A fixture providing an invalid version of Allen Mouse atlas for testing.
+    It provides the atlas, with an additional reference containing
+    the same data as the main reference image.
+    This fixture also does the clean-up after the test has run.
+    """
+    allen_100 = BrainGlobeAtlas(
+        "allen_mouse_100um"
+    )  # ensure atlas is locally downloaded
+    additional_reference_name = (
+        get_brainglobe_dir()
+        / "allen_mouse_100um_v1.2/mock_additional_reference.tiff"
+    )
+    additional_reference = allen_100.reference
+    allen_100.additional_references = AdditionalRefDict(
+        ["mock_additional_reference"],
+        data_path=get_brainglobe_dir() / "allen_mouse_100um_v1.2",
+    )
+    tifffile.imwrite(additional_reference_name, additional_reference)
+    yield allen_100
+    os.remove(additional_reference_name)
 
 
 def test_validate_mesh_matches_image_extents(atlas):
@@ -158,3 +208,21 @@ def test_atlas_image_dimensions_match_negative(
         match=r"Annotation and reference image have different dimensions.*",
     ):
         validate_image_dimensions(atlas_with_bad_reference_tiff_content)
+
+
+def test_atlas_additional_reference_different(
+    atlas_with_valid_additional_reference,
+):
+    validate_additional_references(atlas_with_valid_additional_reference)
+
+
+def test_atlas_additional_reference_same(
+    atlas_with_reference_matching_additional_reference,
+):
+    with pytest.raises(
+        AssertionError,
+        match=r"Additional reference is not different to main reference.",
+    ):
+        validate_additional_references(
+            atlas_with_reference_matching_additional_reference
+        )

@@ -117,7 +117,7 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
     """
     if atlas.annotation.shape != atlas.reference.shape:
         raise ValueError(
-            "Annotation and reference image do not have the same dimensions. \n"
+            "Annotation and reference image have different dimensions. \n"
             f"Annotation image has dimension: {atlas.annotation.shape}, "
             f"while reference image has dimension {atlas.reference.shape}."
         )

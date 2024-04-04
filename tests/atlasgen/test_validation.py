@@ -155,6 +155,6 @@ def test_atlas_image_dimensions_match_negative(
 ):
     with pytest.raises(
         AssertionError,
-        match="Annotation and reference image do not have the same dimensions",
+        match="Annotation and reference image have different dimensions",
     ):
         validate_image_dimensions(atlas_with_bad_reference_tiff_content)

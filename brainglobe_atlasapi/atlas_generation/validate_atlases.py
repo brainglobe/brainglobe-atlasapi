@@ -115,10 +115,11 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
     """
     Check that annotation and reference image have the same dimensions.
     """
-    assert atlas.annotation.shape == atlas.reference.shape, \
-            "Annotation and reference image have different dimensions. \n"\
-            f"Annotation image has dimension: {atlas.annotation.shape}, "\
-            f"while reference image has dimension {atlas.reference.shape}."
+    assert atlas.annotation.shape == atlas.reference.shape, (
+        "Annotation and reference image have different dimensions. \n"
+        f"Annotation image has dimension: {atlas.annotation.shape}, "
+        f"while reference image has dimension {atlas.reference.shape}."
+    )
     return True
 
 

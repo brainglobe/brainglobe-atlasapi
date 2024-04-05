@@ -197,12 +197,15 @@ def test_catch_missing_structures(atlas_with_missing_structure):
 
 
 def test_atlas_image_dimensions_match(atlas):
+    """Check the atlas passes the annotation-reference dimension validation"""
     assert validate_image_dimensions(atlas)
 
 
 def test_atlas_image_dimensions_match_negative(
     atlas_with_bad_reference_tiff_content,
 ):
+    """Checks that an atlas with different annotation and reference
+    dimensions is flagged by the validation."""
     with pytest.raises(
         AssertionError,
         match=r"Annotation and reference image have different dimensions.*",
@@ -213,12 +216,16 @@ def test_atlas_image_dimensions_match_negative(
 def test_atlas_additional_reference_different(
     atlas_with_valid_additional_reference,
 ):
+    """Checks that an atlas with a reasonably sized additional reference
+    passes its validation."""
     validate_additional_references(atlas_with_valid_additional_reference)
 
 
 def test_atlas_additional_reference_same(
     atlas_with_reference_matching_additional_reference,
 ):
+    """Checks that an atlas with a rduplicate additional reference
+    fails the validation for this case."""
     with pytest.raises(
         AssertionError,
         match=r"Additional reference is not different to main reference.",

@@ -84,7 +84,7 @@ def atlas_with_valid_additional_reference():
     )  # ensure atlas is locally downloaded
     additional_reference_name = (
         get_brainglobe_dir()
-        / "allen_mouse_100um_v1.2/additional_reference.tiff"
+        / "allen_mouse_100um_v1.2/mock_additional_reference.tiff"
     )
     additional_reference = np.ones(allen_100.reference.shape, dtype=np.uint16)
     allen_100.additional_references = AdditionalRefDict(

@@ -111,9 +111,36 @@ def validate_checksum(atlas: BrainGlobeAtlas):
     pass
 
 
-def check_additional_references(atlas: BrainGlobeAtlas):
-    # check additional references are different, but have same dimensions
-    pass
+def validate_image_dimensions(atlas: BrainGlobeAtlas):
+    """
+    Check that annotation and reference image have the same dimensions.
+    """
+    assert atlas.annotation.shape == atlas.reference.shape, (
+        "Annotation and reference image have different dimensions. \n"
+        f"Annotation image has dimension: {atlas.annotation.shape}, "
+        f"while reference image has dimension {atlas.reference.shape}."
+    )
+    return True
+
+
+def validate_additional_references(atlas: BrainGlobeAtlas):
+    """
+    Check that additional references are different, but have same dimensions.
+    """
+    for (
+        additional_reference_name
+    ) in atlas.additional_references.references_list:
+        additional_reference = atlas.additional_references[
+            additional_reference_name
+        ]
+        assert additional_reference.shape == atlas.reference.shape, (
+            f"Additional reference {additional_reference} "
+            "has unexpected dimension."
+        )
+        assert not np.all(
+            additional_reference == atlas.reference
+        ), "Additional reference is not different to main reference."
+    return True
 
 
 def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
@@ -211,7 +238,8 @@ if __name__ == "__main__":
         validate_mesh_matches_image_extents,
         open_for_visual_check,
         validate_checksum,
-        check_additional_references,
+        validate_image_dimensions,
+        validate_additional_references,
         catch_missing_mesh_files,
         catch_missing_structures,
     ]

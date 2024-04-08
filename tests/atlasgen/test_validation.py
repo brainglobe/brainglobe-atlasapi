@@ -44,7 +44,7 @@ def atlas_with_bad_reference_file():
 def atlas_with_bad_reference_tiff_content():
     """A fixture providing an invalid version of Allen Mouse atlas for testing.
     The atlas will have a misnamed template file that won't be found by the API
-    This fixture also does the clean-up after the test has run
+    This fixture cleans up the invalid atlas after the test has run.
     """
     BrainGlobeAtlas("allen_mouse_100um")  # ensure atlas is locally downloaded
     actual_name = (
@@ -77,7 +77,7 @@ def atlas_with_valid_additional_reference():
     """A fixture providing a testing-only version of the Allen Mouse atlas.
     The instance of the atlas returned has an additional reference
     consisting of an array of 1, of the correct size.
-    This fixture also does the clean-up after the test has run.
+    This fixture cleans up the invalid atlas after the test has run.
     """
     allen_100 = BrainGlobeAtlas(
         "allen_mouse_100um"
@@ -101,7 +101,7 @@ def atlas_with_reference_matching_additional_reference():
     """A fixture providing an invalid version of Allen Mouse atlas for testing.
     It provides the atlas, with an additional reference containing
     the same data as the main reference image.
-    This fixture also does the clean-up after the test has run.
+    This fixture cleans up the invalid atlas after the test has run.
     """
     allen_100 = BrainGlobeAtlas(
         "allen_mouse_100um"

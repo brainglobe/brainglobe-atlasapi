@@ -125,7 +125,7 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
 
 def validate_additional_references(atlas: BrainGlobeAtlas):
     """
-    Check that additional references are different, but have same dimensions
+    Check that additional references are different, but have same dimensions.
     """
     for (
         additional_reference_name

@@ -145,7 +145,7 @@ def create_atlas(working_dir, resolution):
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas"
     CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
-    ORIENTATION = "rai"
+    ORIENTATION = "asr"
     ROOT_ID = 997
     ATLAS_FILE_URL = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
 

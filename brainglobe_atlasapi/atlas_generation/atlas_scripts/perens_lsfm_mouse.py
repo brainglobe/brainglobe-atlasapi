@@ -249,6 +249,8 @@ def create_atlas(working_dir, resolution):
 
     # Mesh creation
     closing_n_iters = 2
+    decimate_fraction = 0.2
+    smooth = False
     start = time.time()
     if PARALLEL:
         pool = mp.Pool(mp.cpu_count() - 2)
@@ -265,6 +267,8 @@ def create_atlas(working_dir, resolution):
                         annotated_volume,
                         ROOT_ID,
                         closing_n_iters,
+                        decimate_fraction,
+                        smooth,
                     )
                     for node in tree.nodes.values()
                 ],

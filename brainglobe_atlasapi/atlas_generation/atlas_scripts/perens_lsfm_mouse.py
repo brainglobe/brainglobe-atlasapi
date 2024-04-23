@@ -291,6 +291,8 @@ def create_atlas(working_dir, resolution):
                     annotated_volume,
                     ROOT_ID,
                     closing_n_iters,
+                    decimate_fraction,
+                    smooth,
                 )
             )
 

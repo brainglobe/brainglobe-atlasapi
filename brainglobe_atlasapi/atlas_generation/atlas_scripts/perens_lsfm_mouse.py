@@ -248,8 +248,9 @@ def create_atlas(working_dir, resolution):
         node.data = Region(is_label)
 
     # Mesh creation
-    closing_n_iters = 2
-    decimate_fraction = 0.2
+    closing_n_iters = 2  # not used for this atlas
+    decimate_fraction = 0.2  # not used for this atlas
+
     smooth = False
     start = time.time()
     if PARALLEL:

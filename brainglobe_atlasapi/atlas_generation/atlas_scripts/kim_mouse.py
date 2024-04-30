@@ -1,5 +1,6 @@
 __version__ = "1"
 
+import argparse
 import json
 import multiprocessing as mp
 import tarfile
@@ -23,7 +24,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = False  # disable parallel mesh extraction for easier debugging
+PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
 
 def create_atlas(working_dir, resolution):
@@ -235,9 +236,21 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 10  # some resolution, in microns (10, 25, 50, 100)
+    # Create argument parser to pass resoulution as an argument
+    parser = argparse.ArgumentParser(
+        description="Create an atlas with a specified resolution."
+    )
+    parser.add_argument(
+        "--resolution",
+        type=int,
+        default=10,
+        help="Resolution in microns (10, 25, 50, 100)",
+    )
+    args = parser.parse_args()
 
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    create_atlas(bg_root_dir, resolution)
+
+    # Use the parsed resolution
+    create_atlas(bg_root_dir, args.resolution)

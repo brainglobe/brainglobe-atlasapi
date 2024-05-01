@@ -20,7 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = False  # disable parallel mesh extraction for easier debugging
+PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
 
 ### Additional functions #####################################################

@@ -25,13 +25,13 @@ from rich.progress import track
 from brainglobe_atlasapi.atlas_generation.mesh_utils import Region, create_region_mesh
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
-PARALLEL = True
+PARALLEL = False
 
 def create_atlas (working_dir, resolution):
-    ATLAS_NAME = "asty_atlas"
+    ATLAS_NAME = "sju_cavefish"
     SPECIES = "Astyanax mexicanus"
     ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"
-    CITATION = "Kozol et al. 2023, https://elifesciences.org/articles/80777"
+    CITATION = "Kozol et al. 2023, https://doi.org/10.7554/eLife.80777"
     ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/8epecj-asty-atlas.zip"
     ORIENTATION = "las"
     ROOT_ID = 999
@@ -56,7 +56,7 @@ def create_atlas (working_dir, resolution):
     destination_path.unlink()
 
     structures_file = atlas_path / "asty_atlas/SPF2_25_Region_atlas_list.csv"
-    annotations_volume = atlas_path / "asty_atlas/SPF2_regions_SP2c_1iWarp_25.tif"
+    annotations_file = atlas_path / "asty_atlas/SPF2_regions_SP2c_1iWarp_25.tif"
     #reference_cartpt = atlas_path / "SPF2_carpt_ref.tif" #ADDITIONAL REFERENCE
     reference_file = atlas_path / "asty_atlas/SPF2_terk_ref.tif"
     meshes_dir_path = atlas_path / "asty_atlas/meshes"
@@ -69,17 +69,18 @@ def create_atlas (working_dir, resolution):
     #ADDITIONAL_REFERENCES = {"cartpt": cartpt}
 
     # create dictionaries
-        print("Creating structure tree")
-    zfishFile = open(structures_file)
-    zfishDictReader = csv.DictReader(zfishFile)
+    print("Creating structure tree")
+    with open(structures_file, mode="r", encoding="utf-8-sig") as zfishFile:
+        zfishDictReader = csv.DictReader(zfishFile)
 
-    # empty list to populate with dictionaries
-    hierarchy = []
+        # empty list to populate with dictionaries
+        hierarchy = []
 
-    # parse through csv file and populate hierarchy list
-    for row in zfishDictReader:
-        hierarchy.append(row)
+        # parse through csv file and populate hierarchy list
+        for row in zfishDictReader:
+            hierarchy.append(row)
 
+        hierarchy = hierarchy[:-1]
     # make string to int and list of int conversions in
     # 'id', 'structure_id_path', and 'rgb_triplet' key values
     for i in range(0, len(hierarchy)):
@@ -104,6 +105,10 @@ def create_atlas (working_dir, resolution):
 
     # use tifffile to read annotated file
     annotated_volume = tifffile.imread(annotations_file)
+    reference_volume = tifffile.imread(reference_file)
+
+    from scipy.ndimage import zoom
+    annotated_volume = zoom(annotated_volume, (1, 1, 4), order=0)
 
     print(f"Saving atlas data at {atlas_path}")
     tree = get_structures_tree(hierarchy)
@@ -212,10 +217,10 @@ def create_atlas (working_dir, resolution):
         resolution=(resolution,) * 3,  # if isotropic - highly recommended
         orientation=ORIENTATION,
         root_id=999,
-        reference_stack=reference_file,
-        annotation_stack=annotations_volume,
-        structures_list=structures_file,
-        meshes_dir_path=meshes,
+        reference_stack=reference_volume,
+        annotation_stack=annotated_volume,
+        structures_list=hierarchy,
+        meshes_dict=meshes_dict,
         working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,
@@ -224,7 +229,7 @@ def create_atlas (working_dir, resolution):
 
     return output_filename
 
-res = 2
+res = 0.5
 home = str(Path.home())
 bg_root_dir = Path.home() / "bg-atlasgen"
 bg_root_dir.mkdir(exist_ok=True, parents=True)

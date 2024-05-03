@@ -1,33 +1,34 @@
 __version__ = "0"
 
-import dataclasses
-import json
 import csv
-import tifffile
+import glob as glob
 import multiprocessing as mp
+import os
 import time
-import tarfile
 import zipfile
-#from os import listdir, path
+
+# from os import listdir, path
 # p = Path('.')
 from pathlib import Path
-from typing import Tuple
-import glob as glob
-import os
 
 import numpy as np
-import pandas as pd
-from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+import tifffile
 from rich.progress import track
-# from skimage import io
 
-from brainglobe_atlasapi.atlas_generation.mesh_utils import Region, create_region_mesh
+from brainglobe_atlasapi import utils
+
+# from skimage import io
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    Region,
+    create_region_mesh,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False
 
-def create_atlas (working_dir, resolution):
+
+def create_atlas(working_dir, resolution):
     ATLAS_NAME = "sju_cavefish"
     SPECIES = "Astyanax mexicanus"
     ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"
@@ -50,23 +51,25 @@ def create_atlas (working_dir, resolution):
     utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
 
     # unpack the atlas download folder
-    with zipfile.ZipFile(destination_path, 'r') as zip:
+    with zipfile.ZipFile(destination_path, "r") as zip:
         zip.extractall(path=atlas_path)
 
     destination_path.unlink()
 
     structures_file = atlas_path / "asty_atlas/SPF2_25_Region_atlas_list.csv"
-    annotations_file = atlas_path / "asty_atlas/SPF2_regions_SP2c_1iWarp_25.tif"
-    #reference_cartpt = atlas_path / "SPF2_carpt_ref.tif" #ADDITIONAL REFERENCE
+    annotations_file = (
+        atlas_path / "asty_atlas/SPF2_regions_SP2c_1iWarp_25.tif"
+    )
+    # reference_cartpt = atlas_path / "SPF2_carpt_ref.tif" #ADDITIONAL REFERENCE
     reference_file = atlas_path / "asty_atlas/SPF2_terk_ref.tif"
     meshes_dir_path = atlas_path / "asty_atlas/meshes"
     try:
         os.mkdir(meshes_dir_path)
     except:
-        'mesh folder already exists'
+        "mesh folder already exists"
 
-    #cartpt = tifffile.imread(reference_cartpt)
-    #ADDITIONAL_REFERENCES = {"cartpt": cartpt}
+    # cartpt = tifffile.imread(reference_cartpt)
+    # ADDITIONAL_REFERENCES = {"cartpt": cartpt}
 
     # create dictionaries
     print("Creating structure tree")
@@ -108,6 +111,7 @@ def create_atlas (working_dir, resolution):
     reference_volume = tifffile.imread(reference_file)
 
     from scipy.ndimage import zoom
+
     annotated_volume = zoom(annotated_volume, (1, 1, 4), order=0)
 
     print(f"Saving atlas data at {atlas_path}")
@@ -229,9 +233,10 @@ def create_atlas (working_dir, resolution):
 
     return output_filename
 
+
 res = 0.5
 home = str(Path.home())
 bg_root_dir = Path.home() / "bg-atlasgen"
 bg_root_dir.mkdir(exist_ok=True, parents=True)
 
-create_atlas (bg_root_dir, res)
+create_atlas(bg_root_dir, res)

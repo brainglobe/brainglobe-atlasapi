@@ -1,5 +1,6 @@
 __version__ = "1"
 
+import argparse
 import json
 import multiprocessing as mp
 import tarfile
@@ -117,9 +118,7 @@ def create_atlas(working_dir, resolution):
 
     tree = get_structures_tree(structures)
 
-    rotated_annotations = np.rot90(annotated_volume, axes=(0, 2))
-
-    labels = np.unique(rotated_annotations).astype(np.int32)
+    labels = np.unique(annotated_volume).astype(np.int32)
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
@@ -146,7 +145,7 @@ def create_atlas(working_dir, resolution):
                         node,
                         tree,
                         labels,
-                        rotated_annotations,
+                        annotated_volume,
                         ROOT_ID,
                         closing_n_iters,
                         decimate_fraction,
@@ -170,7 +169,7 @@ def create_atlas(working_dir, resolution):
                     node,
                     tree,
                     labels,
-                    rotated_annotations,
+                    annotated_volume,
                     ROOT_ID,
                     closing_n_iters,
                     decimate_fraction,
@@ -237,9 +236,21 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 10  # some resolution, in microns (10, 25, 50, 100)
+    # Create argument parser to pass resoulution as an argument
+    parser = argparse.ArgumentParser(
+        description="Create an atlas with a specified resolution."
+    )
+    parser.add_argument(
+        "--resolution",
+        type=int,
+        default=10,
+        help="Resolution in microns (10, 25, 50, 100)",
+    )
+    args = parser.parse_args()
 
     # Generated atlas path:
     bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    create_atlas(bg_root_dir, resolution)
+
+    # Use the parsed resolution
+    create_atlas(bg_root_dir, args.resolution)

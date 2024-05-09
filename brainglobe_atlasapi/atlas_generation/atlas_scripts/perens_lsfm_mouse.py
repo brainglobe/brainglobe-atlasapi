@@ -20,7 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = False  # disable parallel mesh extraction for easier debugging
+PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
 
 ### Additional functions #####################################################
@@ -145,7 +145,7 @@ def create_atlas(working_dir, resolution):
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas"
     CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
-    ORIENTATION = "rai"
+    ORIENTATION = "asr"
     ROOT_ID = 997
     ATLAS_FILE_URL = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
 
@@ -248,7 +248,10 @@ def create_atlas(working_dir, resolution):
         node.data = Region(is_label)
 
     # Mesh creation
-    closing_n_iters = 2
+    closing_n_iters = 2  # not used for this atlas
+    decimate_fraction = 0.2  # not used for this atlas
+
+    smooth = False
     start = time.time()
     if PARALLEL:
         pool = mp.Pool(mp.cpu_count() - 2)
@@ -265,6 +268,8 @@ def create_atlas(working_dir, resolution):
                         annotated_volume,
                         ROOT_ID,
                         closing_n_iters,
+                        decimate_fraction,
+                        smooth,
                     )
                     for node in tree.nodes.values()
                 ],
@@ -287,6 +292,8 @@ def create_atlas(working_dir, resolution):
                     annotated_volume,
                     ROOT_ID,
                     closing_n_iters,
+                    decimate_fraction,
+                    smooth,
                 )
             )
 

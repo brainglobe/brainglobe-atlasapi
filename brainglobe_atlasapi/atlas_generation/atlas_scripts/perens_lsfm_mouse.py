@@ -1,4 +1,4 @@
-__version__ = "0"
+__version__ = "2"
 
 import json
 import multiprocessing as mp
@@ -145,7 +145,7 @@ def create_atlas(working_dir, resolution):
     SPECIES = "Mus musculus"
     ATLAS_LINK = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas"
     CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
-    ORIENTATION = "asr"
+    ORIENTATION = "ial"
     ROOT_ID = 997
     ATLAS_FILE_URL = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
 
@@ -191,8 +191,6 @@ def create_atlas(working_dir, resolution):
     template_volume = sitk.GetArrayFromImage(
         sitk.ReadImage(str(reference_file))
     )
-    annotated_volume = np.rot90(annotated_volume, axes=(0, 2))
-    template_volume = np.rot90(template_volume, axes=(0, 2))
 
     print("Download completed...")
 

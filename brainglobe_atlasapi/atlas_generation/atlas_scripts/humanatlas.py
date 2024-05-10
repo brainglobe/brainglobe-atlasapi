@@ -72,12 +72,13 @@ if __name__ == "__main__":
     #   PREP FILEPATHS   #
     # ------------------ #
 
-    data_fld = Path(
-        r"D:\Dropbox (UCL - SWC)\Rotation_vte\Anatomy"
-        r"\Atlases\atlasesforbrainrender\AllenHuman"
-    )
+    data_fld = Path(Path.home() / ".brainglobe" / "downloads")
+    data_fld.mkdir(exist_ok=True)
 
+    # https://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation.nii.gz
     annotations_image = data_fld / "annotation.nii"
+
+    # https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09b_nifti.zip
     anatomy_image = (
         data_fld
         / "mni_icbm152_nlin_sym_09b"
@@ -89,7 +90,7 @@ if __name__ == "__main__":
     bg_root_dir.mkdir(exist_ok=True)
 
     # Temporary folder for nrrd files download:
-    temp_path = Path(r"C:\Users\Federico\.brainglobe\humanev")
+    temp_path = data_fld
     temp_path.mkdir(exist_ok=True)
 
     # Temporary folder for files before compressing:

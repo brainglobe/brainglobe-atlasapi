@@ -22,11 +22,11 @@ def update_atlas(atlas_name, force=False):
         and doesn't update if that's the case.
     """
 
-    atlas = BrainGlobeAtlas(atlas_name=atlas_name)
+    atlas = BrainGlobeAtlas(atlas_name=atlas_name, check_latest=False)
 
     # Check if we need to update
     if not force:
-        if atlas.check_latest_version():
+        if atlas.check_latest_version(print_warning=False):
             rprint(
                 f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} "
                 "is already updated "

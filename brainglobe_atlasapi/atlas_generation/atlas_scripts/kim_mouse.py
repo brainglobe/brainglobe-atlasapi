@@ -14,8 +14,6 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from rich.progress import track
 from scipy.ndimage import zoom
 
-# import sys
-# sys.path.append("./")
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,

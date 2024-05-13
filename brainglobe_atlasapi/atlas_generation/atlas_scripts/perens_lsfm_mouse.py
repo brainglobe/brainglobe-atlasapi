@@ -11,7 +11,6 @@ import pandas as pd
 import SimpleITK as sitk
 from rich.progress import track
 
-# from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,

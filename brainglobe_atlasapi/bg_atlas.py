@@ -207,7 +207,7 @@ class BrainGlobeAtlas(core.Atlas):
         if local != online:
             if print_warning:
                 rprint(
-                    f"[b][magenta2]brainglobe_atlasapi[/b]: "
+                    "[b][magenta2]brainglobe_atlasapi[/b]: "
                     f"[b]{self.atlas_name}[/b] version [b]{local}[/b] "
                     f"is not the latest available ([b]{online}[/b]). "
                     "To update the atlas run in the terminal:[/magenta2]\n"

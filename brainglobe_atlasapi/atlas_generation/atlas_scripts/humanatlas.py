@@ -191,6 +191,8 @@ if __name__ == "__main__":
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
+    annotated_volume = annotation.get_fdata()
+
     if PARALLEL:
         print("Starting mesh creation in parallel")
 
@@ -205,7 +207,7 @@ if __name__ == "__main__":
                         node,
                         tree,
                         labels,
-                        annotation,
+                        annotated_volume,
                         ROOT_ID,
                         closing_n_iters,
                         decimate_fraction,
@@ -226,10 +228,9 @@ if __name__ == "__main__":
             description="Creating meshes",
         ):
             if node.tag == "root":
-                volume = annotation.copy()
-                volume[volume > 0] = node.identifier
+                annotated_volume[annotated_volume > 0] = node.identifier
             else:
-                volume = annotation
+                annotated_volume = annotated_volume
 
             create_region_mesh(
                 (
@@ -237,7 +238,7 @@ if __name__ == "__main__":
                     node,
                     tree,
                     labels,
-                    volume,
+                    annotated_volume,
                     ROOT_ID,
                     closing_n_iters,
                     decimate_fraction,

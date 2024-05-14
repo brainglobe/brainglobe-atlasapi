@@ -8,7 +8,7 @@ import pandas as pd
 import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
-from brainio import brainio
+from brainglobe_utils.image_io import load_nii
 from rich.progress import track
 
 # import sys
@@ -76,11 +76,12 @@ if __name__ == "__main__":
     data_fld.mkdir(exist_ok=True)
 
     # https://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation.nii.gz
-    annotations_image = data_fld / "annotation.nii"
+    annotations_image = data_fld / "annotation.nii" / "annotation.nii"
 
     # https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09b_nifti.zip
     anatomy_image = (
         data_fld
+        / "mni_icbm152_nlin_sym_09b_nifti"
         / "mni_icbm152_nlin_sym_09b"
         / "mni_icbm152_pd_tal_nlin_sym_09b_hires.nii"
     )
@@ -100,12 +101,12 @@ if __name__ == "__main__":
     # ---------------- #
     #   GET TEMPLATE   #
     # ---------------- #
-    annotation = brainio.load_any(annotations_image)  # shape (394, 466, 378)
-    anatomy = brainio.load_any(anatomy_image)  # shape (394, 466, 378)
+    annotation = load_nii(annotations_image)  # shape (394, 466, 378)
+    anatomy = load_nii(anatomy_image)  # shape (394, 466, 378)
 
     # Remove weird artefact
-    annotation = annotation[:200, :, :]
-    anatomy = anatomy[:200, :, :]
+    # annotation = annotation[:200, :, :]
+    # anatomy = anatomy[:200, :, :]
 
     # show(Volume(root_annotation), axes=1)
 
@@ -166,7 +167,7 @@ if __name__ == "__main__":
     )
 
     # Mark which tree elements are in the annotation volume
-    labels = np.unique(annotation).astype(np.int32)
+    labels = np.unique(annotation.get_fdata()).astype(np.int32)
 
     for key, node in tree.nodes.items():
         if key in labels:

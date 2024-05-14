@@ -1,10 +1,13 @@
+import gzip
 import json
 import multiprocessing as mp
 import time
+import zipfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
 import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
@@ -75,10 +78,34 @@ if __name__ == "__main__":
     data_fld = Path(Path.home() / ".brainglobe" / "downloads")
     data_fld.mkdir(exist_ok=True)
 
-    # https://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation.nii.gz
-    annotations_image = data_fld / "annotation.nii" / "annotation.nii"
+    # downloading and un-compressing annotation file
+    annotation_url = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation.nii.gz"
+    response = requests.get(annotation_url)
+    with open(data_fld / annotation_url.split("/")[-1], "wb") as f:
+        f.write(response.content)
 
-    # https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09b_nifti.zip
+    with gzip.open(data_fld / annotation_url.split("/")[-1], "rb") as f_in:
+        with open(
+            data_fld / annotation_url.split("/")[-1].replace(".gz", ""), "wb"
+        ) as f_out:
+            f_out.writelines(f_in)
+
+    # downloading and un-compressing anatomy image
+    anatomy_url = "https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09b_nifti.zip"
+    response = requests.get(anatomy_url)
+    with open(data_fld / anatomy_url.split("/")[-1], "wb") as f:
+        f.write(response.content)
+
+    with zipfile.ZipFile(
+        data_fld / anatomy_url.split("/")[-1], "r"
+    ) as zip_ref:
+        zip_ref.extractall(
+            data_fld / anatomy_url.split("/")[-1].replace(".zip", "")
+        )
+
+    print("Download and decompression completed.")
+
+    annotations_image = data_fld / "annotation.nii"
     anatomy_image = (
         data_fld
         / "mni_icbm152_nlin_sym_09b_nifti"
@@ -105,8 +132,8 @@ if __name__ == "__main__":
     anatomy = load_nii(anatomy_image)  # shape (394, 466, 378)
 
     # Remove weird artefact
-    # annotation = annotation[:200, :, :]
-    # anatomy = anatomy[:200, :, :]
+    annotation = annotation.get_fdata()[:200, :, :]
+    anatomy = anatomy.get_fdata()[:200, :, :]
 
     # show(Volume(root_annotation), axes=1)
 
@@ -167,7 +194,7 @@ if __name__ == "__main__":
     )
 
     # Mark which tree elements are in the annotation volume
-    labels = np.unique(annotation.get_fdata()).astype(np.int32)
+    labels = np.unique(annotation).astype(np.int32)
 
     for key, node in tree.nodes.items():
         if key in labels:
@@ -191,7 +218,7 @@ if __name__ == "__main__":
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
-    annotated_volume = annotation.get_fdata()
+    annotated_volume = annotation
 
     if PARALLEL:
         print("Starting mesh creation in parallel")

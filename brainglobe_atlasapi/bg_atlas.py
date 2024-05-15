@@ -1,6 +1,7 @@
 import tarfile
 from io import StringIO
 from pathlib import Path
+from typing import Optional
 
 import requests
 from rich import print as rprint
@@ -177,23 +178,41 @@ class BrainGlobeAtlas(core.Atlas):
 
         destination_path.unlink()
 
-    def check_latest_version(self):
-        """Checks if the local version is the latest available
-        and prompts the user to update if not.
+    def check_latest_version(
+        self, print_warning: bool = True
+    ) -> Optional[bool]:
         """
+        Checks if the local version is the latest available
+        and prompts the user to update if not.
+
+        Parameters
+        ----------
+        print_warning : bool, optional
+            If True, prints a message if the local version is not the latest,
+            by default True. Useful to turn off, e.g. when the user is updating
+            the atlas
+
+        Returns
+        -------
+        Optional[bool]
+            Returns False if the local version is not the latest,
+            True if it is, and None if we are offline.
+        """
+
         if self.remote_version is None:  # in this case, we are offline
             return
         local = _version_str_from_tuple(self.local_version)
         online = _version_str_from_tuple(self.remote_version)
 
         if local != online:
-            rprint(
-                f"[b][magenta2]brainglobe_atlasapi[/b]: "
-                f"[b]{self.atlas_name}[/b] version [b]{local}[/b]"
-                f"is not the latest available ([b]{online}[/b]). "
-                "To update the atlas run in the terminal:[/magenta2]\n"
-                f"    [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
-            )
+            if print_warning:
+                rprint(
+                    "[b][magenta2]brainglobe_atlasapi[/b]: "
+                    f"[b]{self.atlas_name}[/b] version [b]{local}[/b] "
+                    f"is not the latest available ([b]{online}[/b]). "
+                    "To update the atlas run in the terminal:[/magenta2]\n"
+                    f" [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
+                )
             return False
         return True
 

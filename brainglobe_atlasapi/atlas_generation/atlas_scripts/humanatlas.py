@@ -11,11 +11,11 @@ import requests
 import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
+
 from brainglobe_utils.image_io import load_nii
+
 from rich.progress import track
 
-# import sys
-# sys.path.append("./")
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -128,8 +128,10 @@ if __name__ == "__main__":
     # ---------------- #
     #   GET TEMPLATE   #
     # ---------------- #
+
     annotation = load_nii(annotations_image)  # shape (394, 466, 378)
     anatomy = load_nii(anatomy_image)  # shape (394, 466, 378)
+
 
     # Remove weird artefact
     annotation = annotation.get_fdata()[:200, :, :]

@@ -57,7 +57,7 @@ def prune_tree(tree):
 
 
 if __name__ == "__main__":
-    PARALLEL = False  # disable parallel mesh extraction for easier debugging
+    PARALLEL = True  # disable parallel mesh extraction for easier debugging
     TEST = False
 
     # ----------------- #
@@ -322,11 +322,12 @@ if __name__ == "__main__":
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=anatomy,
-        annotation_stack=annotation,
+        annotation_stack=annotated_volume,
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
+        scale_meshes=True,
     )

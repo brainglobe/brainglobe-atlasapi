@@ -8,11 +8,9 @@ import pandas as pd
 import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
-from brainio import brainio
+from brainglobe_utils.IO.image.load import load_any
 from rich.progress import track
 
-# import sys
-# sys.path.append("./")
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -99,8 +97,8 @@ if __name__ == "__main__":
     # ---------------- #
     #   GET TEMPLATE   #
     # ---------------- #
-    annotation = brainio.load_any(annotations_image)  # shape (394, 466, 378)
-    anatomy = brainio.load_any(anatomy_image)  # shape (394, 466, 378)
+    annotation = load_any(annotations_image)  # shape (394, 466, 378)
+    anatomy = load_any(anatomy_image)  # shape (394, 466, 378)
 
     # Remove weird artefact
     annotation = annotation[:200, :, :]

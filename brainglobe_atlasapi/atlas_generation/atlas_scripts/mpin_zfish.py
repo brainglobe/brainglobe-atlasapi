@@ -1,5 +1,7 @@
+# Metadata
 __version__ = "1"
 
+# Imports
 import tarfile
 import warnings
 import zipfile
@@ -11,7 +13,10 @@ from allensdk.core.structure_tree import StructureTree
 from scipy.ndimage import binary_dilation, binary_erosion, binary_fill_holes
 from tifffile import imread
 
+# Custom Module Imports
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
 from brainglobe_atlasapi.utils import retrieve_over_http
 
 BASE_URL = r"https://fishatlas.neuro.mpg.de"

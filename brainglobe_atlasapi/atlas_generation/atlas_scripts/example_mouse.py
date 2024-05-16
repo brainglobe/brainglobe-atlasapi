@@ -1,5 +1,7 @@
+# Metadata
 __version__ = "2"
 
+# Imports
 from pathlib import Path
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
@@ -8,7 +10,10 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
 
+# Custom Module Imports
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
 
 
 def create_atlas(working_dir, resolution):

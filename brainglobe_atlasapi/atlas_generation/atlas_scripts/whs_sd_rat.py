@@ -1,5 +1,7 @@
+# Metadata
 __version__ = "0"
 
+# Imports
 import json
 import multiprocessing as mp
 import time
@@ -11,12 +13,15 @@ import numpy as np
 import xmltodict
 from rich.progress import track
 
+# Custom Module Imports
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True

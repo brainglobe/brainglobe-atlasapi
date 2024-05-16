@@ -1,5 +1,7 @@
+# Metadata
 __version__ = "1"
 
+# Imports
 import json
 import multiprocessing as mp
 import time
@@ -13,8 +15,7 @@ import tifffile
 from loguru import logger
 from rich.progress import track
 
-# import sys
-# sys.path.append("./")
+# Custom Module Imports
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
@@ -22,6 +23,9 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     inspect_meshes_folder,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
+from brainglobe_atlasapi.config import DEFAULT_DOWNLOAD_PATH, DEFAULT_PATH
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
@@ -224,7 +228,7 @@ def create_atlas(working_dir):
     ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/4rrggzv5d5-1.zip"
     ATLAS_PACKAGER = "MetaCell LLC, Ltd."
 
-    download_dir_path = working_dir / "downloads"
+    download_dir_path = DEFAULT_DOWNLOAD_PATH
     download_dir_path.mkdir(exist_ok=True)
 
     # Download atlas files from Mendeley
@@ -287,7 +291,7 @@ def create_atlas(working_dir):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_cord_smooth"
+    bg_root_dir = DEFAULT_PATH
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # generate atlas

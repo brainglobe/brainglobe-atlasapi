@@ -1,5 +1,7 @@
+# Metadata
 __version__ = "2"
 
+# Imports
 import json
 import multiprocessing as mp
 import tarfile
@@ -11,12 +13,15 @@ import pandas as pd
 import SimpleITK as sitk
 from rich.progress import track
 
+# Custom Module Imports
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True  # disable parallel mesh extraction for easier debugging

@@ -6,9 +6,10 @@ for the Adult Zebrafish Brain Atlas (AZBA)
 
 @author: Kailyn Fields, kailyn.fields@wayne.edu
 """
-
+# Metadata
 __version__ = "1"
 
+# Imports
 import csv
 import multiprocessing as mp
 import tarfile
@@ -19,12 +20,15 @@ import numpy as np
 import tifffile
 from rich.progress import track
 
+# Custom Module Imports
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False  # Disable for debugging mesh creation

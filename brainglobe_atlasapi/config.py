@@ -19,10 +19,11 @@ CONFIG_PATH = CONFIG_DIR / CONFIG_FILENAME
 
 # 2 level dictionary for sections and values:
 DEFAULT_PATH = Path.home() / ".brainglobe"
+DEFAULT_DOWNLOAD_PATH = DEFAULT_PATH / "downloads"
 TEMPLATE_CONF_DICT = {
     "default_dirs": {
         "brainglobe_dir": DEFAULT_PATH,
-        "interm_download_dir": DEFAULT_PATH,
+        "interm_download_dir": DEFAULT_DOWNLOAD_PATH,
     }
 }
 

@@ -1,6 +1,7 @@
+# Metadata
 __version__ = "2"
 
-from pathlib import Path
+# Imports
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
@@ -8,8 +9,12 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
 
+# Custom Module Imports
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
+from brainglobe_atlasapi.config import DEFAULT_DOWNLOAD_PATH, DEFAULT_PATH
 
 
 def create_atlas(working_dir, resolution):
@@ -21,7 +26,7 @@ def create_atlas(working_dir, resolution):
     ORIENTATION = "asr"
 
     # Temporary folder for nrrd files download:
-    download_dir_path = working_dir / "downloading_path"
+    download_dir_path = DEFAULT_DOWNLOAD_PATH
     download_dir_path.mkdir(exist_ok=True)
 
     # Download annotated and template volume:
@@ -109,7 +114,7 @@ def create_atlas(working_dir, resolution):
 if __name__ == "__main__":
     RES_UM = 25
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_mouse"
+    bg_root_dir = DEFAULT_PATH
     bg_root_dir.mkdir(exist_ok=True)
 
     create_atlas(bg_root_dir, RES_UM)

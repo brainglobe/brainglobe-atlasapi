@@ -1,5 +1,7 @@
+# Metadata
 __version__ = "1"
 
+# Imports
 import argparse
 import json
 import multiprocessing as mp
@@ -14,12 +16,15 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from rich.progress import track
 from scipy.ndimage import zoom
 
+# Custom Module Imports
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False  # disable parallel mesh extraction for easier debugging

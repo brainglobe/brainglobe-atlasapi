@@ -1,5 +1,7 @@
+# Metadata
 __version__ = "0"
 
+# Imports
 import dataclasses
 import json
 import multiprocessing as mp
@@ -14,12 +16,16 @@ import pandas as pd
 from rich.progress import track
 from skimage import io
 
+# Custom Module Imports
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
+from brainglobe_atlasapi.config import DEFAULT_DOWNLOAD_PATH, DEFAULT_PATH
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
@@ -212,7 +218,7 @@ class AtlasConfig:
 
 
 def create_atlas(
-    working_dir: Path = Path.home(), atlas_config: "AtlasConfig" = None
+    working_dir: Path = DEFAULT_PATH, atlas_config: "AtlasConfig" = None
 ):
     assert (
         len(atlas_config.orientation) == 3
@@ -229,7 +235,7 @@ def create_atlas(
     working_dir = working_dir / "admba_3d_dev_mouse" / atlas_config.atlas_name
     working_dir.mkdir(exist_ok=True, parents=True)
 
-    download_dir_path = working_dir / "downloads"
+    download_dir_path = DEFAULT_DOWNLOAD_PATH
     download_dir_path.mkdir(exist_ok=True)
     if path.isdir(atlas_config.atlas_file_url):
         print("Setting atlas to directory: ", atlas_config.atlas_file_url)
@@ -305,7 +311,7 @@ def create_atlas(
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_PATH
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # set up E11.5 atlas settings and use as template for rest of brains

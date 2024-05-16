@@ -1,23 +1,28 @@
+# Metadata
 __version__ = "1"
 
+# Imports
 import json
 import multiprocessing as mp
 import time
 import zipfile
 from pathlib import Path
 
-import imio
 import numpy as np
 import pandas as pd
+from brainglobe_utils.image_io import load_nii
 from rich.progress import track
 from scipy.ndimage import zoom
 
+# Custom Module Imports
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
@@ -118,8 +123,8 @@ def create_atlas(
     # Load (and possibly downsample) annotated volume:
     scaling = ANNOTATIONS_RES_UM / resolution
 
-    annotated_volume = imio.load_nii(annotations_file, as_array=True)
-    template_volume = imio.load_nii(template_file, as_array=True)
+    annotated_volume = load_nii(annotations_file, as_array=True)
+    template_volume = load_nii(template_file, as_array=True)
 
     annotated_volume = zoom(
         annotated_volume, (scaling, scaling, scaling), order=0, prefilter=False

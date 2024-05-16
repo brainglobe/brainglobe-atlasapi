@@ -1,6 +1,8 @@
+# Metadata
 __version__ = "0"
 __atlas__ = "princeton_mouse"
 
+# Imports
 import json
 import multiprocessing as mp
 import os.path
@@ -13,12 +15,15 @@ import tifffile
 from rich.progress import track
 from scipy.ndimage import zoom
 
+# Custom Module Imports
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# Paths
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False

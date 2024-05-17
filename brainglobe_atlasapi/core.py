@@ -179,7 +179,7 @@ class Atlas:
         microns=False,
         as_acronym=False,
         hierarchy_lev=None,
-        key_error_string="Out of brain",
+        key_error_string="Outside atlas",
     ):
         """Get the structure from a coordinate triplet.
 
@@ -191,7 +191,8 @@ class Atlas:
             If true, coordinates are interpreted in microns.
         as_acronym : bool
             If true, the region acronym is returned.
-            If out of brain (structure gives key error), return "Out of brain"
+            If outside atlas (structure gives key error),
+            return "Outside atlas"
         hierarchy_lev : int or None
             If specified, return parent node at thi hierarchy level.
 

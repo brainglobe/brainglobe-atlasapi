@@ -103,8 +103,11 @@ def test_data_from_coords(atlas, coords):
 
 
 def test_data_from_coords_out_of_brain(
-    atlas, coords=(1, 1, 1), key_error_string="Outside atlas"
+    atlas,
 ):
+    coords = (1, 1, 1)
+    key_error_string = "Outside atlas"
+
     assert atlas.structure_from_coords(coords) == 0
     assert atlas.structure_from_coords(coords, microns=True) == 0
 

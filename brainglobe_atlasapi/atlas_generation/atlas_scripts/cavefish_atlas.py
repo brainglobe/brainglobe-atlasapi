@@ -12,6 +12,7 @@ import zipfile
 from pathlib import Path
 
 import numpy as np
+import pooch
 import tifffile
 from rich.progress import track
 
@@ -47,25 +48,27 @@ def create_atlas(working_dir, resolution):
 
     # download atlas files
     utils.check_internet_connection()
-    destination_path = download_dir_path / "atlas_download"
-    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
+    download_path = pooch.retrieve(
+        ATLAS_FILE_URL,
+        known_hash="95ddde6bf8f0ef2265ec68952a189f262097a979d3119aff9988328261c1a2c8",
+    )
 
     # unpack the atlas download folder
-    with zipfile.ZipFile(destination_path, "r") as zip:
+    with zipfile.ZipFile(download_path, "r") as zip:
         zip.extractall(path=atlas_path)
-
-    destination_path.unlink()
 
     structures_file = atlas_path / "asty_atlas/SPF2_25_Region_atlas_list.csv"
     annotations_file = (
         atlas_path / "asty_atlas/SPF2_regions_SP2c_1iWarp_25.tif"
     )
-    # reference_cartpt = atlas_path / "SPF2_carpt_ref.tif" #ADDITIONAL REFERENCE
+
+    # ADDITIONAL REFERENCE:
+    # reference_cartpt = atlas_path / "SPF2_carpt_ref.tif"
     reference_file = atlas_path / "asty_atlas/SPF2_terk_ref.tif"
     meshes_dir_path = atlas_path / "asty_atlas/meshes"
     try:
         os.mkdir(meshes_dir_path)
-    except:
+    except FileExistsError:
         "mesh folder already exists"
 
     # cartpt = tifffile.imread(reference_cartpt)
@@ -112,7 +115,7 @@ def create_atlas(working_dir, resolution):
 
     from scipy.ndimage import zoom
 
-    annotated_volume = zoom(annotated_volume, (1, 1, 4), order=0)
+    reference_volume = zoom(reference_volume, (4, 1, 1), order=0)
 
     print(f"Saving atlas data at {atlas_path}")
     tree = get_structures_tree(hierarchy)
@@ -212,6 +215,7 @@ def create_atlas(working_dir, resolution):
         "structures with mesh are kept"
     )
 
+    annotated_volume = zoom(annotated_volume, (4, 4, 4), order=0)
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
@@ -229,14 +233,17 @@ def create_atlas(working_dir, resolution):
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
+        atlas_packager=ATLAS_PACKAGER,
+        additional_metadata=ADDITIONAL_METADATA,
     )
 
     return output_filename
 
 
-res = 0.5
-home = str(Path.home())
-bg_root_dir = Path.home() / "bg-atlasgen"
-bg_root_dir.mkdir(exist_ok=True, parents=True)
+if __name__ == "__main__":
+    res = 0.5
+    home = str(Path.home())
+    bg_root_dir = Path.home() / "bg-atlasgen"
+    bg_root_dir.mkdir(exist_ok=True, parents=True)
 
-create_atlas(bg_root_dir, res)
+    create_atlas(bg_root_dir, res)

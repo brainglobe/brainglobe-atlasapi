@@ -67,7 +67,7 @@ if __name__ == "__main__":
     SPECIES = "Homo sapiens"
     ATLAS_LINK = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/"
     CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
-    ORIENTATION = "ipr"
+    ORIENTATION = "rpi"
 
     # ------------------ #
     #   PREP FILEPATHS   #
@@ -76,15 +76,17 @@ if __name__ == "__main__":
     data_fld = Path(Path.home() / ".brainglobe" / "downloads")
     data_fld.mkdir(exist_ok=True)
 
-    # downloading and un-compressing annotation file
-    annotation_url = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation.nii.gz"
-    response = requests.get(annotation_url)
-    with open(data_fld / annotation_url.split("/")[-1], "wb") as f:
+    # downloading and un-compressing full annotation file
+    annotation_full_url = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation_full.nii.gz"
+    response = requests.get(annotation_full_url)
+    with open(data_fld / annotation_full_url.split("/")[-1], "wb") as f:
         f.write(response.content)
-
-    with gzip.open(data_fld / annotation_url.split("/")[-1], "rb") as f_in:
+    with gzip.open(
+        data_fld / annotation_full_url.split("/")[-1], "rb"
+    ) as f_in:
         with open(
-            data_fld / annotation_url.split("/")[-1].replace(".gz", ""), "wb"
+            data_fld / annotation_full_url.split("/")[-1].replace(".gz", ""),
+            "wb",
         ) as f_out:
             f_out.writelines(f_in)
 
@@ -93,7 +95,6 @@ if __name__ == "__main__":
     response = requests.get(anatomy_url)
     with open(data_fld / anatomy_url.split("/")[-1], "wb") as f:
         f.write(response.content)
-
     with zipfile.ZipFile(
         data_fld / anatomy_url.split("/")[-1], "r"
     ) as zip_ref:
@@ -103,7 +104,7 @@ if __name__ == "__main__":
 
     print("Download and decompression completed.")
 
-    annotations_image = data_fld / "annotation.nii"
+    annotations_image = data_fld / "annotation_full.nii"
     anatomy_image = (
         data_fld
         / "mni_icbm152_nlin_sym_09b_nifti"
@@ -130,11 +131,8 @@ if __name__ == "__main__":
     annotation = load_nii(annotations_image)  # shape (394, 466, 378)
     anatomy = load_nii(anatomy_image)  # shape (394, 466, 378)
 
-    # Remove weird artefact
-    annotation = annotation.get_fdata()[:200, :, :]
-    anatomy = anatomy.get_fdata()[:200, :, :]
-
-    # show(Volume(root_annotation), axes=1)
+    annotation = annotation.get_fdata()
+    anatomy = anatomy.get_fdata()
 
     # ------------------------ #
     #   STRUCTURES HIERARCHY   #
@@ -143,7 +141,7 @@ if __name__ == "__main__":
     #########################
 
     # RMA query to fetch structures for the structure graph
-    query_url = "http://api.brain-map.org/api/v2/data/query.json?criteria=model::Structure"
+    query_url = "https://api.brain-map.org/api/v2/data/query.json?criteria=model::Structure"
     query_url += ",rma::criteria,[graph_id$eq%d]" % 16
     query_url += (
         ",rma::options[order$eq'structures.graph_order'][num_rows$eqall]"

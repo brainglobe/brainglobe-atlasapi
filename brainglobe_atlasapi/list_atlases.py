@@ -84,29 +84,34 @@ def get_atlases_lastversions():
     return atlases
 
 
-def show_atlases(show_local_path=False):
-    """Prints a formatted table with the name and version of local (downloaded)
-    and online (available) atlases. To do so, dowload info on
-    the latest atlas version and compares it with what it's stored
-    locally.
+def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
+    """
+    Prints a formatted table with the name and version of local (downloaded)
+    and online (available) atlases.
+    Parameters
+    ----------
+    show_local_path : bool, optional
+        If True, includes the local path of the atlases
+        in the table (default is False).
+    table_width : int, optional
+        The width of the table to be printed (default is 88).
 
-    Arguments
-    ---------
-    show_local_path : bool
-        If true, local path of the atlases are in the table with the rest
-        (optional, default=False).
+    Returns
+    -------
+    None
 
     """
 
     available_atlases = get_all_atlases_lastversions()
 
-    # Get local atlases:
-    atlases = get_atlases_lastversions()
+    # Get local atlases
+    downloaded_atlases = get_atlases_lastversions()
 
-    # Get atlases not yet downloaded:
+    # Get atlases not yet downloaded
+    non_downloaded_atlases = {}
     for atlas in available_atlases.keys():
-        if atlas not in atlases.keys():
-            atlases[str(atlas)] = dict(
+        if atlas not in downloaded_atlases.keys():
+            non_downloaded_atlases[str(atlas)] = dict(
                 downloaded=False,
                 local="",
                 version="",
@@ -114,7 +119,7 @@ def show_atlases(show_local_path=False):
                 updated=None,
             )
 
-    # Print table:
+    # Create table
     table = Table(
         show_header=True,
         header_style="bold green",
@@ -131,39 +136,76 @@ def show_atlases(show_local_path=False):
     if show_local_path:
         table.add_column("Local path")
 
-    for n, (atlas, info) in enumerate(atlases.items()):
-        if info["downloaded"]:
-            downloaded = "[green]:heavy_check_mark:[/green]"
+    # Add downloaded atlases (sorted) to the table first
+    for atlas_name in sorted(downloaded_atlases.keys()):
+        atlas = downloaded_atlases[atlas_name]
+        table = add_atlas_to_row(
+            atlas_name, atlas, table, show_local_path=show_local_path
+        )
 
-            if info["version"] == info["latest_version"]:
-                updated = "[green]:heavy_check_mark:[/green]"
-            else:
-                updated = "[red dim]x"
+    # Then add non-download atlases (sorted) to the table
+    for atlas_name in sorted(non_downloaded_atlases.keys()):
+        atlas = non_downloaded_atlases[atlas_name]
+        table = add_atlas_to_row(
+            atlas_name, atlas, table, show_local_path=show_local_path
+        )
 
-        else:
-            downloaded = ""
-            updated = ""
-
-        row = [
-            "[bold]" + atlas,
-            downloaded,
-            updated,
-            (
-                "[#c4c4c4]" + info["version"]
-                if "-" not in info["version"]
-                else ""
-            ),
-            "[#c4c4c4]" + info["latest_version"],
-        ]
-
-        if show_local_path:
-            row.append(info["local"])
-
-        table.add_row(*row)
+    # Print the resulting table
     rprint(
         Panel.fit(
             table,
-            width=88,
+            width=table_width,
             title="Brainglobe Atlases",
         )
     )
+
+
+def add_atlas_to_row(atlas, info, table, show_local_path=False):
+    """
+    Add information about each atlas to a row of the rich table.
+
+    Parameters
+    ----------
+    atlas : str
+        The name of the atlas.
+    info : dict
+        A dictionary containing information about the atlas.
+    table : rich.table.Table
+        The table to which the row will be added.
+    show_local_path : bool, optional
+        If True, includes the local path of the atlas
+        in the row (default is False).
+
+    Returns
+    -------
+    rich.table.Table
+        The updated table with the new row added.
+    -------
+
+    """
+    if info["downloaded"]:
+        downloaded = "[green]:heavy_check_mark:[/green]"
+
+        if info["version"] == info["latest_version"]:
+            updated = "[green]:heavy_check_mark:[/green]"
+        else:
+            updated = "[red dim]x"
+
+    else:
+        downloaded = ""
+        updated = ""
+
+    row = [
+        "[bold]" + atlas,
+        downloaded,
+        updated,
+        ("[#c4c4c4]" + info["version"] if "-" not in info["version"] else ""),
+        "[#c4c4c4]" + info["latest_version"],
+    ]
+
+    if show_local_path:
+        row.append(info["local"])
+
+    table.add_row(*row)
+
+    return table

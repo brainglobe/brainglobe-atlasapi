@@ -174,7 +174,12 @@ class Atlas:
         return hem
 
     def structure_from_coords(
-        self, coords, microns=False, as_acronym=False, hierarchy_lev=None
+        self,
+        coords,
+        microns=False,
+        as_acronym=False,
+        hierarchy_lev=None,
+        key_error_string="Outside atlas",
     ):
         """Get the structure from a coordinate triplet.
 
@@ -186,6 +191,8 @@ class Atlas:
             If true, coordinates are interpreted in microns.
         as_acronym : bool
             If true, the region acronym is returned.
+            If outside atlas (structure gives key error),
+            return "Outside atlas"
         hierarchy_lev : int or None
             If specified, return parent node at thi hierarchy level.
 
@@ -202,8 +209,11 @@ class Atlas:
             rid = self.structures[rid]["structure_id_path"][hierarchy_lev]
 
         if as_acronym:
-            d = self.structures[rid]
-            return d["acronym"]
+            try:
+                d = self.structures[rid]
+                return d["acronym"]
+            except KeyError:
+                return key_error_string
         else:
             return rid
 

@@ -102,6 +102,19 @@ def test_data_from_coords(atlas, coords):
     )
 
 
+def test_data_from_coords_out_of_brain(atlas, coords=(1, 1, 1)):
+    assert atlas.structure_from_coords(coords) == 0
+    assert atlas.structure_from_coords(coords, microns=True) == 0
+
+    assert (
+        atlas.structure_from_coords(coords, as_acronym=True) == "Out of brain"
+    )
+    assert (
+        atlas.structure_from_coords(coords, microns=True, as_acronym=True)
+        == "Out of brain"
+    )
+
+
 def test_meshfile_from_id(atlas):
     assert (
         atlas.meshfile_from_structure("CH")

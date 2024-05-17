@@ -23,7 +23,7 @@ def bg_cli(
     ----------
     command: str. Name of the command:
         - list: list available atlases
-        - install: isntall new atlas
+        - install: install new atlas
         - update: update an installed atlas
         - config: modify config
 

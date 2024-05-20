@@ -1,14 +1,17 @@
+import gzip
 import json
 import multiprocessing as mp
 import time
+import zipfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
 import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
-from brainglobe_utils.IO.image.load import load_any
+from brainglobe_utils.image_io import load_nii
 from rich.progress import track
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -52,7 +55,7 @@ def prune_tree(tree):
 
 
 if __name__ == "__main__":
-    PARALLEL = False  # disable parallel mesh extraction for easier debugging
+    PARALLEL = True  # disable parallel mesh extraction for easier debugging
     TEST = False
 
     # ----------------- #
@@ -64,20 +67,47 @@ if __name__ == "__main__":
     SPECIES = "Homo sapiens"
     ATLAS_LINK = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/"
     CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
-    ORIENTATION = "ipr"
+    ORIENTATION = "rpi"
 
     # ------------------ #
     #   PREP FILEPATHS   #
     # ------------------ #
 
-    data_fld = Path(
-        r"D:\Dropbox (UCL - SWC)\Rotation_vte\Anatomy"
-        r"\Atlases\atlasesforbrainrender\AllenHuman"
-    )
+    data_fld = Path(Path.home() / ".brainglobe" / "downloads")
+    data_fld.mkdir(exist_ok=True)
 
-    annotations_image = data_fld / "annotation.nii"
+    # downloading and un-compressing full annotation file
+    annotation_full_url = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation_full.nii.gz"
+    response = requests.get(annotation_full_url)
+    with open(data_fld / annotation_full_url.split("/")[-1], "wb") as f:
+        f.write(response.content)
+    with gzip.open(
+        data_fld / annotation_full_url.split("/")[-1], "rb"
+    ) as f_in:
+        with open(
+            data_fld / annotation_full_url.split("/")[-1].replace(".gz", ""),
+            "wb",
+        ) as f_out:
+            f_out.writelines(f_in)
+
+    # downloading and un-compressing anatomy image
+    anatomy_url = "https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09b_nifti.zip"
+    response = requests.get(anatomy_url)
+    with open(data_fld / anatomy_url.split("/")[-1], "wb") as f:
+        f.write(response.content)
+    with zipfile.ZipFile(
+        data_fld / anatomy_url.split("/")[-1], "r"
+    ) as zip_ref:
+        zip_ref.extractall(
+            data_fld / anatomy_url.split("/")[-1].replace(".zip", "")
+        )
+
+    print("Download and decompression completed.")
+
+    annotations_image = data_fld / "annotation_full.nii"
     anatomy_image = (
         data_fld
+        / "mni_icbm152_nlin_sym_09b_nifti"
         / "mni_icbm152_nlin_sym_09b"
         / "mni_icbm152_pd_tal_nlin_sym_09b_hires.nii"
     )
@@ -87,7 +117,7 @@ if __name__ == "__main__":
     bg_root_dir.mkdir(exist_ok=True)
 
     # Temporary folder for nrrd files download:
-    temp_path = Path(r"C:\Users\Federico\.brainglobe\humanev")
+    temp_path = data_fld
     temp_path.mkdir(exist_ok=True)
 
     # Temporary folder for files before compressing:
@@ -97,14 +127,12 @@ if __name__ == "__main__":
     # ---------------- #
     #   GET TEMPLATE   #
     # ---------------- #
-    annotation = load_any(annotations_image)  # shape (394, 466, 378)
-    anatomy = load_any(anatomy_image)  # shape (394, 466, 378)
 
-    # Remove weird artefact
-    annotation = annotation[:200, :, :]
-    anatomy = anatomy[:200, :, :]
+    annotation = load_nii(annotations_image)  # shape (394, 466, 378)
+    anatomy = load_nii(anatomy_image)  # shape (394, 466, 378)
 
-    # show(Volume(root_annotation), axes=1)
+    annotation = annotation.get_fdata()
+    anatomy = anatomy.get_fdata()
 
     # ------------------------ #
     #   STRUCTURES HIERARCHY   #
@@ -113,7 +141,7 @@ if __name__ == "__main__":
     #########################
 
     # RMA query to fetch structures for the structure graph
-    query_url = "http://api.brain-map.org/api/v2/data/query.json?criteria=model::Structure"
+    query_url = "https://api.brain-map.org/api/v2/data/query.json?criteria=model::Structure"
     query_url += ",rma::criteria,[graph_id$eq%d]" % 16
     query_url += (
         ",rma::options[order$eq'structures.graph_order'][num_rows$eqall]"
@@ -187,6 +215,8 @@ if __name__ == "__main__":
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
+    annotated_volume = annotation
+
     if PARALLEL:
         print("Starting mesh creation in parallel")
 
@@ -201,7 +231,7 @@ if __name__ == "__main__":
                         node,
                         tree,
                         labels,
-                        annotation,
+                        annotated_volume,
                         ROOT_ID,
                         closing_n_iters,
                         decimate_fraction,
@@ -222,10 +252,9 @@ if __name__ == "__main__":
             description="Creating meshes",
         ):
             if node.tag == "root":
-                volume = annotation.copy()
-                volume[volume > 0] = node.identifier
+                annotated_volume[annotated_volume > 0] = node.identifier
             else:
-                volume = annotation
+                annotated_volume = annotated_volume
 
             create_region_mesh(
                 (
@@ -233,7 +262,7 @@ if __name__ == "__main__":
                     node,
                     tree,
                     labels,
-                    volume,
+                    annotated_volume,
                     ROOT_ID,
                     closing_n_iters,
                     decimate_fraction,
@@ -290,11 +319,12 @@ if __name__ == "__main__":
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=anatomy,
-        annotation_stack=annotation,
+        annotation_stack=annotated_volume,
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
+        scale_meshes=True,
     )

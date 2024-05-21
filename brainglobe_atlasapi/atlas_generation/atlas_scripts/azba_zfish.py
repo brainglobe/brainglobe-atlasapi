@@ -9,15 +9,14 @@ __version__ = "2"
 
 import csv
 import multiprocessing as mp
-import tarfile
 import time
 from pathlib import Path
 
 import numpy as np
+import pooch
 import tifffile
 from rich.progress import track
 
-from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -40,32 +39,26 @@ def create_atlas(working_dir, resolution):
     ATLAS_PACKAGER = "Kailyn Fields, kailyn.fields@wayne.edu"
     ADDITIONAL_METADATA = {}
 
-    # setup folder for downloading
     working_dir = working_dir / ATLAS_NAME
-    working_dir.mkdir(exist_ok=True)
-    download_dir_path = working_dir / "downloads"
-    download_dir_path.mkdir(exist_ok=True)
-    atlas_path = download_dir_path / f"{ATLAS_NAME}"
+    download_path = working_dir / "downloads"
+    download_path.mkdir(exist_ok=True, parents=True)
 
-    # download atlas files
-    utils.check_internet_connection()
-    destination_path = download_dir_path / "atlas_download"
-    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
-
-    # unpack the atlas download folder
-    tar = tarfile.open(destination_path)
-    tar.extractall(path=atlas_path)
-    tar.close()
-    destination_path.unlink()
+    atlas_path = pooch.retrieve(
+        url=ATLAS_FILE_URL,
+        known_hash="a14b09b88979bca3c06fa96d525e6c1ba8906fe08689239433eb72d8d3e2ba44",
+        path=download_path,
+        progressbar=True,
+        processor=pooch.Untar(extract_dir="."),
+    )
 
     print("Atlas files download completed")
 
     # paths
-    structures_file = atlas_path / "2021-08-22_AZBA_labels.csv"
-    annotations_file = atlas_path / "2021-08-22_AZBA_segmentation.tif"
-    reference_topro = atlas_path / "20180219_AZBA_topro_average_2020.tif"
-    reference_file = atlas_path / "20180628_AZBA_AF_average.tif"
-    meshes_dir_path = atlas_path / "meshes"
+    structures_file = download_path / "2021-08-22_AZBA_labels.csv"
+    annotations_file = download_path / "2021-08-22_AZBA_segmentation.tif"
+    reference_topro = download_path / "20180219_AZBA_topro_average_2020.tif"
+    reference_file = download_path / "20180628_AZBA_AF_average.tif"
+    meshes_dir_path = download_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
     # adding topro image as additional reference file,
@@ -241,5 +234,4 @@ if __name__ == "__main__":
 
     # generated atlas path
     bg_root_dir = Path.home() / "brainglobe_workingdir"
-    bg_root_dir.mkdir(exist_ok=True, parents=True)
     create_atlas(bg_root_dir, resolution)

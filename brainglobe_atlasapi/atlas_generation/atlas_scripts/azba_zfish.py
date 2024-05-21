@@ -194,6 +194,7 @@ def create_atlas(working_dir, resolution):
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
         additional_references=ADDITIONAL_REFERENCES,
+        scale_meshes=True,
     )
 
     return output_filename

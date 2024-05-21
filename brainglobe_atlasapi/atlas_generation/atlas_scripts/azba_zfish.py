@@ -174,7 +174,7 @@ def create_atlas(working_dir, resolution):
     # import reference file with tifffile so
     # it can be read in wrapup_atlas_from_data
     reference = tifffile.imread(reference_file)
-    # inspect_meshes_folder(meshes_dir_path)
+
     # wrap up atlas file
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(

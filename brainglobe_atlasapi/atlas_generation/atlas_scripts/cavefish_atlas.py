@@ -35,7 +35,7 @@ def create_atlas(working_dir, resolution):
     ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"
     CITATION = "Kozol et al. 2023, https://doi.org/10.7554/eLife.80777"
     ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/8epecj-asty-atlas.zip"
-    ORIENTATION = "las"
+    ORIENTATION = "sla"
     ROOT_ID = 999
     ATLAS_PACKAGER = "Robert Kozol, kozolrobert@gmail.com"
     ADDITIONAL_METADATA = {}
@@ -62,17 +62,17 @@ def create_atlas(working_dir, resolution):
         atlas_path / "asty_atlas/SPF2_regions_SP2c_1iWarp_25.tif"
     )
 
-    # ADDITIONAL REFERENCE:
+    # additional references (not in remote):
     # reference_cartpt = atlas_path / "SPF2_carpt_ref.tif"
+    # cartpt = tifffile.imread(reference_cartpt)
+    # ADDITIONAL_REFERENCES = {"cartpt": cartpt}
+
     reference_file = atlas_path / "asty_atlas/SPF2_terk_ref.tif"
     meshes_dir_path = atlas_path / "asty_atlas/meshes"
     try:
         os.mkdir(meshes_dir_path)
     except FileExistsError:
         "mesh folder already exists"
-
-    # cartpt = tifffile.imread(reference_cartpt)
-    # ADDITIONAL_REFERENCES = {"cartpt": cartpt}
 
     # create dictionaries
     print("Creating structure tree")
@@ -86,7 +86,9 @@ def create_atlas(working_dir, resolution):
         for row in zfishDictReader:
             hierarchy.append(row)
 
+        # remove empty row to avoid errors further down
         hierarchy = hierarchy[:-1]
+
     # make string to int and list of int conversions in
     # 'id', 'structure_id_path', and 'rgb_triplet' key values
     for i in range(0, len(hierarchy)):
@@ -116,6 +118,7 @@ def create_atlas(working_dir, resolution):
     from scipy.ndimage import zoom
 
     reference_volume = zoom(reference_volume, (4, 1, 1), order=0)
+    annotated_volume = zoom(annotated_volume, (4, 4, 4), order=0)
 
     print(f"Saving atlas data at {atlas_path}")
     tree = get_structures_tree(hierarchy)
@@ -138,7 +141,7 @@ def create_atlas(working_dir, resolution):
     closing_n_iters = 2
     start = time.time()
 
-    decimate_fraction = 0.3
+    decimate_fraction = 0.01
     smooth = True
 
     if PARALLEL:
@@ -157,6 +160,8 @@ def create_atlas(working_dir, resolution):
                         annotated_volume,
                         ROOT_ID,
                         closing_n_iters,
+                        decimate_fraction,
+                        smooth,
                     )
                     for node in tree.nodes.values()
                 ],
@@ -215,7 +220,6 @@ def create_atlas(working_dir, resolution):
         "structures with mesh are kept"
     )
 
-    annotated_volume = zoom(annotated_volume, (4, 4, 4), order=0)
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
@@ -229,6 +233,7 @@ def create_atlas(working_dir, resolution):
         annotation_stack=annotated_volume,
         structures_list=hierarchy,
         meshes_dict=meshes_dict,
+        scale_meshes=True,
         working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,

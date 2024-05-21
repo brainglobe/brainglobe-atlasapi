@@ -7,7 +7,7 @@ for the Adult Zebrafish Brain Atlas (AZBA)
 @author: Kailyn Fields, kailyn.fields@wayne.edu
 """
 
-__version__ = "1"
+__version__ = "2"
 
 import csv
 import multiprocessing as mp

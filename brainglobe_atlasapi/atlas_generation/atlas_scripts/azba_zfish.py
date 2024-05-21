@@ -8,7 +8,6 @@ for the Adult Zebrafish Brain Atlas (AZBA)
 __version__ = "2"
 
 import csv
-import multiprocessing as mp
 import time
 from pathlib import Path
 
@@ -23,8 +22,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
-PARALLEL = False  # Disable for debugging mesh creation
 
 
 def create_atlas(working_dir, resolution):
@@ -127,51 +124,24 @@ def create_atlas(working_dir, resolution):
     decimate_fraction = 0.3
     smooth = True
 
-    if PARALLEL:
-        print("Multiprocessing mesh creation...")
-        pool = mp.Pool(int(mp.cpu_count() / 2))
-
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        ROOT_ID,
-                        closing_n_iters,
-                    )
-                    for node in tree.nodes.values()
-                ],
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
-        except mp.pool.MaybeEncodingError:
-            pass
-
-    else:
-        print("Multiprocessing disabled")
-        # nodes = list(tree.nodes.values())
-        # nodes = choices(nodes, k=10)
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+        )
 
     print(
         "Finished mesh extraction in : ",

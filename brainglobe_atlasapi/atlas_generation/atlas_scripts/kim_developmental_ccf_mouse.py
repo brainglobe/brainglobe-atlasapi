@@ -197,21 +197,18 @@ def create_atlas(
                 # Only generate the root mesh
                 pool.apply_async(
                     create_region_mesh,
-                    [
-                        (
-                            meshes_dir_path,
-                            tree.nodes[ROOT_ID],
-                            tree,
-                            labels,
-                            annotated_volume,
-                            ROOT_ID,
-                            closing_n_iters,
-                            decimate_fraction,
-                            smooth,
-                        )
-                        for node in tree.nodes.values()
-                    ],
-                )
+                    args=(
+                        meshes_dir_path,
+                        tree.nodes[ROOT_ID],
+                        tree,
+                        labels,
+                        annotated_volume,
+                        ROOT_ID,
+                        closing_n_iters,
+                        decimate_fraction,
+                        smooth,
+                    ),
+                ).get()  # Wait for the task to finish
             except mp.pool.MaybeEncodingError:
                 # error with returning results from pool.map but we don't care
                 pass

@@ -79,17 +79,15 @@ def create_atlas(working_dir, resolution):
     # 'id', 'structure_id_path', and 'rgb_triplet' key values
     for i in range(0, len(hierarchy)):
         hierarchy[i]["id"] = int(hierarchy[i]["id"])
-    for j in range(0, len(hierarchy)):
-        hierarchy[j]["structure_id_path"] = list(
-            map(int, hierarchy[j]["structure_id_path"].split("/"))
+        hierarchy[i]["structure_id_path"] = list(
+            map(int, hierarchy[i]["structure_id_path"].split("/"))
         )
-    for k in range(0, len(hierarchy)):
         try:
-            hierarchy[k]["rgb_triplet"] = list(
-                map(int, hierarchy[k]["rgb_triplet"].split("/"))
+            hierarchy[i]["rgb_triplet"] = list(
+                map(int, hierarchy[i]["rgb_triplet"].split("/"))
             )
         except ValueError:
-            hierarchy[k]["rgb_triplet"] = [255, 255, 255]
+            hierarchy[i]["rgb_triplet"] = [255, 255, 255]
 
     # remove clear label (id 0) from hierarchy.
     # ITK-Snap uses this to label unlabeled areas,

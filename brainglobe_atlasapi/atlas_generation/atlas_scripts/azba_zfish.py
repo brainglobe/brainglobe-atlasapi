@@ -95,6 +95,9 @@ def create_atlas(working_dir, resolution):
     # and is unnecessary for this application
     hierarchy.remove(hierarchy[1])
 
+    # Set root mesh to white
+    hierarchy[0]["rgb_triplet"] = [255, 255, 255]
+
     # use tifffile to read annotated file
     annotated_volume = tifffile.imread(annotations_file)
 

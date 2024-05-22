@@ -1,15 +1,18 @@
-__version__ = "2"
+__version__ = "1"
 
 import json
 import multiprocessing as mp
 import time
+import zipfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from brainglobe_utils.image_io import load_nii
+from rich.progress import track
 from scipy.ndimage import zoom
 
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -74,23 +77,23 @@ def create_atlas(
     ORIENTATION = "asl"
     ROOT_ID = 99999999
     ANNOTATIONS_RES_UM = 10
-    # ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/2svx788ddf-1.zip"
-    #
-    # # Temporary folder for  download:
+    ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/2svx788ddf-1.zip"
+
+    # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
     atlas_files_dir = download_dir_path / "atlas_files"
-    #
-    # utils.check_internet_connection()
-    #
-    # destination_path = download_dir_path / "atlas_download"
-    #
-    # utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
-    #
-    # with zipfile.ZipFile(download_dir_path /"atlas_download","r") as zip_ref:
-    #     zip_ref.extractall(atlas_files_dir)
-    #
-    # destination_path.unlink()
+
+    utils.check_internet_connection()
+
+    destination_path = download_dir_path / "atlas_download"
+
+    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
+
+    with zipfile.ZipFile(download_dir_path / "atlas_download", "r") as zip_ref:
+        zip_ref.extractall(atlas_files_dir)
+
+    destination_path.unlink()
 
     # Set paths to volumes
     structures_file = (
@@ -194,12 +197,36 @@ def create_atlas(
             pool = mp.Pool(mp.cpu_count() - 2)
 
             try:
-                # Only generate the root mesh
-                pool.apply_async(
+                pool.map(
                     create_region_mesh,
-                    args=(
+                    [
+                        (
+                            meshes_dir_path,
+                            node,
+                            tree,
+                            labels,
+                            annotated_volume,
+                            ROOT_ID,
+                            closing_n_iters,
+                            decimate_fraction,
+                            smooth,
+                        )
+                        for node in tree.nodes.values()
+                    ],
+                )
+            except mp.pool.MaybeEncodingError:
+                # error with returning results from pool.map but we don't care
+                pass
+        else:
+            for node in track(
+                tree.nodes.values(),
+                total=tree.size(),
+                description="Creating meshes",
+            ):
+                create_region_mesh(
+                    (
                         meshes_dir_path,
-                        tree.nodes[ROOT_ID],
+                        node,
                         tree,
                         labels,
                         annotated_volume,
@@ -207,26 +234,8 @@ def create_atlas(
                         closing_n_iters,
                         decimate_fraction,
                         smooth,
-                    ),
-                ).get()  # Wait for the task to finish
-            except mp.pool.MaybeEncodingError:
-                # error with returning results from pool.map but we don't care
-                pass
-        else:
-            # Directly call create_region_mesh for the root node
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    tree.nodes[ROOT_ID],
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
+                    )
                 )
-            )
 
         print(
             "Finished mesh extraction in: ",
@@ -234,21 +243,27 @@ def create_atlas(
             " minutes",
         )
 
-    # Initialize meshes_dict and structures_with_mesh
+    # Create meshes dict
     meshes_dict = dict()
     structures_with_mesh = []
+    for s in structures:
+        # Check if a mesh was created
+        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        if not mesh_path.exists():
+            print(f"No mesh file exists for: {s}, ignoring it")
+            continue
+        else:
+            # Check that the mesh actually exists (i.e. not empty)
+            if mesh_path.stat().st_size < 512:
+                print(f"obj file for {s} is too small, ignoring it.")
+                continue
 
-    # Add the root mesh to the collections
-    root_mesh_path = meshes_dir_path / f"{ROOT_ID}.obj"
-    if root_mesh_path.exists():
-        # Check that the mesh actually exists (i.e., not empty)
-        if root_mesh_path.stat().st_size >= 512:
-            structures_with_mesh.append({"id": ROOT_ID})
-            meshes_dict[ROOT_ID] = root_mesh_path
+        structures_with_mesh.append(s)
+        meshes_dict[s["id"]] = mesh_path
 
     print(
         f"In the end, {len(structures_with_mesh)} "
-        "structure with mesh is kept"
+        "structures with mesh are kept"
     )
 
     # ----------- #

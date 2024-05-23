@@ -175,8 +175,6 @@ def create_atlas(
 
     tree = get_structures_tree(structures)
 
-    # rotated_annotations = np.rot90(annotated_volume, axes=(0, 2))
-
     labels = np.unique(annotated_volume).astype(np.int32)
     for key, node in tree.nodes.items():
         if key in labels:
@@ -195,7 +193,6 @@ def create_atlas(
 
         if PARALLEL:
             pool = mp.Pool(mp.cpu_count() - 2)
-
             try:
                 pool.map(
                     create_region_mesh,

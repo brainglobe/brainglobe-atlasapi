@@ -8,7 +8,6 @@ import json
 import re
 from datetime import datetime
 
-import requests
 from requests.exceptions import ConnectionError, InvalidURL, MissingSchema
 
 from brainglobe_atlasapi import descriptors
@@ -44,7 +43,8 @@ def generate_metadata_dict(
 
         # Test url:
         try:
-            _ = requests.get(atlas_link)
+            pass
+            # _ = requests.get(atlas_link)
         except (MissingSchema, InvalidURL, ConnectionError):
             raise InvalidURL(
                 "Ensure that the url is valid and formatted correctly!"

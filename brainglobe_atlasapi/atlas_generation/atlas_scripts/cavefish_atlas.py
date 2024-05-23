@@ -2,10 +2,8 @@ __version__ = "0"
 
 import csv
 import glob as glob
-import multiprocessing as mp
 import os
 import time
-import zipfile
 
 # from os import listdir, path
 # p = Path('.')
@@ -15,6 +13,7 @@ import numpy as np
 import pooch
 import tifffile
 from rich.progress import track
+from scipy.ndimage import zoom
 
 from brainglobe_atlasapi import utils
 
@@ -26,15 +25,13 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = False
-
 
 def create_atlas(working_dir, resolution):
     ATLAS_NAME = "sju_cavefish"
     SPECIES = "Astyanax mexicanus"
     ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"
     CITATION = "Kozol et al. 2023, https://doi.org/10.7554/eLife.80777"
-    ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/8epecj-asty-atlas.zip"
+    ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/1hpojua-asty-atlas.zip"
     ORIENTATION = "sla"
     ROOT_ID = 999
     ATLAS_PACKAGER = "Robert Kozol, kozolrobert@gmail.com"
@@ -48,27 +45,23 @@ def create_atlas(working_dir, resolution):
 
     # download atlas files
     utils.check_internet_connection()
-    download_path = pooch.retrieve(
+    pooch.retrieve(
         ATLAS_FILE_URL,
-        known_hash="95ddde6bf8f0ef2265ec68952a189f262097a979d3119aff9988328261c1a2c8",
+        known_hash="ee496465f1f55368aa1969180eff91863b800f57ea8dc5e9e3ab592fc480340e",
+        processor=pooch.Unzip(extract_dir=atlas_path),
+        progressbar=True,
     )
-
-    # unpack the atlas download folder
-    with zipfile.ZipFile(download_path, "r") as zip:
-        zip.extractall(path=atlas_path)
 
     structures_file = atlas_path / "asty_atlas/SPF2_25_Region_atlas_list.csv"
     annotations_file = (
         atlas_path / "asty_atlas/SPF2_regions_SP2c_1iWarp_25.tif"
     )
-
-    # additional references (not in remote):
-    # reference_cartpt = atlas_path / "SPF2_carpt_ref.tif"
-    # cartpt = tifffile.imread(reference_cartpt)
-    # ADDITIONAL_REFERENCES = {"cartpt": cartpt}
-
     reference_file = atlas_path / "asty_atlas/SPF2_terk_ref.tif"
     meshes_dir_path = atlas_path / "asty_atlas/meshes"
+
+    # additional references (not in remote):
+    reference_cartpt = atlas_path / "asty_atlas/SPF2_cartpt_ref.tif"
+
     try:
         os.mkdir(meshes_dir_path)
     except FileExistsError:
@@ -76,18 +69,17 @@ def create_atlas(working_dir, resolution):
 
     # create dictionaries
     print("Creating structure tree")
-    with open(structures_file, mode="r", encoding="utf-8-sig") as zfishFile:
-        zfishDictReader = csv.DictReader(zfishFile)
+    with open(
+        structures_file, mode="r", encoding="utf-8-sig"
+    ) as cavefish_file:
+        cavefish_dict_reader = csv.DictReader(cavefish_file)
 
         # empty list to populate with dictionaries
         hierarchy = []
 
         # parse through csv file and populate hierarchy list
-        for row in zfishDictReader:
+        for row in cavefish_dict_reader:
             hierarchy.append(row)
-
-        # remove empty row to avoid errors further down
-        hierarchy = hierarchy[:-1]
 
     # make string to int and list of int conversions in
     # 'id', 'structure_id_path', and 'rgb_triplet' key values
@@ -111,14 +103,29 @@ def create_atlas(working_dir, resolution):
     # and is unnecessary for this application
     hierarchy.remove(hierarchy[1])
 
+    # Set root mesh to white
+    hierarchy[0]["rgb_triplet"] = [255, 255, 255]
+
     # use tifffile to read annotated file
-    annotated_volume = tifffile.imread(annotations_file)
+    annotated_volume = tifffile.imread(annotations_file).astype(np.uint8)
     reference_volume = tifffile.imread(reference_file)
 
-    from scipy.ndimage import zoom
+    # segmentation is isotropic 2x2x2, while reference images are ~2x0.5x0.5.
+    # Downsample them to 2x2x2um
+    reference_volume = zoom(
+        reference_volume, (1, 1.0 / 3.995, 1.0 / 3.995), order=0
+    )  # 1/3.995 is a fudge to match annotation dimensions
 
-    reference_volume = zoom(reference_volume, (4, 1, 1), order=0)
-    annotated_volume = zoom(annotated_volume, (4, 4, 4), order=0)
+    # additional reference
+    cartpt_volume = tifffile.imread(reference_cartpt)
+    cartpt_volume -= np.min(
+        cartpt_volume
+    )  # shift cartpt to a non-negative range before converting to UINT16
+    cartpt_volume = cartpt_volume.astype(np.uint16)
+    cartpt_volume = zoom(
+        cartpt_volume, (1, 0.25, 0.25), order=0
+    )  # 0.25 seems fine here to arrive at the same shape as annotations
+    ADDITIONAL_REFERENCES = {"cartpt": cartpt_volume}
 
     print(f"Saving atlas data at {atlas_path}")
     tree = get_structures_tree(hierarchy)
@@ -139,58 +146,29 @@ def create_atlas(working_dir, resolution):
 
     # mesh creation
     closing_n_iters = 2
-    start = time.time()
-
-    decimate_fraction = 0.01
+    decimate_fraction = 0.3
     smooth = True
 
-    if PARALLEL:
-        print("Multiprocessing mesh creation...")
-        pool = mp.Pool(int(mp.cpu_count() / 2))
+    start = time.time()
 
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        ROOT_ID,
-                        closing_n_iters,
-                        decimate_fraction,
-                        smooth,
-                    )
-                    for node in tree.nodes.values()
-                ],
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
-        except mp.pool.MaybeEncodingError:
-            pass
-
-    else:
-        print("Multiprocessing disabled")
-        # nodes = list(tree.nodes.values())
-        # nodes = choices(nodes, k=10)
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+        )
 
     print(
         "Finished mesh extraction in : ",
@@ -226,7 +204,7 @@ def create_atlas(working_dir, resolution):
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(resolution,) * 3,  # if isotropic - highly recommended
+        resolution=resolution,
         orientation=ORIENTATION,
         root_id=999,
         reference_stack=reference_volume,
@@ -240,13 +218,14 @@ def create_atlas(working_dir, resolution):
         compress=True,
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
+        additional_references=ADDITIONAL_REFERENCES,
     )
 
     return output_filename
 
 
 if __name__ == "__main__":
-    res = 0.5
+    res = 2, 2, 2
     home = str(Path.home())
     bg_root_dir = Path.home() / "bg-atlasgen"
     bg_root_dir.mkdir(exist_ok=True, parents=True)

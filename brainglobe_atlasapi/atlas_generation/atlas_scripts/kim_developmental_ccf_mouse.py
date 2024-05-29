@@ -20,7 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = True  # disable parallel mesh extraction for easier debugging
+PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
 
 def clean_up_df_entries(df):

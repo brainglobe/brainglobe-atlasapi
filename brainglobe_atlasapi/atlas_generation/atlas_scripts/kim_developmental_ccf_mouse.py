@@ -1,4 +1,4 @@
-__version__ = "1"
+__version__ = "2"
 
 import json
 import multiprocessing as mp
@@ -6,9 +6,9 @@ import time
 import zipfile
 from pathlib import Path
 
-import imio
 import numpy as np
 import pandas as pd
+from brainglobe_utils.image_io import load_nii
 from rich.progress import track
 from scipy.ndimage import zoom
 
@@ -20,7 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = True  # disable parallel mesh extraction for easier debugging
+PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
 
 def clean_up_df_entries(df):
@@ -118,8 +118,8 @@ def create_atlas(
     # Load (and possibly downsample) annotated volume:
     scaling = ANNOTATIONS_RES_UM / resolution
 
-    annotated_volume = imio.load_nii(annotations_file, as_array=True)
-    template_volume = imio.load_nii(template_file, as_array=True)
+    annotated_volume = load_nii(annotations_file, as_array=True)
+    template_volume = load_nii(template_file, as_array=True)
 
     annotated_volume = zoom(
         annotated_volume, (scaling, scaling, scaling), order=0, prefilter=False
@@ -175,9 +175,7 @@ def create_atlas(
 
     tree = get_structures_tree(structures)
 
-    rotated_annotations = np.rot90(annotated_volume, axes=(0, 2))
-
-    labels = np.unique(rotated_annotations).astype(np.int32)
+    labels = np.unique(annotated_volume).astype(np.int32)
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
@@ -195,7 +193,6 @@ def create_atlas(
 
         if PARALLEL:
             pool = mp.Pool(mp.cpu_count() - 2)
-
             try:
                 pool.map(
                     create_region_mesh,
@@ -205,7 +202,7 @@ def create_atlas(
                             node,
                             tree,
                             labels,
-                            rotated_annotations,
+                            annotated_volume,
                             ROOT_ID,
                             closing_n_iters,
                             decimate_fraction,
@@ -229,7 +226,7 @@ def create_atlas(
                         node,
                         tree,
                         labels,
-                        rotated_annotations,
+                        annotated_volume,
                         ROOT_ID,
                         closing_n_iters,
                         decimate_fraction,

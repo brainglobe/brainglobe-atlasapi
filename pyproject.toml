@@ -12,11 +12,12 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "brainglobe-space >= 1.0.0",
     "click",
@@ -82,7 +83,7 @@ filterwarnings = ["error"]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.black]
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py310','py311', 'py312']
 skip-string-normalization = false
 line-length = 79
 
@@ -99,13 +100,13 @@ select = ["I", "E", "F"]
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py{39,310,311}
+envlist = py{310,311,312}
 
 [gh-actions]
 python =
-    3.9: py39
     3.10: py310
     3.11: py311
+    3.12: py312
 
 [testenv]
 extras =

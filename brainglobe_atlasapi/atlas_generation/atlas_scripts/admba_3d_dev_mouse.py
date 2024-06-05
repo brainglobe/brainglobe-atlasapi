@@ -1,4 +1,4 @@
-__version__ = "0"
+__version__ = "1"
 
 import dataclasses
 import json
@@ -12,6 +12,7 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from rich.progress import track
+from scipy.ndimage import zoom
 from skimage import io
 
 from brainglobe_atlasapi import utils
@@ -259,6 +260,17 @@ def create_atlas(
 
     annotated_volume = io.imread(annotations_file)
     template_volume = io.imread(reference_file)
+
+    scaling_0 = atlas_config.resolution[0] / atlas_config.resolution[2]
+    scaling_1 = atlas_config.resolution[1] / atlas_config.resolution[2]
+    scaling_2 = atlas_config.resolution[2] / atlas_config.resolution[2]
+
+    annotated_volume = zoom(
+        annotated_volume,
+        (scaling_0, scaling_1, scaling_2),
+        order=0,
+        prefilter=False,
+    )
 
     ## Parse structure metadata
     structures = parse_structures(structures_file, atlas_config.root_id)

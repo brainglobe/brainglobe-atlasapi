@@ -2,11 +2,7 @@ __version__ = "0"
 
 import csv
 import glob as glob
-import os
 import time
-
-# from os import listdir, path
-# p = Path('.')
 from pathlib import Path
 
 import numpy as np
@@ -62,10 +58,7 @@ def create_atlas(working_dir, resolution):
     # additional references (not in remote):
     reference_cartpt = atlas_path / "asty_atlas/SPF2_cartpt_ref.tif"
 
-    try:
-        os.mkdir(meshes_dir_path)
-    except FileExistsError:
-        "mesh folder already exists"
+    Path(meshes_dir_path).mkdir(exist_ok=True)
 
     # create dictionaries
     print("Creating structure tree")
@@ -85,17 +78,15 @@ def create_atlas(working_dir, resolution):
     # 'id', 'structure_id_path', and 'rgb_triplet' key values
     for i in range(0, len(hierarchy)):
         hierarchy[i]["id"] = int(hierarchy[i]["id"])
-    for j in range(0, len(hierarchy)):
-        hierarchy[j]["structure_id_path"] = list(
-            map(int, hierarchy[j]["structure_id_path"].split("/"))
+        hierarchy[i]["structure_id_path"] = list(
+            map(int, hierarchy[i]["structure_id_path"].split("/"))
         )
-    for k in range(0, len(hierarchy)):
         try:
-            hierarchy[k]["rgb_triplet"] = list(
-                map(int, hierarchy[k]["rgb_triplet"].split("/"))
+            hierarchy[i]["rgb_triplet"] = list(
+                map(int, hierarchy[i]["rgb_triplet"].split("/"))
             )
         except ValueError:
-            hierarchy[k]["rgb_triplet"] = [255, 255, 255]
+            hierarchy[i]["rgb_triplet"] = [255, 255, 255]
 
     # remove clear label (id 0) from hierarchy.
     # ITK-Snap uses this to label unlabeled areas,
@@ -227,7 +218,7 @@ def create_atlas(working_dir, resolution):
 if __name__ == "__main__":
     res = 2, 2, 2
     home = str(Path.home())
-    bg_root_dir = Path.home() / "bg-atlasgen"
+    bg_root_dir = Path.home() / "brainglobe_workingdir"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     create_atlas(bg_root_dir, res)

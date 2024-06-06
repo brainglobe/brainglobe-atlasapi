@@ -79,7 +79,12 @@ exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=brainglobe_atlasapi"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    # note the use of single quote below to denote "raw" strings in TOML
+    'ignore: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior',
+]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.black]

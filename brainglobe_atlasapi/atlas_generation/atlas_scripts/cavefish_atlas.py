@@ -31,7 +31,7 @@ def create_atlas(working_dir, resolution):
     SPECIES = "Astyanax mexicanus"
     ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"
     CITATION = "Kozol et al. 2023, https://doi.org/10.7554/eLife.80777"
-    ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/1hpojua-asty-atlas.zip"
+    ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/1hpojs4-asty-atlas.zip"
     ORIENTATION = "sla"
     ROOT_ID = 999
     ATLAS_PACKAGER = "Robert Kozol, kozolrobert@gmail.com"
@@ -47,7 +47,7 @@ def create_atlas(working_dir, resolution):
     utils.check_internet_connection()
     pooch.retrieve(
         ATLAS_FILE_URL,
-        known_hash="ee496465f1f55368aa1969180eff91863b800f57ea8dc5e9e3ab592fc480340e",
+        known_hash="f47e4e697e2e1a02d3b9b56d14c9f64b1b6432880e3cf7cab14445c40b558bcb",
         processor=pooch.Unzip(extract_dir=atlas_path),
         progressbar=True,
     )

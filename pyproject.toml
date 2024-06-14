@@ -26,7 +26,6 @@ dependencies = [
     "numpy",
     "pandas",
     "pyarrow",
-    "PyMCubes",
     "requests",
     "rich >= 9.0.0",
     "SimpleITK",
@@ -59,9 +58,8 @@ dev = [
     "setuptools_scm",
     "tox",
 ]
-
 allenmouse = ["allensdk"]
-
+atlasgen = ["PyMCubes"]
 
 [project.scripts]
 brainglobe = "brainglobe_atlasapi.cli:bg_cli"
@@ -88,7 +86,7 @@ filterwarnings = [
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.black]
-target-version = ['py310','py311', 'py312']
+target-version = ['py310', 'py311', 'py312']
 skip-string-normalization = false
 line-length = 79
 
@@ -116,5 +114,6 @@ python =
 [testenv]
 extras =
     dev
+    atlasgen
 commands = pytest -v --color=yes --cov=brainglobe_atlasapi --cov-report=xml
 """

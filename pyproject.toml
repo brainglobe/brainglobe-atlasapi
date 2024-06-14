@@ -21,20 +21,14 @@ requires-python = ">=3.10"
 dependencies = [
     "brainglobe-space >= 1.0.0",
     "click",
-    "loguru",
     "meshio",
     "numpy",
     "pandas",
     "pyarrow",
     "requests",
     "rich >= 9.0.0",
-    "SimpleITK",
     "tifffile",
-    "tqdm>=4.46.1",
     "treelib",
-    "vedo",
-    "xmltodict",
-    "scikit-image",
 ]
 dynamic = ["version"]
 
@@ -59,7 +53,14 @@ dev = [
     "tox",
 ]
 allenmouse = ["allensdk"]
-atlasgen = ["PyMCubes"]
+atlasgen = [
+    "loguru",
+    "PyMCubes",
+    "SimpleITK",
+    "tqdm>=4.46.1",
+    "vedo",
+    "xmltodict",
+]
 
 [project.scripts]
 brainglobe = "brainglobe_atlasapi.cli:bg_cli"

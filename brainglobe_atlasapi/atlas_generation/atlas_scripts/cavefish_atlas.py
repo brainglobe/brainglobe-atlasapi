@@ -27,7 +27,7 @@ def create_atlas(working_dir, resolution):
     SPECIES = "Astyanax mexicanus"
     ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"
     CITATION = "Kozol et al. 2023, https://doi.org/10.7554/eLife.80777"
-    ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/1hpojs4-asty-atlas.zip"
+    ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/35s9sm-asty-atlas.zip"
     ORIENTATION = "sla"
     ROOT_ID = 999
     ATLAS_PACKAGER = "Robert Kozol, kozolrobert@gmail.com"
@@ -43,7 +43,7 @@ def create_atlas(working_dir, resolution):
     utils.check_internet_connection()
     pooch.retrieve(
         ATLAS_FILE_URL,
-        known_hash="f47e4e697e2e1a02d3b9b56d14c9f64b1b6432880e3cf7cab14445c40b558bcb",
+        known_hash="49f82a3b9fc107cf5d6e02c0ca8d34b9c13ddeff2305d30eced07fddc87a175a",
         processor=pooch.Unzip(extract_dir=atlas_path),
         progressbar=True,
     )
@@ -101,21 +101,12 @@ def create_atlas(working_dir, resolution):
     annotated_volume = tifffile.imread(annotations_file).astype(np.uint8)
     reference_volume = tifffile.imread(reference_file)
 
-    # segmentation is isotropic 2x2x2, while reference images are ~2x0.5x0.5.
-    # Downsample them to 2x2x2um
-    reference_volume = zoom(
-        reference_volume, (1, 1.0 / 3.995, 1.0 / 3.995), order=0
-    )  # 1/3.995 is a fudge to match annotation dimensions
-
     # additional reference
     cartpt_volume = tifffile.imread(reference_cartpt)
     cartpt_volume -= np.min(
         cartpt_volume
     )  # shift cartpt to a non-negative range before converting to UINT16
     cartpt_volume = cartpt_volume.astype(np.uint16)
-    cartpt_volume = zoom(
-        cartpt_volume, (1, 0.25, 0.25), order=0
-    )  # 0.25 seems fine here to arrive at the same shape as annotations
     ADDITIONAL_REFERENCES = {"cartpt": cartpt_volume}
 
     print(f"Saving atlas data at {atlas_path}")

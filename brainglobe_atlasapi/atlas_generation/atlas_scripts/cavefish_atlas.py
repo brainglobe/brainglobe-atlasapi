@@ -9,7 +9,6 @@ import numpy as np
 import pooch
 import tifffile
 from rich.progress import track
-from scipy.ndimage import zoom
 
 from brainglobe_atlasapi import utils
 

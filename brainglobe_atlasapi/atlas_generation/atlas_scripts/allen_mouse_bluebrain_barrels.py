@@ -1,20 +1,18 @@
 __version__ = "2"
 
-import sys
 import json
-import nrrd
 from pathlib import Path
 
+import nrrd
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
 
-
-
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
 
 def create_atlas(working_dir, resolution):
     # Specify information about the atlas:
@@ -44,22 +42,24 @@ def create_atlas(working_dir, resolution):
     print("Download completed...")
 
     ## TODO: import file
-    #sys.run("python transplant_barrels_nrrd.py --annotation_barrels.nrrd --annotation_10.nrrd --hierarchy.json")
-    #if resolution == 10:
+    # sys.run("python transplant_barrels_nrrd.py --annotation_barrels.nrrd --annotation_10.nrrd --hierarchy.json")
+    # if resolution == 10:
     #    annotation_file = 'annotation_barrels_10.nrrd'
-    #elif resolution == 25:
+    # elif resolution == 25:
     #    annotation_file = 'annotation_barrels_25.nrrd'
-    #else:
+    # else:
     #    raise ValueError("Resolution not supported.")
 
     # Load annotated volume:
-    annotation_dir_path = Path(r'C:\Users\bisi\Github\atlas-enhancement\barrel-annotations\data\atlas')
+    annotation_dir_path = Path(
+        r"C:\Users\bisi\Github\atlas-enhancement\barrel-annotations\data\atlas"
+    )
     if resolution == 10:
-        annotation_dir_path = annotation_dir_path / 'atlas_10um'
-        annotation_file = 'annotation_barrels_10.nrrd'
+        annotation_dir_path = annotation_dir_path / "atlas_10um"
+        annotation_file = "annotation_barrels_10.nrrd"
     elif resolution == 25:
-        annotation_dir_path = annotation_dir_path / 'atlas_25um'
-        annotation_file = 'annotation_barrels_25.nrrd'
+        annotation_dir_path = annotation_dir_path / "atlas_25um"
+        annotation_file = "annotation_barrels_25.nrrd"
     annotated_volume = nrrd.read(annotation_dir_path / annotation_file)[0]
     print("Annotation volume loaded...")
 
@@ -81,7 +81,9 @@ def create_atlas(working_dir, resolution):
 
     # Get structures with mesh for both versions
     structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
-    structs_with_barrels = json.load(open(annotation_dir_path / 'hierarchy.json'))
+    structs_with_barrels = json.load(
+        open(annotation_dir_path / "hierarchy.json")
+    )
 
     # Add barrels structures to Allen structures
     def find_dicts_with_key_containing_substring(d, key, substring):
@@ -122,48 +124,86 @@ def create_atlas(working_dir, resolution):
 
         return matching_dicts
 
-    matching_dicts = find_dicts_with_key_containing_substring(structs_with_barrels, key="name", substring="barrel")
-    matching_dicts = [d for d in matching_dicts if d["graph_order"] in [52,53,54,55,56,57]]
-    main_barrel_parent_struct = [s for s in structs_with_mesh if s['acronym'] == 'SSp-bfd'][0]
-    structures_present = ['SSp-bfd1', 'SSp-bfd2/3', 'SSp-bfd4', 'SSp-bfd5', 'SSp-bfd6a', 'SSp-bfd6b'] # keep laminar structures
-    keys_to_keep = ['acronym', 'graph_id','graph_order', 'id', 'name', 'rgb_triplet', 'structure_set_ids', 'structure_id_path']
+    matching_dicts = find_dicts_with_key_containing_substring(
+        structs_with_barrels, key="name", substring="barrel"
+    )
+    matching_dicts = [
+        d
+        for d in matching_dicts
+        if d["graph_order"] in [52, 53, 54, 55, 56, 57]
+    ]
+    main_barrel_parent_struct = [
+        s for s in structs_with_mesh if s["acronym"] == "SSp-bfd"
+    ][0]
+    structures_present = [
+        "SSp-bfd1",
+        "SSp-bfd2/3",
+        "SSp-bfd4",
+        "SSp-bfd5",
+        "SSp-bfd6a",
+        "SSp-bfd6b",
+    ]  # keep laminar structures
+    keys_to_keep = [
+        "acronym",
+        "graph_id",
+        "graph_order",
+        "id",
+        "name",
+        "rgb_triplet",
+        "structure_set_ids",
+        "structure_id_path",
+    ]
     dict_to_add = []
     for d in matching_dicts:
         # Ignore parent-level SSp-bfd layers
-        if d['acronym'] in structures_present:
-            print('Skipping', d, 'already present.')
+        if d["acronym"] in structures_present:
+            print("Skipping", d, "already present.")
             continue
         # Ignore sub-structures layer 2 and 3 to keep layer 2/3 structure
-        if d['graph_order']==53 and d['acronym'] in ['SSp-bfd2', 'SSp-bfd3']:
-            print('Excluding', d, 'to keep layer 2/3 structure only.')
+        if d["graph_order"] == 53 and d["acronym"] in ["SSp-bfd2", "SSp-bfd3"]:
+            print("Excluding", d, "to keep layer 2/3 structure only.")
             continue
-        elif d['graph_order']==54 and ('layer 2' in d['name'] or 'layer 3' in d['name']):
-            print('Excluding', d, 'to keep layer 2/3 structure only.')
+        elif d["graph_order"] == 54 and (
+            "layer 2" in d["name"] or "layer 3" in d["name"]
+        ):
+            print("Excluding", d, "to keep layer 2/3 structure only.")
             continue
         else:
-            current_id = d['id']
+            current_id = d["id"]
             # Find corresponding parent structure
-            if d['graph_order'] == 52: # barrel-level -> find SSp-bfd
+            if d["graph_order"] == 52:  # barrel-level -> find SSp-bfd
                 # Create new structure_id_path for barrel structure
-                d['structure_id_path'] = main_barrel_parent_struct['structure_id_path'] + [current_id]
-            elif d['graph_order'] == 53: # barrel layer-level -> find SSp-bfd-barrel also
-                parent_struct_id = d['parent_structure_id']
-                parent_struct = [s for s in matching_dicts if s['id'] == parent_struct_id][0]
-                parent_struct['structure_id_path'] = main_barrel_parent_struct['structure_id_path'] + [parent_struct_id]
+                d["structure_id_path"] = main_barrel_parent_struct[
+                    "structure_id_path"
+                ] + [current_id]
+            elif (
+                d["graph_order"] == 53
+            ):  # barrel layer-level -> find SSp-bfd-barrel also
+                parent_struct_id = d["parent_structure_id"]
+                parent_struct = [
+                    s for s in matching_dicts if s["id"] == parent_struct_id
+                ][0]
+                parent_struct["structure_id_path"] = main_barrel_parent_struct[
+                    "structure_id_path"
+                ] + [parent_struct_id]
                 # Create new structure_id_path for barrel-layer structure
-                d['structure_id_path'] = main_barrel_parent_struct['structure_id_path'] + [d['parent_structure_id']] + [current_id]
+                d["structure_id_path"] = (
+                    main_barrel_parent_struct["structure_id_path"]
+                    + [d["parent_structure_id"]]
+                    + [current_id]
+                )
 
             # Complete with other keys
-            d['rgb_triplet'] = main_barrel_parent_struct['rgb_triplet']
-            d['graph_id'] = 1
-            d['structure_set_ids'] = None
+            d["rgb_triplet"] = main_barrel_parent_struct["rgb_triplet"]
+            d["graph_id"] = 1
+            d["structure_set_ids"] = None
             dict_to_add.append({k: d[k] for k in keys_to_keep})
 
     # Add list of dicts to structs_with_mesh
     structs_with_mesh = structs_with_mesh + dict_to_add
-    print('Added the following structures to the atlas:')
+    print("Added the following structures to the atlas:")
     for d in dict_to_add:
-        print(d['name'])
+        print(d["name"])
 
     # Directory for mesh saving:
     meshes_dir = working_dir / descriptors.MESHES_DIRNAME
@@ -218,7 +258,12 @@ def create_atlas(working_dir, resolution):
 if __name__ == "__main__":
     RES_UM = 25
     # Generated atlas path:
-    bg_root_dir = Path.home() / "Desktop" / "brainglobe_workingdir" / "allen_mouse_bluebrain_barrels"
+    bg_root_dir = (
+        Path.home()
+        / "Desktop"
+        / "brainglobe_workingdir"
+        / "allen_mouse_bluebrain_barrels"
+    )
     bg_root_dir.mkdir(exist_ok=True)
 
     create_atlas(bg_root_dir, RES_UM)

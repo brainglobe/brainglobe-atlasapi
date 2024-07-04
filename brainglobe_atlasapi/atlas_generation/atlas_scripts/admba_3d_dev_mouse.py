@@ -12,7 +12,6 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 from rich.progress import track
-from scipy.ndimage import zoom
 from skimage import io
 
 from brainglobe_atlasapi import utils
@@ -23,7 +22,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = True
+PARALLEL = False
 
 
 def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
@@ -145,10 +144,11 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
             total=tree.size(),
             description="Creating meshes",
         ):
+            # root_node = tree.nodes[root_id]
             create_region_mesh(
                 (
                     meshes_dir_path,
-                    node,
+                    node,  # root_node
                     tree,
                     labels,
                     annotated_volume,
@@ -261,17 +261,6 @@ def create_atlas(
     annotated_volume = io.imread(annotations_file)
     template_volume = io.imread(reference_file)
 
-    scaling_0 = atlas_config.resolution[0] / atlas_config.resolution[2]
-    scaling_1 = atlas_config.resolution[1] / atlas_config.resolution[2]
-    scaling_2 = atlas_config.resolution[2] / atlas_config.resolution[2]
-
-    annotated_volume = zoom(
-        annotated_volume,
-        (scaling_0, scaling_1, scaling_2),
-        order=0,
-        prefilter=False,
-    )
-
     ## Parse structure metadata
     structures = parse_structures(structures_file, atlas_config.root_id)
 
@@ -317,7 +306,7 @@ def create_atlas(
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = Path.home() / ".brainglobe"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # set up E11.5 atlas settings and use as template for rest of brains
@@ -326,8 +315,8 @@ if __name__ == "__main__":
         species="Mus musculus",
         atlas_link="https://search.kg.ebrains.eu/instances/8ab25629-bdac-47d0-bc86-6f3aa3885f29",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000023_3Drecon-ADMBA-E11pt5_pub",
-        orientation="lsa",
-        resolution=(16, 16, 20),
+        orientation="rsa",
+        resolution=(16, 20, 16),  # possibly try 20, 16, 16
         citation="Young et al. 2021, https://doi.org/10.7554/eLife.61408",
         root_id=15564,
         atlas_packager="Pradeep Rajasekhar, WEHI, Australia, "
@@ -365,7 +354,7 @@ if __name__ == "__main__":
         atlas_name="admba_3d_p4_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/eea3589f-d74b-4988-8f4c-fd9ae8e3a4b3",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000027_3Drecon-ADMBA-P4_pub",
-        resolution=(16.752, 16.752, 20),
+        resolution=(16.752, 20, 16.752),
     )
 
     # P14 atlas, which has slightly different resolutions
@@ -374,12 +363,13 @@ if __name__ == "__main__":
         atlas_name="admba_3d_p14_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/114e50aa-156c-4283-af73-11b7f03d287e",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000028_3Drecon-ADMBA-P14_pub",
-        resolution=(16.752, 16.752, 25),
+        resolution=(16.752, 25, 16.752),
     )
 
     # P28 atlas, which has same resolutions as P14
     p28_config = dataclasses.replace(
         p14_config,
+        resolution=(16.752, 25, 16.752),
         atlas_name="admba_3d_p28_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/3a1153f0-6779-43bd-9f02-f92700a585a4",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000029_3Drecon-ADMBA-P28_pub",

@@ -55,7 +55,7 @@ dev = [
 allenmouse = ["allensdk"]
 allenmouse_barrels = [
     "allensdk",
-    "atlas-enhancement"]
+    "voxcell"]
 
 atlasgen = [
     "loguru",

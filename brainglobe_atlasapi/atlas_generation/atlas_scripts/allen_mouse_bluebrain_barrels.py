@@ -1,28 +1,34 @@
 __version__ = "2"
 
 import sys
+import os
+import numpy as np
 import json
 import nrrd
 from pathlib import Path
+import subprocess
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
-
-
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    Region,
+    create_region_mesh,
+)
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 def create_atlas(working_dir, resolution):
     # Specify information about the atlas:
     ATLAS_NAME = "allen_mouse_bluebrain_barrels"
     SPECIES = "Mus musculus"
     ATLAS_LINK = "http://www.brain-map.org"
-    CITATION = "Bolaños-Puchet S., Teska A., et al. (2024).  https://doi.org/10.1101/2023.08.24.554204"
-    ATLAS_PACKAGER = "Axel Bisi"
+    CITATION = "Bolaños-Puchet S., Teska A., et al. (2024).  https://doi.org/10.1162/imag_a_00209"
+    ATLAS_PACKAGER = "Axel Bisi, axel.bisi@gmail.com"
     ORIENTATION = "asr"
 
     # Temporary folder for nrrd files download:
@@ -39,28 +45,25 @@ def create_atlas(working_dir, resolution):
         # use the latest version of the CCF
     )
 
-    # Download
+    # Download original Allen atlas files
     template_volume, _ = spacecache.get_template_volume()
-    print("Download completed...")
+    annotated_volume_allen , _ = spacecache.get_annotation_volume()
 
-    ## TODO: import file
-    #sys.run("python transplant_barrels_nrrd.py --annotation_barrels.nrrd --annotation_10.nrrd --hierarchy.json")
-    #if resolution == 10:
-    #    annotation_file = 'annotation_barrels_10.nrrd'
-    #elif resolution == 25:
-    #    annotation_file = 'annotation_barrels_25.nrrd'
-    #else:
-    #    raise ValueError("Resolution not supported.")
+    # Paths for atlas enhancement
+    sys.path.append(working_dir / "atlas-enhancement/barrel-annotations")
+    data_path = working_dir / "atlas-enhancement/barrel-annotations/data"
+    annotation_path = working_dir / "downloading_path/annotation/ccf_2017/"
+    os.chdir(working_dir/ "atlas-enhancement/barrel-annotations")
+
+    # Transplant barrels into Allen annotation
+    subprocess.call(["python", "transplant_barrels_nrrd_script.py", data_path, annotation_path, str(resolution)])
 
     # Load annotated volume:
-    annotation_dir_path = Path(r'C:\Users\bisi\Github\atlas-enhancement\barrel-annotations\data\atlas')
-    if resolution == 10:
-        annotation_dir_path = annotation_dir_path / 'atlas_10um'
-        annotation_file = 'annotation_barrels_10.nrrd'
-    elif resolution == 25:
-        annotation_dir_path = annotation_dir_path / 'atlas_25um'
-        annotation_file = 'annotation_barrels_25.nrrd'
-    annotated_volume = nrrd.read(annotation_dir_path / annotation_file)[0]
+    if resolution != 10:
+        annotation_file = "annotation_barrels_{}.nrrd".format(resolution)
+    else:
+        raise ValueError("Resolution not supported.")
+    annotated_volume = nrrd.read(data_path / annotation_file)[0]
     print("Annotation volume loaded...")
 
     # Download structures tree and meshes:
@@ -81,7 +84,7 @@ def create_atlas(working_dir, resolution):
 
     # Get structures with mesh for both versions
     structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
-    structs_with_barrels = json.load(open(annotation_dir_path / 'hierarchy.json'))
+    structs_with_barrels = json.load(open(data_path / 'hierarchy.json'))
 
     # Add barrels structures to Allen structures
     def find_dicts_with_key_containing_substring(d, key, substring):
@@ -168,6 +171,22 @@ def create_atlas(working_dir, resolution):
     # Directory for mesh saving:
     meshes_dir = working_dir / descriptors.MESHES_DIRNAME
 
+    tree = get_structures_tree(structs_with_mesh)
+    print(
+        f"Number of brain regions: {tree.size()}, "
+        f"max tree depth: {tree.depth()}"
+    )
+
+    # generate binary mask for mesh creation
+    labels = np.unique(annotated_volume).astype(np.int_)
+    for key, node in tree.nodes.items():
+        if key in labels:
+            is_label = True
+        else:
+            is_label = False
+
+        node.data = Region(is_label)
+
     space = ReferenceSpaceApi()
     meshes_dict = dict()
     for s in tqdm(structs_with_mesh):
@@ -181,7 +200,26 @@ def create_atlas(working_dir, resolution):
             )
             meshes_dict[name] = filename
         except (exceptions.HTTPError, ConnectionError):
-            print(s)
+            print(f"Failed to download mesh for {s['name']} ({s['id']})")
+            print('Creating mesh for', s['name'])
+            # Create mesh
+            root_id = 997
+            closing_n_iters = 2
+            decimate_fraction = 0.3
+            smooth = True
+            create_region_mesh(
+                (
+                    meshes_dir,
+                    node,
+                    tree,
+                    labels,
+                    annotated_volume,
+                    root_id,
+                    closing_n_iters,
+                    decimate_fraction,
+                    smooth,
+                )
+            )
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:
@@ -216,7 +254,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    RES_UM = 25
+    RES_UM = 10
     # Generated atlas path:
     bg_root_dir = Path.home() / "Desktop" / "brainglobe_workingdir" / "allen_mouse_bluebrain_barrels"
     bg_root_dir.mkdir(exist_ok=True)

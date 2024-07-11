@@ -11,6 +11,7 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 import pooch
+from rich.progress import track
 from skimage import io
 
 from brainglobe_atlasapi import utils
@@ -141,25 +142,25 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
         except mp.pool.MaybeEncodingError:
             pass
     else:
-        # for node in track(
-        #     tree.nodes.values(),
-        #     total=tree.size(),
-        #     description="Creating meshes",
-        # ):
-        root_node = tree.nodes[root_id]
-        create_region_mesh(
-            (
-                meshes_dir_path,
-                root_node,  # root_node
-                tree,
-                labels,
-                annotated_volume,
-                root_id,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
+        for node in track(
+            tree.nodes.values(),
+            total=tree.size(),
+            description="Creating meshes",
+        ):
+            # root_node = tree.nodes[root_id]
+            create_region_mesh(
+                (
+                    meshes_dir_path,
+                    node,  # root_node
+                    tree,
+                    labels,
+                    annotated_volume,
+                    root_id,
+                    closing_n_iters,
+                    decimate_fraction,
+                    smooth,
+                )
             )
-        )
 
     print(
         "Finished mesh extraction in: ",

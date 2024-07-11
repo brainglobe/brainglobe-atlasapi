@@ -143,14 +143,8 @@ This means that when plotting meshes and points using cartesian systems, you mig
 To make things as consistent as possible, in `brainglobe-atlasapi` the 0 of the meshes coordinates is assumed to coincide with the 0 index of the images stack, and meshes coordinates increase following the direction stack indexes increase.
 To deal with transformations between your data space and `brainglobe-atlasapi`, you might find the [brainglobe-space](https://github.com/brainglobe/brainglobe-space) package helpful.
 
-## Contributing to brainglobe-atlasapi
-
-**Contributors to bg-atlaspi are absolutely encouraged**, whether you want to fix bugs, add/request new features or simply ask questions.
-
-If you would like to contribute to `brainglobe-atlasapi` (or any of the downstream tools like [brainrender](https://github.com/brainglobe/brainrender) etc.) please get in touch by opening a new issue or pull request on [GitHub](https://github.com/brainglobe/brainglobe-atlasapi).
-Please also see the [developers guide](https://brainglobe.info/community/developers/index.html).
-
-Someone might have already asked a question you might have, so if you're not sure where to start, check out the [issues](https://github.com/brainglobe/brainglobe-atlasapi/issues) (and the issues of the other repositories).
+## Seeking help or contributing
+We are always happy to help users of our tools, and welcome any contributions. If you would like to get in contact with us for any reason, please see the [contact page of our website](https://brainglobe.info/contact.html).
 
 ## Citation
 

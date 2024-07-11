@@ -4,14 +4,13 @@ import dataclasses
 import json
 import multiprocessing as mp
 import time
-import zipfile
 from os import listdir, path
 from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
-from rich.progress import track
+import pooch
 from skimage import io
 
 from brainglobe_atlasapi import utils
@@ -28,18 +27,21 @@ PARALLEL = False
 def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
     utils.check_internet_connection()
 
-    atlas_files_dir = download_dir_path / ATLAS_NAME
     try:
         download_name = ATLAS_NAME + "_atlas.zip"
     except TypeError:
         download_name = ATLAS_NAME / "_atlas.zip"
     destination_path = download_dir_path / download_name
-    utils.retrieve_over_http(atlas_file_url, destination_path)
 
-    with zipfile.ZipFile(destination_path, "r") as zip_ref:
-        zip_ref.extractall(atlas_files_dir)
+    pooch.retrieve(
+        url=atlas_file_url,
+        known_hash=None,
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Unzip(extract_dir="."),
+    )
 
-    return atlas_files_dir
+    return destination_path
 
 
 def parse_structures(structures_file, root_id):
@@ -139,25 +141,25 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
         except mp.pool.MaybeEncodingError:
             pass
     else:
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-            # root_node = tree.nodes[root_id]
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,  # root_node
-                    tree,
-                    labels,
-                    annotated_volume,
-                    root_id,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
+        # for node in track(
+        #     tree.nodes.values(),
+        #     total=tree.size(),
+        #     description="Creating meshes",
+        # ):
+        root_node = tree.nodes[root_id]
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                root_node,  # root_node
+                tree,
+                labels,
+                annotated_volume,
+                root_id,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
+        )
 
     print(
         "Finished mesh extraction in: ",

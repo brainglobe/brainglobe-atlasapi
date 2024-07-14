@@ -1,11 +1,9 @@
-__version__ = "2"
+__version__ = "0"
 
-import sys
-import os
 import numpy as np
 import json
 from pathlib import Path
-import subprocess
+import pooch
 
 import nrrd
 from allensdk.api.queries.ontologies_api import OntologiesApi
@@ -18,6 +16,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
@@ -29,7 +28,7 @@ def create_atlas(working_dir, resolution):
     SPECIES = "Mus musculus"
     ATLAS_LINK = "http://www.brain-map.org"
     CITATION = "Bolaños-Puchet S., Teska A., et al. (2024).  https://doi.org/10.1162/imag_a_00209"
-    ATLAS_PACKAGER = "Axel Bisi, axel.bisi@gmail.com"
+    ATLAS_PACKAGER = "Axel Bisi"
     ORIENTATION = "asr"
 
     # Temporary folder for nrrd files download:
@@ -48,24 +47,30 @@ def create_atlas(working_dir, resolution):
 
     # Download original Allen atlas files
     template_volume, _ = spacecache.get_template_volume()
-    annotated_volume_allen , _ = spacecache.get_annotation_volume()
 
-    # Paths for atlas enhancement
-    sys.path.append(working_dir / "atlas-enhancement/barrel-annotations")
-    data_path = working_dir / "atlas-enhancement/barrel-annotations/data"
-    annotation_path = working_dir / "downloading_path/annotation/ccf_2017/"
-    os.chdir(working_dir/ "atlas-enhancement/barrel-annotations")
+    # Download enhanced barrel-containing Allen annotation files by BlueBrain, and hierarchy:
+    #########################################
+    annotation_dir_path = working_dir / "downloading_path/annotation_enhanced"
+    annotation_dir_path.mkdir(exist_ok=True)
 
-    # Transplant barrels into Allen annotation
-    subprocess.call(["python", "transplant_barrels_nrrd_script.py", data_path, annotation_path, str(resolution)])
-
-    # Load annotated volume:
-    if resolution != 10:
-        annotation_file = "annotation_barrels_{}.nrrd".format(resolution)
+    if resolution == 10:
+        gin_url = "https://gin.g-node.org/BrainGlobe/bluebrain_barrel_materials/raw/master/annotation_barrels_10.nrrd"
+    elif resolution == 25:
+        gin_url = "https://gin.g-node.org/BrainGlobe/bluebrain_barrel_materials/raw/master/annotation_barrels_25.nrrd"
     else:
-        raise ValueError("Resolution not supported.")
-    annotated_volume = nrrd.read(data_path / annotation_file)[0]
-    print("Annotation volume loaded...")
+        raise ValueError("Resolution {}um not supported.".format(resolution))
+
+    utils.check_internet_connection()
+    annotation_file_path = pooch.retrieve(
+        gin_url,
+        known_hash=None,
+        path=annotation_dir_path,
+        progressbar=True,
+    )
+
+    # Load annotation volume:
+    annotated_volume = nrrd.read(annotation_file_path)[0]
+
 
     # Download structures tree and meshes:
     ######################################
@@ -85,7 +90,18 @@ def create_atlas(working_dir, resolution):
 
     # Get structures with mesh for both versions
     structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
-    structs_with_barrels = json.load(open(data_path / 'hierarchy.json'))
+
+    # Download hierarchy:
+    #gin_url = "https://gin.g-node.org/BrainGlobe/bluebrain_barrel_materials/raw/master/hierarchy.json"
+    #hierarchy_path = pooch.retrieve(
+    #    gin_url,
+    #    known_hash=None,
+    #    path=annotation_dir_path,
+    #    fname="hierarchy.json",
+    #    progressbar=True
+    #)
+    hierarchy_path = r'C:\Users\bisi\Desktop\atlas\atlas_10um' + "\hierarchy.json"
+    structs_with_barrels = json.load(open(hierarchy_path))
 
 
     # Add barrels structures to Allen structures
@@ -247,19 +263,19 @@ def create_atlas(working_dir, resolution):
             closing_n_iters = 2
             decimate_fraction = 0.3
             smooth = True
-            create_region_mesh(
-                (
-                    meshes_dir,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    root_id,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+            #create_region_mesh(
+            #    (
+            #        meshes_dir,
+            #        node,
+            #        tree,
+            #        labels,
+            #        annotated_volume,
+            #        root_id,
+            #        closing_n_iters,
+            #        decimate_fraction,
+            #        smooth,
+            #    )
+            #)
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:

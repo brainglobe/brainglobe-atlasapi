@@ -1,16 +1,19 @@
 __version__ = "0"
-
 import numpy as np
 import json
 from pathlib import Path
 import pooch
 
+
 import nrrd
+import numpy as np
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
+
+from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -92,17 +95,15 @@ def create_atlas(working_dir, resolution):
     structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
 
     # Download hierarchy:
-    #gin_url = "https://gin.g-node.org/BrainGlobe/bluebrain_barrel_materials/raw/master/hierarchy.json"
-    #hierarchy_path = pooch.retrieve(
-    #    gin_url,
-    #    known_hash=None,
-    #    path=annotation_dir_path,
-    #    fname="hierarchy.json",
-    #    progressbar=True
-    #)
-    hierarchy_path = r'C:\Users\bisi\Desktop\atlas\atlas_10um' + "\hierarchy.json"
+    gin_url = "https://gin.g-node.org/BrainGlobe/bluebrain_barrel_materials/raw/master/hierarchy.json"
+    hierarchy_path = pooch.retrieve(
+        gin_url,
+        known_hash=None,
+        path=annotation_dir_path,
+        fname="hierarchy.json",
+        progressbar=True
+    )
     structs_with_barrels = json.load(open(hierarchy_path))
-
 
     # Add barrels structures to Allen structures
     def find_dicts_with_key_containing_substring(d, key, substring):
@@ -242,7 +243,6 @@ def create_atlas(working_dir, resolution):
             is_label = False
 
         node.data = Region(is_label)
-
     space = ReferenceSpaceApi()
     meshes_dict = dict()
     for s in tqdm(structs_with_mesh):
@@ -257,25 +257,25 @@ def create_atlas(working_dir, resolution):
             meshes_dict[name] = filename
         except (exceptions.HTTPError, ConnectionError):
             print(f"Failed to download mesh for {s['name']} ({s['id']})")
-            print('Creating mesh for', s['name'])
+            print("Creating mesh for", s["name"])
             # Create mesh
             root_id = 997
             closing_n_iters = 2
             decimate_fraction = 0.3
             smooth = True
-            #create_region_mesh(
-            #    (
-            #        meshes_dir,
-            #        node,
-            #        tree,
-            #        labels,
-            #        annotated_volume,
-            #        root_id,
-            #        closing_n_iters,
-            #        decimate_fraction,
-            #        smooth,
-            #    )
-            #)
+            create_region_mesh(
+                (
+                    meshes_dir,
+                    node,
+                    tree,
+                    labels,
+                    annotated_volume,
+                    root_id,
+                    closing_n_iters,
+                    decimate_fraction,
+                    smooth,
+                )
+            )
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:
@@ -313,9 +313,7 @@ if __name__ == "__main__":
     RES_UM = 10
     # Generated atlas path:
     bg_root_dir = (
-        Path.home()
-        / "brainglobe_workingdir"
-        / "allen_mouse_bluebrain_barrels"
+        Path.home() / "brainglobe_workingdir" / "allen_mouse_bluebrain_barrels"
     )
     bg_root_dir.mkdir(exist_ok=True)
 

@@ -1,5 +1,4 @@
 __version__ = "0"
-import numpy as np
 import json
 from pathlib import Path
 import pooch
@@ -38,7 +37,7 @@ def create_atlas(working_dir, resolution):
     download_dir_path = working_dir / "downloading_path"
     download_dir_path.mkdir(exist_ok=True)
 
-    # Download template volume:
+    # Download original Allen template volume:
     #########################################
     spacecache = ReferenceSpaceCache(
         manifest=download_dir_path / "manifest.json",
@@ -48,7 +47,6 @@ def create_atlas(working_dir, resolution):
         # use the latest version of the CCF
     )
 
-    # Download original Allen atlas files
     template_volume, _ = spacecache.get_template_volume()
 
     # Download enhanced barrel-containing Allen annotation files by BlueBrain, and hierarchy:
@@ -71,9 +69,8 @@ def create_atlas(working_dir, resolution):
         progressbar=True,
     )
 
-    # Load annotation volume:
+    # Load enhanced annotation volume:
     annotated_volume = nrrd.read(annotation_file_path)[0]
-
 
     # Download structures tree and meshes:
     ######################################
@@ -175,6 +172,7 @@ def create_atlas(working_dir, resolution):
     ]
     dict_to_add = []
     for d in matching_dicts:
+
         # Ignore parent-level SSp-bfd layers
         if d["acronym"] in structures_present:
             print("Skipping", d, "already present.")
@@ -188,6 +186,8 @@ def create_atlas(working_dir, resolution):
         ):
             print("Excluding", d, "to keep layer 2/3 structure only.")
             continue
+
+        # Add desired barrel-related structures, with corresponding fields
         else:
             current_id = d["id"]
             # Find corresponding parent structure

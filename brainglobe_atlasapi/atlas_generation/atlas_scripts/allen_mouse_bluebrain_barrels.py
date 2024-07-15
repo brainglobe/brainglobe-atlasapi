@@ -238,11 +238,11 @@ def create_atlas(working_dir, resolution):
         name = s["id"]
         filename = meshes_dir / f"{name}.obj"
         try:
-            #space.download_structure_mesh(
-            #    structure_id=s["id"],
-            #    ccf_version="annotation/ccf_2017",
-            #    file_name=filename,
-            #)
+            space.download_structure_mesh(
+                structure_id=s["id"],
+                ccf_version="annotation/ccf_2017",
+                file_name=filename,
+            )
             meshes_dict[name] = filename
         except (exceptions.HTTPError, ConnectionError):
             print(f"Failed to download mesh for {s['name']} ({s['id']})")
@@ -281,19 +281,19 @@ def create_atlas(working_dir, resolution):
         if filename.exists():
             continue
 
-        #create_region_mesh(
-        #    (
-        #        meshes_dir,
-        #        node,
-        #        tree,
-        #        labels,
-        #        annotated_volume,
-        #        root_id,
-        #        closing_n_iters,
-        #        decimate_fraction,
-        #        smooth,
-        #    )
-        #)
+        create_region_mesh(
+            (
+                meshes_dir,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                root_id,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
+            )
+        )
 
         meshes_dict[node.identifier] = filename
 

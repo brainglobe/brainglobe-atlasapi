@@ -1,12 +1,11 @@
 __version__ = "0"
 import json
 from pathlib import Path
-import pooch
-
 
 import nrrd
 import numpy as np
 import time
+import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -14,14 +13,11 @@ from requests import exceptions
 from tqdm import tqdm
 from rich.progress import track
 
-from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi import descriptors, utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
-
-from brainglobe_atlasapi import utils
-from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
@@ -100,7 +96,7 @@ def create_atlas(working_dir, resolution):
         known_hash=None,
         path=annotation_dir_path,
         fname="hierarchy.json",
-        progressbar=True
+        progressbar=True,
     )
     structs_with_barrels = json.load(open(hierarchy_path))
 

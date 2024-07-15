@@ -1,17 +1,17 @@
 __version__ = "0"
 import json
+import time
 from pathlib import Path
 
 import nrrd
 import numpy as np
-import time
 import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
-from tqdm import tqdm
 from rich.progress import track
+from tqdm import tqdm
 
 from brainglobe_atlasapi import descriptors, utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -217,7 +217,6 @@ def create_atlas(working_dir, resolution):
             d["structure_set_ids"] = None
             dict_to_add.append({k: d[k] for k in keys_to_keep})
 
-
     # Add list of dicts to structs_with_mesh
     structs_with_mesh = structs_with_mesh + dict_to_add
     print("Added the following structures to the atlas:")
@@ -268,9 +267,9 @@ def create_atlas(working_dir, resolution):
     smooth = True
 
     for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
     ):
         # Check if mesh already exists
         filename = meshes_dir / f"{node.identifier}.obj"
@@ -298,7 +297,6 @@ def create_atlas(working_dir, resolution):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:

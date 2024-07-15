@@ -6,11 +6,13 @@ import pooch
 
 import nrrd
 import numpy as np
+import time
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
+from rich.progress import track
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -219,6 +221,7 @@ def create_atlas(working_dir, resolution):
             d["structure_set_ids"] = None
             dict_to_add.append({k: d[k] for k in keys_to_keep})
 
+
     # Add list of dicts to structs_with_mesh
     structs_with_mesh = structs_with_mesh + dict_to_add
     print("Added the following structures to the atlas:")
@@ -228,6 +231,23 @@ def create_atlas(working_dir, resolution):
     # Directory for mesh saving:
     meshes_dir = working_dir / descriptors.MESHES_DIRNAME
 
+    # Download existing Allen meshes:
+    space = ReferenceSpaceApi()
+    meshes_dict = dict()
+    for s in tqdm(structs_with_mesh):
+        name = s["id"]
+        filename = meshes_dir / f"{name}.obj"
+        try:
+            #space.download_structure_mesh(
+            #    structure_id=s["id"],
+            #    ccf_version="annotation/ccf_2017",
+            #    file_name=filename,
+            #)
+            meshes_dict[name] = filename
+        except (exceptions.HTTPError, ConnectionError):
+            print(f"Failed to download mesh for {s['name']} ({s['id']})")
+
+    # Create missing meshes
     tree = get_structures_tree(structs_with_mesh)
     print(
         f"Number of brain regions: {tree.size()}, "
@@ -243,39 +263,46 @@ def create_atlas(working_dir, resolution):
             is_label = False
 
         node.data = Region(is_label)
-    space = ReferenceSpaceApi()
-    meshes_dict = dict()
-    for s in tqdm(structs_with_mesh):
-        name = s["id"]
-        filename = meshes_dir / f"{name}.obj"
-        try:
-            space.download_structure_mesh(
-                structure_id=s["id"],
-                ccf_version="annotation/ccf_2017",
-                file_name=filename,
-            )
-            meshes_dict[name] = filename
-        except (exceptions.HTTPError, ConnectionError):
-            print(f"Failed to download mesh for {s['name']} ({s['id']})")
-            print("Creating mesh for", s["name"])
-            # Create mesh
-            root_id = 997
-            closing_n_iters = 2
-            decimate_fraction = 0.3
-            smooth = True
-            create_region_mesh(
-                (
-                    meshes_dir,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    root_id,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+
+    start = time.time()
+
+    root_id = 997
+    closing_n_iters = 2
+    decimate_fraction = 0.3
+    smooth = True
+
+    for node in track(
+            tree.nodes.values(),
+            total=tree.size(),
+            description="Creating meshes",
+    ):
+        # Check if mesh already exists
+        filename = meshes_dir / f"{node.identifier}.obj"
+        if filename.exists():
+            continue
+
+        #create_region_mesh(
+        #    (
+        #        meshes_dir,
+        #        node,
+        #        tree,
+        #        labels,
+        #        annotated_volume,
+        #        root_id,
+        #        closing_n_iters,
+        #        decimate_fraction,
+        #        smooth,
+        #    )
+        #)
+
+        meshes_dict[node.identifier] = filename
+
+    print(
+        "Finished mesh extraction in : ",
+        round((time.time() - start) / 60, 2),
+        " minutes",
+    )
+
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:

@@ -31,6 +31,12 @@ def create_atlas(working_dir, resolution):
     ATLAS_PACKAGER = "Axel Bisi"
     ORIENTATION = "asr"
 
+    # Parameters for mesh creation:
+    ROOT_ID = 997
+    CLOSING_N_ITERS = 2
+    DECIMATE_FRACTION = 0.3
+    SMOOTH = True
+
     # Temporary folder for nrrd files download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
@@ -264,11 +270,6 @@ def create_atlas(working_dir, resolution):
 
     start = time.time()
 
-    root_id = 997
-    closing_n_iters = 2
-    decimate_fraction = 0.3
-    smooth = True
-
     for node in track(
         tree.nodes.values(),
         total=tree.size(),
@@ -286,10 +287,10 @@ def create_atlas(working_dir, resolution):
                 tree,
                 labels,
                 annotated_volume,
-                root_id,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
+                ROOT_ID,
+                CLOSING_N_ITERS,
+                DECIMATE_FRACTION,
+                SMOOTH,
             )
         )
 

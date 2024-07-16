@@ -32,7 +32,7 @@ def create_atlas(working_dir, resolution):
     ORIENTATION = "asr"
 
     # Temporary folder for nrrd files download:
-    download_dir_path = working_dir / "downloading_path"
+    download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
 
     # Download original Allen template volume:

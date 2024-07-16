@@ -47,7 +47,8 @@ def create_atlas(working_dir, resolution):
 
     template_volume, _ = spacecache.get_template_volume()
 
-    # Download enhanced barrel-containing Allen annotation files by BlueBrain, and hierarchy:
+    # Download enhanced barrel-containing Allen annotation files by BlueBrain,
+    # and hierarchy:
     #########################################
     annotation_dir_path = working_dir / "downloading_path/annotation_enhanced"
     annotation_dir_path.mkdir(exist_ok=True)
@@ -103,16 +104,18 @@ def create_atlas(working_dir, resolution):
     # Add barrels structures to Allen structures
     def find_dicts_with_key_containing_substring(d, key, substring):
         """
-        Recursively find all dictionaries within a nested dictionary that contain a specific substring
-        in the value associated with a given key.
+        Recursively find all dictionaries within a nested dictionary that
+        contain a specific substring in the value associated with a given key.
 
         Args:
         d (dict): The input dictionary.
         key (str): The key to search for.
-        substring (str): The substring to search for in the value associated with the key.
+        substring (str): The substring to search for in the value associated
+        with the key.
 
         Returns:
-        list: A list of dictionaries that contain the key with a value containing the substring.
+        list: A list of dictionaries that contain the key with a value
+        containing the substring.
         """
         if not isinstance(d, dict):
             raise ValueError("Input should be a dictionary")

@@ -3,11 +3,10 @@ import json
 import time
 from pathlib import Path
 
+import meshio as mio
 import nrrd
 import numpy as np
 import pooch
-import meshio as mio
-
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -235,7 +234,11 @@ def create_atlas(working_dir, resolution):
         print(d["name"])
 
     # Directory for mesh saving:
-    meshes_dir = working_dir / descriptors.MESHES_DIRNAME / 'meshes_{}'.format(resolution)
+    meshes_dir = (
+        working_dir
+        / descriptors.MESHES_DIRNAME
+        / "meshes_{}".format(resolution)
+    )
     # If directory exists, then skip
     if not meshes_dir.exists():
         meshes_dir.mkdir(exist_ok=False)
@@ -255,7 +258,7 @@ def create_atlas(working_dir, resolution):
             space.download_structure_mesh(
                 structure_id=s["id"],
                 ccf_version="annotation/ccf_2017",
-                 file_name=filename,
+                file_name=filename,
             )
             meshes_dict[name] = filename
         except (exceptions.HTTPError, ConnectionError):
@@ -323,7 +326,6 @@ def create_atlas(working_dir, resolution):
                 mio.write(meshfile, mesh)
             except:
                 print(f"Mesh file {meshfile} not found.")
-
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:

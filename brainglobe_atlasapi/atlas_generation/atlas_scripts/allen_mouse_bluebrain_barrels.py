@@ -1,4 +1,4 @@
-__version__ = "0"
+__version__ = "0.1"
 import json
 import time
 from pathlib import Path
@@ -6,6 +6,8 @@ from pathlib import Path
 import nrrd
 import numpy as np
 import pooch
+import meshio as mio
+
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -56,7 +58,7 @@ def create_atlas(working_dir, resolution):
     # Download enhanced barrel-containing Allen annotation files by BlueBrain,
     # and hierarchy:
     #########################################
-    annotation_dir_path = working_dir / "downloading_path/annotation_enhanced"
+    annotation_dir_path = working_dir / "downloads/annotation_enhanced"
     annotation_dir_path.mkdir(exist_ok=True)
 
     if resolution == 10:
@@ -233,7 +235,10 @@ def create_atlas(working_dir, resolution):
         print(d["name"])
 
     # Directory for mesh saving:
-    meshes_dir = working_dir / descriptors.MESHES_DIRNAME
+    meshes_dir = working_dir / descriptors.MESHES_DIRNAME / 'meshes_{}'.format(resolution)
+    # If directory exists, then skip
+    if not meshes_dir.exists():
+        meshes_dir.mkdir(exist_ok=False)
 
     # Download existing Allen meshes:
     space = ReferenceSpaceApi()
@@ -241,11 +246,16 @@ def create_atlas(working_dir, resolution):
     for s in tqdm(structs_with_mesh):
         name = s["id"]
         filename = meshes_dir / f"{name}.obj"
+
+        if filename.exists():
+            meshes_dict[name] = filename
+            continue
+
         try:
             space.download_structure_mesh(
                 structure_id=s["id"],
                 ccf_version="annotation/ccf_2017",
-                file_name=filename,
+                 file_name=filename,
             )
             meshes_dict[name] = filename
         except (exceptions.HTTPError, ConnectionError):
@@ -275,32 +285,45 @@ def create_atlas(working_dir, resolution):
         total=tree.size(),
         description="Creating meshes",
     ):
+
         # Check if mesh already exists
-        filename = meshes_dir / f"{node.identifier}.obj"
-        if filename.exists():
+        file_name = meshes_dir / f"{node.identifier}.obj"
+        if file_name.exists():
             continue
 
-        create_region_mesh(
-            (
-                meshes_dir,
-                node,
-                tree,
-                labels,
-                annotated_volume,
-                ROOT_ID,
-                CLOSING_N_ITERS,
-                DECIMATE_FRACTION,
-                SMOOTH,
+        else:
+            create_region_mesh(
+                (
+                    meshes_dir,
+                    node,
+                    tree,
+                    labels,
+                    annotated_volume,
+                    ROOT_ID,
+                    CLOSING_N_ITERS,
+                    DECIMATE_FRACTION,
+                    SMOOTH,
+                )
             )
-        )
-
-        meshes_dict[node.identifier] = filename
 
     print(
         "Finished mesh extraction in : ",
         round((time.time() - start) / 60, 2),
         " minutes",
     )
+
+    # Once mesh creation is over, rescale
+    for mesh_id, meshfile in meshes_dict.items():
+        # Check if mesh is barrel-related
+        if mesh_id in [s["id"] for s in dict_to_add]:
+
+            try:
+                mesh = mio.read(meshfile)
+                mesh.points *= resolution
+                mio.write(meshfile, mesh)
+            except:
+                print(f"Mesh file {meshfile} not found.")
+
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:

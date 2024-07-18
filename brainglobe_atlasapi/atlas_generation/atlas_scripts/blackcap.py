@@ -35,15 +35,15 @@ def create_atlas(working_dir, resolution):
     # setup folder for downloading
 
     atlas_path = Path(
-        "/media/ceph-neuroinformatics/neuroinformatics/atlas-forge/BlackCap/templates/template_sym_res-50um_n-18/for_atlas/"
+        "/media/ceph-neuroinformatics/neuroinformatics/atlas-forge/BlackCap/templates/template_sym_res-25um_n-18/for_atlas/"
     )
 
     structures_file = atlas_path / "Label_description_BC74white_16_02_2024.txt"
     annotations_file = (
-        atlas_path / "sub-BC74_res-50um_labels_aligned-to-reference.nii.gz"
+        atlas_path / "sub-BC74_res-25um_labels_aligned-to-reference.nii.gz"
     )
-    reference_file = atlas_path / "reference_res-50um_image.nii.gz"
-    reference_mask_file = atlas_path / "reference_res-50um_mask-4reg.nii.gz"
+    reference_file = atlas_path / "reference_res-25um_image.nii.gz"
+    reference_mask_file = atlas_path / "reference_res-25um_mask-4reg.nii.gz"
     meshes_dir_path = Path.home() / "blackcap-meshes"
 
     try:
@@ -248,7 +248,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    res = 50, 50, 50
+    res = 25, 25, 25
     home = str(Path.home())
     bg_root_dir = Path.home() / "bg-atlasgen"
     bg_root_dir.mkdir(exist_ok=True, parents=True)

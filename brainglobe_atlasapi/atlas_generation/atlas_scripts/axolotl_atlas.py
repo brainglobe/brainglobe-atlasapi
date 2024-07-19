@@ -21,21 +21,19 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
-from brainglobe_utils.IO.image.load import load_any
-
-
-
 def create_atlas(working_dir, resolution):
     ATLAS_NAME = "axolotl"
     SPECIES = "Ambystoma mexicanum"
-    ATLAS_LINK = "https://www.nature.com/articles/s41598-021-89357-3#citeas" 
-    CITATION = "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3"
-    ATLAS_FILE_URL = "https://zenodo.org/records/4595016" 
-    ORIENTATION = "ras" 
-    ROOT_ID_LEFT = 42  #FIXME
-    ROOT_ID_RIGHT = 92 #FIXME
-    ATLAS_PACKAGER = "Name, name@gmail.com" #FIXME
-    ADDITIONAL_METADATA = {} 
+    ATLAS_LINK = "https://www.nature.com/articles/s41598-021-89357-3#citeas"
+    CITATION = (
+        "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3"
+    )
+    ATLAS_FILE_URL = "https://zenodo.org/records/4595016"
+    ORIENTATION = "ras"
+    ROOT_ID_LEFT = 42  # FIXME
+    ROOT_ID_RIGHT = 92  # FIXME
+    ATLAS_PACKAGER = "Name, name@gmail.com"  # FIXME
+    ADDITIONAL_METADATA = {}
 
     # setup folder for downloading
 
@@ -46,69 +44,73 @@ def create_atlas(working_dir, resolution):
     atlas_path = download_dir_path / "atlas_files"
     atlas_path.mkdir(exist_ok=True)
 
-        # download atlas files
+    # download atlas files
     utils.check_internet_connection()
-    pooch.retrieve(url="https://zenodo.org/records/4595016",
-                known_hash=None,#FIXME 
-                progressbar=True  
-                ) 
+    pooch.retrieve(
+        url="https://zenodo.org/records/4595016",
+        known_hash=None,  # FIXME
+        progressbar=True,
+    )
 
     structures_file = working_dir / "axolotl_label_names_66rois(2).csv"
     annotations_file = working_dir / "axolotl_labels_66rois_40micra(2).nii.gz"
     reference_file = working_dir / "axolotl_template_40micra(3).nii.gz"
 
-    #meshes_dir_path = atlas_path / "asty_atlas/meshes"
+    # meshes_dir_path = atlas_path / "asty_atlas/meshes"
     # additional references (not in remote):
-    #reference_cartpt = atlas_path / "asty_atlas/SPF2_cartpt_ref.tif"
+    # reference_cartpt = atlas_path / "asty_atlas/SPF2_cartpt_ref.tif"
 
-    #Path(meshes_dir_path).mkdir(exist_ok=True)
+    # Path(meshes_dir_path).mkdir(exist_ok=True)
 
-    # create dictionaries # create dictionary from data read from the CSV file 
+    # create dictionaries # create dictionary from data read from the CSV file
     print("Creating structure tree")
     with open(
-        structures_file, mode="r", encoding='utf-8',
-        ) as axolotl_file:
-        axolotl_dict_reader = csv.DictReader(axolotl_file) 
+        structures_file,
+        mode="r",
+        encoding="utf-8",
+    ) as axolotl_file:
+        axolotl_dict_reader = csv.DictReader(axolotl_file)
         hierarchy = []
         for row in axolotl_dict_reader:
-            hierarchy.append(row)    
+            hierarchy.append(row)
     print(hierarchy)
 
-    # Replace the 'label_id' key with 'id' key 
+    # Replace the 'label_id' key with 'id' key
     # Define the file paths
     input_file = working_dir / "axolotl_label_names_66rois(2).csv"
     output_file = working_dir / "axolotl_label_names_66rois(v2).csv"
 
     # Read the CSV file and replace the key
     modified_rows = []
-    with open(input_file, mode='r', encoding='utf-8-sig') as infile:
+    with open(input_file, mode="r", encoding="utf-8-sig") as infile:
         reader = csv.DictReader(infile)
         for row in reader:
-            if 'label_id' in row:
-                row['id'] = row.pop('label_id')  # Replace 'label_id' with 'id'
+            if "label_id" in row:
+                row["id"] = row.pop("label_id")  # Replace 'label_id' with 'id'
             modified_rows.append(row)
 
     # Get the fieldnames from the modified rows
     fieldnames = modified_rows[0].keys()
 
-    hierarchy = modified_rows 
+    hierarchy = modified_rows
 
-    # clean out different columns 
+    # clean out different columns
     for element in hierarchy:
         element["id"] = int(element["id"])
-        element["main_structure"]=element["main_structure"].strip()
-    
+        element["main_structure"] = element["main_structure"].strip()
 
     main_structures = set()
 
     # with open(input_file, mode='r', newline='') as infile:
     #     reader = csv.DictReader(infile)
     for element in hierarchy:
-        main_structure = element['main_structure']
+        main_structure = element["main_structure"]
         main_structures.add(main_structure)
 
     # Assign unique numeric IDs to each main structure
-    structure_id_map = {structure: idx + 1 for idx, structure in enumerate(main_structures)}
+    structure_id_map = {
+        structure: idx + 1 for idx, structure in enumerate(main_structures)
+    }
 
     # Print the mapping to verify
     print(structure_id_map)
@@ -127,22 +129,22 @@ def create_atlas(working_dir, resolution):
 
     for element in hierarchy:
         structure_id_path = create_structure_id_path(element["main_structure"])
-                
-        element['structure_id_path'] = structure_id_path
 
-    output_file = working_dir/ 'updated_axolotl.csv' #FIXME
+        element["structure_id_path"] = structure_id_path
 
-    with open(output_file, mode='w', newline='') as outfile:
+    output_file = working_dir / "updated_axolotl.csv"  # FIXME
+
+    with open(output_file, mode="w", newline="") as outfile:
         fieldnames = hierarchy[0].keys()
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-        
+
         writer.writeheader()
         for element in hierarchy:
             writer.writerow(element)
 
     print("CSV updated successfully!")
 
-    # TODO Create meshes 
+    # TODO Create meshes
 
     # Set root mesh to white
     hierarchy[0]["rgb_triplet"] = [255, 255, 255]

@@ -324,7 +324,7 @@ def create_atlas(working_dir, resolution):
                 mesh = mio.read(meshfile)
                 mesh.points *= resolution
                 mio.write(meshfile, mesh)
-            except:
+            except mio._exceptions.ReadError:
                 print(f"Mesh file {meshfile} not found.")
 
     # Loop over structures, remove entries not used:
@@ -360,7 +360,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    RES_UM = 10
+    RES_UM = 25
     # Generated atlas path:
     bg_root_dir = (
         Path.home() / "brainglobe_workingdir" / "allen_mouse_bluebrain_barrels"

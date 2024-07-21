@@ -241,7 +241,7 @@ def create_atlas(working_dir, resolution):
     )
     # If directory exists, then skip
     if not meshes_dir.exists():
-        meshes_dir.mkdir(exist_ok=False)
+        meshes_dir.mkdir(exist_ok=False, parents=True)
 
     # Download existing Allen meshes:
     space = ReferenceSpaceApi()

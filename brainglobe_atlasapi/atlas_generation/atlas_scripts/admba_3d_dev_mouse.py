@@ -302,6 +302,7 @@ def create_atlas(
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
+        resolution_mapping=[2, 1, 0],
     )
     print("Done. Atlas generated at: ", output_filename)
     return output_filename
@@ -319,7 +320,12 @@ if __name__ == "__main__":
         atlas_link="https://search.kg.ebrains.eu/instances/8ab25629-bdac-47d0-bc86-6f3aa3885f29",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000023_3Drecon-ADMBA-E11pt5_pub",
         orientation="rsa",
-        resolution=(16, 20, 16),  # possibly try 20, 16, 16
+        resolution=(
+            16,
+            16,
+            20,
+        ),  # this is in ASR, the target orientation.
+        # The resolution in LR is lower than SI and AP!
         citation="Young et al. 2021, https://doi.org/10.7554/eLife.61408",
         root_id=15564,
         atlas_packager="Pradeep Rajasekhar, WEHI, Australia, "

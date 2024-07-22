@@ -48,6 +48,7 @@ def wrapup_atlas_from_data(
     cleanup_files=False,
     compress=True,
     scale_meshes=False,
+    resolution_mapping=None,
     additional_references={},
     additional_metadata={},
 ):
@@ -102,6 +103,9 @@ def wrapup_atlas_from_data(
         If True the meshes points are scaled by the resolution
         to ensure that they are specified in microns,
         regardless of the atlas resolution.
+    resolution_mapping: list, optional
+        a list of three mapping the target space axes to the source axes
+        only needed for mesh scaling of anisotropic atlases
     additional_references: dict, optional
         (Default value = empty dict).
         Dictionary with secondary reference stacks.
@@ -171,7 +175,20 @@ def wrapup_atlas_from_data(
 
         if scale_meshes:
             # Scale the mesh to the desired resolution, BEFORE transforming:
-            mesh.points *= resolution
+            # Note that this transformation happens in original space,
+            # but the resolution is passed in target space (typically ASR)
+            if not resolution_mapping:
+                # isotropic case, so don't need to re-map resolution
+                mesh.points *= resolution
+            else:
+                # resolution needs to be transformed back
+                # to original space in anisotropic case
+                original_resolution = (
+                    resolution[resolution_mapping[0]],
+                    resolution[resolution_mapping[1]],
+                    resolution[resolution_mapping[2]],
+                )
+                mesh.points *= original_resolution
 
         # Reorient points:
         mesh.points = space_convention.map_points_to(

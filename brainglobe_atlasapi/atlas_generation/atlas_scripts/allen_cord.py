@@ -258,6 +258,11 @@ def create_atlas(working_dir):
         structures, meshes_dir_path
     )
 
+    # Set black meshes to white
+    for structure in structures_with_mesh:
+        if structure["rgb_triplet"] == [0, 0, 0]:
+            structure["rgb_triplet"] = [255, 255, 255]
+
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(

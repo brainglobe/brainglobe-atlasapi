@@ -30,7 +30,7 @@ def test_get_download_size_bad_url():
 def test_get_download_size_no_size_url():
     with pytest.raises(ValueError):
         utils.get_download_size(
-            "https://gin.g-node.org/BrainGlobe/atlases/src/master/last_versions.conf"
+            "https://gin.g-node.org/BrainGlobe/atlases/src/5ee75365555e3b4665c685b65a488bca3461ac94/last_versions.conf"
         )
 
 

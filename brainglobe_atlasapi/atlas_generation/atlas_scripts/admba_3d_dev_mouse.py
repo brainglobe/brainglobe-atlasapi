@@ -363,7 +363,7 @@ if __name__ == "__main__":
         atlas_name="admba_3d_p4_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/eea3589f-d74b-4988-8f4c-fd9ae8e3a4b3",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000027_3Drecon-ADMBA-P4_pub",
-        resolution=(16.752, 20, 16.752),
+        resolution=(16.752, 16.752, 20),
     )
 
     # P14 atlas, which has slightly different resolutions
@@ -372,13 +372,13 @@ if __name__ == "__main__":
         atlas_name="admba_3d_p14_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/114e50aa-156c-4283-af73-11b7f03d287e",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000028_3Drecon-ADMBA-P14_pub",
-        resolution=(16.752, 25, 16.752),
+        resolution=(16.752, 16.752, 25),
     )
 
     # P28 atlas, which has same resolutions as P14
     p28_config = dataclasses.replace(
         p14_config,
-        resolution=(16.752, 25, 16.752),
+        resolution=(16.752, 16.752, 25),
         atlas_name="admba_3d_p28_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/3a1153f0-6779-43bd-9f02-f92700a585a4",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000029_3Drecon-ADMBA-P28_pub",

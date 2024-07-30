@@ -297,6 +297,7 @@ def create_atlas(working_dir, resolution):
         # Check if mesh already exists
         file_name = meshes_dir / f"{node.identifier}.obj"
         if file_name.exists():
+            meshes_dict[name] = filename
             continue
 
         else:
@@ -313,6 +314,7 @@ def create_atlas(working_dir, resolution):
                     SMOOTH,
                 )
             )
+            meshes_dict[name] = filename
 
     print(
         "Finished mesh extraction in : ",

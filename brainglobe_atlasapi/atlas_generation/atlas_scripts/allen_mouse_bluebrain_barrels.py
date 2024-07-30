@@ -1,4 +1,4 @@
-__version__ = "1"
+__version__ = "0"
 import json
 import time
 from pathlib import Path
@@ -77,6 +77,8 @@ def create_atlas(working_dir, resolution):
 
     # Load enhanced annotation volume:
     annotated_volume = nrrd.read(annotation_file_path)[0]
+    annotation_file_path = r'C:\Users\bisi\Desktop\barrel_annotations\2017\atlas_barrels_25um\annotation_barrels_25.nrrd'
+    annotated_volume = nrrd.read(annotation_file_path)[0]
 
     # Download structures tree and meshes:
     ######################################
@@ -106,6 +108,8 @@ def create_atlas(working_dir, resolution):
         fname="hierarchy.json",
         progressbar=True,
     )
+    structs_with_barrels = json.load(open(hierarchy_path))
+    hierarchy_path = r'C:\Users\bisi\Desktop\barrel_annotations\2017\atlas_barrels_25um\hierarchy.json'
     structs_with_barrels = json.load(open(hierarchy_path))
 
     # Add barrels structures to Allen structures
@@ -183,7 +187,7 @@ def create_atlas(working_dir, resolution):
 
         # Ignore parent-level SSp-bfd layers
         if d["acronym"] in structures_present:
-            print("Skipping", d, "already present.")
+            print("Skipping because already present:", d)
             continue
         # Ignore sub-structures layer 2 and 3 to keep layer 2/3 structure
         if d["graph_order"] == 53 and d["acronym"] in ["SSp-bfd2", "SSp-bfd3"]:
@@ -229,9 +233,6 @@ def create_atlas(working_dir, resolution):
 
     # Add list of dicts to structs_with_mesh
     structs_with_mesh = structs_with_mesh + dict_to_add
-    print("Added the following structures to the atlas:")
-    for d in dict_to_add:
-        print(d["name"])
 
     # Directory for mesh saving:
     meshes_dir = (
@@ -255,11 +256,11 @@ def create_atlas(working_dir, resolution):
             continue
 
         try:
-            space.download_structure_mesh(
-                structure_id=s["id"],
-                ccf_version="annotation/ccf_2017",
-                file_name=filename,
-            )
+            #space.download_structure_mesh(
+            #    structure_id=s["id"],
+            #    ccf_version="annotation/ccf_2017",
+            #    file_name=filename,
+            #)
             meshes_dict[name] = filename
         except (exceptions.HTTPError, ConnectionError):
             print(f"Failed to download mesh for {s['name']} ({s['id']})")
@@ -273,6 +274,10 @@ def create_atlas(working_dir, resolution):
 
     # generate binary mask for mesh creation
     labels = np.unique(annotated_volume).astype(np.int_)
+
+    # debug: print unique labels
+    print("Unique labels in annotation volume: ", labels, labels.shape)
+
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
@@ -360,7 +365,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    RES_UM = 25
+    RES_UM = 10
     # Generated atlas path:
     bg_root_dir = (
         Path.home() / "brainglobe_workingdir" / "allen_mouse_bluebrain_barrels"

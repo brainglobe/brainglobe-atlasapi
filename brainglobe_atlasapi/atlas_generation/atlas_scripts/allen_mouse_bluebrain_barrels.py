@@ -77,8 +77,6 @@ def create_atlas(working_dir, resolution):
 
     # Load enhanced annotation volume:
     annotated_volume = nrrd.read(annotation_file_path)[0]
-    annotation_file_path = r'C:\Users\bisi\Desktop\barrel_annotations\2017\atlas_barrels_25um\annotation_barrels_25.nrrd'
-    annotated_volume = nrrd.read(annotation_file_path)[0]
 
     # Download structures tree and meshes:
     ######################################
@@ -108,8 +106,6 @@ def create_atlas(working_dir, resolution):
         fname="hierarchy.json",
         progressbar=True,
     )
-    structs_with_barrels = json.load(open(hierarchy_path))
-    hierarchy_path = r'C:\Users\bisi\Desktop\barrel_annotations\2017\atlas_barrels_25um\hierarchy.json'
     structs_with_barrels = json.load(open(hierarchy_path))
 
     # Add barrels structures to Allen structures
@@ -256,11 +252,11 @@ def create_atlas(working_dir, resolution):
             continue
 
         try:
-            #space.download_structure_mesh(
-            #    structure_id=s["id"],
-            #    ccf_version="annotation/ccf_2017",
-            #    file_name=filename,
-            #)
+            space.download_structure_mesh(
+                structure_id=s["id"],
+                ccf_version="annotation/ccf_2017",
+                file_name=filename,
+            )
             meshes_dict[name] = filename
         except (exceptions.HTTPError, ConnectionError):
             print(f"Failed to download mesh for {s['name']} ({s['id']})")
@@ -274,9 +270,6 @@ def create_atlas(working_dir, resolution):
 
     # generate binary mask for mesh creation
     labels = np.unique(annotated_volume).astype(np.int_)
-
-    # debug: print unique labels
-    print("Unique labels in annotation volume: ", labels, labels.shape)
 
     for key, node in tree.nodes.items():
         if key in labels:
@@ -341,8 +334,13 @@ def create_atlas(working_dir, resolution):
             for k in ["graph_id", "structure_set_ids", "graph_order"]
         ]
 
+    # Remove problematic 545 structure
+    if 545 in meshes_dict.keys():
+        meshes_dict.pop(545)
+
     # Wrap up, compress, and remove file:0
     print("Finalising atlas")
+
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
@@ -367,7 +365,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    RES_UM = 10
+    RES_UM = 25
     # Generated atlas path:
     bg_root_dir = (
         Path.home() / "brainglobe_workingdir" / "allen_mouse_bluebrain_barrels"

@@ -35,7 +35,7 @@ def create_atlas(working_dir):
         "PrV_ReferenceBrain_bilateral.tif": "42917449",
         "PrV_Annotation_bilateral.tif": "42917452",
         "PrV_Atlas_Ontology.csv": "42917443",
-        "PrV_results_datasets.zip": "42501327"
+        "PrV_results_datasets.zip": "42501327",
     }
 
     utils.check_internet_connection()
@@ -54,25 +54,30 @@ def create_atlas(working_dir):
             known_hash=None,
         )
 
-    with zipfile.ZipFile(r"C:\Users\sacha\Downloads\atlas shit\PrV_results_datasets.zip", 'r') as zip_ref:
+    with zipfile.ZipFile(
+        r"C:\Users\sacha\Downloads\atlas shit\PrV_results_datasets.zip", "r"
+    ) as zip_ref:
         file_list = zip_ref.namelist()
         print(f"Files: {file_list}")
-        zip_ref.extract('results_datasets/neural_nomenclature_hierarchy.csv', atlas_path)
+        zip_ref.extract(
+            "results_datasets/neural_nomenclature_hierarchy.csv", atlas_path
+        )
 
-    shutil.move(f"{atlas_path}\\results_datasets\\neural_nomenclature_hierarchy.csv", atlas_path)
+    shutil.move(
+        f"{atlas_path}\\results_datasets\\neural_nomenclature_hierarchy.csv",
+        atlas_path,
+    )
     os.rmdir(f"{atlas_path}\\results_datasets")
 
-    annotations_file = (
-            atlas_path / "PrV_Annotation_bilateral.tif"
-    )
+    annotations_file = atlas_path / "PrV_Annotation_bilateral.tif"
     reference_file = atlas_path / "PrV_ReferenceBrain_bilateral.tif"
 
-    nmh = pd.read_csv('neural_nomenclature_hierarchy.csv').values
-    reference_id = pd.read_csv('PrV_Atlas_Ontology.csv')
+    nmh = pd.read_csv("neural_nomenclature_hierarchy.csv").values
+    reference_id = pd.read_csv("PrV_Atlas_Ontology.csv")
 
-    acronyms = reference_id['acronym'].values
-    names = reference_id['name'].values
-    ids = reference_id['id'].values
+    acronyms = reference_id["acronym"].values
+    names = reference_id["name"].values
+    ids = reference_id["id"].values
 
     acronym_to_id = dict(zip(acronyms, ids))
     name_to_id = dict(zip(names, ids))
@@ -102,7 +107,7 @@ def create_atlas(working_dir):
             "id": structure_hierarchy[-1],
             "name": names[ids.index(structure_hierarchy[-1])],
             "structure_id_path": structure_hierarchy,
-            "rgb_triplet": [random.randint(0, 255) for _ in range(3)]
+            "rgb_triplet": [random.randint(0, 255) for _ in range(3)],
         }
 
         full_list.append(structure_template)
@@ -128,9 +133,8 @@ def create_atlas(working_dir):
         compress=True,
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
-
         resolution=("idk",),
-        meshes_dict={"": "i dont have one"}
+        meshes_dict={"": "i dont have one"},
     )
 
     return output_filename

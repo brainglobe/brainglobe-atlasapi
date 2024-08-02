@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pooch
-import tifffile
+from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -18,8 +18,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
-from brainglobe_utils.IO.image import load_nii
 
 
 def create_atlas(working_dir, resolution):
@@ -32,11 +30,11 @@ def create_atlas(working_dir, resolution):
     ATLAS_FILE_URL = "https://zenodo.org/records/4595016"
     ORIENTATION = "ipl"
     ROOT_ID = 999
-    ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder, hello@brainglobe.info"  
+    ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder, hello@brainglobe.info"
     ADDITIONAL_METADATA = {}
 
     # setup folder for downloading
-  
+
     working_dir = Path(working_dir)
 
     download_dir_path = working_dir / "downloads"
@@ -57,8 +55,8 @@ def create_atlas(working_dir, resolution):
     annotations_file = atlas_path / "axolotl_labels_66rois_40micra.nii.gz"
     reference_file = atlas_path / "axolotl_template_40micra.nii.gz"
 
-    annotation_image = load_nii(annotations_file, as_array = True)
-    reference_image = load_nii(reference_file, as_array = True)
+    annotation_image = load_nii(annotations_file, as_array=True)
+    reference_image = load_nii(reference_file, as_array=True)
     dmin = np.min(reference_image)
     dmax = np.max(reference_image)
     drange = dmax - dmin
@@ -76,11 +74,11 @@ def create_atlas(working_dir, resolution):
         encoding="utf-8",
     ) as axolotl_file:
         axolotl_dict_reader = csv.DictReader(axolotl_file)
-    
+
         for row in axolotl_dict_reader:
             if "label_id" in row:
-                row["id"] = row.pop("label_id")  
-                row["acronym"] = row.pop("Abbreviation/reference") 
+                row["id"] = row.pop("label_id")  # Replace 'label_id' with 'id'
+                row["acronym"] = row.pop("Abbreviation/reference") # Replace "Abbreviation/reference" with "acronym" 
                 row["name"] = row.pop("label_name")
                 row["rgb_triplet"] = [255, 0, 0]
                 row.pop("hemisphere")
@@ -104,7 +102,8 @@ def create_atlas(working_dir, resolution):
 
     # Assign unique numeric IDs to each main structure
     structure_id_map = {
-        structure: idx + 1 for idx, structure in enumerate(main_structures, start=100)
+        structure: idx + 1
+        for idx, structure in enumerate(main_structures, start=100)
     }
 
     # Function to create the structure_id_path
@@ -120,42 +119,59 @@ def create_atlas(working_dir, resolution):
         structure_id_path = create_structure_id_path(element["main_structure"])
 
         element["structure_id_path"] = structure_id_path + [element["id"]]
-    
+
     for main_structure, id_main_structure in structure_id_map.items():
 
-        create_main_structure = {"name": main_structure, 
-                                 "acronym": main_structure[0:3], 
-                                 "id": id_main_structure, 
-                                 "rgb_triplet": [125, 0, 125],
-                                 "structure_id_path": [ROOT_ID, id_main_structure]}
+        create_main_structure = {
+            "name": main_structure,
+            "acronym": main_structure[0:3],
+            "id": id_main_structure,
+            "rgb_triplet": [125, 0, 125],
+            "structure_id_path": [ROOT_ID, id_main_structure],
+        }
         hierarchy.append(create_main_structure)
- 
+
     for row in hierarchy:
         if "main_structure" in row.keys():
             row.pop("main_structure")
 
-    root_dict = {"name": "root", 
-                "acronym": "root",
-                "id": ROOT_ID,
-                "rgb_triplet": [255, 255, 255],
-                "structure_id_path": [999]}
+    root_dict = {
+        "name": "root",
+        "acronym": "root",
+        "id": ROOT_ID,
+        "rgb_triplet": [255, 255, 255],
+        "structure_id_path": [999],
+    }
     hierarchy.append(root_dict)
+
+
+    # output_file = working_dir / "updated_axolotl.csv"  
+
+    # with open(output_file, mode="w", newline="") as outfile:
+    #     fieldnames = hierarchy[0].keys()
+    #     writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+
+    #     writer.writeheader()
+    #     for element in hierarchy:
+    #         writer.writerow(element)
+
+    # print("CSV updated successfully!")
 
     tree = get_structures_tree(hierarchy)
 
     # Generate binary mask for mesh creation
-    labels = np.unique(annotation_image).astype(np.int_)  
+    labels = np.unique(annotation_image).astype(np.int_)  # Find all unique values in the array and convert them to integers
     for key, node in tree.nodes.items():
         # Check if the node's key is in the list of labels
         is_label = key in labels
         node.data = Region(is_label)
- 
+
     # Mesh creation parameters
-    closing_n_iters = 5 # Number of iterations for morphological closing
-    decimate_fraction = 0.1 # Fraction of the mesh to decimate
+    closing_n_iters = 5  # Number of iterations for morphological closing
+    decimate_fraction = 0.1  # Fraction of the mesh to decimate
     smooth = True  # Whether to smooth the meshes
 
-    meshes_dir_path = working_dir/"meshes"
+    meshes_dir_path = working_dir / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
     # Measure duration of mesh creation
@@ -168,16 +184,18 @@ def create_atlas(working_dir, resolution):
         description="Creating meshes",
     ):
         
+    
         create_region_mesh(
-            [meshes_dir_path,  # Directory where mesh files will be saved
-            node,
-            tree,
-            labels,
-            annotation_image,
-            ROOT_ID,
-            closing_n_iters,
-            decimate_fraction,
-            smooth,
+            [
+                meshes_dir_path,  # Directory where mesh files will be saved
+                node,
+                tree,
+                labels,
+                annotation_image,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             ]
         )
 
@@ -190,27 +208,29 @@ def create_atlas(working_dir, resolution):
 
     # Create a dictionary to store mappings of structure IDs to mesh file paths
     meshes_dict = {}
-    structures_with_mesh = []  
+    structures_with_mesh = []  # List to keep track of structures that have valid meshes
 
     for s in hierarchy:
         # Construct the path to the mesh file using the structure ID
-        mesh_path = meshes_dir_path / f"{s['id']}.obj" 
+        mesh_path = meshes_dir_path / f"{s['id']}.obj" # value of the variable will be assigned to the path of each mesh file 
         
         # Check if the mesh file exists
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it.")
             continue
-        
+
         # Check that the mesh actually exists and isn't empty
         if mesh_path.stat().st_size < 512:
             print(f"OBJ file for {s} is too small, ignoring it.")
             continue
         
-        structures_with_mesh.append(s)  
-        meshes_dict[s["id"]] = mesh_path  
+        structures_with_mesh.append(s)  # Add the structure to the list
+        meshes_dict[s["id"]] = mesh_path  # Map the structure ID to the mesh path, the dictionary with key:value pair such as "15": "C//Users...."
 
     # Print the total number of structures that have valid meshes
-    print(f"In the end, {len(structures_with_mesh)} structures with mesh are kept") #lenght of meshes kept 
+    print(
+        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+    )  # lenght of meshes kept
 
     # Package all the provided data and parameters into an atlas format
     output_filename = wrapup_atlas_from_data(
@@ -219,9 +239,9 @@ def create_atlas(working_dir, resolution):
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=resolution, 
+        resolution=resolution,
         orientation=ORIENTATION,
-        root_id=ROOT_ID, 
+        root_id=ROOT_ID,
         reference_stack=reference_image,
         annotation_stack=annotation_image,
         structures_list=hierarchy,
@@ -236,11 +256,12 @@ def create_atlas(working_dir, resolution):
     )
 
     return output_filename
- 
+
+# If run from main python file 
 if __name__ == "__main__":
     res = 40, 40, 40  # Resolution tuple
     home = str(Path.home())
     bg_root_dir = Path.home() / "brainglobe_workingdir"
-    bg_root_dir.mkdir(exist_ok=True, parents=True)  
+    bg_root_dir.mkdir(exist_ok=True, parents=True)  # Create working directory if it doesn't exist
     
-    create_atlas(bg_root_dir, res) 
+    create_atlas(bg_root_dir, res) #runs everything in the working directory created with the resolution we defined 

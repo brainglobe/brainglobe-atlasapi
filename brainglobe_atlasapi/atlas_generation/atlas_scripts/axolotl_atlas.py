@@ -12,7 +12,6 @@ from rich.progress import track
 
 from brainglobe_atlasapi import utils
 
-# from skimage import io
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -80,15 +79,14 @@ def create_atlas(working_dir, resolution):
     
         for row in axolotl_dict_reader:
             if "label_id" in row:
-                row["id"] = row.pop("label_id")  # Replace 'label_id' with 'id'
-                row["acronym"] = row.pop("Abbreviation/reference") # Replace "Abbreviation/reference" with "acronym" 
+                row["id"] = row.pop("label_id")  
+                row["acronym"] = row.pop("Abbreviation/reference") 
                 row["name"] = row.pop("label_name")
                 row["rgb_triplet"] = [255, 0, 0]
                 row.pop("hemisphere")
                 row.pop("voxels")
                 row.pop("volume")
             hierarchy.append(row)
-    print(hierarchy)
 
     # Get the fieldnames from the modified rows
     fieldnames = hierarchy[0].keys()
@@ -100,8 +98,6 @@ def create_atlas(working_dir, resolution):
 
     main_structures = set()
 
-    # with open(input_file, mode='r', newline='') as infile:
-    #     reader = csv.DictReader(infile)
     for element in hierarchy:
         main_structure = element["main_structure"]
         main_structures.add(main_structure)
@@ -110,9 +106,6 @@ def create_atlas(working_dir, resolution):
     structure_id_map = {
         structure: idx + 1 for idx, structure in enumerate(main_structures, start=100)
     }
-
-    # Print the mapping to verify
-    print(structure_id_map)
 
     # Function to create the structure_id_path
     def create_structure_id_path(main_structure):
@@ -148,23 +141,10 @@ def create_atlas(working_dir, resolution):
                 "structure_id_path": [999]}
     hierarchy.append(root_dict)
 
-
-    # output_file = working_dir / "updated_axolotl.csv"  
-
-    # with open(output_file, mode="w", newline="") as outfile:
-    #     fieldnames = hierarchy[0].keys()
-    #     writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-
-    #     writer.writeheader()
-    #     for element in hierarchy:
-    #         writer.writerow(element)
-
-    # print("CSV updated successfully!")
-
     tree = get_structures_tree(hierarchy)
 
     # Generate binary mask for mesh creation
-    labels = np.unique(annotation_image).astype(np.int_)  # Find all unique values in the array and convert them to integers
+    labels = np.unique(annotation_image).astype(np.int_)  
     for key, node in tree.nodes.items():
         # Check if the node's key is in the list of labels
         is_label = key in labels
@@ -188,7 +168,6 @@ def create_atlas(working_dir, resolution):
         description="Creating meshes",
     ):
         
-    
         create_region_mesh(
             [meshes_dir_path,  # Directory where mesh files will be saved
             node,
@@ -211,11 +190,11 @@ def create_atlas(working_dir, resolution):
 
     # Create a dictionary to store mappings of structure IDs to mesh file paths
     meshes_dict = {}
-    structures_with_mesh = []  # List to keep track of structures that have valid meshes
+    structures_with_mesh = []  
 
     for s in hierarchy:
         # Construct the path to the mesh file using the structure ID
-        mesh_path = meshes_dir_path / f"{s['id']}.obj" # value of the variable will be assigned to the path of each mesh file 
+        mesh_path = meshes_dir_path / f"{s['id']}.obj" 
         
         # Check if the mesh file exists
         if not mesh_path.exists():
@@ -227,8 +206,8 @@ def create_atlas(working_dir, resolution):
             print(f"OBJ file for {s} is too small, ignoring it.")
             continue
         
-        structures_with_mesh.append(s)  # Add the structure to the list
-        meshes_dict[s["id"]] = mesh_path  # Map the structure ID to the mesh path, the dictionary with key:value pair such as "15": "C//Users...."
+        structures_with_mesh.append(s)  
+        meshes_dict[s["id"]] = mesh_path  
 
     # Print the total number of structures that have valid meshes
     print(f"In the end, {len(structures_with_mesh)} structures with mesh are kept") #lenght of meshes kept 
@@ -257,12 +236,11 @@ def create_atlas(working_dir, resolution):
     )
 
     return output_filename
-
-# If run from main python file 
+ 
 if __name__ == "__main__":
     res = 40, 40, 40  # Resolution tuple
     home = str(Path.home())
     bg_root_dir = Path.home() / "brainglobe_workingdir"
-    bg_root_dir.mkdir(exist_ok=True, parents=True)  # Create working directory if it doesn't exist
+    bg_root_dir.mkdir(exist_ok=True, parents=True)  
     
-    create_atlas(bg_root_dir, res) #runs everything in the working directory created with the resolution we defined 
+    create_atlas(bg_root_dir, res) 

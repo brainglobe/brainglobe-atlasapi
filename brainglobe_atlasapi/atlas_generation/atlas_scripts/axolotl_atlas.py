@@ -220,7 +220,7 @@ def create_atlas(working_dir, resolution):
     # Package all the provided data and parameters into an atlas format
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
-        atlas_minor_version="1.0",
+        atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,

@@ -11,7 +11,6 @@ from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
-
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -30,9 +29,7 @@ def create_atlas(working_dir, resolution):
     ATLAS_FILE_URL = "https://zenodo.org/records/4595016"
     ORIENTATION = "ipl"
     ROOT_ID = 999
-    ATLAS_PACKAGER = (
-        "Saima Abdus, David Perez-Suarez, Alessandro Felder, hello@brainglobe.info"
-    )
+    ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder, hello@brainglobe.info"
     ADDITIONAL_METADATA = {}
 
     # setup folder for downloading
@@ -79,8 +76,8 @@ def create_atlas(working_dir, resolution):
 
         for row in axolotl_dict_reader:
             if "label_id" in row:
-                row["id"] = row.pop("label_id")  
-                row["acronym"] = row.pop("Abbreviation/reference") 
+                row["id"] = row.pop("label_id")
+                row["acronym"] = row.pop("Abbreviation/reference")
                 row["name"] = row.pop("label_name")
                 row["rgb_triplet"] = [255, 0, 0]
                 row.pop("hemisphere")
@@ -146,16 +143,16 @@ def create_atlas(working_dir, resolution):
     tree = get_structures_tree(hierarchy)
 
     # Generate binary mask for mesh creation
-    labels = np.unique(annotation_image).astype(np.int_)  
+    labels = np.unique(annotation_image).astype(np.int_)
     for key, node in tree.nodes.items():
         # Check if the node's key is in the list of labels
         is_label = key in labels
         node.data = Region(is_label)
 
     # Mesh creation parameters
-    closing_n_iters = 5  
-    decimate_fraction = 0.1  
-    smooth = True  
+    closing_n_iters = 5
+    decimate_fraction = 0.1
+    smooth = True
 
     meshes_dir_path = working_dir / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
@@ -169,8 +166,7 @@ def create_atlas(working_dir, resolution):
         total=tree.size(),
         description="Creating meshes",
     ):
-        
-    
+
         create_region_mesh(
             [
                 meshes_dir_path,  # Directory where mesh files will be saved
@@ -194,12 +190,12 @@ def create_atlas(working_dir, resolution):
 
     # Create a dictionary to store mappings of structure IDs to mesh file paths
     meshes_dict = {}
-    structures_with_mesh = []  
+    structures_with_mesh = []
 
     for s in hierarchy:
         # Construct the path to the mesh file using the structure ID
-        mesh_path = meshes_dir_path / f"{s['id']}.obj" 
-        
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
+
         # Check if the mesh file exists
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it.")
@@ -209,14 +205,14 @@ def create_atlas(working_dir, resolution):
         if mesh_path.stat().st_size < 512:
             print(f"OBJ file for {s} is too small, ignoring it.")
             continue
-        
-        structures_with_mesh.append(s)  
-        meshes_dict[s["id"]] = mesh_path  
+
+        structures_with_mesh.append(s)
+        meshes_dict[s["id"]] = mesh_path
 
     # Print the total number of structures that have valid meshes
     print(
         f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
-    )  
+    )
 
     # Package all the provided data and parameters into an atlas format
     output_filename = wrapup_atlas_from_data(
@@ -243,10 +239,11 @@ def create_atlas(working_dir, resolution):
 
     return output_filename
 
+
 if __name__ == "__main__":
     res = 40, 40, 40  # Resolution tuple
     home = str(Path.home())
     bg_root_dir = Path.home() / "brainglobe_workingdir"
-    bg_root_dir.mkdir(exist_ok=True, parents=True)  
-    
-    create_atlas(bg_root_dir, res) 
+    bg_root_dir.mkdir(exist_ok=True, parents=True)
+
+    create_atlas(bg_root_dir, res)

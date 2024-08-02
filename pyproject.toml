@@ -53,6 +53,10 @@ dev = [
     "tox",
 ]
 allenmouse = ["allensdk"]
+allenmouse_barrels = [
+    "allensdk",
+    "voxcell"]
+
 atlasgen = [
     "loguru",
     "PyMCubes",

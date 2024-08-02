@@ -29,7 +29,7 @@ def create_atlas(working_dir, resolution):
     ATLAS_FILE_URL = "https://zenodo.org/records/4595016"
     ORIENTATION = "ipl"
     ROOT_ID = 999
-    ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder, hello@brainglobe.info"
+    ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
     ADDITIONAL_METADATA = {}
 
     # setup folder for downloading
@@ -211,7 +211,8 @@ def create_atlas(working_dir, resolution):
 
     # Print the total number of structures that have valid meshes
     print(
-        f"In the end, {len(structures_with_mesh)} structures with mesh are kept"
+        f"In the end, {len(structures_with_mesh)} "
+        "structures with mesh are kept"
     )
 
     # Package all the provided data and parameters into an atlas format

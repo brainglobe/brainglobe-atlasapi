@@ -117,10 +117,12 @@ def create_atlas(working_dir, resolution):
         element["structure_id_path"] = structure_id_path + [element["id"]]
 
     for main_structure, id_main_structure in structure_id_map.items():
-
+        main_structure_acronym = "".join(
+            [word[0].upper() for word in main_structure.split()]
+        )
         create_main_structure = {
             "name": main_structure,
-            "acronym": main_structure[0:3],
+            "acronym": main_structure_acronym,
             "id": id_main_structure,
             "rgb_triplet": [125, 0, 125],
             "structure_id_path": [ROOT_ID, id_main_structure],
@@ -218,7 +220,7 @@ def create_atlas(working_dir, resolution):
     # Package all the provided data and parameters into an atlas format
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
-        atlas_minor_version="1.0",
+        atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,

@@ -43,10 +43,15 @@ def create_atlas(working_dir, resolution):
 
     # download atlas files
     utils.check_internet_connection()
+    hashes = [
+        "md5:3a9ba5a23c17180981b5678329915226",
+        "md5:66df0da5d7eed10ff59add32741d0bf2",
+        "md5:ab13eb8b8f9324a67fdd162f4e79f3c0",
+    ]
     list_files = {
-        "axolotl_labels_66rois_40micra.nii.gz": "md5:3a9ba5a23c17180981b5678329915226",
-        "axolotl_template_40micra.nii.gz": "md5:66df0da5d7eed10ff59add32741d0bf2",
-        "axolotl_label_names_66rois.csv": "md5:ab13eb8b8f9324a67fdd162f4e79f3c0",
+        "axolotl_labels_66rois_40micra.nii.gz": hashes[0],
+        "axolotl_template_40micra.nii.gz": hashes[1],
+        "axolotl_label_names_66rois.csv": hashes[2],
     }
     for filename, hash in list_files.items():
         pooch.retrieve(

@@ -43,12 +43,23 @@ def create_atlas(working_dir, resolution):
 
     # download atlas files
     utils.check_internet_connection()
-    pooch.retrieve(
-        url=f"{ATLAS_FILE_URL.replace('.org', '.org/api')}/files-archive",
-        known_hash=None,  # FIXME
-        processor=pooch.Unzip(extract_dir=atlas_path),
-        progressbar=True,
-    )
+    hashes = [
+        "md5:3a9ba5a23c17180981b5678329915226",
+        "md5:66df0da5d7eed10ff59add32741d0bf2",
+        "md5:ab13eb8b8f9324a67fdd162f4e79f3c0",
+    ]
+    list_files = {
+        "axolotl_labels_66rois_40micra.nii.gz": hashes[0],
+        "axolotl_template_40micra.nii.gz": hashes[1],
+        "axolotl_label_names_66rois.csv": hashes[2],
+    }
+    for filename, hash in list_files.items():
+        pooch.retrieve(
+            url=f"{ATLAS_FILE_URL}/files/{filename}",
+            known_hash=hash,
+            path=atlas_path,
+            progressbar=True,
+        )
 
     structures_file = atlas_path / "axolotl_label_names_66rois.csv"
     annotations_file = atlas_path / "axolotl_labels_66rois_40micra.nii.gz"

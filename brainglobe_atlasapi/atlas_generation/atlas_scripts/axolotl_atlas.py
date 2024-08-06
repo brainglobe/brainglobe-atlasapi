@@ -27,7 +27,7 @@ def create_atlas(working_dir, resolution):
         "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3"
     )
     ATLAS_FILE_URL = "https://zenodo.org/records/4595016"
-    ORIENTATION = "ipl"
+    ORIENTATION = "lpi" 
     ROOT_ID = 999
     ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
     ADDITIONAL_METADATA = {}
@@ -45,7 +45,7 @@ def create_atlas(working_dir, resolution):
     utils.check_internet_connection()
     pooch.retrieve(
         url=f"{ATLAS_FILE_URL.replace('.org', '.org/api')}/files-archive",
-        known_hash=None,  # FIXME
+        known_hash="md5:df77717516e3600e77ab50a7a5fff21f", 
         processor=pooch.Unzip(extract_dir=atlas_path),
         progressbar=True,
     )

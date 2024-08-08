@@ -74,17 +74,17 @@ def create_atlas(working_dir, resolution):
     dscale = (2**16 - 1) / drange
     reference_image = (reference_image - dmin) * dscale
     reference_image = reference_image.astype(np.uint16)
-    
+
     new_annotation_image = np.zeros(annotation_image.shape)
 
-    for region in set(annotation_image.flatten()) -{0}:
-        region_image = annotation_image == region 
-        labeled_image = label(region_image) 
+    for region in set(annotation_image.flatten()) - {0}:
+        region_image = annotation_image == region
+        labeled_image = label(region_image)
         regions = regionprops(labeled_image)
         largest_region = max(regions, key=lambda region: region.area)
         largest_mask = labeled_image == largest_region.label
         region_image = region_image * largest_mask
-        new_annotation_image += region_image*region 
+        new_annotation_image += region_image * region
 
     annotation_image = new_annotation_image
 

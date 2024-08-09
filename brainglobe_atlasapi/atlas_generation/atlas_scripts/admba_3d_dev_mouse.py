@@ -20,6 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False
@@ -315,7 +316,7 @@ def create_atlas(
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_WORKDIR
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # set up E11.5 atlas settings and use as template for rest of brains

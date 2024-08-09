@@ -10,8 +10,8 @@ import pooch
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 from skimage.filters.rank import modal
-from skimage.morphology import ball
 from skimage.measure import label, regionprops
+from skimage.morphology import ball
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (

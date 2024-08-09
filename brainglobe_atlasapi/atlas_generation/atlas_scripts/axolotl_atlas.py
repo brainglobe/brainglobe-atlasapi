@@ -75,18 +75,21 @@ def create_atlas(working_dir, resolution):
     reference_image = (reference_image - dmin) * dscale
     reference_image = reference_image.astype(np.uint16)
 
-    new_annotation_image = np.zeros(annotation_image.shape)
+    # mask: put 1 where there is an annotation
+    annotation_mask = np.zeros(annotation_image.shape)
+    annotation_mask[annotation_image > 0] = 1
 
-    for region in set(annotation_image.flatten()) - {0}:
-        region_image = annotation_image == region
-        labeled_image = label(region_image)
-        regions = regionprops(labeled_image)
-        largest_region = max(regions, key=lambda region: region.area)
-        largest_mask = labeled_image == largest_region.label
-        region_image = region_image * largest_mask
-        new_annotation_image += region_image * region
+    # find the connected regions in the mask
+    labeled_image = label(annotation_mask)
+    regions = regionprops(labeled_image)
+    print(len(regions))
 
-    annotation_image = new_annotation_image
+    # find the pixels belonging to the largest region
+    largest_region = max(regions, key=lambda region: region.area)
+    largest_mask = labeled_image == largest_region.label
+
+    # keep only annotations in the largest connected region
+    annotation_image = annotation_image*largest_mask
 
     hierarchy = []
 

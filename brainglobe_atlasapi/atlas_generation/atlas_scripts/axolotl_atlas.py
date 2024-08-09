@@ -10,6 +10,9 @@ import pooch
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 
+from skimage.morphology import ball
+from skimage.filters.rank import modal
+
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
@@ -163,13 +166,17 @@ def create_atlas(working_dir, resolution):
         node.data = Region(is_label)
 
     # Mesh creation parameters
-    closing_n_iters = 5
-    decimate_fraction = 0.1
+    closing_n_iters = 10
+    decimate_fraction = 0.6
     smooth = True
 
     meshes_dir_path = working_dir / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
+    # pass a smoothed version of the annotations for meshing
+    smoothed_annotations = annotation_image.copy()
+    smoothed_annotations = modal(smoothed_annotations.astype(np.uint8), ball(5))
+    
     # Measure duration of mesh creation
     start = time.time()
 
@@ -186,7 +193,7 @@ def create_atlas(working_dir, resolution):
                 node,
                 tree,
                 labels,
-                annotation_image,
+                smoothed_annotations,
                 ROOT_ID,
                 closing_n_iters,
                 decimate_fraction,

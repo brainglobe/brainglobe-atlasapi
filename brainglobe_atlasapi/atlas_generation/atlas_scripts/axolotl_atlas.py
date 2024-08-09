@@ -82,7 +82,6 @@ def create_atlas(working_dir, resolution):
     # find the connected regions in the mask
     labeled_image = label(annotation_mask)
     regions = regionprops(labeled_image)
-    print(len(regions))
 
     # find the pixels belonging to the largest region
     largest_region = max(regions, key=lambda region: region.area)

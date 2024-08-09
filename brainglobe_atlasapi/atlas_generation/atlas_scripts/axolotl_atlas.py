@@ -9,9 +9,8 @@ import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
-
-from skimage.morphology import ball
 from skimage.filters.rank import modal
+from skimage.morphology import ball
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -175,8 +174,10 @@ def create_atlas(working_dir, resolution):
 
     # pass a smoothed version of the annotations for meshing
     smoothed_annotations = annotation_image.copy()
-    smoothed_annotations = modal(smoothed_annotations.astype(np.uint8), ball(5))
-    
+    smoothed_annotations = modal(
+        smoothed_annotations.astype(np.uint8), ball(5)
+    )
+
     # Measure duration of mesh creation
     start = time.time()
 

@@ -89,7 +89,7 @@ def create_atlas(working_dir, resolution):
     largest_mask = labeled_image == largest_region.label
 
     # keep only annotations in the largest connected region
-    annotation_image = annotation_image*largest_mask
+    annotation_image = annotation_image * largest_mask
 
     hierarchy = []
 

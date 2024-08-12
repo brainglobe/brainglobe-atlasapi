@@ -25,11 +25,10 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 def create_atlas(working_dir, resolution):
     ATLAS_NAME = "unam_axolotl"
     SPECIES = "Ambystoma mexicanum"
-    ATLAS_LINK = "https://www.nature.com/articles/s41598-021-89357-3"
+    ATLAS_LINK = "https://zenodo.org/records/4595016"
     CITATION = (
         "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3"
     )
-    ATLAS_FILE_URL = "https://zenodo.org/records/4595016"
     ORIENTATION = "lpi"
     ROOT_ID = 999
     ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
@@ -58,7 +57,7 @@ def create_atlas(working_dir, resolution):
     }
     for filename, hash in list_files.items():
         pooch.retrieve(
-            url=f"{ATLAS_FILE_URL}/files/{filename}",
+            url=f"{ATLAS_LINK}/files/{filename}",
             known_hash=hash,
             path=atlas_path,
             progressbar=True,

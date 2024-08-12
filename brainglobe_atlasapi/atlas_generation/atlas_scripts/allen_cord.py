@@ -1,4 +1,5 @@
 __version__ = "1"
+__atlas__ = "allen_cord"
 
 import json
 import multiprocessing as mp
@@ -22,6 +23,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     inspect_meshes_folder,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
@@ -292,7 +294,7 @@ def create_atlas(working_dir):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_cord_smooth"
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # generate atlas

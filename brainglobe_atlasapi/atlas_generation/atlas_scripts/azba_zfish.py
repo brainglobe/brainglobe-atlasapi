@@ -6,10 +6,10 @@ for the Adult Zebrafish Brain Atlas (AZBA)
 """
 
 __version__ = "2"
+__atlas__ = "azba_zfish"
 
 import csv
 import time
-from pathlib import Path
 
 import numpy as np
 import pooch
@@ -21,6 +21,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -36,7 +37,7 @@ def create_atlas(working_dir, resolution):
     ATLAS_PACKAGER = "Kailyn Fields, kailyn.fields@wayne.edu"
     ADDITIONAL_METADATA = {}
 
-    working_dir = working_dir / ATLAS_NAME
+    working_dir = working_dir
     download_path = working_dir / "downloads"
     download_path.mkdir(exist_ok=True, parents=True)
 
@@ -205,5 +206,5 @@ if __name__ == "__main__":
     resolution = 4
 
     # generated atlas path
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     create_atlas(bg_root_dir, resolution)

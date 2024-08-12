@@ -1,6 +1,6 @@
 __version__ = "2"
+__atlas__ = "allen_mouse"
 
-from pathlib import Path
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
 
 def create_atlas(working_dir, resolution):
@@ -109,7 +110,7 @@ def create_atlas(working_dir, resolution):
 if __name__ == "__main__":
     RES_UM = 25
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "allen_mouse"
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     bg_root_dir.mkdir(exist_ok=True)
 
     create_atlas(bg_root_dir, RES_UM)

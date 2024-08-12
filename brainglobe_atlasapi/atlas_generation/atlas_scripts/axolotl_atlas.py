@@ -1,4 +1,5 @@
 __version__ = "0"
+__atlas__ = "axolotl_atlas"
 
 import csv
 import glob as glob
@@ -16,6 +17,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -257,7 +259,7 @@ def create_atlas(working_dir, resolution):
 if __name__ == "__main__":
     res = 40, 40, 40  # Resolution tuple
     home = str(Path.home())
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     create_atlas(bg_root_dir, res)

@@ -1,4 +1,5 @@
 __version__ = "1"
+__atlas__ = "admba_3d_dev_mouse"
 
 import dataclasses
 import json
@@ -235,7 +236,7 @@ def create_atlas(
     if isinstance(working_dir, str):
         working_dir = Path(working_dir)
     # Generated atlas path:
-    working_dir = working_dir / "admba_3d_dev_mouse" / atlas_config.atlas_name
+    working_dir = working_dir / atlas_config.atlas_name
     working_dir.mkdir(exist_ok=True, parents=True)
 
     download_dir_path = working_dir / "downloads"
@@ -316,7 +317,7 @@ def create_atlas(
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # set up E11.5 atlas settings and use as template for rest of brains

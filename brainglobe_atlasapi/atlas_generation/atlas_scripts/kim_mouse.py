@@ -1,11 +1,11 @@
 __version__ = "1"
+__atlas__ = "kim_mouse"
 
 import argparse
 import json
 import multiprocessing as mp
 import tarfile
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -20,6 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
@@ -247,7 +248,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # Use the parsed resolution

@@ -1,10 +1,10 @@
 __version__ = "2"
+__atlas__ = "perens_lsfm_mouse"
 
 import json
 import multiprocessing as mp
 import tarfile
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -17,6 +17,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
@@ -356,6 +357,6 @@ if __name__ == "__main__":
     resolution = 20  # some resolution, in microns
 
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "perens_lsfm_mouse"
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     bg_root_dir.mkdir(exist_ok=True, parents=True)
     create_atlas(bg_root_dir, resolution)

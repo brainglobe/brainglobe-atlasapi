@@ -37,6 +37,7 @@ A number of atlases are in development, but those available currently are:
 - [Kim Lab Developmental CCF (P56)](https://data.mendeley.com/datasets/2svx788ddf/1) at 10 micron resolution with 8 reference images - STP, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2)
 - [Blind Mexican Cavefish Brain Atlas](https://doi.org/10.7554/eLife.80777) at 2 micron resolution
 - [BlueBrain Barrel Cortex Atlas](https://doi.org/10.1162/imag_a_00209) at 10 and 25 micron resolution
+* [UNAM Axolotl Brain Atlas](https://doi.org/10.1038/s41598-021-89357-3) at 40 micron resolution
 
 ## Installation
 

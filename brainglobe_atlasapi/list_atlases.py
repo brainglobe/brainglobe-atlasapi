@@ -5,6 +5,7 @@
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
+import os
 
 from brainglobe_atlasapi import config, descriptors, utils
 
@@ -52,11 +53,31 @@ def get_local_atlas_version(atlas_name):
 
 def get_all_atlases_lastversions():
     """Read from URL all available last versions"""
-    available_atlases = utils.conf_from_url(
-        descriptors.remote_url_base.format("last_versions.conf")
-    )
-    available_atlases = dict(available_atlases["atlases"])
-    return available_atlases
+
+    if utils.check_internet_connection(raise_error=False):
+        available_atlases = utils.conf_from_url(
+            descriptors.remote_url_base.format("last_versions.conf")
+        )
+        available_atlases = dict(available_atlases["atlases"])
+
+        return available_atlases
+
+    if (utils.check_internet_connection(
+            url=(descriptors.remote_url_base.format("last_versions.conf")),
+            raise_error=False) == "Gin_Server_Error"
+          or not utils.check_internet_connection(raise_error=False)):
+
+        print("No Internet connection.")
+
+        conf_path = (f'{config.get_brainglobe_dir()}', 'last_versions.conf')
+        full_file_path = os.path.join(*conf_path)
+
+        if utils.conf_from_file(full_file_path) != False:
+            print("Note: This list of atlases may be outdated. "
+                  "Please connect to the Internet for an updated list.")
+            available_atlases_offline = utils.conf_from_file(full_file_path)
+            available_atlases_offline = dict(available_atlases_offline["atlases"])
+            return available_atlases_offline
 
 
 def get_atlases_lastversions():

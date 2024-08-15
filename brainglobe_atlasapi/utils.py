@@ -19,6 +19,8 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
+import sys
+
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
@@ -121,14 +123,19 @@ def check_internet_connection(
         _ = requests.get(url, timeout=timeout)
         return True
     except requests.ConnectionError:
-        if not raise_error:
-            print("No internet connection available.")
-        else:
-            raise ConnectionError(
-                "No internet connection, try again when you are "
-                "connected to the internet."
-            )
-    return False
+        try:
+            response = requests.head(url)
+            if response.status_code == 404:
+                print("GIN server down.")
+                return "Gin_Server_Error"
+        except:
+            if raise_error:
+                sys.stdout.flush()
+                raise ConnectionError(
+                    "No Internet connection, try again when you are "
+                    "connected to the internet."
+                )
+            return False
 
 
 def retrieve_over_http(
@@ -280,6 +287,31 @@ def conf_from_url(url):
     config.read_string(text)
 
     return config
+
+def conf_from_file(file_path):
+    """Read conf file from a local file path.
+    Parameters
+    ----------
+    file_path : Path
+        conf file path (obtained from config.get_brainglobe_dir())
+
+    Returns
+    -------
+    conf object if file available
+    False if file not available
+
+    """
+    try:
+        with open(file_path, 'r') as file:
+            text = file.read()
+        config = configparser.ConfigParser()
+        config.read_string(text)
+        return config
+    except FileNotFoundError:
+        sys.stdout.flush()
+        raise FileNotFoundError("Cannot fetch atlas list. Please "
+                                "connect to the Internet and try again.")
+        return False
 
 
 ### File I/O

@@ -9,6 +9,7 @@ from rich.console import Console
 
 from brainglobe_atlasapi import config, core, descriptors, utils
 from brainglobe_atlasapi.utils import _rich_atlas_metadata
+import sys
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
@@ -78,15 +79,26 @@ class BrainGlobeAtlas(core.Atlas):
             setattr(self, dirname, dir_path)
 
         # Look for this atlas in local brainglobe folder:
-        if self.local_full_name is None:
+        if utils.check_internet_connection(raise_error=False):
             if self.remote_version is None:
                 raise ValueError(f"{atlas_name} is not a valid atlas name!")
 
-            rprint(
-                f"[magenta2]brainglobe_atlasapi: {self.atlas_name} "
-                "not found locally. Downloading...[magenta2]"
-            )
-            self.download_extract_file()
+            if self.local_full_name is None:
+                rprint(
+                    f"[magenta2]brainglobe_atlasapi: {self.atlas_name} "
+                    "not found locally. Downloading...[magenta2]"
+                )
+                self.download_extract_file()
+        else:
+            print("No Internet connection. Checking if atlas "
+                  "is available locally...")
+            if self.local_full_name is None:
+                print("Atlas unavailable locally.")
+                sys.stdout.flush()
+                raise ConnectionError("Atlas unavailable locally. Please "
+                                      "connect to the Internet to download.")
+            else:
+                print("Atlas found locally!")
 
         # Instantiate after eventual download:
         super().__init__(self.brainglobe_dir / self.local_full_name)
@@ -161,7 +173,6 @@ class BrainGlobeAtlas(core.Atlas):
 
     def download_extract_file(self):
         """Download and extract atlas from remote url."""
-        utils.check_internet_connection()
 
         # Get path to folder where data will be saved
         destination_path = self.interm_download_dir / COMPRESSED_FILENAME

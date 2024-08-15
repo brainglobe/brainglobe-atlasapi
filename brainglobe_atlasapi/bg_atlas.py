@@ -1,3 +1,4 @@
+import sys
 import tarfile
 from io import StringIO
 from pathlib import Path
@@ -9,7 +10,6 @@ from rich.console import Console
 
 from brainglobe_atlasapi import config, core, descriptors, utils
 from brainglobe_atlasapi.utils import _rich_atlas_metadata
-import sys
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
@@ -90,13 +90,17 @@ class BrainGlobeAtlas(core.Atlas):
                 )
                 self.download_extract_file()
         else:
-            print("No Internet connection. Checking if atlas "
-                  "is available locally...")
+            print(
+                "No Internet connection. Checking if atlas "
+                "is available locally..."
+            )
             if self.local_full_name is None:
                 print("Atlas unavailable locally.")
                 sys.stdout.flush()
-                raise ConnectionError("Atlas unavailable locally. Please "
-                                      "connect to the Internet to download.")
+                raise ConnectionError(
+                    "Atlas unavailable locally. Please "
+                    "connect to the Internet to download."
+                )
             else:
                 print("Atlas found locally!")
 

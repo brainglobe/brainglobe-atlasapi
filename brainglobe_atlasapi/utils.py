@@ -2,6 +2,7 @@ import configparser
 import json
 import logging
 import re
+import sys
 from typing import Callable, Optional
 
 import requests
@@ -18,8 +19,6 @@ from rich.progress import (
 )
 from rich.table import Table
 from rich.text import Text
-
-import sys
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -288,6 +287,7 @@ def conf_from_url(url):
 
     return config
 
+
 def conf_from_file(file_path):
     """Read conf file from a local file path.
     Parameters
@@ -302,15 +302,17 @@ def conf_from_file(file_path):
 
     """
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             text = file.read()
         config = configparser.ConfigParser()
         config.read_string(text)
         return config
     except FileNotFoundError:
         sys.stdout.flush()
-        raise FileNotFoundError("Cannot fetch atlas list. Please "
-                                "connect to the Internet and try again.")
+        raise FileNotFoundError(
+            "Cannot fetch atlas list. Please "
+            "connect to the Internet and try again."
+        )
         return False
 
 

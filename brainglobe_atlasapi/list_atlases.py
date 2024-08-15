@@ -75,7 +75,7 @@ def get_all_atlases_lastversions():
         conf_path = (f"{config.get_brainglobe_dir()}", "last_versions.conf")
         full_file_path = os.path.join(*conf_path)
 
-        if utils.conf_from_file(full_file_path) != False:
+        if utils.conf_from_file(full_file_path):
             print(
                 "Note: This list of atlases may be outdated. "
                 "Please connect to the Internet for an updated list."

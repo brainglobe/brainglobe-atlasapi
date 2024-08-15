@@ -127,7 +127,7 @@ def check_internet_connection(
             if response.status_code == 404:
                 print("GIN server down.")
                 return "Gin_Server_Error"
-        except:
+        finally:
             if raise_error:
                 sys.stdout.flush()
                 raise ConnectionError(

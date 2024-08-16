@@ -3,11 +3,11 @@ __atlas__ = "perens_lsfm_mouse"
 
 import json
 import multiprocessing as mp
-import tarfile
 import time
 
 import numpy as np
 import pandas as pd
+import pooch
 import SimpleITK as sitk
 from rich.progress import track
 
@@ -152,34 +152,35 @@ def create_atlas(working_dir, resolution):
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    atlas_files_dir = download_dir_path / "atlas_files"
+    # atlas_files_dir = download_dir_path / "atlas_files"
 
     ## Download atlas_file
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download.tar.gz"
-    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
 
-    tar = tarfile.open(destination_path)
-    tar.extractall(path=atlas_files_dir)
-    tar.close()
-
-    destination_path.unlink()
+    pooch.retrieve(
+        url=ATLAS_FILE_URL,
+        known_hash="f8722e855263f71f9e7cbdfc05b348be30ea627a3d7c1e9b1f77e17febeb4774",
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Untar(extract_dir="."),
+    )
 
     structures_file = (
-        atlas_files_dir
+        destination_path
         / "LSFM-mouse-brain-atlas-master"
         / "LSFM_atlas_files"
         / "ARA2_annotation_info_avail_regions.csv"
     )
     annotations_file = (
-        atlas_files_dir
+        destination_path
         / "LSFM-mouse-brain-atlas-master"
         / "LSFM_atlas_files"
         / "gubra_ano_olf.nii.gz"
     )
     reference_file = (
-        atlas_files_dir
+        destination_path
         / "LSFM-mouse-brain-atlas-master"
         / "LSFM_atlas_files"
         / "gubra_template_olf.nii.gz"

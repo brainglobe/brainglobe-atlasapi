@@ -4,11 +4,11 @@ __atlas__ = "osten_mouse"
 
 import json
 import multiprocessing as mp
-import tarfile
 import time
 
 import numpy as np
 import pandas as pd
+import pooch
 import tifffile
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from rich.progress import track
@@ -39,22 +39,23 @@ def create_atlas(working_dir, resolution):
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    atlas_files_dir = download_dir_path / "atlas_files"
+    # atlas_files_dir = download_dir_path / "atlas_files"
 
     # Download atlas_file
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download"
-    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
 
-    tar = tarfile.open(destination_path)
-    tar.extractall(path=atlas_files_dir)
-    tar.close()
+    pooch.retrieve(
+        url=ATLAS_FILE_URL,
+        known_hash="ee2760152b8a4086965b9ff2dcdc9c476df676f8fee54cac695bb7ce12eaf4aa",
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Untar(extract_dir="."),
+    )
 
-    destination_path.unlink()
-
-    structures_file = atlas_files_dir / "osten_atlas" / "structures.csv"
-    annotations_file = atlas_files_dir / "osten_atlas" / "annotation.tiff"
+    structures_file = destination_path / "osten_atlas" / "structures.csv"
+    annotations_file = destination_path / "osten_atlas" / "annotation.tiff"
 
     # ---------------- #
     #   GET TEMPLATE   #

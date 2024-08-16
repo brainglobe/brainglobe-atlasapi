@@ -4,11 +4,11 @@ __atlas__ = "kim_dev_mouse"
 import json
 import multiprocessing as mp
 import time
-import zipfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pooch
 from brainglobe_utils.image_io import load_nii
 from rich.progress import track
 from scipy.ndimage import zoom
@@ -84,33 +84,33 @@ def create_atlas(
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    atlas_files_dir = download_dir_path / "atlas_files"
+    # atlas_files_dir = download_dir_path / "atlas_files"
 
     utils.check_internet_connection()
-
     destination_path = download_dir_path / "atlas_download"
 
-    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
-
-    with zipfile.ZipFile(download_dir_path / "atlas_download", "r") as zip_ref:
-        zip_ref.extractall(atlas_files_dir)
-
-    destination_path.unlink()
+    pooch.retrieve(
+        url=ATLAS_FILE_URL,
+        known_hash="bfc38d1992aa2300f4c12a510c50fe380b3f4cbdb3664888587f874dd1a16823",
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Unzip(extract_dir="."),
+    )
 
     # Set paths to volumes
     structures_file = (
-        atlas_files_dir
+        destination_path
         / "KimLabDevCCFv001"
         / "KimLabDevCCFv001_MouseOntologyStructure.csv"
     )
     annotations_file = (
-        atlas_files_dir
+        destination_path
         / "KimLabDevCCFv001"
         / "10um"
         / "KimLabDevCCFv001_Annotations_ASL_Oriented_10um.nii.gz"
     )
     template_file = (
-        atlas_files_dir / "KimLabDevCCFv001" / "10um" / reference_filename
+        destination_path / "KimLabDevCCFv001" / "10um" / reference_filename
     )
 
     # ---------------- #

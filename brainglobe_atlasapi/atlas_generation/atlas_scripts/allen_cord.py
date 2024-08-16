@@ -4,12 +4,12 @@ __atlas__ = "allen_cord"
 import json
 import multiprocessing as mp
 import time
-import zipfile
 from pathlib import Path
 from random import choices
 
 import numpy as np
 import pandas as pd
+import pooch
 import tifffile
 from loguru import logger
 from rich.progress import track
@@ -33,22 +33,16 @@ TEST = False
 def download_atlas_files(download_dir_path: Path, atlas_file_url: str) -> Path:
     utils.check_internet_connection()
 
-    atlas_files_dir = download_dir_path / "atlas_files"
+    pooch.retrieve(
+        url=atlas_file_url,
+        known_hash="4e8d592c78d1613827fa7bc524f215dc0fe7c7e5049fb31be6d3e4b3822852f7",
+        path=download_dir_path,
+        progressbar=True,
+        processor=pooch.Unzip(extract_dir="."),
+    )
 
-    # only download data if they weren't already downloaded
-    if atlas_files_dir.exists():
-        print("Not downloading atlas since it was downloaded already already")
-        return atlas_files_dir / "SC_P56_Atlas_10x10x20_v5_2020"
-    else:
-        print("Downloading atlas data")
+    atlas_files_dir = download_dir_path / "SC_P56_Atlas_1bg0x10x20_v5_2020"
 
-    destination_path = download_dir_path / "atlas_download"
-    utils.retrieve_over_http(atlas_file_url, destination_path)
-
-    with zipfile.ZipFile(destination_path, "r") as zip_ref:
-        zip_ref.extractall(atlas_files_dir)
-
-    atlas_files_dir = atlas_files_dir / "SC_P56_Atlas_10x10x20_v5_2020"
     return atlas_files_dir
 
 

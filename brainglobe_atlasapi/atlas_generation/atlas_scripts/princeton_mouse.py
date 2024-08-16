@@ -8,6 +8,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import pooch
 import tifffile
 from rich.progress import track
 from scipy.ndimage import zoom
@@ -48,16 +49,31 @@ def create_atlas(working_dir, resolution):
     download_dir_path.mkdir(exist_ok=True)
 
     utils.check_internet_connection()
-    reference_dest_path = download_dir_path / "reference_download.tif"
-    annotation_dest_path = download_dir_path / "annotation_download.tif"
 
-    if not os.path.isfile(reference_dest_path):
+    if not os.path.isfile(download_dir_path):
         print("Downloading tissue volume...")
-        utils.retrieve_over_http(reference_download_url, reference_dest_path)
-    if not os.path.isfile(annotation_dest_path):
+        pooch.retrieve(
+            url=reference_download_url,
+            known_hash="efe25ee9b5c52faae82fdcf53b96ef10529414ab61e22ef10753a1545ebc8128",
+            path=download_dir_path,
+            progressbar=True,
+        )
+    if not os.path.isfile(download_dir_path):
         print("Downloading annotation stack...")
-        utils.retrieve_over_http(annotation_download_url, annotation_dest_path)
+        pooch.retrieve(
+            url=annotation_download_url,
+            known_hash="36ac8f1d65f2ef76ea35e5f367e90fdeb904af5f2f39ed75568cfafc8ede357e",
+            path=download_dir_path,
+            progressbar=True,
+        )
     print("Download complete.")
+
+    reference_dest_path = (
+        download_dir_path / "85c139517e1de923e63d741a8d4dc345-pma_tissue"
+    )
+    annotation_dest_path = (
+        download_dir_path / "179d667f26ee659d1d11de70a9fc004f-pma_annotations"
+    )
 
     template_volume = tifffile.imread(reference_dest_path)
     template_volume = np.array(template_volume)

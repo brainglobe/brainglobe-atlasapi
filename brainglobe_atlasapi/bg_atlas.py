@@ -1,4 +1,3 @@
-import sys
 import tarfile
 from io import StringIO
 from pathlib import Path
@@ -9,7 +8,11 @@ from rich import print as rprint
 from rich.console import Console
 
 from brainglobe_atlasapi import config, core, descriptors, utils
-from brainglobe_atlasapi.utils import _rich_atlas_metadata
+from brainglobe_atlasapi.utils import (
+    _rich_atlas_metadata,
+    check_gin_status,
+    check_internet_connection,
+)
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
@@ -79,30 +82,13 @@ class BrainGlobeAtlas(core.Atlas):
             setattr(self, dirname, dir_path)
 
         # Look for this atlas in local brainglobe folder:
-        if utils.check_internet_connection(raise_error=False):
+        if self.local_full_name is None:
             if self.remote_version is None:
-                raise ValueError(f"{atlas_name} is not a valid atlas name!")
-
-            if self.local_full_name is None:
-                rprint(
-                    f"[magenta2]brainglobe_atlasapi: {self.atlas_name} "
-                    "not found locally. Downloading...[magenta2]"
+                raise ValueError(
+                    f"{atlas_name} is not a valid atlas name! "
+                    "Please check the name and try again."
                 )
-                self.download_extract_file()
-        else:
-            print(
-                "No Internet connection. Checking if atlas "
-                "is available locally..."
-            )
-            if self.local_full_name is None:
-                print("Atlas unavailable locally.")
-                sys.stdout.flush()
-                raise ConnectionError(
-                    "Atlas unavailable locally. Please "
-                    "connect to the Internet to download."
-                )
-            else:
-                print("Atlas found locally!")
+            self.download_extract_file()
 
         # Instantiate after eventual download:
         super().__init__(self.brainglobe_dir / self.local_full_name)
@@ -129,11 +115,29 @@ class BrainGlobeAtlas(core.Atlas):
         """
         remote_url = self._remote_url_base.format("last_versions.conf")
 
+        # Check if we are online, will print error if not
+        if check_internet_connection(raise_error=False) and check_gin_status(
+            raise_error=False
+        ):
+            # Grasp remote version
+            versions_conf = utils.conf_from_url(remote_url)
+        else:
+            # If offline, try to get the version from the local conf file:
+            cache_file = config.get_brainglobe_dir() / "last_versions.conf"
+            versions_conf = utils.conf_from_file(cache_file)
+
+        try:
+            return _version_tuple_from_str(
+                versions_conf["atlases"][self.atlas_name]
+            )
+        except KeyError:
+            return None
+
         # Grasp remote version if a connection is available:
         try:
             versions_conf = utils.conf_from_url(remote_url)
         except requests.ConnectionError:
-            return
+            print("Cannot connect to the GIN server.")
 
         try:
             return _version_tuple_from_str(

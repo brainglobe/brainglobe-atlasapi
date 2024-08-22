@@ -2,7 +2,7 @@ import configparser
 import json
 import logging
 import re
-import sys
+from pathlib import Path
 from typing import Callable, Optional
 
 import requests
@@ -120,21 +120,42 @@ def check_internet_connection(
 
     try:
         _ = requests.get(url, timeout=timeout)
+
         return True
     except requests.ConnectionError:
-        try:
-            response = requests.head(url)
-            if response.status_code == 404:
-                print("GIN server down.")
-                return "Gin_Server_Error"
-        finally:
-            if raise_error:
-                sys.stdout.flush()
-                raise ConnectionError(
-                    "No Internet connection, try again when you are "
-                    "connected to the internet."
-                )
-            return False
+        if not raise_error:
+            print("No internet connection available.")
+        else:
+            raise ConnectionError(
+                "No internet connection, try again when you are "
+                "connected to the internet."
+            )
+
+    return False
+
+
+def check_gin_status(timeout=5, raise_error=True):
+    """Check that the GIN server is up.
+
+    timeout : int
+        timeout to wait for [in seconds] (Default value = 5).
+    raise_error : bool
+        if false, warning but no error.
+    """
+    url = "https://gin.g-node.org/"
+
+    try:
+        _ = requests.get(url, timeout=timeout)
+
+        return True
+    except requests.ConnectionError as e:
+        error_message = "GIN server is down"
+        if not raise_error:
+            print(error_message)
+        else:
+            raise ConnectionError(error_message) from e
+
+    return False
 
 
 def retrieve_over_http(
@@ -169,9 +190,9 @@ def retrieve_over_http(
     )
 
     CHUNK_SIZE = 4096
-    response = requests.get(url, stream=True)
 
     try:
+        response = requests.get(url, stream=True)
         with progress:
             tot = int(response.headers.get("content-length", 0))
 
@@ -269,7 +290,7 @@ def get_download_size(url: str) -> int:
         raise IndexError("Improperly formatted URL")
 
 
-def conf_from_url(url):
+def conf_from_url(url) -> configparser.ConfigParser:
     """Read conf file from an URL.
     Parameters
     ----------
@@ -288,7 +309,7 @@ def conf_from_url(url):
     return config
 
 
-def conf_from_file(file_path):
+def conf_from_file(file_path: Path) -> configparser.ConfigParser:
     """Read conf file from a local file path.
     Parameters
     ----------
@@ -298,22 +319,15 @@ def conf_from_file(file_path):
     Returns
     -------
     conf object if file available
-    False if file not available
 
     """
-    try:
-        with open(file_path, "r") as file:
-            text = file.read()
-        config = configparser.ConfigParser()
-        config.read_string(text)
-        return config
-    except FileNotFoundError:
-        sys.stdout.flush()
-        raise FileNotFoundError(
-            "Cannot fetch atlas list. Please "
-            "connect to the Internet and try again."
-        )
-        return False
+    with open(file_path, "r") as file:
+        text = file.read()
+
+    config = configparser.ConfigParser()
+    config.read_string(text)
+
+    return config
 
 
 ### File I/O

@@ -189,7 +189,7 @@ def retrieve_over_http(
                     adv = len(chunk)
                     completed += adv
                     progress.update(
-                        task_id, completed=min(completed, tot), refresh=True
+                        task_id, completed=min(completed, tot)
                     )
 
                     if fn_update:

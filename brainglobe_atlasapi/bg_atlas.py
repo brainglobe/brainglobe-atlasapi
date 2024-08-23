@@ -88,10 +88,7 @@ class BrainGlobeAtlas(core.Atlas):
                 check_gin_status(raise_error=True)
 
                 # If internet and GIN are up, then the atlas name was invalid
-                raise ValueError(
-                    "Invalid atlas name. "
-                    "Check the available atlases with brainglobe list."
-                )
+                raise ValueError(f"{atlas_name} is not a valid atlas name!")
             else:
                 self.download_extract_file()
 

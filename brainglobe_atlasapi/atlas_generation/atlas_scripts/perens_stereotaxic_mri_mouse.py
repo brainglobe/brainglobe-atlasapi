@@ -161,13 +161,13 @@ def create_atlas(working_dir, resolution):
     destination_path = download_dir_path / "atlas_download.7z"
     headers = {
         "User-Agent": (
-                "Mozilla/5.0 "
-                "(Windows NT 10.0; "
-                "Win64; x64; "
-                "rv:129.0) "
-                "Gecko/20100101 "
-                "Firefox/129.0"
-            ),
+            "Mozilla/5.0 "
+            "(Windows NT 10.0; "
+            "Win64; x64; "
+            "rv:129.0) "
+            "Gecko/20100101 "
+            "Firefox/129.0"
+        ),
         "Accept": (
             "text/html,"
             "application/xhtml+xml,"

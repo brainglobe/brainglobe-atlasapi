@@ -2,6 +2,7 @@ import configparser
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Callable, Optional
 
 import requests
@@ -18,6 +19,8 @@ from rich.progress import (
 )
 from rich.table import Table
 from rich.text import Text
+
+from brainglobe_atlasapi import config
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -119,15 +122,41 @@ def check_internet_connection(
 
     try:
         _ = requests.get(url, timeout=timeout)
+
         return True
-    except requests.ConnectionError:
+    except requests.ConnectionError as e:
         if not raise_error:
             print("No internet connection available.")
         else:
             raise ConnectionError(
                 "No internet connection, try again when you are "
                 "connected to the internet."
-            )
+            ) from e
+
+    return False
+
+
+def check_gin_status(timeout=5, raise_error=True):
+    """Check that the GIN server is up.
+
+    timeout : int
+        timeout to wait for [in seconds] (Default value = 5).
+    raise_error : bool
+        if false, warning but no error.
+    """
+    url = "https://gin.g-node.org/"
+
+    try:
+        _ = requests.get(url, timeout=timeout)
+
+        return True
+    except requests.ConnectionError as e:
+        error_message = "GIN server is down."
+        if not raise_error:
+            print(error_message)
+        else:
+            raise ConnectionError(error_message) from e
+
     return False
 
 
@@ -163,9 +192,9 @@ def retrieve_over_http(
     )
 
     CHUNK_SIZE = 4096
-    response = requests.get(url, stream=True)
 
     try:
+        response = requests.get(url, stream=True)
         with progress:
             tot = int(response.headers.get("content-length", 0))
 
@@ -261,8 +290,8 @@ def get_download_size(url: str) -> int:
         raise IndexError("Improperly formatted URL")
 
 
-def conf_from_url(url):
-    """Read conf file from an URL.
+def conf_from_url(url) -> configparser.ConfigParser:
+    """Read conf file from an URL. And cache a copy in the brainglobe dir.
     Parameters
     ----------
     url : str
@@ -274,6 +303,35 @@ def conf_from_url(url):
 
     """
     text = requests.get(url).text
+    config_obj = configparser.ConfigParser()
+    config_obj.read_string(text)
+    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+
+    # Cache the available atlases
+    with open(cache_path, "w") as f_out:
+        config_obj.write(f_out)
+
+    return config_obj
+
+
+def conf_from_file(file_path: Path) -> configparser.ConfigParser:
+    """Read conf file from a local file path.
+    Parameters
+    ----------
+    file_path : Path
+        conf file path (obtained from config.get_brainglobe_dir())
+
+    Returns
+    -------
+    conf object if file available
+
+    """
+    if not file_path.exists():
+        raise FileNotFoundError("Last versions cache file not found.")
+
+    with open(file_path, "r") as file:
+        text = file.read()
+
     config = configparser.ConfigParser()
     config.read_string(text)
 

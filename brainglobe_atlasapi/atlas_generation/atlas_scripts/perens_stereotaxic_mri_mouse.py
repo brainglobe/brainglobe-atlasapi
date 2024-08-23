@@ -1,6 +1,3 @@
-import sys
-sys.path.append(r"/home/harryc/github/brainglobe-atlasapi/")
-
 
 __version__ = "3"
 import os

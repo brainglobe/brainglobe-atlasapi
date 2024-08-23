@@ -1,17 +1,16 @@
-
 __version__ = "3"
-import os
 import json
 import multiprocessing as mp
-import tarfile
+import os
 import time
 from pathlib import Path
-import requests
+
 import numpy as np
 import pandas as pd
+import py7zr
 import SimpleITK as sitk
 from rich.progress import track
-import py7zr
+
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
@@ -167,7 +166,7 @@ def create_atlas(working_dir, resolution):
         "Accept-Encoding": "gzip, deflate, br, zstd",
         "DNT": "1",
         "Sec-GPC": "1",
-        "Host":"www.neuropedia.dk",
+        "Host": "www.neuropedia.dk",
         "Connection": "keep-alive",
         "Upgrade-Insecure-Requests": "1",
         "Sec-Fetch-Dest": "document",
@@ -175,32 +174,37 @@ def create_atlas(working_dir, resolution):
         "Sec-Fetch-Site": "none",
         "Sec-Fetch-User": "?1",
         "TE": "trailers",
-        "Priority":"u=0, i"
+        "Priority": "u=0, i",
     }
-    if not os.path.isdir(atlas_files_dir / 'Multimodal_mouse_brain_atlas_files'):
+    if not os.path.isdir(
+        atlas_files_dir / "Multimodal_mouse_brain_atlas_files"
+    ):
         req = urllib.request.Request(ATLAS_FILE_URL, headers=headers)
-        with urllib.request.urlopen(req) as response, open(destination_path, 'wb') as out_file:
+        with (
+            urllib.request.urlopen(req) as response,
+            open(destination_path, "wb") as out_file,
+        ):
             data = response.read()  # a `bytes` object
             out_file.write(data)
-        with py7zr.SevenZipFile(destination_path, mode='r') as z:
+        with py7zr.SevenZipFile(destination_path, mode="r") as z:
             z.extractall(path=atlas_files_dir)
         destination_path.unlink()
 
     structures_file = (
         atlas_files_dir
-        / 'Multimodal_mouse_brain_atlas_files'
+        / "Multimodal_mouse_brain_atlas_files"
         / "Hierarchy_tree"
         / "Annotation_info.csv"
     )
     annotations_file = (
         atlas_files_dir
-        / 'Multimodal_mouse_brain_atlas_files'
+        / "Multimodal_mouse_brain_atlas_files"
         / "MRI_space_oriented"
         / "mri_ano.nii.gz"
     )
     reference_file = (
         atlas_files_dir
-        / 'Multimodal_mouse_brain_atlas_files'
+        / "Multimodal_mouse_brain_atlas_files"
         / "MRI_space_oriented"
         / "mri_temp.nii.gz"
     )

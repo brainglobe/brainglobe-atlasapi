@@ -20,6 +20,8 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
+from brainglobe_atlasapi import config
+
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
@@ -122,14 +124,14 @@ def check_internet_connection(
         _ = requests.get(url, timeout=timeout)
 
         return True
-    except requests.ConnectionError:
+    except requests.ConnectionError as e:
         if not raise_error:
             print("No internet connection available.")
         else:
             raise ConnectionError(
                 "No internet connection, try again when you are "
                 "connected to the internet."
-            )
+            ) from e
 
     return False
 
@@ -149,7 +151,7 @@ def check_gin_status(timeout=5, raise_error=True):
 
         return True
     except requests.ConnectionError as e:
-        error_message = "GIN server is down"
+        error_message = "GIN server is down."
         if not raise_error:
             print(error_message)
         else:
@@ -291,7 +293,7 @@ def get_download_size(url: str) -> int:
 
 
 def conf_from_url(url) -> configparser.ConfigParser:
-    """Read conf file from an URL.
+    """Read conf file from an URL. And cache a copy in the brainglobe dir.
     Parameters
     ----------
     url : str
@@ -303,10 +305,15 @@ def conf_from_url(url) -> configparser.ConfigParser:
 
     """
     text = requests.get(url).text
-    config = configparser.ConfigParser()
-    config.read_string(text)
+    config_obj = configparser.ConfigParser()
+    config_obj.read_string(text)
+    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
 
-    return config
+    # Cache the available atlases
+    with open(cache_path, "w") as f_out:
+        config_obj.write(f_out)
+
+    return config_obj
 
 
 def conf_from_file(file_path: Path) -> configparser.ConfigParser:
@@ -321,6 +328,9 @@ def conf_from_file(file_path: Path) -> configparser.ConfigParser:
     conf object if file available
 
     """
+    if not file_path.exists():
+        raise FileNotFoundError("Last versions cache file not found.")
+
     with open(file_path, "r") as file:
         text = file.read()
 

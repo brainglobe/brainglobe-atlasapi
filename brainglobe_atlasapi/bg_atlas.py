@@ -84,11 +84,16 @@ class BrainGlobeAtlas(core.Atlas):
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
             if self.remote_version is None:
+                check_internet_connection(raise_error=True)
+                check_gin_status(raise_error=True)
+
+                # If internet and GIN are up, then the atlas name was invalid
                 raise ValueError(
-                    f"{atlas_name} is not a valid atlas name! "
-                    "Please check the name and try again."
+                    "Invalid atlas name. "
+                    "Check the available atlases with brainglobe list."
                 )
-            self.download_extract_file()
+            else:
+                self.download_extract_file()
 
         # Instantiate after eventual download:
         super().__init__(self.brainglobe_dir / self.local_full_name)
@@ -115,29 +120,11 @@ class BrainGlobeAtlas(core.Atlas):
         """
         remote_url = self._remote_url_base.format("last_versions.conf")
 
-        # Check if we are online, will print error if not
-        if check_internet_connection(raise_error=False) and check_gin_status(
-            raise_error=False
-        ):
+        try:
             # Grasp remote version
             versions_conf = utils.conf_from_url(remote_url)
-        else:
-            # If offline, try to get the version from the local conf file:
-            cache_file = config.get_brainglobe_dir() / "last_versions.conf"
-            versions_conf = utils.conf_from_file(cache_file)
-
-        try:
-            return _version_tuple_from_str(
-                versions_conf["atlases"][self.atlas_name]
-            )
-        except KeyError:
-            return None
-
-        # Grasp remote version if a connection is available:
-        try:
-            versions_conf = utils.conf_from_url(remote_url)
         except requests.ConnectionError:
-            print("Cannot connect to the GIN server.")
+            return None
 
         try:
             return _version_tuple_from_str(
@@ -181,6 +168,8 @@ class BrainGlobeAtlas(core.Atlas):
 
     def download_extract_file(self):
         """Download and extract atlas from remote url."""
+        check_internet_connection()
+        check_gin_status()
 
         # Get path to folder where data will be saved
         destination_path = self.interm_download_dir / COMPRESSED_FILENAME

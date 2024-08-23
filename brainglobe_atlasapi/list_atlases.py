@@ -51,7 +51,7 @@ def get_local_atlas_version(atlas_name):
 
 
 def get_all_atlases_lastversions():
-    """Read from URL all available last versions"""
+    """Read from URL or local cache all available last versions"""
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
 
     if utils.check_internet_connection(
@@ -60,9 +60,6 @@ def get_all_atlases_lastversions():
         available_atlases = utils.conf_from_url(
             descriptors.remote_url_base.format("last_versions.conf")
         )
-        # Cache the available atlases
-        with open(cache_path, "w") as f_out:
-            available_atlases.write(f_out)
     else:
         print("Cannot fetch latest atlas versions from the server.")
         available_atlases = utils.conf_from_file(cache_path)

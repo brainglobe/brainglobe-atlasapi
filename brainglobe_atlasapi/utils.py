@@ -188,9 +188,7 @@ def retrieve_over_http(
                     fout.write(chunk)
                     adv = len(chunk)
                     completed += adv
-                    progress.update(
-                        task_id, completed=min(completed, tot), refresh=True
-                    )
+                    progress.update(task_id, completed=min(completed, tot))
 
                     if fn_update:
                         # update handler with completed and total bytes

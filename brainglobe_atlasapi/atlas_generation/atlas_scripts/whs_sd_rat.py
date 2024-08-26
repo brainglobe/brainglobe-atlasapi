@@ -198,14 +198,12 @@ def create_atlas(working_dir):
     ATLAS_NAME = "whs_sd_rat"
     SPECIES = "Rattus norvegicus"
     ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"
-    CITATION = (
-        "Kleven et al 2023, https://doi.org/10.1038/s41592-023-02034-3"
-    )
+    CITATION = "Kleven et al 2023, https://doi.org/10.1038/s41592-023-02034-3"
     ORIENTATION = "lpi"
     RESOLUTION = (39, 39, 39)
     ROOT_ID = 10000
-    REFERENCE_URL  = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
-    ANNOTATION_URL =  "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
+    REFERENCE_URL = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+    ANNOTATION_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
     ATLAS_PACKAGER = (
         "Harry Carey, University of Oslo, Norway, harry.carey@medisin.uio.no"
     )
@@ -226,20 +224,18 @@ def create_atlas(working_dir):
     download_dir_path.mkdir(exist_ok=True)
 
     # Download atlas files from link provided
-    
+
     atlas_files_dir = download_atlas_files(
-        download_dir_path, REFERENCE_URL, ATLAS_NAME + '_reference'
+        download_dir_path, REFERENCE_URL, ATLAS_NAME + "_reference"
     )
     atlas_files_dir = atlas_files_dir / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 
     annotation_files_dir = download_atlas_files(
-        download_dir_path, ANNOTATION_URL, ATLAS_NAME + '_annotation'
+        download_dir_path, ANNOTATION_URL, ATLAS_NAME + "_annotation"
     )
-    annotation_files_dir = annotation_files_dir / "MBAT_WHS_SD_rat_atlas_v4.01/Data"
-
-
-
-
+    annotation_files_dir = (
+        annotation_files_dir / "MBAT_WHS_SD_rat_atlas_v4.01/Data"
+    )
 
     # Parse structure metadata
     structures = parse_structures(

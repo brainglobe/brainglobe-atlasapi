@@ -1,4 +1,4 @@
-__version__ = "3"
+__version__ = "0"
 import json
 import multiprocessing as mp
 import os

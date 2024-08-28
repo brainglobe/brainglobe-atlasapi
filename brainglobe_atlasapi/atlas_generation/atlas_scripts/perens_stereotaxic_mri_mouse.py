@@ -8,17 +8,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import py7zr
+from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
-from brainglobe_atlasapi import utils
-from brainglobe_utils.IO.image import load_any
+from brainglobe_atlasapi import BrainGlobeAtlas, utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-from brainglobe_atlasapi import BrainGlobeAtlas
+
 atlas = BrainGlobeAtlas("allen_mouse_25um")
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
@@ -55,6 +55,8 @@ HEADERS = {
     "TE": "trailers",
     "Priority": "u=0, i",
 }
+
+
 def download_and_extract_files(ATLAS_FILE_URL, destination_path):
     """This is needed to get the brainglobe data from their server,
     and bypass cloudflare which is only allowing browser access"""
@@ -67,7 +69,10 @@ def download_and_extract_files(ATLAS_FILE_URL, destination_path):
         out_file.write(data)
     with py7zr.SevenZipFile(destination_path, mode="r") as z:
         z.extractall(path=atlas_files_dir)
+
+
 ### Additional functions #####################################################
+
 
 def tree_traverse_child2parent(df, child_id, ids):
     parent = df["parent_id"][df["id"] == child_id].item()
@@ -104,7 +109,6 @@ def get_all_parents(atlas, key):
 ##############################################################################
 
 
-
 def create_atlas(working_dir, resolution):
     ATLAS_NAME = "perens_stereotaxic_mri_mouse"
     SPECIES = "Mus musculus"
@@ -121,8 +125,6 @@ def create_atlas(working_dir, resolution):
 
     ## Download atlas_file
     utils.check_internet_connection()
-
-    import urllib.request
 
     destination_path = download_dir_path / "atlas_download.7z"
 

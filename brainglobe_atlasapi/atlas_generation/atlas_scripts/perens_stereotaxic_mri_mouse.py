@@ -8,7 +8,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import py7zr
-import SimpleITK as sitk
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -225,12 +224,8 @@ def create_atlas(working_dir, resolution):
         / "mri_temp.nii.gz"
     )
 
-    annotated_volume = sitk.GetArrayFromImage(
-        sitk.ReadImage(str(annotations_file))
-    )
-    template_volume = sitk.GetArrayFromImage(
-        sitk.ReadImage(str(reference_file))
-    )
+    annotated_volume = brainglobe_utils.IO.image.load_any(annotations_file)
+    template_volume = brainglobe_utils.IO.image.load_any(reference_file)
 
     print("Download completed...")
 

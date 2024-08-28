@@ -8,10 +8,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import py7zr
+from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
-from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -54,6 +54,8 @@ HEADERS = {
     "TE": "trailers",
     "Priority": "u=0, i",
 }
+
+
 def download_and_extract_files(ATLAS_FILE_URL, destination_path):
     """This is needed to get the brainglobe data from their server,
     and bypass cloudflare which is only allowing browser access"""
@@ -66,6 +68,8 @@ def download_and_extract_files(ATLAS_FILE_URL, destination_path):
         out_file.write(data)
     with py7zr.SevenZipFile(destination_path, mode="r") as z:
         z.extractall(path=atlas_files_dir)
+
+
 ### Additional functions #####################################################
 
 
@@ -182,7 +186,6 @@ def get_all_parents(df, key):
 ##############################################################################
 
 
-
 def create_atlas(working_dir, resolution):
     ATLAS_NAME = "perens_stereotaxic_mri_mouse"
     SPECIES = "Mus musculus"
@@ -199,8 +202,6 @@ def create_atlas(working_dir, resolution):
 
     ## Download atlas_file
     utils.check_internet_connection()
-
-    import urllib.request
 
     destination_path = download_dir_path / "atlas_download.7z"
 

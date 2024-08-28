@@ -5,10 +5,10 @@ import time
 import zipfile
 from pathlib import Path
 
-import imio
 import numpy as np
 import xmltodict
 from rich.progress import track
+from brainglobe_utils.IO.image import load_any 
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -243,10 +243,10 @@ def create_atlas(working_dir):
     )
 
     # Load files
-    annotation_stack = imio.load_any(
+    annotation_stack = load_any(
         annotation_files_dir / "WHS_SD_rat_atlas_v4.01.nii.gz", as_numpy=True
     ).astype(np.int64)
-    reference_stack = imio.load_any(
+    reference_stack = load_any(
         atlas_files_dir / "WHS_SD_rat_T2star_v1.01.nii.gz", as_numpy=True
     )
 

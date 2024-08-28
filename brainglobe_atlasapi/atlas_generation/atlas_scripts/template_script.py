@@ -1,3 +1,6 @@
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+
 ###Metadata
 __version__ = 1  # The version of the atlas in the brainglobe_atlasapi, this is internal, if this is the first time this atlas has been added the value should be 1
 ATLAS_NAME = None  # The expected format is FirstAuthor_SpeciesCommonName, ie; kleven_rat

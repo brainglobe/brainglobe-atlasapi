@@ -1,14 +1,13 @@
-__version__ = "0"
-
+__version__ = "2"
 import json
 import multiprocessing as mp
 import time
 import zipfile
 from pathlib import Path
 
-import imio
 import numpy as np
 import xmltodict
+from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -199,15 +198,14 @@ def create_atlas(working_dir):
     ATLAS_NAME = "whs_sd_rat"
     SPECIES = "Rattus norvegicus"
     ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"
-    CITATION = (
-        "Papp et al 2014, https://doi.org/10.1016/j.neuroimage.2014.04.001"
-    )
+    CITATION = "Kleven et al 2023, https://doi.org/10.1038/s41592-023-02034-3"
     ORIENTATION = "lpi"
     RESOLUTION = (39, 39, 39)
     ROOT_ID = 10000
-    ATLAS_FILE_URL = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+    REFERENCE_URL = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+    ANNOTATION_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
     ATLAS_PACKAGER = (
-        "Ben Kantor, Tel Aviv University, Israel, benkantor@mail.tau.ac.il"
+        "Harry Carey, University of Oslo, Norway, harry.carey@medisin.uio.no"
     )
 
     assert len(ORIENTATION) == 3, (
@@ -215,7 +213,7 @@ def create_atlas(working_dir):
     )
     assert len(RESOLUTION) == 3, "Resolution is not correct, Got " + RESOLUTION
     assert (
-        ATLAS_FILE_URL
+        REFERENCE_URL
     ), "No download link provided for atlas in ATLAS_FILE_URL"
 
     # Generated atlas path:
@@ -226,22 +224,29 @@ def create_atlas(working_dir):
     download_dir_path.mkdir(exist_ok=True)
 
     # Download atlas files from link provided
-    print("Downloading atlas from link: ", ATLAS_FILE_URL)
+
     atlas_files_dir = download_atlas_files(
-        download_dir_path, ATLAS_FILE_URL, ATLAS_NAME
+        download_dir_path, REFERENCE_URL, ATLAS_NAME + "_reference"
     )
     atlas_files_dir = atlas_files_dir / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 
+    annotation_files_dir = download_atlas_files(
+        download_dir_path, ANNOTATION_URL, ATLAS_NAME + "_annotation"
+    )
+    annotation_files_dir = (
+        annotation_files_dir / "MBAT_WHS_SD_rat_atlas_v4.01/Data"
+    )
+
     # Parse structure metadata
     structures = parse_structures(
-        atlas_files_dir / "WHS_SD_rat_atlas_v4_labels.ilf"
+        annotation_files_dir / "WHS_SD_rat_atlas_v4.01_labels.ilf"
     )
 
     # Load files
-    annotation_stack = imio.load_any(
-        atlas_files_dir / "WHS_SD_rat_atlas_v4.nii.gz", as_numpy=True
+    annotation_stack = load_any(
+        annotation_files_dir / "WHS_SD_rat_atlas_v4.01.nii.gz", as_numpy=True
     ).astype(np.int64)
-    reference_stack = imio.load_any(
+    reference_stack = load_any(
         atlas_files_dir / "WHS_SD_rat_T2star_v1.01.nii.gz", as_numpy=True
     )
 

@@ -44,8 +44,8 @@ def retrieve_template_and_reference():
     )
 
     # Download annotated and template volumes
-    reference_volume, _ = spacecache.get_annotation_volume()
-    annotated_volume, _ = spacecache.get_template_volume()
+    reference_volume, _ = spacecache.get_template_volume()
+    annotation_volume, _ = spacecache.get_annotation_volume()
     return reference_volume, annotated_volume
 
 

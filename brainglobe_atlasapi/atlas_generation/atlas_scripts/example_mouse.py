@@ -1,3 +1,5 @@
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
 __version__ = 1  # The version of the atlas in the brainglobe_atlasapi, this is internal, if this is the first time this atlas has been added the value should be 1
 ATLAS_NAME = "example_mouse"  # The expected format is FirstAuthor_SpeciesCommonName, i.e., kleven_rat
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"  # DOI of the most relevant citable document

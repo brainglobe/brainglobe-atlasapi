@@ -8,17 +8,18 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import py7zr
-from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
+from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
+from brainglobe_atlasapi import BrainGlobeAtlas
+atlas = BrainGlobeAtlas("allen_mouse_25um")
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
 HEADERS = {
@@ -54,8 +55,6 @@ HEADERS = {
     "TE": "trailers",
     "Priority": "u=0, i",
 }
-
-
 def download_and_extract_files(ATLAS_FILE_URL, destination_path):
     """This is needed to get the brainglobe data from their server,
     and bypass cloudflare which is only allowing browser access"""
@@ -68,74 +67,7 @@ def download_and_extract_files(ATLAS_FILE_URL, destination_path):
         out_file.write(data)
     with py7zr.SevenZipFile(destination_path, mode="r") as z:
         z.extractall(path=atlas_files_dir)
-
-
 ### Additional functions #####################################################
-
-
-##############################################################################
-def get_id_from_acronym(df, acronym):
-    """
-    Get Allen's brain atlas ID from brain region acronym(s)
-
-    Call:
-        get_id_from_acronym(df, acronym)
-
-    Args:
-        df      (pandas dataframe):
-            atlas table file [see atlas.load_table()]
-        acronym (string or list of strings): brain region acronym(s)
-
-    Returns:
-        ID (int or list of ints):
-            brain region ID(s) corresponding to input acronym(s)
-    """
-
-    # create as list if necessary
-    if not isinstance(acronym, list):
-        acronym = [acronym]
-
-    if len(acronym) > 1:
-        ID_list = []
-        for acro in acronym:
-            ID = df["id"][df["acronym"] == acro].item()
-            ID_list.append(ID)
-        return ID_list
-    else:
-        return df["id"][df["acronym"] == acronym[0]].item()
-
-    # return df['id'][df['acronym']  == acronym].item() # OLD VERSION
-
-
-def get_acronym_from_id(df, ID):
-    """
-    Get Allen's brain atlas acronym from brain region ID(s)
-
-    Call:
-        get_acronym_from_ID(df, acronym)
-
-    Args:
-        df (pandas dataframe): atlas table dataframe [see atlas.load_table()]
-        ID (int or list of int): brain region ID(s)
-
-    Returns:
-        acronym (string or list of strings):
-        brain region acronym(s) corresponding to input ID(s)
-    """
-
-    # create as list if necessary
-    if not isinstance(ID, list):
-        ID = [ID]
-
-    if len(ID) > 1:
-        acronym_list = []
-        for id in ID:
-            acronym = df["acronym"][df["id"] == id].item()
-            acronym_list.append(acronym)
-        return acronym_list
-    else:
-        return df["acronym"][df["id"] == ID[0]].item()
-
 
 def tree_traverse_child2parent(df, child_id, ids):
     parent = df["parent_id"][df["id"] == child_id].item()
@@ -149,7 +81,7 @@ def tree_traverse_child2parent(df, child_id, ids):
         return ids
 
 
-def get_all_parents(df, key):
+def get_all_parents(atlas, key):
     """
     Get all parent IDs/acronyms in Allen's brain atlas hierarchical structure'
 
@@ -157,33 +89,20 @@ def get_all_parents(df, key):
         get_all_children(df, key)
 
     Args:
-        df (pandas dataframe) : atlas table dataframe [see atlas.load_table()]
         key (int/string)      : atlas region ID/acronym
 
     Returns:
         parents (list) : brain region acronym corresponding to input ID
     """
-
-    if isinstance(key, str):  # if input is acronym convert to ID
-        list_parent_ids = tree_traverse_child2parent(
-            df, get_id_from_acronym(df, key), []
-        )
-    elif isinstance(key, int):
-        list_parent_ids = tree_traverse_child2parent(df, key, [])
-
-    if isinstance(key, str):  # if input is acronym convert IDs to acronyms
-        parents = []
-        for id in list_parent_ids:
-            parents.append(get_acronym_from_id(df, id))
-    elif isinstance(key, int):
-        parents = list_parent_ids.copy()
-
-    return parents
+    parents = atlas.get_structure_ancestors(temp_id)
+    parent_ids = [atlas.structures.acronym_to_id_map[p] for p in parents]
+    return parent_ids
 
 
 ##############################################################################
 
 ##############################################################################
+
 
 
 def create_atlas(working_dir, resolution):
@@ -202,6 +121,8 @@ def create_atlas(working_dir, resolution):
 
     ## Download atlas_file
     utils.check_internet_connection()
+
+    import urllib.request
 
     destination_path = download_dir_path / "atlas_download.7z"
 
@@ -248,9 +169,8 @@ def create_atlas(working_dir, resolution):
     rgb = []
     for index, row in df.iterrows():
         temp_id = row["id"]
-        temp_parents = get_all_parents(df, temp_id)
+        temp_parents = get_all_parents(atlas, temp_id)
         parents.append(temp_parents[::-1])
-
         temp_rgb = [row["red"], row["green"], row["blue"]]
         rgb.append(temp_rgb)
 

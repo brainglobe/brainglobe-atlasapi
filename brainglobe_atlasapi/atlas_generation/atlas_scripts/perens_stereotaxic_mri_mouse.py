@@ -11,6 +11,7 @@ import py7zr
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
+from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -20,7 +21,51 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
-
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 "
+        "(Windows NT 10.0; "
+        "Win64; x64; "
+        "rv:129.0) "
+        "Gecko/20100101 "
+        "Firefox/129.0"
+    ),
+    "Accept": (
+        "text/html,"
+        "application/xhtml+xml,"
+        "application/xml;q=0.9,"
+        "image/avif,"
+        "image/webp,"
+        "image/png,"
+        "image/svg+xml,"
+        "*/*;q=0.8"
+    ),
+    "Accept-Language": "en-GB,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "DNT": "1",
+    "Sec-GPC": "1",
+    "Host": "www.neuropedia.dk",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "TE": "trailers",
+    "Priority": "u=0, i",
+}
+def download_and_extract_files(ATLAS_FILE_URL, destination_path):
+    """This is needed to get the brainglobe data from their server,
+    and bypass cloudflare which is only allowing browser access"""
+    req = urllib.request.Request(ATLAS_FILE_URL, headers=HEADERS)
+    with (
+        urllib.request.urlopen(req) as response,
+        open(destination_path, "wb") as out_file,
+    ):
+        data = response.read()  # a `bytes` object
+        out_file.write(data)
+    with py7zr.SevenZipFile(destination_path, mode="r") as z:
+        z.extractall(path=atlas_files_dir)
 ### Additional functions #####################################################
 
 
@@ -135,7 +180,7 @@ def get_all_parents(df, key):
 ##############################################################################
 
 ##############################################################################
-# %%
+
 
 
 def create_atlas(working_dir, resolution):
@@ -158,51 +203,11 @@ def create_atlas(working_dir, resolution):
     import urllib.request
 
     destination_path = download_dir_path / "atlas_download.7z"
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 "
-            "(Windows NT 10.0; "
-            "Win64; x64; "
-            "rv:129.0) "
-            "Gecko/20100101 "
-            "Firefox/129.0"
-        ),
-        "Accept": (
-            "text/html,"
-            "application/xhtml+xml,"
-            "application/xml;q=0.9,"
-            "image/avif,"
-            "image/webp,"
-            "image/png,"
-            "image/svg+xml,"
-            "*/*;q=0.8"
-        ),
-        "Accept-Language": "en-GB,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "DNT": "1",
-        "Sec-GPC": "1",
-        "Host": "www.neuropedia.dk",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "TE": "trailers",
-        "Priority": "u=0, i",
-    }
+
     if not os.path.isdir(
         atlas_files_dir / "Multimodal_mouse_brain_atlas_files"
     ):
-        req = urllib.request.Request(ATLAS_FILE_URL, headers=headers)
-        with (
-            urllib.request.urlopen(req) as response,
-            open(destination_path, "wb") as out_file,
-        ):
-            data = response.read()  # a `bytes` object
-            out_file.write(data)
-        with py7zr.SevenZipFile(destination_path, mode="r") as z:
-            z.extractall(path=atlas_files_dir)
+        download_and_extract_files(ATLAS_FILE_URL, destination_path)
         destination_path.unlink()
 
     structures_file = (
@@ -224,8 +229,8 @@ def create_atlas(working_dir, resolution):
         / "mri_temp.nii.gz"
     )
 
-    annotated_volume = brainglobe_utils.IO.image.load_any(annotations_file)
-    template_volume = brainglobe_utils.IO.image.load_any(reference_file)
+    annotated_volume = load_any(annotations_file)
+    template_volume = load_any(reference_file)
 
     print("Download completed...")
 

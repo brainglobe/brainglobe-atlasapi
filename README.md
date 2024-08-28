@@ -26,7 +26,7 @@ A number of atlases are in development, but those available currently are:
 | Atlas Name | Resolution | Ages | Reference Images
 | --- |  --- | --- | --- |
 | [Allen Mouse Brain Atlas](https://doi.org/10.1016/j.cell.2020.04.007) | 10, 25, 50, and 100 micron | P56 | STPT
-| [Allen Human Brain Atlas](https://www.brain-map.org) | 100 micron | Adult | MRI
+| [Allen Human Brain Atlas](https://www.brain-map.org) | 500 micron | Adult | MRI
 | [Max Planck Zebrafish Brain Atlas](http://fishatlas.neuro.mpg.de) | 1 micron | 6-dpf | FISH
 | [Enhanced and Unified Mouse Brain Atlas](https://kimlab.io/brain-map/atlas/) | 10, 25, 50, and 100 micron | P56 | STPT
 | [Smoothed version of the Kim et al. mouse reference atlas](https://doi.org/10.1016/j.celrep.2014.12.014) | 10, 25, 50 and 100 micron | P56 | STPT

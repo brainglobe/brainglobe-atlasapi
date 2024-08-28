@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 import xmltodict
+from brainglobe_utils.IO.image import load_any
 from rich.progress import track
-from brainglobe_utils.IO.image import load_any 
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (

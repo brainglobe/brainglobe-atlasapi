@@ -17,8 +17,6 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
 
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-
 
 def download_resources():
     """

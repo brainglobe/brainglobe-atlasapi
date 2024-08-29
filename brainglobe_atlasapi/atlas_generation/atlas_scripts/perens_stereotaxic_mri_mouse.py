@@ -19,7 +19,8 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-atlas = BrainGlobeAtlas("allen_mouse_25um")
+# The Perens atlas re-uses information from the Allen atlas, so it's useful to have an instance of the Allen atlas around
+allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
 HEADERS = {

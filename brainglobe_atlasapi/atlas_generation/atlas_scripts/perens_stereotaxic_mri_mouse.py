@@ -59,7 +59,7 @@ HEADERS = {
 
 
 def download_and_extract_files(ATLAS_FILE_URL, destination_path):
-    """This is needed to get the brainglobe data from their server,
+    """This is needed to get the source data from their server,
     and bypass cloudflare which is only allowing browser access"""
     req = urllib.request.Request(ATLAS_FILE_URL, headers=HEADERS)
     with (

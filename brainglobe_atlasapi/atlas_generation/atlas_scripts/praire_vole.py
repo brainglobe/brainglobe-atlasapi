@@ -3,20 +3,22 @@ __version__ = "0"
 import os
 import random
 import shutil
+import time
 import zipfile
 from pathlib import Path
-import time
+
 import numpy as np
 import pandas as pd
 import pooch
 import tifffile
 from rich.progress import track
+
 from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -40,7 +42,7 @@ def create_atlas(working_dir):
         "PrV_ReferenceBrain_bilateral.tif": "42917449",
         "PrV_Annotation_bilateral.tif": "42917452",
         "PrV_Atlas_Ontology.csv": "42917443",
-        "PrV_results_datasets.zip": "42501327"
+        "PrV_results_datasets.zip": "42501327",
     }
 
     utils.check_internet_connection()
@@ -59,34 +61,46 @@ def create_atlas(working_dir):
             known_hash=None,
         )
 
-    with zipfile.ZipFile(r"C:\Users\sacha\Downloads\atlas shit\PrV_results_datasets.zip", 'r') as zip_ref:
+    with zipfile.ZipFile(
+        r"C:\Users\sacha\Downloads\atlas shit\PrV_results_datasets.zip", "r"
+    ) as zip_ref:
         file_list = zip_ref.namelist()
         print(f"Files: {file_list}")
-        zip_ref.extract('results_datasets/neural_nomenclature_hierarchy.csv', atlas_path)
+        zip_ref.extract(
+            "results_datasets/neural_nomenclature_hierarchy.csv", atlas_path
+        )
 
-    shutil.move(atlas_path / r"results_datasets\neural_nomenclature_hierarchy.csv", atlas_path)
+    shutil.move(
+        atlas_path / r"results_datasets\neural_nomenclature_hierarchy.csv",
+        atlas_path,
+    )
     os.rmdir(atlas_path / r"results_datasets")
 
-    annotations_file = (
-            atlas_path / "PrV_Annotation_bilateral.tif"
-    )
+    annotations_file = atlas_path / "PrV_Annotation_bilateral.tif"
     reference_file = atlas_path / "PrV_ReferenceBrain_bilateral.tif"
     meshes_dir_path = atlas_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
-    nmh = pd.read_csv(atlas_path / 'neural_nomenclature_hierarchy.csv').values
-    reference_id = pd.read_csv(atlas_path / 'PrV_Atlas_Ontology.csv')
+    nmh = pd.read_csv(atlas_path / "neural_nomenclature_hierarchy.csv").values
+    reference_id = pd.read_csv(atlas_path / "PrV_Atlas_Ontology.csv")
 
-    acronyms = reference_id['acronym'].values
-    names = reference_id['name'].values
-    ids = reference_id['id'].values
+    acronyms = reference_id["acronym"].values
+    names = reference_id["name"].values
+    ids = reference_id["id"].values
 
     acronym_to_id = dict(zip(acronyms, ids))
     name_to_id = dict(zip(names, ids))
 
     ids = list(ids)
     hierarchy = [
-        {'acronym': 'root', 'id': 997, 'name': 'root', 'structure_id_path': [997], 'rgb_triplet': [255, 255, 255]}]
+        {
+            "acronym": "root",
+            "id": 997,
+            "name": "root",
+            "structure_id_path": [997],
+            "rgb_triplet": [255, 255, 255],
+        }
+    ]
 
     for row in nmh:
         structure_hierarchy = []
@@ -110,7 +124,7 @@ def create_atlas(working_dir):
             "id": structure_hierarchy[-1],
             "name": names[ids.index(structure_hierarchy[-1])],
             "structure_id_path": structure_hierarchy,
-            "rgb_triplet": [random.randint(0, 255) for _ in range(3)]
+            "rgb_triplet": [random.randint(0, 255) for _ in range(3)],
         }
 
         hierarchy.append(structure_template)
@@ -165,9 +179,9 @@ def create_atlas(working_dir):
             pass
     else:
         for node in track(
-                tree.nodes.values(),
-                total=tree.size(),
-                description="Creating meshes",
+            tree.nodes.values(),
+            total=tree.size(),
+            description="Creating meshes",
         ):
             create_region_mesh(
                 (
@@ -228,7 +242,7 @@ def create_atlas(working_dir):
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
         resolution=("idk",),
-        meshes_dict=tree
+        meshes_dict=tree,
     )
 
     return output_filename

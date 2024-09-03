@@ -51,12 +51,20 @@ def get_local_atlas_version(atlas_name):
 
 
 def get_all_atlases_lastversions():
-    """Read from URL all available last versions"""
-    available_atlases = utils.conf_from_url(
-        descriptors.remote_url_base.format("last_versions.conf")
-    )
-    available_atlases = dict(available_atlases["atlases"])
-    return available_atlases
+    """Read from URL or local cache all available last versions"""
+    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+
+    if utils.check_internet_connection(
+        raise_error=False
+    ) and utils.check_gin_status(raise_error=False):
+        available_atlases = utils.conf_from_url(
+            descriptors.remote_url_base.format("last_versions.conf")
+        )
+    else:
+        print("Cannot fetch latest atlas versions from the server.")
+        available_atlases = utils.conf_from_file(cache_path)
+
+    return dict(available_atlases["atlases"])
 
 
 def get_atlases_lastversions():

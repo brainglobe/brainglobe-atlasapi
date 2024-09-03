@@ -4,11 +4,11 @@ __atlas__ = "whs_sd_rat"
 import json
 import multiprocessing as mp
 import time
-import zipfile
 from pathlib import Path
 
 import imio
 import numpy as np
+import pooch
 import xmltodict
 from rich.progress import track
 
@@ -25,21 +25,21 @@ PARALLEL = True
 
 
 def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
-    atlas_files_dir = download_dir_path / ATLAS_NAME
-
-    if atlas_files_dir.exists():
-        return atlas_files_dir
 
     utils.check_internet_connection()
 
     download_name = ATLAS_NAME + "_atlas.zip"
     destination_path = download_dir_path / download_name
-    utils.retrieve_over_http(atlas_file_url, destination_path)
 
-    with zipfile.ZipFile(destination_path, "r") as zip_ref:
-        zip_ref.extractall(atlas_files_dir)
+    pooch.retrieve(
+        url=atlas_file_url,
+        known_hash="c154cae62e7bf5d56b0e641b47698ad4f722a7de2901b6b67825bf29b0fc9275",
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Unzip(extract_dir="."),
+    )
 
-    return atlas_files_dir
+    return destination_path
 
 
 def parse_structures_xml(root, path=None, structures=None):
@@ -221,7 +221,7 @@ def create_atlas(working_dir):
     ), "No download link provided for atlas in ATLAS_FILE_URL"
 
     # Generated atlas path:
-    working_dir = working_dir / ATLAS_NAME
+    working_dir = working_dir
     working_dir.mkdir(exist_ok=True, parents=True)
 
     download_dir_path = working_dir / "downloads"
@@ -230,7 +230,7 @@ def create_atlas(working_dir):
     # Download atlas files from link provided
     print("Downloading atlas from link: ", ATLAS_FILE_URL)
     atlas_files_dir = download_atlas_files(
-        download_dir_path, ATLAS_FILE_URL, ATLAS_NAME
+        download_dir_path, ATLAS_FILE_URL, __atlas__
     )
     atlas_files_dir = atlas_files_dir / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 

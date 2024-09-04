@@ -231,7 +231,6 @@ def create_atlas(working_dir):
 
     atlas_files_dir = download_atlas_files(
         download_dir_path, ATLAS_FILE_URL, __atlas__
-
     )
     atlas_files_dir = atlas_files_dir / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 

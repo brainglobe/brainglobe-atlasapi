@@ -8,7 +8,11 @@ from rich import print as rprint
 from rich.console import Console
 
 from brainglobe_atlasapi import config, core, descriptors, utils
-from brainglobe_atlasapi.utils import _rich_atlas_metadata
+from brainglobe_atlasapi.utils import (
+    _rich_atlas_metadata,
+    check_gin_status,
+    check_internet_connection,
+)
 
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
@@ -80,13 +84,13 @@ class BrainGlobeAtlas(core.Atlas):
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
             if self.remote_version is None:
-                raise ValueError(f"{atlas_name} is not a valid atlas name!")
+                check_internet_connection(raise_error=True)
+                check_gin_status(raise_error=True)
 
-            rprint(
-                f"[magenta2]brainglobe_atlasapi: {self.atlas_name} "
-                "not found locally. Downloading...[magenta2]"
-            )
-            self.download_extract_file()
+                # If internet and GIN are up, then the atlas name was invalid
+                raise ValueError(f"{atlas_name} is not a valid atlas name!")
+            else:
+                self.download_extract_file()
 
         # Instantiate after eventual download:
         super().__init__(self.brainglobe_dir / self.local_full_name)
@@ -113,11 +117,11 @@ class BrainGlobeAtlas(core.Atlas):
         """
         remote_url = self._remote_url_base.format("last_versions.conf")
 
-        # Grasp remote version if a connection is available:
         try:
+            # Grasp remote version
             versions_conf = utils.conf_from_url(remote_url)
         except requests.ConnectionError:
-            return
+            return None
 
         try:
             return _version_tuple_from_str(
@@ -161,7 +165,8 @@ class BrainGlobeAtlas(core.Atlas):
 
     def download_extract_file(self):
         """Download and extract atlas from remote url."""
-        utils.check_internet_connection()
+        check_internet_connection()
+        check_gin_status()
 
         # Get path to folder where data will be saved
         destination_path = self.interm_download_dir / COMPRESSED_FILENAME

@@ -10,6 +10,9 @@ import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
+from skimage.filters.rank import modal
+from skimage.measure import label, regionprops
+from skimage.morphology import ball
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -24,11 +27,10 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 def create_atlas(working_dir, resolution):
     ATLAS_NAME = "unam_axolotl"
     SPECIES = "Ambystoma mexicanum"
-    ATLAS_LINK = "https://www.nature.com/articles/s41598-021-89357-3"
+    ATLAS_LINK = "https://zenodo.org/records/4595016"
     CITATION = (
         "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3"
     )
-    ATLAS_FILE_URL = "https://zenodo.org/records/4595016"
     ORIENTATION = "lpi"
     ROOT_ID = 999
     ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
@@ -57,7 +59,7 @@ def create_atlas(working_dir, resolution):
     }
     for filename, hash in list_files.items():
         pooch.retrieve(
-            url=f"{ATLAS_FILE_URL}/files/{filename}",
+            url=f"{ATLAS_LINK}/files/{filename}",
             known_hash=hash,
             path=atlas_path,
             progressbar=True,
@@ -75,6 +77,21 @@ def create_atlas(working_dir, resolution):
     dscale = (2**16 - 1) / drange
     reference_image = (reference_image - dmin) * dscale
     reference_image = reference_image.astype(np.uint16)
+
+    # mask: put 1 where there is an annotation
+    annotation_mask = np.zeros(annotation_image.shape)
+    annotation_mask[annotation_image > 0] = 1
+
+    # find the connected regions in the mask
+    labeled_image = label(annotation_mask)
+    regions = regionprops(labeled_image)
+
+    # find the pixels belonging to the largest region
+    largest_region = max(regions, key=lambda region: region.area)
+    largest_mask = labeled_image == largest_region.label
+
+    # keep only annotations in the largest connected region
+    annotation_image = annotation_image * largest_mask
 
     hierarchy = []
 
@@ -165,12 +182,18 @@ def create_atlas(working_dir, resolution):
         node.data = Region(is_label)
 
     # Mesh creation parameters
-    closing_n_iters = 5
-    decimate_fraction = 0.1
+    closing_n_iters = 10
+    decimate_fraction = 0.6
     smooth = True
 
     meshes_dir_path = working_dir / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
+
+    # pass a smoothed version of the annotations for meshing
+    smoothed_annotations = annotation_image.copy()
+    smoothed_annotations = modal(
+        smoothed_annotations.astype(np.uint8), ball(5)
+    )
 
     # Measure duration of mesh creation
     start = time.time()
@@ -188,7 +211,7 @@ def create_atlas(working_dir, resolution):
                 node,
                 tree,
                 labels,
-                annotation_image,
+                smoothed_annotations,
                 ROOT_ID,
                 closing_n_iters,
                 decimate_fraction,

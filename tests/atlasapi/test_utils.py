@@ -81,3 +81,60 @@ def test_get_download_size_HTTPError():
 
         with pytest.raises(HTTPError):
             utils.get_download_size(test_url)
+
+
+def test_check_gin_status():
+    # Test with requests.get returning a valid response
+    with mock.patch("requests.get", autospec=True) as mock_request:
+        mock_response = mock.Mock(spec=requests.Response)
+        mock_response.status_code = 200
+        mock_request.return_value = mock_response
+
+        assert utils.check_gin_status()
+
+
+def test_check_gin_status_down():
+    # Test with requests.get returning a 404 response
+    with mock.patch("requests.get", autospec=True) as mock_request:
+        mock_request.side_effect = requests.ConnectionError()
+
+        with pytest.raises(ConnectionError) as e:
+            utils.check_gin_status()
+            assert "GIN server is down" == e.value
+
+
+def test_check_gin_status_down_no_error():
+    # Test with requests.get returning a 404 response
+    with mock.patch("requests.get", autospec=True) as mock_request:
+        mock_request.side_effect = requests.ConnectionError()
+
+        assert not utils.check_gin_status(raise_error=False)
+
+
+def test_conf_from_file(temp_path):
+    conf_path = temp_path / "conf.conf"
+    content = (
+        "[atlases]\n"
+        "example_mouse_100um = 1.2\n"
+        "allen_mouse_10um = 1.2\n"
+        "allen_mouse_25um = 1.2"
+    )
+    conf_path.write_text(content)
+    # Test with a valid file
+    conf = utils.conf_from_file(conf_path)
+
+    assert dict(conf["atlases"]) == {
+        "example_mouse_100um": "1.2",
+        "allen_mouse_10um": "1.2",
+        "allen_mouse_25um": "1.2",
+    }
+
+
+def test_conf_from_file_no_file(temp_path):
+    conf_path = temp_path / "conf.conf"
+
+    # Test with a non-existing file
+    with pytest.raises(FileNotFoundError) as e:
+        utils.conf_from_file(conf_path)
+
+        assert "Last versions cache file not found." == str(e)

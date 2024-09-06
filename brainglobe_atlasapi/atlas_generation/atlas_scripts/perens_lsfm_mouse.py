@@ -1,6 +1,4 @@
-__version__ = "2"
-__atlas__ = "perens_lsfm_mouse"
-
+### Import
 import json
 import multiprocessing as mp
 import time
@@ -20,13 +18,24 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
+### Settings
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
+### Metadata
+__version__ = "2"
 
-### Additional functions #####################################################
+ATLAS_NAME = "perens_lsfm_mouse"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas"
+CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
+ORIENTATION = "ial"
+ROOT_ID = 997
+ATLAS_FILE_URL = (
+    "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
+)
+RESOLUTION = 20  # some resolution, in microns
 
 
-##############################################################################
 def get_id_from_acronym(df, acronym):
     """
     Get Allen's brain atlas ID from brain region acronym(s)
@@ -134,21 +143,7 @@ def get_all_parents(df, key):
     return parents
 
 
-##############################################################################
-
-##############################################################################
-# %%
-
-
 def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "perens_lsfm_mouse"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas"
-    CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
-    ORIENTATION = "ial"
-    ROOT_ID = 997
-    ATLAS_FILE_URL = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
-
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
@@ -355,9 +350,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 20  # some resolution, in microns
-
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    create_atlas(bg_root_dir, resolution)
+    create_atlas(bg_root_dir, RESOLUTION)

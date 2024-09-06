@@ -1,6 +1,4 @@
-__version__ = "0"
-__atlas__ = "princeton_mouse"
-
+### Import
 import json
 import multiprocessing as mp
 import os.path
@@ -22,22 +20,23 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
+### Settings
 PARALLEL = False
+
+### Metadata
+__version__ = "0"
+
+ATLAS_NAME = "princeton_mouse"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links/"
+CITATION = "Pisano et al 2021, https://doi.org/10.1016/j.celrep.2021.109721"
+ORIENTATION = "las"
+ROOT_ID = 997
+ATLAS_RES = 20
+PACKAGER = "Sam Clothier. sam.clothier.18@ucl.ac.uk"
 
 
 def create_atlas(working_dir, resolution):
-    # Specify information about the atlas:
-    ATLAS_NAME = __atlas__
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links/"
-    CITATION = (
-        "Pisano et al 2021, https://doi.org/10.1016/j.celrep.2021.109721"
-    )
-    ORIENTATION = "las"
-    ROOT_ID = 997
-    ATLAS_RES = 20
-    PACKAGER = "Sam Clothier. sam.clothier.18@ucl.ac.uk"
-
     # Download the atlas tissue and annotation TIFFs:
     ######################################
 
@@ -254,9 +253,8 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    RES_UM = 20
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
-    create_atlas(bg_root_dir, RES_UM)
+    create_atlas(bg_root_dir, ATLAS_RES)

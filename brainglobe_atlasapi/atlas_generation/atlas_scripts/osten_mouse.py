@@ -1,7 +1,4 @@
-__version__ = "0"
-__atlas__ = "osten_mouse"
-
-
+### Import
 import json
 import multiprocessing as mp
 import time
@@ -23,19 +20,27 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
+### Settings
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
+
+### Metadata
+__version__ = "0"
+
+ATLAS_NAME = "osten_mouse"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://doi.org/10.1016/j.celrep.2014.12.014"
+CITATION = "Kim et al. 2015, https://doi.org/10.1016/j.celrep.2014.12.014"
+ORIENTATION = "asr"
+ROOT_ID = 997
+ANNOTATIONS_RES_UM = 10
+ATLAS_FILE_URL = (
+    "https://gin.g-node.org/brainglobe/osten_atlas_"
+    "materials/raw/master/osten_atlas_materials.tar.gz"
+)
+RESOLUTION = 100  # some resolution, in microns
 
 
 def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "osten_mouse"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://doi.org/10.1016/j.celrep.2014.12.014"
-    CITATION = "Kim et al. 2015, https://doi.org/10.1016/j.celrep.2014.12.014"
-    ORIENTATION = "asr"
-    ROOT_ID = 997
-    ANNOTATIONS_RES_UM = 10
-    ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/osten_atlas_materials/raw/master/osten_atlas_materials.tar.gz"
-
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
@@ -237,9 +242,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 100  # some resolution, in microns
-
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    create_atlas(bg_root_dir, resolution)
+    create_atlas(bg_root_dir, RESOLUTION)

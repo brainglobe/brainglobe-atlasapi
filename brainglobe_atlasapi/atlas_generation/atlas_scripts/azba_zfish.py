@@ -5,9 +5,7 @@ for the Adult Zebrafish Brain Atlas (AZBA)
 @author: Kailyn Fields, kailyn.fields@wayne.edu
 """
 
-__version__ = "2"
-__atlas__ = "azba_zfish"
-
+### Import
 import csv
 import time
 
@@ -24,18 +22,22 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
+### Metadata
+__version__ = "2"
+
+ATLAS_NAME = "azba_zfish"
+SPECIES = "Danio rerio"
+ATLAS_LINK = "http://www.azba.wayne.edu"
+CITATION = "Kenney et al. 2021, https://doi.org/10.7554/elife.69988"
+ATLAS_FILE_URL = "http://www.azba.wayne.edu/2021-08-22_AZBA.tar.gz"
+ORIENTATION = "las"
+ROOT_ID = 9999
+ATLAS_PACKAGER = "Kailyn Fields, kailyn.fields@wayne.edu"
+ADDITIONAL_METADATA = {}
+RESOLUTION = 4
+
 
 def create_atlas(working_dir, resolution):
-    # metadata
-    ATLAS_NAME = "azba_zfish"
-    SPECIES = "Danio rerio"
-    ATLAS_LINK = "http://www.azba.wayne.edu"
-    CITATION = "Kenney et al. 2021, https://doi.org/10.7554/elife.69988"
-    ATLAS_FILE_URL = "http://www.azba.wayne.edu/2021-08-22_AZBA.tar.gz"
-    ORIENTATION = "las"
-    ROOT_ID = 9999
-    ATLAS_PACKAGER = "Kailyn Fields, kailyn.fields@wayne.edu"
-    ADDITIONAL_METADATA = {}
 
     working_dir = working_dir
     download_path = working_dir / "downloads"
@@ -203,8 +205,6 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 4
-
     # generated atlas path
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
-    create_atlas(bg_root_dir, resolution)
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
+    create_atlas(bg_root_dir, RESOLUTION)

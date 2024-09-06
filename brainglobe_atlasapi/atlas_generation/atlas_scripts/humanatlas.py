@@ -1,7 +1,4 @@
-__version__ = "0"
-__atlas__ = "allen_human"
-
-
+### Import
 import json
 import multiprocessing as mp
 import time
@@ -24,6 +21,21 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+### Metadata
+__version__ = "0"
+
+RES_UM = 500
+VERSION = 1
+ATLAS_NAME = "allen_human"
+SPECIES = "Homo sapiens"
+ATLAS_LINK = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/"
+CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
+ORIENTATION = "rpi"
+
+### Settings
+PARALLEL = True  # disable parallel mesh extraction for easier debugging
+TEST = False
 
 
 def prune_tree(tree):
@@ -90,20 +102,6 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
 
 
 def create_atlas(working_dir):
-    PARALLEL = True  # disable parallel mesh extraction for easier debugging
-    TEST = False
-
-    # ----------------- #
-    #   PREP METADATA   #
-    # ----------------- #
-    RES_UM = 500
-    VERSION = 1
-    ATLAS_NAME = "allen_human"
-    SPECIES = "Homo sapiens"
-    ATLAS_LINK = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/"
-    CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
-    ORIENTATION = "rpi"
-
     # ------------------ #
     #   PREP FILEPATHS   #
     # ------------------ #
@@ -341,6 +339,6 @@ def create_atlas(working_dir):
 
 
 if __name__ == "__main__":
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True)
     create_atlas(bg_root_dir)

@@ -1,7 +1,4 @@
-__version__ = "2"
-__atlas__ = "whs_sd_rat"
-
-
+### Import
 import json
 import multiprocessing as mp
 import time
@@ -10,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pooch
 import xmltodict
-from brainglobe_utils.IO.image import load_any
+from brainglobe_utils.image_io import load_any
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -22,7 +19,23 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
+### Settings
 PARALLEL = True
+
+### Metadata
+__version__ = "2"
+ATLAS_NAME = "whs_sd_rat"
+SPECIES = "Rattus norvegicus"
+ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"
+CITATION = "Kleven et al 2023, https://doi.org/10.1038/s41592-023-02034-3"
+ORIENTATION = "lpi"
+RESOLUTION = (39, 39, 39)
+ROOT_ID = 10000
+REFERENCE_URL = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+ANNOTATION_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
+ATLAS_PACKAGER = (
+    "Harry Carey, University of Oslo, Norway, harry.carey@medisin.uio.no"
+)
 
 
 def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
@@ -34,7 +47,7 @@ def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
 
     pooch.retrieve(
         url=atlas_file_url,
-        known_hash="c154cae62e7bf5d56b0e641b47698ad4f722a7de2901b6b67825bf29b0fc9275",
+        known_hash=None,
         path=destination_path,
         progressbar=True,
         processor=pooch.Unzip(extract_dir="."),
@@ -199,19 +212,6 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 def create_atlas(working_dir):
-    ATLAS_NAME = "whs_sd_rat"
-    SPECIES = "Rattus norvegicus"
-    ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"
-    CITATION = "Kleven et al 2023, https://doi.org/10.1038/s41592-023-02034-3"
-    ORIENTATION = "lpi"
-    RESOLUTION = (39, 39, 39)
-    ROOT_ID = 10000
-    REFERENCE_URL = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
-    ANNOTATION_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
-    ATLAS_PACKAGER = (
-        "Harry Carey, University of Oslo, Norway, harry.carey@medisin.uio.no"
-    )
-
     assert len(ORIENTATION) == 3, (
         "Orientation is not 3 characters, Got" + ORIENTATION
     )
@@ -230,7 +230,7 @@ def create_atlas(working_dir):
     # Download atlas files from link provided
 
     atlas_files_dir = download_atlas_files(
-        download_dir_path, ATLAS_FILE_URL, __atlas__
+        download_dir_path, REFERENCE_URL, ATLAS_NAME
     )
     atlas_files_dir = atlas_files_dir / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 
@@ -322,6 +322,6 @@ def create_atlas(working_dir):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
     create_atlas(bg_root_dir)

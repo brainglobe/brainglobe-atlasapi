@@ -1,6 +1,4 @@
-__version__ = "2"
-__atlas__ = "kim_dev_mouse"
-
+### Import
 import json
 import multiprocessing as mp
 import time
@@ -22,7 +20,23 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
+### Settings
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
+
+### Metadata
+__version__ = "2"
+
+ATLAS_GROUP_NAME = "kim_dev_mouse"  # multiple versions of the same atlas
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://data.mendeley.com/datasets/2svx788ddf/1"
+CITATION = (
+    "Kim, Yongsoo (2022), “KimLabDevCCFv001”, Mendeley Data, "
+    "V1, doi: 10.17632/2svx788ddf.1"
+)
+ORIENTATION = "asl"
+ROOT_ID = 99999999
+ANNOTATIONS_RES_UM = 10
+ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/2svx788ddf-1.zip"
 
 
 def clean_up_df_entries(df):
@@ -68,19 +82,8 @@ def create_atlas(
     mesh_creation,
     existing_mesh_dir_path=None,
 ):
-    """"""
-    ATLAS_NAME = f"kim_dev_mouse_{reference_key}"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://data.mendeley.com/datasets/2svx788ddf/1"
-    CITATION = (
-        "Kim, Yongsoo (2022), “KimLabDevCCFv001”, Mendeley Data, "
-        "V1, doi: 10.17632/2svx788ddf.1"
-    )
-    ORIENTATION = "asl"
-    ROOT_ID = 99999999
-    ANNOTATIONS_RES_UM = 10
-    ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/2svx788ddf-1.zip"
 
+    atlas_name = f"kim_dev_mouse_{reference_key}"
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
@@ -272,7 +275,7 @@ def create_atlas(
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
-        atlas_name=ATLAS_NAME,
+        atlas_name=atlas_name,
         atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
@@ -310,7 +313,7 @@ if __name__ == "__main__":
     resolution = 10  # some resolution, in microns (10, 25, 50, 100)
 
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_GROUP_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # First create the standard template, including all meshes

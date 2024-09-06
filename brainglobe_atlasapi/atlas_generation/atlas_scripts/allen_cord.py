@@ -1,6 +1,4 @@
-__version__ = "1"
-__atlas__ = "allen_cord"
-
+### Import
 import json
 import multiprocessing as mp
 import time
@@ -14,8 +12,6 @@ import tifffile
 from loguru import logger
 from rich.progress import track
 
-# import sys
-# sys.path.append("./")
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
@@ -26,8 +22,22 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
+### Settings
 PARALLEL = True
 TEST = False
+
+### Metadata
+__version__ = "1"
+
+ATLAS_NAME = "allen_cord"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://data.mendeley.com/datasets/4rrggzv5d5/1"
+CITATION = "Fiederling et al. 2021, https://doi.org/10.1101/2021.05.06.443008"
+ORIENTATION = "asr"
+RESOLUTION = (20, 10, 10)
+ROOT_ID = 250
+ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/4rrggzv5d5-1.zip"
+ATLAS_PACKAGER = "MetaCell LLC, Ltd."
 
 
 def download_atlas_files(download_dir_path: Path, atlas_file_url: str) -> Path:
@@ -41,7 +51,7 @@ def download_atlas_files(download_dir_path: Path, atlas_file_url: str) -> Path:
         processor=pooch.Unzip(extract_dir="."),
     )
 
-    atlas_files_dir = download_dir_path / "SC_P56_Atlas_1bg0x10x20_v5_2020"
+    atlas_files_dir = download_dir_path / "SC_P56_Atlas_10x10x20_v5_2020"
 
     return atlas_files_dir
 
@@ -208,17 +218,17 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 def create_atlas(working_dir):
-    ATLAS_NAME = "allen_cord"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://data.mendeley.com/datasets/4rrggzv5d5/1"
-    CITATION = (
-        "Fiederling et al. 2021, https://doi.org/10.1101/2021.05.06.443008"
-    )
-    ORIENTATION = "asr"
-    RESOLUTION = (20, 10, 10)
-    ROOT_ID = 250
-    ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/4rrggzv5d5-1.zip"
-    ATLAS_PACKAGER = "MetaCell LLC, Ltd."
+    # ATLAS_NAME = "allen_cord"
+    # SPECIES = "Mus musculus"
+    # ATLAS_LINK = "https://data.mendeley.com/datasets/4rrggzv5d5/1"
+    # CITATION = (
+    #     "Fiederling et al. 2021, https://doi.org/10.1101/2021.05.06.443008"
+    # )
+    # ORIENTATION = "asr"
+    # RESOLUTION = (20, 10, 10)
+    # ROOT_ID = 250
+    # ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/4rrggzv5d5-1.zip"
+    # ATLAS_PACKAGER = "MetaCell LLC, Ltd."
 
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
@@ -288,7 +298,7 @@ def create_atlas(working_dir):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # generate atlas

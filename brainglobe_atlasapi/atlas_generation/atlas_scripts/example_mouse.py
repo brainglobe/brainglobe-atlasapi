@@ -1,7 +1,6 @@
 __version__ = "2"
-__atlas__ = "example_mouse"
 
-
+### Import
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -11,16 +10,16 @@ from tqdm import tqdm
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
+### Metadata
+RES_UM = 100  # 100
+ATLAS_NAME = "example_mouse"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "http://www.brain-map.org"
+CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
+ORIENTATION = "asr"
+
 
 def create_atlas(working_dir, resolution):
-    # Specify information about the atlas:
-    RES_UM = resolution  # 100
-    ATLAS_NAME = "example_mouse"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "http://www.brain-map.org"
-    CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
-    ORIENTATION = "asr"
-
     # Temporary folder for nrrd files download:
     download_dir_path = working_dir / "downloading_path"
     download_dir_path.mkdir(exist_ok=True)
@@ -30,7 +29,7 @@ def create_atlas(working_dir, resolution):
     spacecache = ReferenceSpaceCache(
         manifest=download_dir_path / "manifest.json",
         # downloaded files are stored relative to here
-        resolution=RES_UM,
+        resolution=resolution,
         reference_space_key="annotation/ccf_2017",
         # use the latest version of the CCF
     )
@@ -91,7 +90,7 @@ def create_atlas(working_dir, resolution):
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(RES_UM,) * 3,
+        resolution=(resolution,) * 3,
         orientation=ORIENTATION,
         root_id=997,
         reference_stack=template_volume,
@@ -109,7 +108,7 @@ def create_atlas(working_dir, resolution):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True)
 
-    # create_atlas(working_dir, 100)
+    create_atlas(bg_root_dir, RES_UM)

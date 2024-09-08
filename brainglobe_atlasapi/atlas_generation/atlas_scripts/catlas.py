@@ -1,30 +1,28 @@
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from pathlib import Path
-import pooch 
+
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 ###Metadata
 __version__ = 1
 ATLAS_NAME = "catlas"
-CITATION = "https://doi.org/10.1002/cne.24271"
+CITATION = "Stolzberg, Daniel et al 2017.https://doi.org/10.1002/cne.24271"
 SPECIES = "Felis catus"
 ATLAS_LINK = "https://github.com/CerebralSystemsLab/CATLAS"
 ORIENTATION = "lps"
 ROOT_ID = 999  # Placeholder as no hierarchy is present
 RESOLUTION = 500  # um
-ATLAS_PACKAGER = 'Henry Crosswell'
+ATLAS_PACKAGER = "Henry Crosswell"
+
+annotated_volume = None
+working_dir = None
 
 
 def download_resources():
-
-
     """
     Download the necessary resources for the atlas.
 
     If possible, please use the Pooch library to retrieve any resources.
     """
-
-
-    
     pass
 
 
@@ -33,7 +31,8 @@ def retrieve_template_and_reference():
     Retrieve the desired template and reference as two numpy arrays.
 
     Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the template volume, 
+        tuple: A tuple containing two numpy arrays.
+        The first array is the template volume,
         and the second array is the reference volume.
     """
     template = None
@@ -45,14 +44,14 @@ def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
-    If your atlas is asymmetrical, you may want to use a hemisphere map. 
+    If your atlas is asymmetrical, you may want to use a hemisphere map.
     This is an array in the same shape as your template,
     with 0's marking the left hemisphere, and 1's marking the right.
 
     If your atlas is symmetrical, ignore this function.
 
     Returns:
-        numpy.array or None: A numpy array representing the hemisphere map, 
+        numpy.array or None: A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
     return None
@@ -60,20 +59,21 @@ def retrieve_hemisphere_map():
 
 def retrieve_structure_information():
     """
-    This function should return a pandas DataFrame with information about your atlas.
+    This function should return a pandas DataFrame
+    with information about your atlas.
 
     The DataFrame should be in the following format:
 
-    ╭─────────────┬───────────────────────────────────┬─────────┬───────────────────────┬───────────────────╮
-    | id          | name                              | acronym | structure_id_path     | rgb_triplet       |
-    |             |                                   |         |                       |                   |
-    ├─────────────┼───────────────────────────────────┼─────────┼───────────────────────┼───────────────────┤
-    | 997         | root                              | root    | []                    | [255, 255, 255]   |
-    ├─────────────┼───────────────────────────────────┼─────────┼───────────────────────┼───────────────────┤
-    | 8           | Basic cell groups and regions     | grey    | [997]                 | [191, 218, 227]   |
-    ├─────────────┼───────────────────────────────────┼─────────┼───────────────────────┼───────────────────┤
-    | 567         | Cerebrum                          | CH      | [997, 8]              | [176, 240, 255]   |
-    ╰─────────────┴───────────────────────────────────┴─────────┴───────────────────────┴───────────────────╯
+    ╭─────┬──────────────────┬─────────┬───────────────────┬─────────────────╮
+    | id  | name             | acronym | structure_id_path | rgb_triplet     |
+    |     |                  |         |                   |                 |
+    ├─────┼──────────────────┼─────────┼───────────────────┼─────────────────┤
+    | 997 | root             | root    | []                | [255, 255, 255] |
+    ├─────┼──────────────────┼─────────┼───────────────────┼─────────────────┤
+    | 8   | grps and regions | grey    | [997]             | [191, 218, 227] |
+    ├─────┼──────────────────┼─────────┼───────────────────┼─────────────────┤
+    | 567 | Cerebrum         | CH      | [997, 8]          | [176, 240, 255] |
+    ╰─────┴──────────────────┴─────────┴───────────────────┴─────────────────╯
 
     Returns:
         pandas.DataFrame: A DataFrame containing the atlas information.
@@ -83,16 +83,16 @@ def retrieve_structure_information():
 
 def retrieve_or_construct_meshes():
     """
-    This function should return a dictionary of ids and corresponding paths to mesh files.
-    Some atlases are packaged with mesh files, in these cases we should use these files.
-    Then this function should download those meshes. In other cases we need to construct
-    the meshes ourselves. For this we have helper functions to achieve this.
+    This should return a dict of ids and corresponding paths to mesh files.
+    Use packaged mesh files if possible.
+    Download or construct mesh files  - use helper function for this
     """
     meshes_dict = {}
     return meshes_dict
 
 
-### If the code above this line has been filled correctly, nothing needs to be edited below (unless variables need to be passed between the functions).
+### If the code above this line has been filled correctly, nothing needs to be
+# edited below (unless variables need to be passed between the functions).
 bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 bg_root_dir.mkdir(exist_ok=True)
 download_resources()

@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pooch
+from brainglobe_utils.IO.image import load_nii
 
 from brainglobe_atlasapi.utils import check_internet_connection
 
@@ -11,15 +12,15 @@ __version__ = 1
 ATLAS_NAME = "catlas"
 CITATION = "Stolzberg, Daniel et al 2017.https://doi.org/10.1002/cne.24271"
 SPECIES = "Felis catus"
-ATLAS_LINK = (
-    "https://github.com/CerebralSystemsLab/CATLAS/blob/main/SlicerFiles/"
-)
+ATLAS_LINK = "https://github.com/CerebralSystemsLab/CATLAS"
+ATLAS_FILE_URL = "https://raw.githubusercontent.com/CerebralSystemsLab/CATLAS/main/SlicerFiles/"
 ORIENTATION = "lps"
 ROOT_ID = 999  # Placeholder as no hierarchy is present
 RESOLUTION = 500  # microns
 ATLAS_PACKAGER = "Henry Crosswell"
 
 annotated_volume = None
+# temp location
 working_dir = Path("F:/Users/Henry/Downloads/Setup/CATLAS-main/temp_pooch")
 
 
@@ -36,29 +37,28 @@ def download_resources(working_dir):
     atlas_dir_path.mkdir(exist_ok=True)
 
     check_internet_connection()
-    local_file_path_list = []
+    file_path_list = []
     file_hash_list = [
-        ["meanBrain.nii", "md5:ffa42f5d703b192770d41cdf5493efc8"],
-        ["CorticalAtlas.nii", "md5:9b43e80b4052b7a8e8103163f4f5ff7d"],
-        ["CATLAS_COLORS.txt", "md5:d18c626858b492b139afc2094130b047"],
-        ["CorticalAtlas-Split.nii", "md5:c31fcaa92d658a20c3bb8059089bed14"],
-        ["CATLAS_COLORS-SPLIT.txt", "md5:bd7df732c51f23dae44daccbc58618bb"],
+        ["meanBrain.nii", "md5:84e0d950474bd6c2a4bcebecd0e02ce7"],
+        ["CorticalAtlas.nii", "md5:942bbe2483c1d272434b4fd8f8df606f"],
+        ["CATLAS_COLORS.txt", "md5:5a48c961ebc1bbc2adb821be173b03e4"],
+        ["CorticalAtlas-Split.nii", "md5:7e883fefb60a289c70c4e5553c2c1f6a"],
+        ["CATLAS_COLORS-SPLIT.txt", "md5:ff80025b82b51c263ac2d1bfa3b8ae6b"],
     ]
 
     for file, hash in file_hash_list:
-        file_path = atlas_dir_path / file
         cached_file = pooch.retrieve(
-            url=ATLAS_LINK + file, known_hash=hash, path=file_path
+            url=ATLAS_FILE_URL + file, known_hash=hash, path=atlas_dir_path
         )
-        local_file_path_list.append(cached_file)
+        file_path_list.append(cached_file)
 
-    return local_file_path_list
-
-
-print(download_resources(working_dir))
+    return file_path_list
 
 
-def retrieve_template_and_reference():
+file_path_list = download_resources(working_dir)
+
+
+def retrieve_template_and_reference(file_path_list):
     """
     Retrieve the desired template and reference as two numpy arrays.
 
@@ -67,9 +67,12 @@ def retrieve_template_and_reference():
         The first array is the template volume,
         and the second array is the reference volume.
     """
-    template = None
-    reference = None
+    template = load_nii(file_path_list[0], as_array=True)
+    reference = load_nii(file_path_list[0], as_array=True)
     return template, reference
+
+
+template, reference = retrieve_template_and_reference(file_path_list)
 
 
 def retrieve_hemisphere_map():
@@ -77,14 +80,12 @@ def retrieve_hemisphere_map():
     Retrieve a hemisphere map for the atlas.
 
     If your atlas is asymmetrical, you may want to use a hemisphere map.
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
     This is an array in the same shape as your template,
     with 0's marking the left hemisphere, and 1's marking the right.
 
     If your atlas is symmetrical, ignore this function.
 
     Returns:
-        numpy.array or None: A numpy array representing the hemisphere map,
         numpy.array or None: A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
@@ -132,10 +133,11 @@ def retrieve_or_construct_meshes():
 # bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 # bg_root_dir.mkdir(exist_ok=True)
 # working_dir = bg_root_dir
-# download_resources()
-# template_volume, reference_volume = retrieve_template_and_reference()
-# hemispheres_stack = retrieve_hemisphere_map()
-# structures = retrieve_structure_information()
+# local_file_path_list = download_resources(working_dir)
+# template_volume, reference_volume =
+# retrieve_template_and_reference(local_file_path_list)
+# hemispheres_stack = retrieve_hemisphere_map(local_file_path_list)
+# structures = retrieve_structure_information(local_file_path_list)
 # meshes_dict = retrieve_or_construct_meshes()
 
 # output_filename = wrapup_atlas_from_data(

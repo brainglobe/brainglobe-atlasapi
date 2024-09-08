@@ -45,12 +45,14 @@ def retrieve_hemisphere_map():
     Retrieve a hemisphere map for the atlas.
 
     If your atlas is asymmetrical, you may want to use a hemisphere map.
+    If your atlas is asymmetrical, you may want to use a hemisphere map.
     This is an array in the same shape as your template,
     with 0's marking the left hemisphere, and 1's marking the right.
 
     If your atlas is symmetrical, ignore this function.
 
     Returns:
+        numpy.array or None: A numpy array representing the hemisphere map,
         numpy.array or None: A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """

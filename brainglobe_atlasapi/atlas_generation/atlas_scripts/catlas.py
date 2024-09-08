@@ -1,22 +1,30 @@
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from pathlib import Path
+import pooch 
 
 ###Metadata
-__version__ = 1  # The version of the atlas in the brainglobe_atlasapi, this is internal, if this is the first time this atlas has been added the value should be 1
-ATLAS_NAME = None  # The expected format is FirstAuthor_SpeciesCommonName, ie; kleven_rat
-CITATION = None  # DOI of the most relevant citable document
-SPECIES = None  # The scientific name of the species, ie; Rattus norvegicus
-ATLAS_LINK = None  # The URL for the data files
-ORIENTATION = None  # The orientation of the atlas, for more information on how to determine this click here: ........
-ROOT_ID = None  # The id of the highest level of the atlas. This is commonly called root or brain. Include some information on what to do if your atlas is not hierarchical
-RESOLUTION = None  # the resolution of your volume in microns. details on how to format this parameter for non isotropic datasets or datasets with multiple resolutions.
+__version__ = 1
+ATLAS_NAME = "catlas"
+CITATION = "https://doi.org/10.1002/cne.24271"
+SPECIES = "Felis catus"
+ATLAS_LINK = "https://github.com/CerebralSystemsLab/CATLAS"
+ORIENTATION = "lps"
+ROOT_ID = 999  # Placeholder as no hierarchy is present
+RESOLUTION = 500  # um
+ATLAS_PACKAGER = 'Henry Crosswell'
 
 
 def download_resources():
+
+
     """
     Download the necessary resources for the atlas.
 
     If possible, please use the Pooch library to retrieve any resources.
     """
+
+
+    
     pass
 
 
@@ -25,7 +33,8 @@ def retrieve_template_and_reference():
     Retrieve the desired template and reference as two numpy arrays.
 
     Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the template volume, and the second array is the reference volume.
+        tuple: A tuple containing two numpy arrays. The first array is the template volume, 
+        and the second array is the reference volume.
     """
     template = None
     reference = None
@@ -36,13 +45,15 @@ def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
-    If your atlas is asymmetrical, you may want to use a hemisphere map. This is an array in the same shape as your template,
+    If your atlas is asymmetrical, you may want to use a hemisphere map. 
+    This is an array in the same shape as your template,
     with 0's marking the left hemisphere, and 1's marking the right.
 
     If your atlas is symmetrical, ignore this function.
 
     Returns:
-        numpy.array or None: A numpy array representing the hemisphere map, or None if the atlas is symmetrical.
+        numpy.array or None: A numpy array representing the hemisphere map, 
+        or None if the atlas is symmetrical.
     """
     return None
 

@@ -1,6 +1,6 @@
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from pathlib import Path
-import pooch 
+
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 ###Metadata
 __version__ = 1
@@ -11,20 +11,16 @@ ATLAS_LINK = "https://github.com/CerebralSystemsLab/CATLAS"
 ORIENTATION = "lps"
 ROOT_ID = 999  # Placeholder as no hierarchy is present
 RESOLUTION = 500  # um
-ATLAS_PACKAGER = 'Henry Crosswell'
+ATLAS_PACKAGER = "Henry Crosswell"
 
 
 def download_resources():
-
-
     """
     Download the necessary resources for the atlas.
 
     If possible, please use the Pooch library to retrieve any resources.
     """
 
-
-    
     pass
 
 
@@ -33,7 +29,7 @@ def retrieve_template_and_reference():
     Retrieve the desired template and reference as two numpy arrays.
 
     Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the template volume, 
+        tuple: A tuple containing two numpy arrays. The first array is the template volume,
         and the second array is the reference volume.
     """
     template = None
@@ -45,14 +41,14 @@ def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
-    If your atlas is asymmetrical, you may want to use a hemisphere map. 
+    If your atlas is asymmetrical, you may want to use a hemisphere map.
     This is an array in the same shape as your template,
     with 0's marking the left hemisphere, and 1's marking the right.
 
     If your atlas is symmetrical, ignore this function.
 
     Returns:
-        numpy.array or None: A numpy array representing the hemisphere map, 
+        numpy.array or None: A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
     return None

@@ -68,7 +68,7 @@ def retrieve_template_and_reference(file_path_list):
         and the second array is the reference volume.
     """
     template = load_nii(file_path_list[0], as_array=True)
-    reference = load_nii(file_path_list[0], as_array=True)
+    reference = load_nii(file_path_list[1], as_array=True)
     return template, reference
 
 

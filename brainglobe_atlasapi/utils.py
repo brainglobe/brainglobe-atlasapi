@@ -307,6 +307,9 @@ def conf_from_url(url) -> configparser.ConfigParser:
     config_obj.read_string(text)
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
 
+    if not cache_path.parent.exists():
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+
     # Cache the available atlases
     with open(cache_path, "w") as f_out:
         config_obj.write(f_out)

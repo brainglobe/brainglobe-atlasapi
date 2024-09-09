@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
 
@@ -22,6 +23,9 @@ ATLAS_PACKAGER = "Henry Crosswell"
 annotated_volume = None
 # temp location
 working_dir = Path("F:/Users/Henry/Downloads/Setup/CATLAS-main/temp_pooch")
+
+# A CSV I made from table 1 of the paper
+csv_of_full_name = "~/Desktop/catlas_table1_name.csv"
 
 
 def download_resources(working_dir):
@@ -92,7 +96,7 @@ def retrieve_hemisphere_map():
     return None
 
 
-def retrieve_structure_information():
+def retrieve_structure_information(file_path_list, csv_of_full_name):
     """
     This function should return a pandas DataFrame
     with information about your atlas.
@@ -113,7 +117,25 @@ def retrieve_structure_information():
     Returns:
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
+
+    labels_df = pd.read_csv(file_path_list[2], sep=r"\s+", skiprows=2)
+    full_name_df = pd.read_csv(csv_of_full_name)
+
+    print(labels_df.shape)
+    print(full_name_df.shape)
+
+    col1 = labels_df.iloc[:, 1]
+    col2 = full_name_df.iloc[:, 0]
+
+    unique_in_df1 = set(col1) - set(col2)
+    unique_in_df2 = set(col2) - set(col1)
+
+    print(f"Values in df1 but not in df2: {unique_in_df1}")
+    print(f"Values in df2 but not in df1: {unique_in_df2}")
     return None
+
+
+retrieve_structure_information(file_path_list, csv_of_full_name)
 
 
 def retrieve_or_construct_meshes():

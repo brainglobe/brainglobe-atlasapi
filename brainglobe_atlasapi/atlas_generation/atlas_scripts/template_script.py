@@ -2,7 +2,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 ###Metadata
 __version__ = 0  # The minor version of the atlas in the brainglobe_atlasapi, this is internal, if this is the first time this atlas has been added the value should be 0 (minor version is the first number after the decimal point, ie the minor version of 1.2 is 2)
-ATLAS_NAME = None  # The expected format is FirstAuthor_SpeciesCommonName, ie; kleven_rat
+ATLAS_NAME = "example_mouse"  # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or Institution_SpeciesCommonName, e.g. allen_mouse.
 CITATION = None  # DOI of the most relevant citable document
 SPECIES = None  # The scientific name of the species, ie; Rattus norvegicus
 ATLAS_LINK = None  # The URL for the data files

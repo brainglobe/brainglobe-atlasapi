@@ -1,7 +1,8 @@
-__version__ = 1  # The version of the atlas in the brainglobe_atlasapi, this is internal, if this is the first time this atlas has been added the value should be 1
-ATLAS_NAME = "example_mouse"  # The expected format is FirstAuthor_SpeciesCommonName, i.e., kleven_rat
+# a working example atlas-packaging script, which makes a simplified version of the Allen Mouse Brain Atlas, at 100um resolution. See `template_script.py` for a starting point to package your own atlas.
+__version__ = 0  # This will make the example mouse version 1.0 (zero is the minor version)
+ATLAS_NAME = "example_mouse" 
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"  # DOI of the most relevant citable document
-SPECIES = "Mus musculus"  # The scientific name of the species, i.e., Rattus norvegicus
+SPECIES = "Mus musculus"  # The scientific name of the species,
 ATLAS_LINK = "http://www.brain-map.org"  # The URL for the data files
 ORIENTATION = "asr"  # The orientation of the atlas
 ROOT_ID = 997  # The id of the highest level of the atlas. This is commonly called root or brain.

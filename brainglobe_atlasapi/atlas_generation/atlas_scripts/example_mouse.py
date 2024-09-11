@@ -60,7 +60,7 @@ def retrieve_hemisphere_map():
 
 def retrieve_structure_information():
     """
-    Retrieve the structures tree and meshes.
+    Retrieve the structures tree and meshes for the Allen mouse brain atlas.
 
     Returns:
         pandas.DataFrame: A DataFrame containing the atlas information.

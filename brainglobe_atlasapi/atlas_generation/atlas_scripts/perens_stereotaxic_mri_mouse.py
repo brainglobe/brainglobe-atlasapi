@@ -1,12 +1,10 @@
-__version__ = "0"
-import json
 import multiprocessing as mp
 import os
 import time
+import urllib.request
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import py7zr
 from brainglobe_utils.IO.image import load_any
 from rich.progress import track
@@ -19,7 +17,8 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-# The Perens atlas re-uses information from the Allen atlas, so it's useful to have an instance of the Allen atlas around
+# The Perens atlas re-uses information from the Allen atlas, so it's useful to
+# have an instance of the Allen atlas around
 allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
@@ -58,71 +57,68 @@ HEADERS = {
 }
 
 
-def download_and_extract_files(ATLAS_FILE_URL, destination_path):
-    """This is needed to get the source data from their server,
-    and bypass cloudflare which is only allowing browser access"""
-    req = urllib.request.Request(ATLAS_FILE_URL, headers=HEADERS)
-    with (
-        urllib.request.urlopen(req) as response,
-        open(destination_path, "wb") as out_file,
-    ):
-        data = response.read()  # a `bytes` object
-        out_file.write(data)
-    with py7zr.SevenZipFile(destination_path, mode="r") as z:
-        z.extractall(path=atlas_files_dir)
+# Copy-paste this script into a new file and fill in the functions to package
+# your own atlas.
+
+### Metadata ###
+
+# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
+# if this is the first time this atlas has been added the value should be 0
+# (minor version is the first number after the decimal point, ie the minor
+# version of 1.2 is 2)
+__version__ = 0
+
+# The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
+# Institution_SpeciesCommonName, e.g. allen_mouse.
+ATLAS_NAME = "perens_stereotaxic_mri_mouse"
+
+# DOI of the most relevant citable document
+CITATION = "Perens et al. 2023, https://doi.org/10.1007/s12021-023-09623-9"
+
+# The scientific name of the species, ie; Rattus norvegicus
+SPECIES = "Mus musculus"
+
+# The URL for the data files
+ATLAS_LINK = "https://www.neuropedia.dk/resource/multimodal-3d-mouse-brain-atlas-framework-with-the-skull-derived-coordinate-system/"
+ATLAS_FILE_URL = "https://www.neuropedia.dk/wp-content/uploads/Multimodal_mouse_brain_atlas_files.7z"
+# The orientation of the **original** atlas data, in BrainGlobe convention:
+# https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
+ORIENTATION = "ial"
+
+# The id of the highest level of the atlas. This is commonly called root or
+# brain. Include some information on what to do if your atlas is not
+# hierarchical
+ROOT_ID = 997
+
+# The resolution of your volume in microns. Details on how to format this
+# parameter for non isotropic datasets or datasets with multiple resolutions.
+RESOLUTION = 25
+
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 
 
-### Additional functions #####################################################
-
-
-def tree_traverse_child2parent(df, child_id, ids):
-    parent = df["parent_id"][df["id"] == child_id].item()
-
-    if not np.isnan(parent):
-        id = df["id"][df["id"] == parent].item()
-        ids.append(id)
-        tree_traverse_child2parent(df, parent, ids)
-        return ids
-    else:
-        return ids
-
-
-def get_all_parents(atlas, key):
+def download_resources():
     """
-    Get all parent IDs/acronyms in Allen's brain atlas hierarchical structure'
+    Download the necessary resources for the atlas.
 
-    Call:
-        get_all_children(df, key)
-
-    Args:
-        key (int/string)      : atlas region ID/acronym
-
-    Returns:
-        parents (list) : brain region acronym corresponding to input ID
+    If possible, please use the Pooch library to retrieve any resources.
     """
-    parents = atlas.get_structure_ancestors(temp_id)
-    parent_ids = [atlas.structures.acronym_to_id_map[p] for p in parents]
-    return parent_ids
-
-
-##############################################################################
-
-##############################################################################
-
-
-def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "perens_stereotaxic_mri_mouse"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://www.neuropedia.dk/resource/multimodal-3d-mouse-brain-atlas-framework-with-the-skull-derived-coordinate-system/"
-    CITATION = "Perens et al. 2023, https://doi.org/10.1007/s12021-023-09623-9"
-    ORIENTATION = "ial"
-    ROOT_ID = 997
-    ATLAS_FILE_URL = "https://www.neuropedia.dk/wp-content/uploads/Multimodal_mouse_brain_atlas_files.7z"
-
-    # Temporary folder for  download:
-    download_dir_path = working_dir / "downloads"
+    download_dir_path = BG_ROOT_DIR / "downloads"
     download_dir_path.mkdir(exist_ok=True)
     atlas_files_dir = download_dir_path / "atlas_files"
+
+    def download_and_extract_files(ATLAS_FILE_URL, destination_path):
+        """This is needed to get the source data from their server,
+        and bypass cloudflare which is only allowing browser access"""
+        req = urllib.request.Request(ATLAS_FILE_URL, headers=HEADERS)
+        with (
+            urllib.request.urlopen(req) as response,
+            open(destination_path, "wb") as out_file,
+        ):
+            data = response.read()  # a `bytes` object
+            out_file.write(data)
+        with py7zr.SevenZipFile(destination_path, mode="r") as z:
+            z.extractall(path=atlas_files_dir)
 
     ## Download atlas_file
     utils.check_internet_connection()
@@ -135,12 +131,18 @@ def create_atlas(working_dir, resolution):
         download_and_extract_files(ATLAS_FILE_URL, destination_path)
         destination_path.unlink()
 
-    structures_file = (
-        atlas_files_dir
-        / "Multimodal_mouse_brain_atlas_files"
-        / "Hierarchy_tree"
-        / "Annotation_info.csv"
-    )
+
+def retrieve_reference_and_annotation():
+    """
+    Retrieve the desired reference and annotation as two numpy arrays.
+
+    Returns:
+        tuple: A tuple containing two numpy arrays. The first array is the
+        reference volume, and the second array is the annotation volume.
+    """
+    download_dir_path = BG_ROOT_DIR / "downloads"
+    atlas_files_dir = download_dir_path / "atlas_files"
+
     annotations_file = (
         atlas_files_dir
         / "Multimodal_mouse_brain_atlas_files"
@@ -157,44 +159,59 @@ def create_atlas(working_dir, resolution):
     annotated_volume = load_any(annotations_file)
     template_volume = load_any(reference_file)
 
-    print("Download completed...")
+    return template_volume, annotated_volume
 
-    # ------------------------ #
-    #   STRUCTURES HIERARCHY   #
-    # ------------------------ #
 
-    # Parse region names & hierarchy
-    # ##############################
-    df = pd.read_csv(structures_file)
+def retrieve_hemisphere_map():
+    """
+    Retrieve a hemisphere map for the atlas.
 
-    # Make region hierarchy and gather colors to one list
-    parents = []
-    rgb = []
-    for index, row in df.iterrows():
-        temp_id = row["id"]
-        temp_parents = get_all_parents(atlas, temp_id)
-        parents.append(temp_parents[::-1])
-        temp_rgb = [row["red"], row["green"], row["blue"]]
-        rgb.append(temp_rgb)
+    If your atlas is asymmetrical, you may want to use a hemisphere map.
+    This is an array in the same shape as your template,
+    with 0's marking the left hemisphere, and 1's marking the right.
 
-    df = df.drop(columns=["parent_id", "red", "green", "blue"])
-    df = df.assign(structure_id_path=parents)
-    df = df.assign(rgb_triplet=rgb)
-    df.loc[0, "structure_id_path"] = [997]
+    If your atlas is symmetrical, ignore this function.
 
-    structures = df.to_dict("records")
+    Returns:
+        numpy.array or None: A numpy array representing the hemisphere map,
+        or None if the atlas is symmetrical.
+    """
+    return None
 
-    for structure in structures:
-        # root doesn't have a parent
-        if structure["id"] != 997:
-            structure["structure_id_path"].append(structure["id"])
 
-    # save regions list json:
-    with open(download_dir_path / "structures.json", "w") as f:
-        json.dump(structures, f)
+def retrieve_structure_information():
+    """
+    Retrieve the structures tree and meshes for the Allen mouse brain atlas.
 
-    # Create meshes:
-    print(f"Saving atlas data at {download_dir_path}")
+    Returns:
+        pandas.DataFrame: A DataFrame containing the atlas information.
+    """
+    # Since this atlas inherits from the allen can we not simply get the data
+    # from the bgapi?
+    allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
+    allen_structures = allen_atlas.structures_list
+    allen_structures = [
+        {
+            "id": i["id"],
+            "name": i["name"],
+            "acronym": i["acronym"],
+            "structure_id_path": i["structure_id_path"],
+            "rgb_triplet": i["rgb_triplet"],
+        }
+        for i in allen_structures
+    ]
+    return allen_structures
+
+
+def retrieve_or_construct_meshes():
+    """
+    This function should return a dictionary of ids and corresponding paths to
+    mesh files. Some atlases are packaged with mesh files, in these cases we
+    should use these files. Then this function should download those meshes.
+    In other cases we need to construct the meshes ourselves. For this we have
+    helper functions to achieve this.
+    """
+    download_dir_path = BG_ROOT_DIR / "downloads"
     meshes_dir_path = download_dir_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
@@ -288,39 +305,35 @@ def create_atlas(working_dir, resolution):
         "structures with mesh are kept"
     )
 
-    # ----------- #
-    #   WRAP UP   #
-    # ----------- #
+    return meshes_dict
 
-    # Wrap up, compress, and remove file:
-    print("Finalising atlas")
+
+### If the code above this line has been filled correctly, nothing needs to be
+### edited below (unless variables need to be passed between the functions).
+if __name__ == "__main__":
+    BG_ROOT_DIR.mkdir(exist_ok=True)
+    download_resources()
+    template_volume, annotated_volume = retrieve_reference_and_annotation()
+    hemispheres_stack = retrieve_hemisphere_map()
+    structures = retrieve_structure_information()
+    meshes_dict = retrieve_or_construct_meshes()
+
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(resolution,) * 3,
+        resolution=(RESOLUTION,) * 3,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=template_volume,
         annotation_stack=annotated_volume,
-        structures_list=structures_with_mesh,
+        structures_list=structures,
         meshes_dict=meshes_dict,
-        working_dir=working_dir,
+        working_dir=BG_ROOT_DIR,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
     )
-
-    return output_filename
-
-
-if __name__ == "__main__":
-    resolution = 25  # some resolution, in microns
-
-    # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "perens_mri_mouse"
-    bg_root_dir.mkdir(exist_ok=True, parents=True)
-    create_atlas(bg_root_dir, resolution)

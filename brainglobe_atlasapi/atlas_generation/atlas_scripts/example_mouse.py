@@ -123,7 +123,7 @@ def retrieve_or_construct_meshes():
     return meshes_dict
 
 
-### If the code above this line has been filled correctly, nothing needs to be edited below.
+### Set up for the example mouse done: use default code to wrap up the atlas from here
 bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 bg_root_dir.mkdir(exist_ok=True)
 download_resources()

@@ -1,4 +1,5 @@
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from pathlib import Path
 
 ###Metadata
 __version__ = 0  # The minor version of the atlas in the brainglobe_atlasapi, this is internal, if this is the first time this atlas has been added the value should be 0 (minor version is the first number after the decimal point, ie the minor version of 1.2 is 2)

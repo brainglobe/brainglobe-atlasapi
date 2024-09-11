@@ -1,13 +1,3 @@
-# a working example atlas-packaging script, which makes a simplified version of the Allen Mouse Brain Atlas, at 100um resolution. See `template_script.py` for a starting point to package your own atlas.
-__version__ = 0  # This will make the example mouse version 1.0 (zero is the minor version)
-ATLAS_NAME = "example_mouse"
-CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"  # DOI of the most relevant citable document
-SPECIES = "Mus musculus"  # The scientific name of the species,
-ATLAS_LINK = "http://www.brain-map.org"  # The URL for the data files
-ORIENTATION = "asr"  # The orientation of the atlas
-ROOT_ID = 997  # The id of the highest level of the atlas. This is commonly called root or brain.
-RESOLUTION = 100  # The resolution of your volume in microns.
-
 from pathlib import Path
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
@@ -15,6 +5,20 @@ from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
+
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+
+# a working example atlas-packaging script, which makes a simplified version
+# of the Allen Mouse Brain Atlas, at 100um resolution. See `template_script.py`
+# for a starting point to package your own atlas.
+__version__ = 0  # This will make the example mouse version 1.0
+ATLAS_NAME = "example_mouse"
+CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
+SPECIES = "Mus musculus"  # The scientific name of the species,
+ATLAS_LINK = "http://www.brain-map.org"  # The URL for the data files
+ORIENTATION = "asr"  # The orientation of the atlas
+ROOT_ID = 997  # The id of the highest level of the atlas.
+RESOLUTION = 100  # The resolution of your volume in microns.
 
 
 def download_resources():
@@ -26,10 +30,12 @@ def download_resources():
 
 def retrieve_reference_and_annotation():
     """
-    Retrieve the Allen Mouse atlas reference and annotation as two numpy arrays using the allen_sdk.
+    Retrieve the Allen Mouse atlas reference and annotation as two numpy arrays
+    using the allen_sdk.
 
     Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the reference volume, and the second array is the annotated volume.
+        tuple: A tuple containing two numpy arrays. The first array is the
+        reference volume, and the second array is the annotated volume.
     """
     # Create temporary download directory
     download_dir_path = Path.cwd() / "downloading_path"
@@ -45,15 +51,17 @@ def retrieve_reference_and_annotation():
     # Download annotated and template volumes
     reference_volume, _ = spacecache.get_template_volume()
     annotation_volume, _ = spacecache.get_annotation_volume()
-    return reference_volume, annotated_volume
+    return reference_volume, annotation_volume
 
 
 def retrieve_hemisphere_map():
     """
-    The Allen atlas is symmetrical, so we can just return `None` in this function.
+    The Allen atlas is symmetrical, so we can just return `None` in this
+    function.
 
         Returns:
-            numpy.array or None: A numpy array representing the hemisphere map, or None if the atlas is symmetrical.
+            numpy.array or None: A numpy array representing the hemisphere map,
+            or None if the atlas is symmetrical.
     """
     return None
 
@@ -67,6 +75,7 @@ def retrieve_structure_information():
     """
     download_dir_path = Path.cwd() / "downloading_path"
     oapi = OntologiesApi()
+
     spacecache = ReferenceSpaceCache(
         manifest=download_dir_path / "manifest.json",
         resolution=RESOLUTION,
@@ -95,10 +104,10 @@ def retrieve_structure_information():
 
 def retrieve_or_construct_meshes():
     """
-    This function should return a dictionary of ids and corresponding paths to mesh files.
-    This atlas comes packaged with mesh files, so we don't need to use our helper functions to create them ourselves in this case.
+    This function should return a dictionary of ids and corresponding paths to
+    mesh files. This atlas comes packaged with mesh files, so we don't need to
+    use our helper functions to create them ourselves in this case.
     """
-    oapi = OntologiesApi()
     space = ReferenceSpaceApi()
     meshes_dir = Path.cwd() / "mesh_temp_download"
     meshes_dir.mkdir(exist_ok=True)
@@ -121,31 +130,32 @@ def retrieve_or_construct_meshes():
     return meshes_dict
 
 
-### Set up for the example mouse done: use default code to wrap up the atlas from here
+# Set up for the example mouse done: use default code to wrap up the atlas
 bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 bg_root_dir.mkdir(exist_ok=True)
 download_resources()
-reference_volume, annotated_volume = retrieve_template_and_reference()
+reference_volume, annotated_volume = retrieve_reference_and_annotation()
 hemispheres_stack = retrieve_hemisphere_map()
 structures = retrieve_structure_information()
 meshes_dict = retrieve_or_construct_meshes()
+if __name__ == "__main__":
 
-output_filename = wrapup_atlas_from_data(
-    atlas_name=ATLAS_NAME,
-    atlas_minor_version=__version__,
-    citation=CITATION,
-    atlas_link=ATLAS_LINK,
-    species=SPECIES,
-    resolution=(RESOLUTION,) * 3,
-    orientation=ORIENTATION,
-    root_id=ROOT_ID,
-    reference_stack=reference_volume,
-    annotation_stack=annotated_volume,
-    structures_list=structures,
-    meshes_dict=meshes_dict,
-    working_dir=bg_root_dir,
-    hemispheres_stack=hemispheres_stack,
-    cleanup_files=False,
-    compress=True,
-    scale_meshes=True,
-)
+    output_filename = wrapup_atlas_from_data(
+        atlas_name=ATLAS_NAME,
+        atlas_minor_version=__version__,
+        citation=CITATION,
+        atlas_link=ATLAS_LINK,
+        species=SPECIES,
+        resolution=(RESOLUTION,) * 3,
+        orientation=ORIENTATION,
+        root_id=ROOT_ID,
+        reference_stack=reference_volume,
+        annotation_stack=annotated_volume,
+        structures_list=structures,
+        meshes_dict=meshes_dict,
+        working_dir=bg_root_dir,
+        hemispheres_stack=hemispheres_stack,
+        cleanup_files=False,
+        compress=True,
+        scale_meshes=True,
+    )

@@ -96,9 +96,7 @@ def retrieve_structure_information():
 def retrieve_or_construct_meshes():
     """
     This function should return a dictionary of ids and corresponding paths to mesh files.
-    Some atlases are packaged with mesh files, in these cases we should use these files.
-    Then this function should download those meshes. In other cases we need to construct
-    the meshes ourselves. For this we have helper functions to achieve this.
+    This atlas comes packaged with mesh files, so we don't need to use our helper functions to create them ourselves in this case.
     """
     oapi = OntologiesApi()
     space = ReferenceSpaceApi()

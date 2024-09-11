@@ -86,7 +86,7 @@ def retrieve_or_construct_meshes():
 bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 bg_root_dir.mkdir(exist_ok=True)
 download_resources()
-template_volume, reference_volume = retrieve_template_and_reference()
+template_volume, annotated_volume = retrieve_reference_and_annotation()
 hemispheres_stack = retrieve_hemisphere_map()
 structures = retrieve_structure_information()
 meshes_dict = retrieve_or_construct_meshes()

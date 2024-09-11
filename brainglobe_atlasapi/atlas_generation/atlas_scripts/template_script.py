@@ -57,9 +57,9 @@ def retrieve_reference_and_annotation():
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
-    template = None
     reference = None
-    return template, reference
+    annoatation = None
+    return reference, annoatation
 
 
 def retrieve_hemisphere_map():
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True)
     download_resources()
-    template_volume, annotated_volume = retrieve_reference_and_annotation()
+    reference_volume, annotated_volume = retrieve_reference_and_annotation()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes()
@@ -135,7 +135,7 @@ if __name__ == "__main__":
         resolution=(RESOLUTION,) * 3,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
-        reference_stack=template_volume,
+        reference_stack=reference_volume,
         annotation_stack=annotated_volume,
         structures_list=structures,
         meshes_dict=meshes_dict,

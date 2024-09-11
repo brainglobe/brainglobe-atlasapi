@@ -107,7 +107,14 @@ def download_resources():
     download_dir_path.mkdir(exist_ok=True)
     atlas_files_dir = download_dir_path / "atlas_files"
 
-    def download_and_extract_files(ATLAS_FILE_URL, destination_path):
+    ## Download atlas_file
+    utils.check_internet_connection()
+
+    destination_path = download_dir_path / "atlas_download.7z"
+
+    if not os.path.isdir(
+        atlas_files_dir / "Multimodal_mouse_brain_atlas_files"
+    ):
         """This is needed to get the source data from their server,
         and bypass cloudflare which is only allowing browser access"""
         req = urllib.request.Request(ATLAS_FILE_URL, headers=HEADERS)
@@ -119,16 +126,6 @@ def download_resources():
             out_file.write(data)
         with py7zr.SevenZipFile(destination_path, mode="r") as z:
             z.extractall(path=atlas_files_dir)
-
-    ## Download atlas_file
-    utils.check_internet_connection()
-
-    destination_path = download_dir_path / "atlas_download.7z"
-
-    if not os.path.isdir(
-        atlas_files_dir / "Multimodal_mouse_brain_atlas_files"
-    ):
-        download_and_extract_files(ATLAS_FILE_URL, destination_path)
         destination_path.unlink()
 
 

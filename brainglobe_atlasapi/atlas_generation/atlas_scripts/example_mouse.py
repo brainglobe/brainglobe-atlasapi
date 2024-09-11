@@ -1,6 +1,6 @@
 # a working example atlas-packaging script, which makes a simplified version of the Allen Mouse Brain Atlas, at 100um resolution. See `template_script.py` for a starting point to package your own atlas.
 __version__ = 0  # This will make the example mouse version 1.0 (zero is the minor version)
-ATLAS_NAME = "example_mouse" 
+ATLAS_NAME = "example_mouse"
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"  # DOI of the most relevant citable document
 SPECIES = "Mus musculus"  # The scientific name of the species,
 ATLAS_LINK = "http://www.brain-map.org"  # The URL for the data files
@@ -50,10 +50,10 @@ def retrieve_reference_and_annotation():
 
 def retrieve_hemisphere_map():
     """
-The Allen atlas is symmetrical, so we can just return `None` in this function.
+    The Allen atlas is symmetrical, so we can just return `None` in this function.
 
-    Returns:
-        numpy.array or None: A numpy array representing the hemisphere map, or None if the atlas is symmetrical.
+        Returns:
+            numpy.array or None: A numpy array representing the hemisphere map, or None if the atlas is symmetrical.
     """
     return None
 

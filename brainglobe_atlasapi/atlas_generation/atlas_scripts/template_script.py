@@ -22,10 +22,10 @@ def download_resources():
 
 def retrieve_template_and_reference():
     """
-    Retrieve the desired template and reference as two numpy arrays.
+    Retrieve the desired reference and annotation as two numpy arrays.
 
     Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the template volume, and the second array is the reference volume.
+        tuple: A tuple containing two numpy arrays. The first array is the reference volume, and the second array is the annotation volume.
     """
     template = None
     reference = None

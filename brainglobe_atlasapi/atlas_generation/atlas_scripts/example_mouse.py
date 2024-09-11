@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -39,6 +40,7 @@ def retrieve_reference_and_annotation():
     """
     # Create temporary download directory
     download_dir_path = Path.cwd() / "downloading_path"
+    print(download_dir_path)
     download_dir_path.mkdir(exist_ok=True)
 
     # Setup the reference space cache
@@ -48,9 +50,28 @@ def retrieve_reference_and_annotation():
         reference_space_key="annotation/ccf_2017",
     )
 
-    # Download annotated and template volumes
     reference_volume, _ = spacecache.get_template_volume()
     annotation_volume, _ = spacecache.get_annotation_volume()
+    expected_reference_hash = (
+        "6c24cae773a5cf256586b0384af0ac93ad68564d211c9bdcff4bee9acf07786a"
+    )
+    expected_annotation_hash = (
+        "451e6a82f531d3db4b58056d024d3e2311703c2adc15cefa75e0268e7f0e69a4"
+    )
+    reference_hash = pooch.file_hash(
+        download_dir_path / "average_template_100.nrrd"
+    )
+    annotation_hash = pooch.file_hash(
+        download_dir_path / "annotation" / "ccf_2017" / "annotation_100.nrrd"
+    )
+    assert (
+        reference_hash == expected_reference_hash
+    ), "The hash of the reference volume does not match the expected hash."
+
+    assert (
+        annotation_hash == expected_annotation_hash
+    ), "The hash of the annotation volume does not match the expected hash."
+    # Download annotated and template volumes
     return reference_volume, annotation_volume
 
 

@@ -23,9 +23,9 @@ def download_resources():
     pass
 
 
-def retrieve_template_and_reference():
+def retrieve_reference_and_annotation():
     """
-    Retrieve the desired template and reference as two numpy arrays.
+    Retrieve the Allen Mouse atlas reference and annotation as two numpy arrays using the allen_sdk.
 
     Returns:
         tuple: A tuple containing two numpy arrays. The first array is the reference volume, and the second array is the annotated volume.

@@ -21,7 +21,7 @@ def download_resources():
     pass
 
 
-def retrieve_template_and_reference():
+def retrieve_reference_and_annotation():
     """
     Retrieve the desired reference and annotation as two numpy arrays.
 

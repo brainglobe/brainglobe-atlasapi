@@ -9,7 +9,7 @@ ATLAS_NAME = "example_mouse"  # The expected format is FirstAuthor_SpeciesCommon
 CITATION = None  # DOI of the most relevant citable document
 SPECIES = None  # The scientific name of the species, ie; Rattus norvegicus
 ATLAS_LINK = None  # The URL for the data files
-ORIENTATION = None  # The orientation of the atlas, for more information on how to determine this click here: ........
+ORIENTATION = "asr"  # The orientation of the **original** atlas data, in BrainGlobe convention: https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
 ROOT_ID = None  # The id of the highest level of the atlas. This is commonly called root or brain. Include some information on what to do if your atlas is not hierarchical
 RESOLUTION = None  # the resolution of your volume in microns. details on how to format this parameter for non isotropic datasets or datasets with multiple resolutions.
 

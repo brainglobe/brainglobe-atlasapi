@@ -21,6 +21,8 @@ ORIENTATION = "asr"  # The orientation of the atlas
 ROOT_ID = 997  # The id of the highest level of the atlas.
 RESOLUTION = 100  # The resolution of your volume in microns.
 
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+
 
 def download_resources():
     """
@@ -39,7 +41,7 @@ def retrieve_reference_and_annotation():
         reference volume, and the second array is the annotated volume.
     """
     # Create temporary download directory
-    download_dir_path = Path.cwd() / "downloading_path"
+    download_dir_path = BG_ROOT_DIR / "downloading_path"
     print(download_dir_path)
     download_dir_path.mkdir(exist_ok=True)
 
@@ -94,7 +96,7 @@ def retrieve_structure_information():
     Returns:
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
-    download_dir_path = Path.cwd() / "downloading_path"
+    download_dir_path = BG_ROOT_DIR / "downloading_path"
     oapi = OntologiesApi()
 
     spacecache = ReferenceSpaceCache(
@@ -130,7 +132,7 @@ def retrieve_or_construct_meshes():
     use our helper functions to create them ourselves in this case.
     """
     space = ReferenceSpaceApi()
-    meshes_dir = Path.cwd() / "mesh_temp_download"
+    meshes_dir = BG_ROOT_DIR / "mesh_temp_download"
     meshes_dir.mkdir(exist_ok=True)
 
     meshes_dict = dict()
@@ -152,8 +154,7 @@ def retrieve_or_construct_meshes():
 
 
 # Set up for the example mouse done: use default code to wrap up the atlas
-bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-bg_root_dir.mkdir(exist_ok=True)
+BG_ROOT_DIR.mkdir(exist_ok=True)
 download_resources()
 reference_volume, annotated_volume = retrieve_reference_and_annotation()
 hemispheres_stack = retrieve_hemisphere_map()
@@ -174,7 +175,7 @@ if __name__ == "__main__":
         annotation_stack=annotated_volume,
         structures_list=structures,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=BG_ROOT_DIR,
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,

@@ -32,6 +32,8 @@ ORIENTATION = "ial"
 ROOT_ID = 9999
 RESOLUTION = 15
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
+
 ANNOTATION_URLS = {
     "basalganglia": "https://osf.io/download/xgj4h",
     "cerebellum": "https://osf.io/download/su2a9",
@@ -221,8 +223,10 @@ acronym_dict = {
         "Su3C": "supraoculomotor cap",
         "Sub": "submedius thalamic nucleus",
         "SubB": "subbrachial nucleus",
-        "SubG": "subgeniculate nucleus of the prethalamus (ventrolateral \
-            nucleus)",
+        "SubG": (
+            "subgeniculate nucleus of the prethalamus "
+            "(ventrolateral nucleus)"
+        ),
         "SuG": "superficial gray layer of the superior colliculus",
         "Te": "terete hypothalamic nucleus",
         "TG": "tectal gray",
@@ -270,8 +274,10 @@ acronym_dict = {
         "ic": "Internal capsule",
         "ICjM": "Magna island of Calleja",
         "IEn": "Intermediate nucleus of the endopiriform claustrum",
-        "IPAC": "Interstitial nucleus of the post limb of the anterior \
-            commissure",
+        "IPAC": (
+            "Interstitial nucleus of the post limb of the anterior "
+            "commissure"
+        ),
         "LAcbSh": "Accumbens nucleus shell, lateral part",
         "LDB": "Lateral nucleus of the horizontal limb of the diagonal band",
         "LH": "Lateral hypothalamus",
@@ -335,8 +341,9 @@ acronym_dict = {
         "IntA": "Interposed cerebellar nucleus, anterior",
         "IntDL": "Interposed cerebellar nucleus, dorsolateral hump",
         "IntP": "Interposed cerebellar nucleus, posterior",
-        "IntPPC": "Interposed cerebellar nucleus, posterior parvicellular \
-            part",
+        "IntPPC": (
+            "Interposed cerebellar nucleus, " "posterior parvicellular part"
+        ),
         "das": "Dorsal acoustic stria",
     },
     "hippocampus": {
@@ -475,11 +482,10 @@ TEMPLATE_STRING = "ambmc-c57bl6-label-{}_v0.8{}"
 
 
 def download_resources():
-    download_dir_path = BG_ROOT_DIR / "downloads"
-    download_dir_path.mkdir(exist_ok=True)
+    DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
     ## Download atlas_file
     utils.check_internet_connection()
-    destination_path = download_dir_path / "template.nii.tar.gz"
+    destination_path = DOWNLOAD_DIR_PATH / "template.nii.tar.gz"
     if not os.path.isfile(destination_path):
         response = requests.get(REFERENCE_URL, stream=True)
         with open(destination_path, "wb") as f:
@@ -487,9 +493,9 @@ def download_resources():
                 if chunk:
                     f.write(chunk)
         with tarfile.open(destination_path, "r:gz") as tar:
-            tar.extractall(path=download_dir_path)
+            tar.extractall(path=DOWNLOAD_DIR_PATH)
     for region, url in ANNOTATION_URLS.items():
-        destination_path = BG_ROOT_DIR / f"{region}.nii.tar.gz"
+        destination_path = DOWNLOAD_DIR_PATH / f"{region}.nii.tar.gz"
         if not os.path.isfile(destination_path):
             response = requests.get(url, stream=True)
             with open(destination_path, "wb") as f:
@@ -498,7 +504,7 @@ def download_resources():
                         f.write(chunk)
         # Untar the file
         with tarfile.open(destination_path, "r:gz") as tar:
-            tar.extractall(path=BG_ROOT_DIR)
+            tar.extractall(path=DOWNLOAD_DIR_PATH)
     return None
 
 
@@ -510,16 +516,14 @@ def preprocess_annotations():
     So this preprocessing function must be run before retrieving
     the reference and annotation
     """
-    download_dir_path = BG_ROOT_DIR / "downloads"
-    for region in REGION_IDS.keys():
-        label_path = f"{download_dir_path}/\
-            {TEMPLATE_STRING.format(region, '-nii')}/\
-                {TEMPLATE_STRING.format(region, '.idx')}"
+
     label_list = []
     for region, url in ANNOTATION_URLS.items():
-        label_path = f"{download_dir_path}/\
-            {TEMPLATE_STRING.format(region, '-nii')}/\
-                {TEMPLATE_STRING.format(region, '.idx')}"
+        label_path = (
+            DOWNLOAD_DIR_PATH
+            / TEMPLATE_STRING.format(region, "-nii")
+            / TEMPLATE_STRING.format(region, ".idx")
+        )
         if region == "hippocampus":
             total_label = pd.concat(label_list)
             label = pd.read_csv(label_path, sep="\t")
@@ -563,9 +567,11 @@ def preprocess_annotations():
         label.loc[label["name"].isna(), "name"] = label.loc[
             label["name"].isna(), "acronym"
         ]
-        label_path = f"{download_dir_path}/\
-            {TEMPLATE_STRING.format(region, '-nii')}/\
-                {TEMPLATE_STRING.format(region, '_new.idx')}"
+        label_path = (
+            DOWNLOAD_DIR_PATH
+            / TEMPLATE_STRING.format(region, "-nii")
+            / TEMPLATE_STRING.format(region, "_new.idx")
+        )
         label.to_csv(label_path)
         label_list.append(label)
 
@@ -578,10 +584,8 @@ def retrieve_reference_and_annotation():
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
-    download_dir_path = BG_ROOT_DIR / "downloads"
     filename = (
-        download_dir_path
-        / "template.nii"
+        DOWNLOAD_DIR_PATH
         / "ambmc-c57bl6-model-symmet_v0.8-nii"
         / "ambmc-c57bl6-model-symmet_v0.8.nii"
     )
@@ -592,11 +596,19 @@ def retrieve_reference_and_annotation():
     annotation = np.zeros((499, 1311, 679))
     new_vals = 1
     for region in REGION_IDS.keys():
-        filename = f"{BG_ROOT_DIR}/{TEMPLATE_STRING.format(region, '-nii')}/\
-            {TEMPLATE_STRING.format(region, '.nii')}"
-        label_path = f"{download_dir_path}/\
-            {TEMPLATE_STRING.format(region, '-nii')}/\
-            {TEMPLATE_STRING.format(region, '_new.idx')}"
+
+        filename = (
+            DOWNLOAD_DIR_PATH
+            / TEMPLATE_STRING.format(region, "-nii")
+            / TEMPLATE_STRING.format(region, ".nii")
+        )
+
+        label_path = (
+            DOWNLOAD_DIR_PATH
+            / TEMPLATE_STRING.format(region, "-nii")
+            / TEMPLATE_STRING.format(region, "_new.idx")
+        )
+
         label_data = pd.read_csv(label_path)
         img = sitk.ReadImage(filename)
         arr = sitk.GetArrayFromImage(img)
@@ -610,9 +622,11 @@ def retrieve_reference_and_annotation():
             # Assuming annotated_volume is a numpy array
         new_label_data = label_data.copy()
         new_label_data["id"] = new_label_data["id"].map(id_mapping)
-        output_path = f"{download_dir_path}/\
-            {TEMPLATE_STRING.format(region, '-nii')}/\
-                {TEMPLATE_STRING.format(region, '_renumbered.idx')}"
+        output_path = (
+            DOWNLOAD_DIR_PATH
+            / TEMPLATE_STRING.format(region, "-nii")
+            / TEMPLATE_STRING.format(region, "_renumbered.idx")
+        )
         new_label_data.to_csv(output_path)
         origin = np.array(img.GetOrigin())
         spacing = np.array(img.GetSpacing())
@@ -665,7 +679,6 @@ def retrieve_structure_information():
     Returns:
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
-    download_dir_path = BG_ROOT_DIR / "downloads"
 
     hierarchical_labels = pd.DataFrame(
         {
@@ -698,9 +711,11 @@ def retrieve_structure_information():
     )
     label_list = []
     for region in REGION_IDS.keys():
-        file_path = f"{download_dir_path}/\
-            {TEMPLATE_STRING.format(region, '-nii')}/\
-                {TEMPLATE_STRING.format(region, '_renumbered.idx')}"
+        file_path = (
+            DOWNLOAD_DIR_PATH
+            / TEMPLATE_STRING.format(region, "-nii")
+            / TEMPLATE_STRING.format(region, "_renumbered.idx")
+        )
         label_list.append(pd.read_csv(file_path))
     df = pd.concat(label_list).reset_index(drop=True)
     new_df = pd.DataFrame(columns=["r", "g", "b"])
@@ -747,7 +762,7 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
     In other cases we need to construct the meshes ourselves. For this we have
     helper functions to achieve this.
     """
-    meshes_dir_path = BG_ROOT_DIR / "downloads" / "meshes"
+    meshes_dir_path = DOWNLOAD_DIR_PATH / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
     tree = get_structures_tree(structures)
@@ -848,7 +863,7 @@ if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(exist_ok=True)
     download_resources()
     preprocess_annotations()
-    template_volume, annotated_volume = retrieve_reference_and_annotation()
+    annotated_volume, template_volume = retrieve_reference_and_annotation()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)

@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import py7zr
 from brainglobe_utils.IO.image import load_any
-from rich.progress import track
+from rich.progress import Progress, track
 
 from brainglobe_atlasapi import BrainGlobeAtlas, utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -114,15 +114,20 @@ def download_resources():
     if not os.path.isdir(
         atlas_files_dir / "Multimodal_mouse_brain_atlas_files"
     ):
-        """This is needed to get the source data from their server,
-        and bypass cloudflare which is only allowing browser access"""
         req = urllib.request.Request(ATLAS_FILE_URL, headers=HEADERS)
         with (
             urllib.request.urlopen(req) as response,
             open(destination_path, "wb") as out_file,
         ):
-            data = response.read()  # a `bytes` object
-            out_file.write(data)
+            total = int(response.headers.get("content-length", 0))
+            with Progress() as progress:
+                task = progress.add_task("[cyan]Downloading...", total=total)
+                while not progress.finished:
+                    chunk = response.read(1024)
+                    if not chunk:
+                        break
+                    out_file.write(chunk)
+                    progress.update(task, advance=len(chunk))
         with py7zr.SevenZipFile(destination_path, mode="r") as z:
             z.extractall(path=atlas_files_dir)
         destination_path.unlink()

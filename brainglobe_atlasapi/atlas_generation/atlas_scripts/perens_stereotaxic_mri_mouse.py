@@ -80,7 +80,7 @@ SPECIES = "Mus musculus"
 
 # The URL for the data files
 ATLAS_LINK = "https://www.neuropedia.dk/resource/multimodal-3d-mouse-brain-atlas-framework-with-the-skull-derived-coordinate-system/"
-ATLAS_FILE_URL = "https://www.neuropedia.dk/wp-content/uploads/Multimodal_mouse_brain_atlas_files.7z"
+ATLAS_FILE_URL = "https://www.neuropedia.dk/wp-content/uploads/Multimodal_mouse_brain_atlas_files_v2.7z"
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
 ORIENTATION = "ial"
@@ -111,7 +111,6 @@ def download_resources():
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download.7z"
-
     if not os.path.isdir(
         atlas_files_dir / "Multimodal_mouse_brain_atlas_files"
     ):

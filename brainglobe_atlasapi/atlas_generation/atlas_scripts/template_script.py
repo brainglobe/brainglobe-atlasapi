@@ -58,8 +58,8 @@ def retrieve_reference_and_annotation():
         reference volume, and the second array is the annotation volume.
     """
     reference = None
-    annoatation = None
-    return reference, annoatation
+    annotation = None
+    return reference, annotation
 
 
 def retrieve_hemisphere_map():

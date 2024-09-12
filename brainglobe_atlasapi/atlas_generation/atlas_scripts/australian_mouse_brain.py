@@ -1,15 +1,16 @@
 __version__ = "1"
-import tarfile
-import os
-import json
 import multiprocessing as mp
+import os
+import tarfile
 import time
 from pathlib import Path
-import requests
+
 import numpy as np
 import pandas as pd
+import requests
 import SimpleITK as sitk
 from rich.progress import track
+
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
@@ -17,11 +18,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
-from pathlib import Path
-
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-import nibabel as nib
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
@@ -43,6 +39,7 @@ ANNOTATION_URLS = {
     "hippocampus": "https://osf.io/download/tjazr",
     "diencephalon": "https://osf.io/download/9atc7",
 }
+REFERENCE_URL = "https://osf.io/download/g8p6a"
 REGION_IDS = {
     "basalganglia": 1001,
     "cerebellum": 1002,
@@ -480,10 +477,9 @@ TEMPLATE_STRING = "ambmc-c57bl6-label-{}_v0.8{}"
 def download_resources():
     download_dir_path = BG_ROOT_DIR / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    atlas_files_dir = download_dir_path / "atlas_files"
     ## Download atlas_file
     utils.check_internet_connection()
-    destination_path = download_dir_path / f"template.nii.tar.gz"
+    destination_path = download_dir_path / "template.nii.tar.gz"
     if not os.path.isfile(destination_path):
         response = requests.get(REFERENCE_URL, stream=True)
         with open(destination_path, "wb") as f:
@@ -521,11 +517,6 @@ def preprocess_annotations():
                 {TEMPLATE_STRING.format(region, '.idx')}"
     label_list = []
     for region, url in ANNOTATION_URLS.items():
-        path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}\
-            /{TEMPLATE_STRING.format(region, '.nii')}"
-        img = sitk.ReadImage(path)
-        arr = sitk.GetArrayFromImage(img)
-
         label_path = f"{download_dir_path}/\
             {TEMPLATE_STRING.format(region, '-nii')}/\
                 {TEMPLATE_STRING.format(region, '.idx')}"
@@ -603,7 +594,8 @@ def retrieve_reference_and_annotation():
     for region in REGION_IDS.keys():
         filename = f"{BG_ROOT_DIR}/{TEMPLATE_STRING.format(region, '-nii')}/\
             {TEMPLATE_STRING.format(region, '.nii')}"
-        label_path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/\
+        label_path = f"{download_dir_path}/\
+            {TEMPLATE_STRING.format(region, '-nii')}/\
             {TEMPLATE_STRING.format(region, '_new.idx')}"
         label_data = pd.read_csv(label_path)
         img = sitk.ReadImage(filename)
@@ -730,8 +722,6 @@ def retrieve_structure_information():
 
     rgb = []
     for index, row in df.iterrows():
-        temp_id = row["id"]
-
         temp_rgb = [row["r"], row["g"], row["b"]]
         rgb.append(temp_rgb)
 
@@ -742,6 +732,7 @@ def retrieve_structure_information():
         ["acronym", "id", "name", "structure_id_path", "rgb_triplet"]
     ]
     structures = total_df.to_dict("records")
+
     for s in structures:
         if isinstance(s["structure_id_path"], str):
             s["structure_id_path"] = eval(s["structure_id_path"])

@@ -141,6 +141,7 @@ def retrieve_reference_and_annotation():
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
+    print("loading reference and annotation volume")
     download_dir_path = BG_ROOT_DIR / "downloads"
     atlas_files_dir = download_dir_path / "atlas_files"
 
@@ -212,6 +213,8 @@ def retrieve_or_construct_meshes():
     In other cases we need to construct the meshes ourselves. For this we have
     helper functions to achieve this.
     """
+    print("constructing meshes")
+
     download_dir_path = BG_ROOT_DIR / "downloads"
     meshes_dir_path = download_dir_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)

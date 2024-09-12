@@ -171,7 +171,6 @@ acronym_dict = {
         "PBP": "parabrachial pigmented nucleus of the ventral tegmental area",
         "pc": "paracentral thalamic nucleus",
         "PC": "paracentral thalamic nucleus",
-
         "PCom": "nucleus of the posterior commissure",
         "PF": "parafascicular thalamic nucleus",
         "PH": "posterior hypothalamus",
@@ -225,7 +224,8 @@ acronym_dict = {
         "Su3C": "supraoculomotor cap",
         "Sub": "submedius thalamic nucleus",
         "SubB": "subbrachial nucleus",
-        "SubG": "subgeniculate nucleus of the prethalamus (ventrolateral nucleus)",
+        "SubG": "subgeniculate nucleus of the prethalamus (ventrolateral \
+            nucleus)",
         "SuG": "superficial gray layer of the superior colliculus",
         "Te": "terete hypothalamic nucleus",
         "TG": "tectal gray",
@@ -273,7 +273,8 @@ acronym_dict = {
         "ic": "Internal capsule",
         "ICjM": "Magna island of Calleja",
         "IEn": "Intermediate nucleus of the endopiriform claustrum",
-        "IPAC": "Interstitial nucleus of the post limb of the anterior commissure",
+        "IPAC": "Interstitial nucleus of the post limb of the anterior \
+            commissure",
         "LAcbSh": "Accumbens nucleus shell, lateral part",
         "LDB": "Lateral nucleus of the horizontal limb of the diagonal band",
         "LH": "Lateral hypothalamus",
@@ -337,24 +338,25 @@ acronym_dict = {
         "IntA": "Interposed cerebellar nucleus, anterior",
         "IntDL": "Interposed cerebellar nucleus, dorsolateral hump",
         "IntP": "Interposed cerebellar nucleus, posterior",
-        "IntPPC": "Interposed cerebellar nucleus, posterior parvicellular part",
+        "IntPPC": "Interposed cerebellar nucleus, posterior parvicellular \
+            part",
         "das": "Dorsal acoustic stria",
     },
     "hippocampus": {
-        "CA1-Py":"CA1-Pyramidal cell layer",
-        "CA1-Or":"CA1-Pyramidal Oriens layer",
-        "CA1-Lmol":"CA1-Lacunosum Moleculare layer",
-        "CA1-Rad":"CA1-Radiatum layer",
-        "CA2-Py":"CA2-Pyramidal cell layer",
-        "CA2-Or":"CA2-Pyramidal Oriens layer",
-        "CA2-Lmol":"CA2-Lacunosum Moleculare layer",
-        "CA2-Rad":"CA2-Radiatum layer",
-        "CA3-Py-inner":"CA3-inner Pyramidal cell layer",
-        "CA3-Py-outer":"CA3-outer Pyramidal cell layer",
-        "CA3-Py":"CA3-Pyramidal cell layer",
-        "CA3-Or":"CA3-Pyramidal Oriens layer",
-        "CA3-Lmol":"CA3-Lacunosum Moleculare layer",
-        "CA3-Rad":"CA3-Radiatum layer",
+        "CA1-Py": "CA1-Pyramidal cell layer",
+        "CA1-Or": "CA1-Pyramidal Oriens layer",
+        "CA1-Lmol": "CA1-Lacunosum Moleculare layer",
+        "CA1-Rad": "CA1-Radiatum layer",
+        "CA2-Py": "CA2-Pyramidal cell layer",
+        "CA2-Or": "CA2-Pyramidal Oriens layer",
+        "CA2-Lmol": "CA2-Lacunosum Moleculare layer",
+        "CA2-Rad": "CA2-Radiatum layer",
+        "CA3-Py-inner": "CA3-inner Pyramidal cell layer",
+        "CA3-Py-outer": "CA3-outer Pyramidal cell layer",
+        "CA3-Py": "CA3-Pyramidal cell layer",
+        "CA3-Or": "CA3-Pyramidal Oriens layer",
+        "CA3-Lmol": "CA3-Lacunosum Moleculare layer",
+        "CA3-Rad": "CA3-Radiatum layer",
         "Or": "Oriens layer",
         "Py": "Pyramidal cell layer",
         "Rad": "Radiatum layer",
@@ -474,6 +476,7 @@ acronym_dict = {
 }
 TEMPLATE_STRING = "ambmc-c57bl6-label-{}_v0.8{}"
 
+
 def download_resources():
     download_dir_path = BG_ROOT_DIR / "downloads"
     download_dir_path.mkdir(exist_ok=True)
@@ -502,9 +505,10 @@ def download_resources():
             tar.extractall(path=BG_ROOT_DIR)
     return None
 
+
 def preprocess_annotations():
     """
-    The annotations are split amongst multiple files, 
+    The annotations are split amongst multiple files,
     in different formats, and are required to correct values
     in the volumes themselves which are at times overlapping.
     So this preprocessing function must be run before retrieving
@@ -512,14 +516,19 @@ def preprocess_annotations():
     """
     download_dir_path = BG_ROOT_DIR / "downloads"
     for region in REGION_IDS.keys():
-        label_path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/{TEMPLATE_STRING.format(region, '.idx')}"
+        label_path = f"{download_dir_path}/\
+            {TEMPLATE_STRING.format(region, '-nii')}/\
+                {TEMPLATE_STRING.format(region, '.idx')}"
     label_list = []
     for region, url in ANNOTATION_URLS.items():
-        path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/{TEMPLATE_STRING.format(region, '.nii')}"
+        path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}\
+            /{TEMPLATE_STRING.format(region, '.nii')}"
         img = sitk.ReadImage(path)
         arr = sitk.GetArrayFromImage(img)
 
-        label_path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/{TEMPLATE_STRING.format(region, '.idx')}"
+        label_path = f"{download_dir_path}/\
+            {TEMPLATE_STRING.format(region, '-nii')}/\
+                {TEMPLATE_STRING.format(region, '.idx')}"
         if region == "hippocampus":
             total_label = pd.concat(label_list)
             label = pd.read_csv(label_path, sep="\t")
@@ -532,9 +541,7 @@ def preprocess_annotations():
             label = label.rename(columns={"0": "id", "1": "acronym"})
             # Generate new RGB values
             new_df = pd.DataFrame(columns=["r", "g", "b"])
-            while len(new_df) < len(
-                label
-            ):  
+            while len(new_df) < len(label):
                 new_rgb = np.random.randint(
                     0, 256, size=3
                 )  # Generate a new RGB value
@@ -547,7 +554,7 @@ def preprocess_annotations():
                     )  # Add it to new_df
             label[["r", "g", "b"]] = new_df[["r", "g", "b"]]
             label = label.rename(columns={0: "id", 1: "acronym"})
-            label['id'] = np.arange(1,16)
+            label["id"] = np.arange(1, 16)
         else:
             label = pd.read_csv(label_path, sep="\t", header=None)
             label = label.rename(
@@ -558,14 +565,19 @@ def preprocess_annotations():
         label["structure_id_path"] = label.apply(
             lambda x: [ROOT_ID, REGION_IDS[region], x["id"]], axis=1
         )
-        label['acronym'] = label['acronym'].str.strip()
-        #correct typo
-        label.loc[label['acronym'] == 'Zl', 'acronym'] = 'ZI'
-        label['name'] = label['acronym'].map(acronym_dict[region])      
-        label.loc[label['name'].isna(), 'name'] =  label.loc[label['name'].isna(), 'acronym']  
-        label_path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/{TEMPLATE_STRING.format(region, '_new.idx')}"
+        label["acronym"] = label["acronym"].str.strip()
+        # correct typo
+        label.loc[label["acronym"] == "Zl", "acronym"] = "ZI"
+        label["name"] = label["acronym"].map(acronym_dict[region])
+        label.loc[label["name"].isna(), "name"] = label.loc[
+            label["name"].isna(), "acronym"
+        ]
+        label_path = f"{download_dir_path}/\
+            {TEMPLATE_STRING.format(region, '-nii')}/\
+                {TEMPLATE_STRING.format(region, '_new.idx')}"
         label.to_csv(label_path)
         label_list.append(label)
+
 
 def retrieve_reference_and_annotation():
     """
@@ -583,28 +595,32 @@ def retrieve_reference_and_annotation():
         / "ambmc-c57bl6-model-symmet_v0.8.nii"
     )
     reference = sitk.GetArrayFromImage(sitk.ReadImage(str(filename)))
-    ### This part is complex as the atlas segmentations are 
-    ### Distributed through multiple files which we combine. 
+    ### This part is complex as the atlas segmentations are
+    ### Distributed through multiple files which we combine.
     original_origin = np.array([5.07600021, 9.81449986, -3.72600007])
     annotation = np.zeros((499, 1311, 679))
-    new_vals =  1
+    new_vals = 1
     for region in REGION_IDS.keys():
-        filename = f"{BG_ROOT_DIR}/{TEMPLATE_STRING.format(region, '-nii')}/{TEMPLATE_STRING.format(region, '.nii')}"
-        label_path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/{TEMPLATE_STRING.format(region, '_new.idx')}"
+        filename = f"{BG_ROOT_DIR}/{TEMPLATE_STRING.format(region, '-nii')}/\
+            {TEMPLATE_STRING.format(region, '.nii')}"
+        label_path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/\
+            {TEMPLATE_STRING.format(region, '_new.idx')}"
         label_data = pd.read_csv(label_path)
         img = sitk.ReadImage(filename)
         arr = sitk.GetArrayFromImage(img)
         id_mapping = {}
-        #This has to be done because the ids in the labelfile are in 
-        #correct order, but are not aligned with the volume
-        for i,idval in enumerate(label_data['id']):
-            arr[arr==(i+1)] = new_vals
+        # This has to be done because the ids in the labelfile are in
+        # correct order, but are not aligned with the volume
+        for i, idval in enumerate(label_data["id"]):
+            arr[arr == (i + 1)] = new_vals
             id_mapping[idval] = new_vals
             new_vals += 1
             # Assuming annotated_volume is a numpy array
         new_label_data = label_data.copy()
-        new_label_data['id'] = new_label_data['id'].map(id_mapping)
-        output_path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/{TEMPLATE_STRING.format(region, '_renumbered.idx')}"
+        new_label_data["id"] = new_label_data["id"].map(id_mapping)
+        output_path = f"{download_dir_path}/\
+            {TEMPLATE_STRING.format(region, '-nii')}/\
+                {TEMPLATE_STRING.format(region, '_renumbered.idx')}"
         new_label_data.to_csv(output_path)
         origin = np.array(img.GetOrigin())
         spacing = np.array(img.GetSpacing())
@@ -633,7 +649,7 @@ def retrieve_hemisphere_map():
         numpy.array or None: A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
-    return None #Symmetrical atlas
+    return None  # Symmetrical atlas
 
 
 def retrieve_structure_information():
@@ -690,7 +706,9 @@ def retrieve_structure_information():
     )
     label_list = []
     for region in REGION_IDS.keys():
-        file_path = f"{download_dir_path}/{TEMPLATE_STRING.format(region, '-nii')}/{TEMPLATE_STRING.format(region, '_renumbered.idx')}"
+        file_path = f"{download_dir_path}/\
+            {TEMPLATE_STRING.format(region, '-nii')}/\
+                {TEMPLATE_STRING.format(region, '_renumbered.idx')}"
         label_list.append(pd.read_csv(file_path))
     df = pd.concat(label_list).reset_index(drop=True)
     new_df = pd.DataFrame(columns=["r", "g", "b"])
@@ -720,11 +738,13 @@ def retrieve_structure_information():
     df = df.drop(columns=["r", "g", "b"])
     df = df.assign(rgb_triplet=rgb)
     total_df = pd.concat([hierarchical_labels, df])
-    total_df = total_df[['acronym', 'id', 'name', 'structure_id_path', 'rgb_triplet']]
+    total_df = total_df[
+        ["acronym", "id", "name", "structure_id_path", "rgb_triplet"]
+    ]
     structures = total_df.to_dict("records")
-    for s in structures: 
-        if ( isinstance(s['structure_id_path'], str)): 
-            s['structure_id_path'] = eval(s['structure_id_path'])
+    for s in structures:
+        if isinstance(s["structure_id_path"], str):
+            s["structure_id_path"] = eval(s["structure_id_path"])
     return structures
 
 

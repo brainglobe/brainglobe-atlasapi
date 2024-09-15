@@ -83,7 +83,7 @@ ATLAS_LINK = "https://www.neuropedia.dk/resource/multimodal-3d-mouse-brain-atlas
 ATLAS_FILE_URL = "https://www.neuropedia.dk/wp-content/uploads/Multimodal_mouse_brain_atlas_files_v2.7z"
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "ial"
+ORIENTATION = "als"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
@@ -190,6 +190,7 @@ def retrieve_structure_information():
     """
     # Since this atlas inherits from the allen can we not simply get the data
     # from the bgapi?
+    "determining structures"
     allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
     allen_structures = allen_atlas.structures_list
     allen_structures = [
@@ -321,7 +322,7 @@ if __name__ == "__main__":
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes()
-
+    print("wrapping up atlas")
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

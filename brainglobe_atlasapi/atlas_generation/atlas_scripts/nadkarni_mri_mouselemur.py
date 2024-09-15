@@ -43,7 +43,7 @@ ATLAS_LINK = (
 )
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
-ORIENTATION = "asr"
+ORIENTATION = "ria"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not

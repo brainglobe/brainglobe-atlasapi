@@ -6,8 +6,11 @@ import json
 from pathlib import Path
 
 import pooch
+import re
 
 from brainglobe_atlasapi import utils
+from brainglobe_utils.IO.image import load
+
 
 import pandas as pd
 
@@ -29,7 +32,8 @@ def hex_to_rgb(hex):
 def create_atlas(working_dir, resolution):
 
     HIERARCHY_FILE_URL = "https://raw.githubusercontent.com/noisyneuron/cuttlebase-util/main/data/brain-hierarchy.csv"
-    BRAIN_SCENE_URL = "https://raw.githubusercontent.com/noisyneuron/cuttlebase-util/main/data/brain-scene.json"
+    TEMPLATE_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ABflM0-v-b4_2WthGaeYM4s/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template.nii.gz?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"
+    ANNOTATION_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ALfSeAj81IM0v56bEeoTfUQ/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template_lobe-labels.nii.seg.nrrd?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"
 
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
@@ -42,6 +46,35 @@ def create_atlas(working_dir, resolution):
         known_hash="023418e626bdefbd177d4bb8c08661bd63a95ccff47720e64bb7a71546935b77",
         progressbar=True,
     )
+    
+    # import cuttlefish .nrrd file 
+    annotation_path = pooch.retrieve(
+        ANNOTATION_URL,
+        known_hash="768973251b179902ab48499093a4cc870cb6507c09ce46ff76b8203daf243f82",
+        progressbar=True,
+    )
+    
+    import nrrd
+    # process brain annotation file. There are a total of 70 segments. 
+    print("Processing brain annotations:")
+    readdata, header = nrrd.read(annotation_path)
+    
+    # Extract annotation mapping information from nrrd headers, to be applied to hierarchy file later. 
+    mapping = []
+    for n in range(0,70):
+        mapping.append({'color':header[f'Segment{n}_Color'], 'ID':header[f'Segment{n}_LabelValue'], 'acronym':header[f'Segment{n}_Name']})
+    
+    # convert the color information stored as a string of 3 RGB floats into a list of 3 RGB integers from 0 to 255.
+    for index, Map in enumerate(mapping):
+        mapping[index]['color'] = Map['color'].split(' ')
+        mapping[index]['color'] = list(map(float, mapping[index]['color']))
+        mapping[index]['color'] = [int(255*x) for x in mapping[index]['color']]
+    
+    #print(mapping)
+    #df = pd.DataFrame(mapping)
+    #df.to_csv('mappingtest.csv')
+    
+    
 
     # create dictionaries
     print("Creating structure tree")
@@ -55,13 +88,23 @@ def create_atlas(working_dir, resolution):
 
         # parse through csv file and populate hierarchy list
         for row in cuttlefish_dict_reader:
-            hierarchy.append(row)
+            if row['hasSides'] == 'Y':
+                leftSide = dict(row)
+                leftSide['abbreviation'] = leftSide['abbreviation'] + 'l'
+                leftSide['name'] = leftSide['name'] + ' (left)'
+                
+                rightSide = dict(row)
+                rightSide['abbreviation'] = rightSide['abbreviation'] + 'r'
+                rightSide['name'] = rightSide['name'] + ' (right)'
+                
+                hierarchy.append(leftSide)
+                hierarchy.append(rightSide)
+            else:
+                hierarchy.append(row)
 
     # remove 'hasSides' and 'function' keys, reorder and rename the remaining keys
     for i in range(0, len(hierarchy)):
         hierarchy[i]["acronym"] = hierarchy[i].pop("abbreviation")
-        if hierarchy[i]["hasSides"] == 'Y':
-            hierarchy[i]["acronym"] = hierarchy[i]["acronym"] + "l"
         hierarchy[i].pop("hasSides")
         hierarchy[i].pop("function")
         hierarchy[i]["structure_id_path"] = list(
@@ -69,20 +112,24 @@ def create_atlas(working_dir, resolution):
         )
         hierarchy[i]["structure_id_path"].insert(0, 999)
         hierarchy[i].pop("index")
-        path_string = [str(i) for i in hierarchy[i]["structure_id_path"]]
-        hierarchy[i]["id"] = int("".join(path_string))
-        hierarchy[i]["parent_structure_id"] = int(str(hierarchy[i]["id"])[:-1])
+        #TODO: Fix error! still has issues with duplicate values. 
+        if len(hierarchy[i]['structure_id_path']) < 4 and hierarchy[i]['structure_id_path'][-2] != '9993':
+            if len(hierarchy[i]['structure_id_path']) == 3:
+                hierarchy[i]['ID'] = int(hierarchy[i]['structure_id_path'][-1]) + 200
+            elif len(hierarchy[i]['structure_id_path']) == 2:
+                hierarchy[i]['ID'] = int(hierarchy[i]['structure_id_path'][-1]) + 100
+        #hierarchy[i]["parent_structure_id"] = int(str(hierarchy[i]["id"])[:-1])
         prev = ""
         for index, id in enumerate(hierarchy[i]["structure_id_path"]):
             hierarchy[i]["structure_id_path"][index] = str(prev) + str(id)
             prev = hierarchy[i]["structure_id_path"][index]
     
     # fix 'parent_structure_id' for VS and HR
-    hierarchy[55]['parent_structure_id']=int(str(hierarchy[i]['parent_structure_id'])[:-1])
-    hierarchy[56]['parent_structure_id']=int(str(hierarchy[i]['parent_structure_id'])[:-1])
+    
     
     # remove erroneous key for the VS region (error due to commas being included in the 'function' column)
-    hierarchy[-2].pop(None)
+    hierarchy[-3].pop(None)
+    hierarchy[-4].pop(None)
     
     # add the 'root' structure
     hierarchy.append(
@@ -90,55 +137,61 @@ def create_atlas(working_dir, resolution):
             "name": "root",
             "acronym": "root",
             "structure_id_path": [999],
-            "id": 999,
+            "ID": 999,
             "parent_structure_id": None,
         }
     )
-
-    # download region colour data
-    brain_scene_path = pooch.retrieve(
-        BRAIN_SCENE_URL,
-        known_hash="057fe98ea5ae24c5f9a10aebec072a12f6df19447c3c027f0f12ddba61a1bb90",
-        progressbar=True,
-    )
-
-    # apply colour map to each region
-    print("Applying colours:")
-    f = open(brain_scene_path)
-    brain_scene = json.load(f)
-    colourmap = brain_scene['params']['colors']
     
+    #print(hierarchy)
+
+
+    # apply colour and ID map to each region
     for index, region in enumerate(hierarchy):
-        for colour in colourmap: 
-            if region['acronym'] == colour['name']:
-                hierarchy[index]['rgb_triplet'] = hex_to_rgb(colour['color'])
+        for Map in mapping: 
+            if region['acronym'] == Map['acronym']:
+                hierarchy[index]['rgb_triplet'] = Map['color']
+                hierarchy[index]['ID'] = Map['ID']
     
-    # give random RGB triplets to regions without specified RGB triplet values
+    # original atlas does not give colours to some regions, so we give random RGB triplets to regions without specified RGB triplet values
     random_rgb_triplets = [[156, 23, 189],[45, 178, 75],[231, 98, 50],[12, 200, 155],[87, 34, 255],[190, 145, 66],[64, 199, 225],
     [255, 120, 5],[10, 45, 90],[145, 222, 33],[35, 167, 204],[76, 0, 89], [27, 237, 236], [255, 255, 255]]
     
     n = 0
-    for index, region in enumerate(hierarchy):
+    '''for index, region in enumerate(hierarchy):
         if 'rgb_triplet' not in region:
             hierarchy[index]['rgb_triplet'] = random_rgb_triplets[n]
-            n = n+1
+            n = n+1'''
     
     # give filler acronyms for regions without specified acronyms
     missing_acronyms = ['SpEM', 'VLC', 'BLC', 'SbEM', 'PLC', 'McLC', 'PvLC', 'BLC', 'PeM', 
                         'OTC', 'NF']
     n = 0
-    for index, region in enumerate(hierarchy):
+    '''for index, region in enumerate(hierarchy):
         if hierarchy[index]['acronym'] == '':
             hierarchy[index]['acronym'] = missing_acronyms[n]
-            n = n+1
+            n = n+1'''
     
+    
+    # import cuttlefish .nii file 
+    template_path = pooch.retrieve(
+        TEMPLATE_URL,
+        known_hash="195125305a11abe6786be1b32830a8aed1bc8f68948ad53fa84bf74efe7cbe9c",
+        progressbar=True,
+    )
 
+    # process brain template MRI file
+    print("Processing brain template:")
+    brain_template = load.load_nii(template_path)
+    #print(brain_template)
     
-    f.close()
+    
+    
+    
+    
     # check the transformed version of the hierarchy.csv file
     #print(hierarchy)
-    #df = pd.DataFrame(hierarchy)
-    #df.to_csv('hierarchy_test.csv')
+    df = pd.DataFrame(hierarchy)
+    df.to_csv('hierarchy_test.csv')
     
     return None
 

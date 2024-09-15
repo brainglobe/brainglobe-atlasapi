@@ -11,7 +11,6 @@ import requests
 import SimpleITK as sitk
 from rich.progress import track
 
-from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -28,7 +27,7 @@ ATLAS_NAME = "australian_mouse"
 CITATION = "lANKE et al. 2015, https://doi.org/10.1016/j.ymeth.2015.01.005"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://imaging.org.au/AMBMC/"
-ORIENTATION = "asl"
+ORIENTATION = "iar"
 ROOT_ID = 9999
 RESOLUTION = 15
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
@@ -484,7 +483,7 @@ TEMPLATE_STRING = "ambmc-c57bl6-label-{}_v0.8{}"
 def download_resources():
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
     ## Download atlas_file
-    utils.check_internet_connection()
+    # utils.check_internet_connection()
     destination_path = DOWNLOAD_DIR_PATH / "template.nii.tar.gz"
     if not os.path.isfile(destination_path):
         response = requests.get(REFERENCE_URL, stream=True)
@@ -638,6 +637,10 @@ def retrieve_reference_and_annotation():
         ]
         mask = arr != 0
         segment[mask] = arr[mask]
+    reference = reference - reference.min()
+    reference = reference / reference.max()
+    reference = reference * 65535
+    reference = reference.astype(np.uint16)
     return annotation, reference
 
 

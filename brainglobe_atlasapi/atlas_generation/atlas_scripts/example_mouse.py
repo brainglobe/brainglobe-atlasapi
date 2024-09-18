@@ -26,7 +26,8 @@ BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 
 def download_resources():
     """
-    Download the necessary resources for the atlas. Here we don't, because we can out-source this to the Allen SDK in later functions.
+    Download the necessary resources for the atlas. Here we don't, because we
+    can out-source this to the Allen SDK in later functions.
     """
     pass
 

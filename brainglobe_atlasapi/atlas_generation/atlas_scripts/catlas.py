@@ -24,7 +24,9 @@ annotated_volume = None
 # temp location
 working_dir = Path("F:/Users/Henry/Downloads/Setup/CATLAS-main/temp_pooch")
 
-# A CSV I made from table 1 of the paper
+# A CSV I made from table 1 of the paper, cerebellum added
+# ALv and ALd included in catlas but not included on the table
+
 csv_of_full_name = "~/Desktop/catlas_table1_name.csv"
 
 
@@ -96,6 +98,20 @@ def retrieve_hemisphere_map():
     return None
 
 
+def rgb_col_merger(labels_df):
+    """
+    Re-formats df columns, from individual r,g,b into the desired [r,g,b].
+    """
+
+    rgb_list = []
+    for _, row in labels_df.iterrows():
+        new_rgb_row = [row["r"], row["g"], row["b"]]
+        rgb_list.append(new_rgb_row)
+    labels_df = labels_df.drop(columns=["r", "g", "b"])
+    labels_df["rgb_triplet"] = rgb_list
+    return labels_df
+
+
 def retrieve_structure_information(file_path_list, csv_of_full_name):
     """
     This function should return a pandas DataFrame
@@ -118,21 +134,38 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
 
-    labels_df = pd.read_csv(file_path_list[2], sep=r"\s+", skiprows=2)
-    full_name_df = pd.read_csv(csv_of_full_name)
+    label_df_col = ["id", "acronym", "structure_id_path", "r", "g", "b"]
+    full_name_df_col = ["acronym", "name"]
+    combined_df_col = [
+        "id",
+        "name",
+        "acronym",
+        "structure_id_path",
+        "rgb_triplet",
+    ]
 
-    print(labels_df.shape)
-    print(full_name_df.shape)
+    labels_df = pd.read_csv(
+        file_path_list[2],
+        sep=r"\s+",
+        skiprows=2,
+        header=None,
+        names=label_df_col,
+        index_col=False,
+    )
+    full_name_df = pd.read_csv(
+        csv_of_full_name, names=full_name_df_col, index_col=False
+    )
 
-    col1 = labels_df.iloc[:, 1]
-    col2 = full_name_df.iloc[:, 0]
+    # combines the last three [r],[g],[b] columns into one [r,g,b]
+    rgb_labels_df = rgb_col_merger(labels_df)
 
-    unique_in_df1 = set(col1) - set(col2)
-    unique_in_df2 = set(col2) - set(col1)
-
-    print(f"Values in df1 but not in df2: {unique_in_df1}")
-    print(f"Values in df2 but not in df1: {unique_in_df2}")
-    return None
+    # merges both dataframes based aligning the fullnames with the acronyms,
+    # fills empty spaces with NaN and sorts df to desired structure.
+    structure_info_mix = pd.merge(
+        rgb_labels_df, full_name_df, on="acronym", how="left"
+    )
+    structure_info = structure_info_mix[combined_df_col]
+    return structure_info
 
 
 retrieve_structure_information(file_path_list, csv_of_full_name)

@@ -81,33 +81,23 @@ def retrieve_template_and_reference(file_path_list):
 template, reference = retrieve_template_and_reference(file_path_list)
 
 
-def retrieve_hemisphere_map():
+def add_heirarchy(labels_df):
+    # structure_id_path needs to be created, at the moment it is not.
+    heirarchy = []
+    labels_df["structure_id_path"] = heirarchy
+    pass
+
+
+def add_rgb_col_and_heirarchy(labels_df):
     """
-    Retrieve a hemisphere map for the atlas.
-
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
-    This is an array in the same shape as your template,
-    with 0's marking the left hemisphere, and 1's marking the right.
-
-    If your atlas is symmetrical, ignore this function.
-
-    Returns:
-        numpy.array or None: A numpy array representing the hemisphere map,
-        or None if the atlas is symmetrical.
-    """
-    return None
-
-
-def rgb_col_merger(labels_df):
-    """
-    Re-formats df columns, from individual r,g,b into the desired [r,g,b].
+    Re-formats df columns, from individual r,g,b,a into the desired [r,g,b].
     """
 
     rgb_list = []
     for _, row in labels_df.iterrows():
         new_rgb_row = [row["r"], row["g"], row["b"]]
         rgb_list.append(new_rgb_row)
-    labels_df = labels_df.drop(columns=["r", "g", "b"])
+    labels_df = labels_df.drop(columns=["r", "g", "b", "alpha"])
     labels_df["rgb_triplet"] = rgb_list
     return labels_df
 
@@ -134,7 +124,7 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
 
-    label_df_col = ["id", "acronym", "structure_id_path", "r", "g", "b"]
+    label_df_col = ["id", "acronym", "r", "g", "b", "alpha"]
     full_name_df_col = ["acronym", "name"]
     combined_df_col = [
         "id",
@@ -156,15 +146,15 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         csv_of_full_name, names=full_name_df_col, index_col=False
     )
 
-    # combines the last three [r],[g],[b] columns into one [r,g,b]
-    rgb_labels_df = rgb_col_merger(labels_df)
+    complete_labels_df = add_rgb_col_and_heirarchy(labels_df)
 
-    # merges both dataframes based aligning the fullnames with the acronyms,
+    # merges both dataframes, aligning the fullnames with the acronyms,
     # fills empty spaces with NaN and sorts df to desired structure.
     structure_info_mix = pd.merge(
-        rgb_labels_df, full_name_df, on="acronym", how="left"
+        complete_labels_df, full_name_df, on="acronym", how="left"
     )
     structure_info = structure_info_mix[combined_df_col]
+    print(structure_info)
     return structure_info
 
 

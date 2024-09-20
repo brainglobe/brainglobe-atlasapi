@@ -81,11 +81,14 @@ def retrieve_template_and_reference(file_path_list):
 template, reference = retrieve_template_and_reference(file_path_list)
 
 
-def add_heirarchy(labels_df):
-    # structure_id_path needs to be created, at the moment it is not.
-    heirarchy = []
-    labels_df["structure_id_path"] = heirarchy
-    pass
+def add_heirarchy(labels_df_row):
+    """
+    Takes the index at a given row and adds the root_id -
+    produces structural heirarchy
+    """
+    structure_index = labels_df_row["id"]
+    structure_id = [ROOT_ID, structure_index]
+    return structure_id
 
 
 def add_rgb_col_and_heirarchy(labels_df):
@@ -94,11 +97,17 @@ def add_rgb_col_and_heirarchy(labels_df):
     """
 
     rgb_list = []
+    structure_list = []
     for _, row in labels_df.iterrows():
         new_rgb_row = [row["r"], row["g"], row["b"]]
         rgb_list.append(new_rgb_row)
+
+        structure_id = add_heirarchy(row)
+        structure_list.append(structure_id)
+
     labels_df = labels_df.drop(columns=["r", "g", "b", "alpha"])
     labels_df["rgb_triplet"] = rgb_list
+    labels_df["structure_id_path"] = structure_list
     return labels_df
 
 
@@ -133,6 +142,7 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         "structure_id_path",
         "rgb_triplet",
     ]
+    root_col = [col for col in combined_df_col if col != "name"]
 
     labels_df = pd.read_csv(
         file_path_list[2],
@@ -146,15 +156,21 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         csv_of_full_name, names=full_name_df_col, index_col=False
     )
 
-    complete_labels_df = add_rgb_col_and_heirarchy(labels_df)
+    labels_df = add_rgb_col_and_heirarchy(labels_df)
+    root_id_row = pd.DataFrame(
+        [[999, "root", [], [255, 255, 255]]], columns=root_col
+    )
+    complete_labels_df = pd.concat(
+        [root_id_row, labels_df.loc[:]]
+    ).reset_index(drop=True)
 
     # merges both dataframes, aligning the fullnames with the acronyms,
     # fills empty spaces with NaN and sorts df to desired structure.
     structure_info_mix = pd.merge(
         complete_labels_df, full_name_df, on="acronym", how="left"
     )
+
     structure_info = structure_info_mix[combined_df_col]
-    print(structure_info)
     return structure_info
 
 

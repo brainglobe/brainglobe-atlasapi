@@ -190,7 +190,7 @@ def retrieve_structure_information():
     """
     # Since this atlas inherits from the allen can we not simply get the data
     # from the bgapi?
-    "determining structures"
+    print("determining structures")
     allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
     allen_structures = allen_atlas.structures_list
     allen_structures = [

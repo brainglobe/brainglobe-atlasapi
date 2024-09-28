@@ -1,5 +1,6 @@
 """ Atlas for a domestic cat """
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -9,6 +10,7 @@ from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 from skimage.filters.rank import modal
 from skimage.morphology import ball
+from vedo import Mesh, write
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
@@ -32,6 +34,10 @@ ATLAS_PACKAGER = "Henry Crosswell"
 annotated_volume = None
 # temp location
 working_dir = Path("F:/Users/Henry/Downloads/Setup/CATLAS-main/temp_pooch")
+mesh_folder_path = Path("/CATLAS-main/SlicerFiles/CorticalAtlasModel_A/")
+mesh_folder_path = working_dir + mesh_folder_path
+mesh_save_folder = working_dir / "meshes"
+
 
 # A CSV I made from table 1 of the paper, cerebellum added
 # ALv and ALd included in catlas but not included on the table
@@ -70,9 +76,6 @@ def download_resources(working_dir):
     return file_path_list
 
 
-file_path_list = download_resources(working_dir)
-
-
 def retrieve_template_and_annotations(file_path_list):
     """
     Retrieve the desired template and annotations as two numpy arrays.
@@ -87,9 +90,6 @@ def retrieve_template_and_annotations(file_path_list):
     template = load_nii(file_path_list[0], as_array=True)
     annotations = load_nii(file_path_list[1], as_array=True)
     return template, annotations
-
-
-template, annotations = retrieve_template_and_annotations(file_path_list)
 
 
 def add_heirarchy(labels_df_row):
@@ -186,12 +186,40 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
     structures_dict = structures_df.to_dict(orient="records")
 
     structures_tree = get_structures_tree(structures_dict)
-    return structures_tree
+    return structures_tree, structures_dict
 
 
-structures_tree = retrieve_structure_information(
-    file_path_list, csv_of_full_name
-)
+def extract_mesh_from_vtk(mesh_folder_path):
+    mesh_dict = {}
+    list_of_mesh_files = os.listdir(mesh_folder_path)
+    for vtk_file in list_of_mesh_files:
+        if vtk_file[-4:] != ".vtk":
+            continue
+        elif vtk_file == "A_32_Cerebelum.vtk":  # duplicate
+            continue
+        elif vtk_file == "A_36_pPE.vtk":  # duplicate & different acronym
+            continue
+        mesh = Mesh(mesh_folder_path + vtk_file)
+
+        # Re-creating the transformations from mesh_utils
+        mesh.triangulate()
+        mesh.decimate_pro(0.6)
+        mesh.smooth()
+
+        index = vtk_file[2:4]
+        if index[-1] == "_":
+            index = vtk_file[2]
+
+        file_name = index + ".obj"
+
+        if not Path(mesh_save_folder / file_name).exists():
+            write(mesh, str(mesh_save_folder / file_name))
+        else:
+            print(f"mesh already generated for file {index}")
+
+        mesh_dict[index] = file_name
+
+    return mesh_dict
 
 
 def construct_meshes(structures_tree, annotations):
@@ -243,7 +271,8 @@ def construct_meshes(structures_tree, annotations):
         )
 
 
-construct_meshes(structures_tree, annotations)
+# construct_meshes(structures_tree, annotations)
+
 
 #     )
 

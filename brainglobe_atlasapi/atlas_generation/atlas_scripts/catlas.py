@@ -3,19 +3,11 @@
 import os
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
-from rich.progress import track
-from skimage.filters.rank import modal
-from skimage.morphology import ball
 from vedo import Mesh, write
 
-from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    Region,
-    create_region_mesh,
-)
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import check_internet_connection
 
@@ -220,73 +212,6 @@ def extract_mesh_from_vtk(mesh_folder_path):
         mesh_dict[index] = file_name
 
     return mesh_dict
-
-
-def construct_meshes(structures_tree, annotations):
-    """
-    This should return a dict of ids and corresponding paths to mesh files.
-    Use packaged mesh files if possible.
-    Download or construct mesh files  - use helper function for this
-    """
-    # Generate binary mask for mesh creation
-    labels = np.unique(annotations).astype(np.int_)
-    for key, node in structures_tree.nodes.items():
-        # Check if the node's key is in the list of labels
-        is_label = key in labels
-        node.data = Region(is_label)
-
-    # Mesh creation parameters
-    closing_n_iters = 5
-    decimate_fraction = 0.6
-    smooth = True
-
-    meshes_dir_path = working_dir / "meshes"
-    meshes_dir_path.mkdir(exist_ok=True)
-
-    # pass a smoothed version of the annotations for meshing
-    smoothed_annotations = annotations.copy()
-    smoothed_annotations = modal(
-        smoothed_annotations.astype(np.uint8), ball(5)
-    )
-
-    # Iterate over each node in the tree and create meshes
-    for node in track(
-        structures_tree.nodes.values(),
-        total=structures_tree.size(),
-        description="Creating meshes",
-    ):
-
-        create_region_mesh(
-            [
-                meshes_dir_path,  # Directory where mesh files will be saved
-                node,
-                structures_tree,
-                labels,
-                smoothed_annotations,
-                ROOT_ID,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            ]
-        )
-
-
-# construct_meshes(structures_tree, annotations)
-
-
-#     )
-
-#     meshes_dir_path: pathlib Path object with folder where meshes are saved
-#     tree: treelib.Tree with hierarchical structures information
-#     node: tree's node corresponding to the region who's mesh is being created
-#     labels: list of unique label annotations in annotated volume,
-#     (list(np.unique(annotated_volume)))
-#     annotated_volume: 3d numpy array with annotaed volume
-#     ROOT_ID: int,
-#     id of root structure (mesh creation is a bit more refined for that)
-
-#     meshes_dict = {}
-#     return meshes_dict
 
 
 # commenting out to unit test

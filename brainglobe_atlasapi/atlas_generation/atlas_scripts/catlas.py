@@ -2,10 +2,18 @@
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
+from rich.progress import track
+from skimage.filters.rank import modal
+from skimage.morphology import ball
 
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    Region,
+    create_region_mesh,
+)
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import check_internet_connection
 
@@ -65,11 +73,11 @@ def download_resources(working_dir):
 file_path_list = download_resources(working_dir)
 
 
-def retrieve_template_and_reference(file_path_list):
+def retrieve_template_and_annotations(file_path_list):
     """
-    Retrieve the desired template and reference as two numpy arrays.
+    Retrieve the desired template and annotations as two numpy arrays.
     Template is MRI image of brain
-    Reference is an annotated 'segmentation' - each label has a unique ID
+    Annotations is an annotated 'segmentation' - each label has a unique ID
 
     Returns:
         tuple: A tuple containing two numpy arrays.
@@ -77,11 +85,11 @@ def retrieve_template_and_reference(file_path_list):
         and the second array is the reference volume.
     """
     template = load_nii(file_path_list[0], as_array=True)
-    reference = load_nii(file_path_list[1], as_array=True)
-    return template, reference
+    annotations = load_nii(file_path_list[1], as_array=True)
+    return template, annotations
 
 
-template, reference = retrieve_template_and_reference(file_path_list)
+template, annotations = retrieve_template_and_annotations(file_path_list)
 
 
 def add_heirarchy(labels_df_row):
@@ -177,21 +185,65 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
     structures_df = structure_info_mix[combined_df_col]
     structures_dict = structures_df.to_dict(orient="records")
 
-    hierarchy = get_structures_tree(structures_dict)
-    return hierarchy
+    structures_tree = get_structures_tree(structures_dict)
+    return structures_tree
 
 
-hierarchy = retrieve_structure_information(file_path_list, csv_of_full_name)
+structures_tree = retrieve_structure_information(
+    file_path_list, csv_of_full_name
+)
 
 
-def construct_meshes(hierarchy, reference_image):
+def construct_meshes(structures_tree, annotations):
     """
     This should return a dict of ids and corresponding paths to mesh files.
     Use packaged mesh files if possible.
     Download or construct mesh files  - use helper function for this
     """
-    pass
+    # Generate binary mask for mesh creation
+    labels = np.unique(annotations).astype(np.int_)
+    for key, node in structures_tree.nodes.items():
+        # Check if the node's key is in the list of labels
+        is_label = key in labels
+        node.data = Region(is_label)
 
+    # Mesh creation parameters
+    closing_n_iters = 5
+    decimate_fraction = 0.6
+    smooth = True
+
+    meshes_dir_path = working_dir / "meshes"
+    meshes_dir_path.mkdir(exist_ok=True)
+
+    # pass a smoothed version of the annotations for meshing
+    smoothed_annotations = annotations.copy()
+    smoothed_annotations = modal(
+        smoothed_annotations.astype(np.uint8), ball(5)
+    )
+
+    # Iterate over each node in the tree and create meshes
+    for node in track(
+        structures_tree.nodes.values(),
+        total=structures_tree.size(),
+        description="Creating meshes",
+    ):
+
+        create_region_mesh(
+            [
+                meshes_dir_path,  # Directory where mesh files will be saved
+                node,
+                structures_tree,
+                labels,
+                smoothed_annotations,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
+            ]
+        )
+
+
+construct_meshes(structures_tree, annotations)
 
 #     )
 

@@ -6,6 +6,7 @@ import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
 
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import check_internet_connection
 
 ###Metadata
@@ -67,6 +68,8 @@ file_path_list = download_resources(working_dir)
 def retrieve_template_and_reference(file_path_list):
     """
     Retrieve the desired template and reference as two numpy arrays.
+    Template is MRI image of brain
+    Reference is an annotated 'segmentation' - each label has a unique ID
 
     Returns:
         tuple: A tuple containing two numpy arrays.
@@ -152,6 +155,7 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         names=label_df_col,
         index_col=False,
     )
+
     full_name_df = pd.read_csv(
         csv_of_full_name, names=full_name_df_col, index_col=False
     )
@@ -170,21 +174,38 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         complete_labels_df, full_name_df, on="acronym", how="left"
     )
 
-    structure_info = structure_info_mix[combined_df_col]
-    return structure_info
+    structures_df = structure_info_mix[combined_df_col]
+    structures_dict = structures_df.to_dict(orient="records")
+
+    hierarchy = get_structures_tree(structures_dict)
+    return hierarchy
 
 
-retrieve_structure_information(file_path_list, csv_of_full_name)
+hierarchy = retrieve_structure_information(file_path_list, csv_of_full_name)
 
 
-def retrieve_or_construct_meshes():
+def construct_meshes(hierarchy, reference_image):
     """
     This should return a dict of ids and corresponding paths to mesh files.
     Use packaged mesh files if possible.
     Download or construct mesh files  - use helper function for this
     """
-    meshes_dict = {}
-    return meshes_dict
+    pass
+
+
+#     )
+
+#     meshes_dir_path: pathlib Path object with folder where meshes are saved
+#     tree: treelib.Tree with hierarchical structures information
+#     node: tree's node corresponding to the region who's mesh is being created
+#     labels: list of unique label annotations in annotated volume,
+#     (list(np.unique(annotated_volume)))
+#     annotated_volume: 3d numpy array with annotaed volume
+#     ROOT_ID: int,
+#     id of root structure (mesh creation is a bit more refined for that)
+
+#     meshes_dict = {}
+#     return meshes_dict
 
 
 # commenting out to unit test

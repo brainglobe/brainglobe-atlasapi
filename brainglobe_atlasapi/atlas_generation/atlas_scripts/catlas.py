@@ -8,33 +8,21 @@ import pooch
 from brainglobe_utils.IO.image import load_nii
 from vedo import Mesh, write
 
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import check_internet_connection
 
-###Metadata
+### Metadata
 __version__ = 1
-ATLAS_NAME = "catlas"
+ATLAS_NAME = "CSL_catlas"
 CITATION = "Stolzberg, Daniel et al 2017.https://doi.org/10.1002/cne.24271"
 SPECIES = "Felis catus"
 ATLAS_LINK = "https://github.com/CerebralSystemsLab/CATLAS"
 ATLAS_FILE_URL = "https://raw.githubusercontent.com/CerebralSystemsLab/CATLAS/main/SlicerFiles/"
 ORIENTATION = "lps"
-ROOT_ID = 999  # Placeholder as no hierarchy is present
+ROOT_ID = 997
 RESOLUTION = 500  # microns
 ATLAS_PACKAGER = "Henry Crosswell"
-
-annotated_volume = None
-# temp location
-working_dir = Path("F:/Users/Henry/Downloads/Setup/CATLAS-main/temp_pooch")
-mesh_folder_path = Path("/CATLAS-main/SlicerFiles/CorticalAtlasModel_A/")
-mesh_folder_path = working_dir + mesh_folder_path
-mesh_save_folder = working_dir / "meshes"
-
-
-# A CSV I made from table 1 of the paper, cerebellum added
-# ALv and ALd included in catlas but not included on the table
-
-csv_of_full_name = "~/Desktop/catlas_table1_name.csv"
 
 
 def download_resources(working_dir):
@@ -162,7 +150,7 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
 
     labels_df = add_rgb_col_and_heirarchy(labels_df)
     root_id_row = pd.DataFrame(
-        [[999, "root", [], [255, 255, 255]]], columns=root_col
+        [[997, "root", [997], [255, 255, 255]]], columns=root_col
     )
     complete_labels_df = pd.concat(
         [root_id_row, labels_df.loc[:]]
@@ -178,7 +166,7 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
     structures_dict = structures_df.to_dict(orient="records")
 
     structures_tree = get_structures_tree(structures_dict)
-    return structures_tree, structures_dict
+    return structures_tree, structures_dict, structures_df
 
 
 def extract_mesh_from_vtk(mesh_folder_path):
@@ -203,47 +191,56 @@ def extract_mesh_from_vtk(mesh_folder_path):
             index = vtk_file[2]
 
         file_name = index + ".obj"
+        file_path = str(mesh_save_folder / file_name)
+        mesh_dict[index] = file_path
 
-        if not Path(mesh_save_folder / file_name).exists():
-            write(mesh, str(mesh_save_folder / file_name))
+        if not Path(file_path).exists():
+            write(mesh, file_path)
         else:
-            print(f"mesh already generated for file {index}")
-
-        mesh_dict[index] = file_name
+            continue
 
     return mesh_dict
 
 
-# commenting out to unit test
+# A CSV I made from table 1 of the paper, cerebellum added
+# ALv and ALd included in catlas but not included on the table
+csv_of_full_name = "~/Desktop/catlas_table1_name.csv"
 
-### If the code above this line has been filled correctly, nothing needs to be
+working_dir = Path("F:/Users/Henry/Downloads/Setup/CATLAS-main/temp_pooch")
+temp_dir = "F:/Users/Henry/Downloads/Setup/CATLAS-main/"
+mesh_folder_path = temp_dir + "CATLAS-main/SlicerFiles/CorticalAtlasModel_A/"
+mesh_save_folder = working_dir / "meshes"
+
+# If the code above this line has been filled correctly, nothing needs to be
 # edited below (unless variables need to be passed between the functions).
 # bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 # bg_root_dir.mkdir(exist_ok=True)
 # working_dir = bg_root_dir
-# local_file_path_list = download_resources(working_dir)
-# template_volume, reference_volume =
-# retrieve_template_and_reference(local_file_path_list)
+local_file_path_list = download_resources(working_dir)
+template_volume, reference_volume = retrieve_template_and_annotations(
+    local_file_path_list
+)
 # hemispheres_stack = retrieve_hemisphere_map(local_file_path_list)
-# structures = retrieve_structure_information(local_file_path_list)
-# meshes_dict = retrieve_or_construct_meshes()
-
-# output_filename = wrapup_atlas_from_data(
-#     atlas_name=ATLAS_NAME,
-#     atlas_minor_version=__version__,
-#     citation=CITATION,
-#     atlas_link=ATLAS_LINK,
-#     species=SPECIES,
-#     resolution=(RESOLUTION,) * 3,
-#     orientation=ORIENTATION,
-#     root_id=ROOT_ID,
-#     reference_stack=template_volume,
-#     annotation_stack=annotated_volume,
-#     structures_list=structures,
-#     meshes_dict=meshes_dict,
-#     working_dir=working_dir,
-#     hemispheres_stack=None,
-#     cleanup_files=False,
-#     compress=True,
-#     scale_meshes=True,
-# )
+structures_tree, structures_dict, structures_df = (
+    retrieve_structure_information(local_file_path_list, csv_of_full_name)
+)
+meshes_dict = extract_mesh_from_vtk(mesh_folder_path)
+output_filename = wrapup_atlas_from_data(
+    atlas_name=ATLAS_NAME,
+    atlas_minor_version=__version__,
+    citation=CITATION,
+    atlas_link=ATLAS_LINK,
+    species=SPECIES,
+    resolution=(RESOLUTION,) * 3,
+    orientation=ORIENTATION,
+    root_id=ROOT_ID,
+    reference_stack=template_volume,
+    annotation_stack=reference_volume,
+    structures_list=structures_dict,
+    meshes_dict=meshes_dict,
+    working_dir=working_dir,
+    hemispheres_stack=None,
+    cleanup_files=False,
+    compress=True,
+    scale_meshes=True,
+)

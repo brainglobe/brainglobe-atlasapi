@@ -101,7 +101,10 @@ def create_atlas(working_dir, resolution):
                 hierarchy.append(rightSide)
             else:
                 hierarchy.append(row)
-
+    
+    # use layer1 and layer2 to give IDs to regions which do not have existing IDs. 
+    layer1 = 100
+    layer2 = 200
     # remove 'hasSides' and 'function' keys, reorder and rename the remaining keys
     for i in range(0, len(hierarchy)):
         hierarchy[i]["acronym"] = hierarchy[i].pop("abbreviation")
@@ -112,20 +115,18 @@ def create_atlas(working_dir, resolution):
         )
         hierarchy[i]["structure_id_path"].insert(0, 999)
         hierarchy[i].pop("index")
-        #TODO: Fix error! still has issues with duplicate values. 
-        if len(hierarchy[i]['structure_id_path']) < 4 and hierarchy[i]['structure_id_path'][-2] != '9993':
+        if len(hierarchy[i]['structure_id_path']) < 4 and hierarchy[i]['structure_id_path'][-2] != 3:
             if len(hierarchy[i]['structure_id_path']) == 3:
-                hierarchy[i]['ID'] = int(hierarchy[i]['structure_id_path'][-1]) + 200
+                hierarchy[i]['ID'] = layer2
+                layer2 += 1
             elif len(hierarchy[i]['structure_id_path']) == 2:
-                hierarchy[i]['ID'] = int(hierarchy[i]['structure_id_path'][-1]) + 100
-        #hierarchy[i]["parent_structure_id"] = int(str(hierarchy[i]["id"])[:-1])
-        prev = ""
-        for index, id in enumerate(hierarchy[i]["structure_id_path"]):
-            hierarchy[i]["structure_id_path"][index] = str(prev) + str(id)
-            prev = hierarchy[i]["structure_id_path"][index]
-    
-    # fix 'parent_structure_id' for VS and HR
-    
+                hierarchy[i]['ID'] = layer1
+                layer1 += 1
+        if hierarchy[i]['acronym'] == 'SB': 
+            hierarchy[i]['ID'] = 71
+        elif hierarchy[i]['acronym'] == 'IB':
+            hierarchy[i]['ID'] = 72
+            
     
     # remove erroneous key for the VS region (error due to commas being included in the 'function' column)
     hierarchy[-3].pop(None)
@@ -141,8 +142,6 @@ def create_atlas(working_dir, resolution):
             "parent_structure_id": None,
         }
     )
-    
-    #print(hierarchy)
 
 
     # apply colour and ID map to each region
@@ -150,26 +149,46 @@ def create_atlas(working_dir, resolution):
         for Map in mapping: 
             if region['acronym'] == Map['acronym']:
                 hierarchy[index]['rgb_triplet'] = Map['color']
-                hierarchy[index]['ID'] = Map['ID']
+                hierarchy[index]['ID'] = int(Map['ID'])
+    
+    # amend each region's structure_id_path by iterating through entire list, and replacing dummy values with actual ID values. 
+    for i in range(0, len(hierarchy)):
+        if len(hierarchy[i]['structure_id_path']) == 2:
+            hierarchy[i]['structure_id_path'][1] = hierarchy[i]['ID']
+            len2_shortest_index = i
+        
+        elif len(hierarchy[i]['structure_id_path']) == 3:
+            hierarchy[i]['structure_id_path'][1] = hierarchy[len2_shortest_index]['ID']
+            hierarchy[i]['structure_id_path'][2] = hierarchy[i]['ID']
+            len3_shortest_index = i
+            
+        elif len(hierarchy[i]['structure_id_path']) == 4:
+            hierarchy[i]['structure_id_path'][1] = hierarchy[len2_shortest_index]['ID']
+            hierarchy[i]['structure_id_path'][2] = hierarchy[len3_shortest_index]['ID']
+            hierarchy[i]['structure_id_path'][3] = hierarchy[i]["ID"]
+        # find parent_structure_id using resulting structure_id_path
+        if hierarchy[i]['name'] != 'root':
+            hierarchy[i]['parent_structure_id'] = hierarchy[i]['structure_id_path'][-2]
+    
     
     # original atlas does not give colours to some regions, so we give random RGB triplets to regions without specified RGB triplet values
     random_rgb_triplets = [[156, 23, 189],[45, 178, 75],[231, 98, 50],[12, 200, 155],[87, 34, 255],[190, 145, 66],[64, 199, 225],
     [255, 120, 5],[10, 45, 90],[145, 222, 33],[35, 167, 204],[76, 0, 89], [27, 237, 236], [255, 255, 255]]
     
     n = 0
-    '''for index, region in enumerate(hierarchy):
+    for index, region in enumerate(hierarchy):
         if 'rgb_triplet' not in region:
             hierarchy[index]['rgb_triplet'] = random_rgb_triplets[n]
-            n = n+1'''
+            n = n+1
     
     # give filler acronyms for regions without specified acronyms
-    missing_acronyms = ['SpEM', 'VLC', 'BLC', 'SbEM', 'PLC', 'McLC', 'PvLC', 'BLC', 'PeM', 
+    missing_acronyms = ['SpEM', 'VLC', 'BsLC', 'SbEM', 'PLC', 'McLC', 'PvLC', 'BLC', 'PeM', 
                         'OTC', 'NF']
     n = 0
-    '''for index, region in enumerate(hierarchy):
+    for index, region in enumerate(hierarchy):
         if hierarchy[index]['acronym'] == '':
             hierarchy[index]['acronym'] = missing_acronyms[n]
-            n = n+1'''
+            n = n+1
     
     
     # import cuttlefish .nii file 
@@ -182,16 +201,12 @@ def create_atlas(working_dir, resolution):
     # process brain template MRI file
     print("Processing brain template:")
     brain_template = load.load_nii(template_path)
-    #print(brain_template)
-    
-    
-    
     
     
     # check the transformed version of the hierarchy.csv file
-    #print(hierarchy)
-    df = pd.DataFrame(hierarchy)
-    df.to_csv('hierarchy_test.csv')
+    print(hierarchy)
+    #df = pd.DataFrame(hierarchy)
+    #df.to_csv('hierarchy_test.csv')
     
     return None
 

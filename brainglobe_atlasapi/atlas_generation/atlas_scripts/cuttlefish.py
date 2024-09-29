@@ -20,14 +20,16 @@ import pandas as pd
     create_region_mesh,
 )"""
 
+
 def hex_to_rgb(hex):
-    hex = hex.lstrip('#')
+    hex = hex.lstrip("#")
     rgb = []
     for i in (0, 2, 4):
-        decimal = int(hex[i:i+2], 16)
+        decimal = int(hex[i : i + 2], 16)
         rgb.append(decimal)
-  
+
     return rgb
+
 
 def create_atlas(working_dir, resolution):
 
@@ -177,10 +179,10 @@ def create_atlas(working_dir, resolution):
     
     n = 0
     for index, region in enumerate(hierarchy):
-        if 'rgb_triplet' not in region:
-            hierarchy[index]['rgb_triplet'] = random_rgb_triplets[n]
-            n = n+1
-    
+        if "rgb_triplet" not in region:
+            hierarchy[index]["rgb_triplet"] = random_rgb_triplets[n]
+            n = n + 1
+
     # give filler acronyms for regions without specified acronyms
     missing_acronyms = ['SpEM', 'VLC', 'BsLC', 'SbEM', 'PLC', 'McLC', 'PvLC', 'BLC', 'PeM', 
                         'OTC', 'NF']

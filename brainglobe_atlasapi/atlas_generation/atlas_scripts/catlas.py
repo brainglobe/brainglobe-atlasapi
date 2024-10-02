@@ -1,15 +1,18 @@
 """ Atlas for a domestic cat """
 
+import json
 import os
+import shutil
 from pathlib import Path
 
 import pandas as pd
 import pooch
+import requests
 from brainglobe_utils.IO.image import load_nii
+from bs4 import BeautifulSoup
 from vedo import Mesh, write
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import check_internet_connection
 
 ### Metadata
@@ -27,33 +30,131 @@ ATLAS_PACKAGER = "Henry Crosswell"
 
 def download_resources(working_dir):
     """
-    Download the necessary resources for the atlas.
-    If possible, please use the Pooch library to retrieve any resources.
+    Downloads the nifti images, labels and annotations for the atlas.
+    Uses pooch hashes if they are present, if not obtains them
+
+    Returns:
+        List : list of all downloaded local filepaths
     """
     # Setup download folder
     download_dir_path = working_dir / "download_dir"
     download_dir_path.mkdir(parents=True, exist_ok=True)
+
     # Setup atlas folder within download_dir
     atlas_dir_path = download_dir_path / "atlas_dir"
-    atlas_dir_path.mkdir(exist_ok=True)
+    file_hash_jsonpath = atlas_dir_path / "hash_registry.json"
 
-    check_internet_connection()
+    file_path_and_hash_list = []
     file_path_list = []
-    file_hash_list = [
-        ["meanBrain.nii", "md5:84e0d950474bd6c2a4bcebecd0e02ce7"],
-        ["CorticalAtlas.nii", "md5:942bbe2483c1d272434b4fd8f8df606f"],
-        ["CATLAS_COLORS.txt", "md5:5a48c961ebc1bbc2adb821be173b03e4"],
-        ["CorticalAtlas-Split.nii", "md5:7e883fefb60a289c70c4e5553c2c1f6a"],
-        ["CATLAS_COLORS-SPLIT.txt", "md5:ff80025b82b51c263ac2d1bfa3b8ae6b"],
-    ]
+    check_internet_connection()
 
-    for file, hash in file_hash_list:
-        cached_file = pooch.retrieve(
-            url=ATLAS_FILE_URL + file, known_hash=hash, path=atlas_dir_path
+    if file_hash_jsonpath.exists():
+        print("Retrieving file paths and hash lists...")
+        hash_registry_json = atlas_dir_path / "hash_registry.json"
+        with open(hash_registry_json, "r") as json_file_to_edit:
+            file_path_and_hash_list = json.load(json_file_to_edit)
+
+    else:
+        # If dir is not already created - it downloads the data
+        print("Downloading file paths and hash lists...")
+        atlas_dir_path.mkdir(exist_ok=True)
+        file_names = [
+            "meanBrain.nii",
+            "CorticalAtlas.nii",
+            "CATLAS_COLORS.txt",
+        ]
+
+        file_hash_jsonpath = download_filename_and_hash(
+            file_names, atlas_dir_path
         )
-        file_path_list.append(cached_file)
 
+        hash_registry_json = download_multiple_filenames_and_hashs(
+            file_hash_jsonpath, atlas_dir_path
+        )
+
+        with open(hash_registry_json, "r") as json_file_to_edit:
+            file_path_and_hash_list = json.load(json_file_to_edit)
+
+    for file_path, _ in file_path_and_hash_list:
+        file_path_list.append(file_path)
     return file_path_list
+
+
+def download_filename_and_hash(file_names, atlas_dir_path):
+    """
+    Takes the given file names and uses pooch to download
+    the files converting into a json
+
+    Returns:
+        Json.file : a nested list containing [filepath,hash]
+    """
+    file_and_hash_list = []
+    file_hash_jsonpath = atlas_dir_path / "hash_registry.json"
+
+    for file in file_names:
+        cached_file = pooch.retrieve(
+            url=ATLAS_FILE_URL + file, known_hash=None, path=atlas_dir_path
+        )
+        file_hash = pooch.file_hash(cached_file, alg="md5")
+        file_and_hash_list.append([cached_file, file_hash])
+
+    with open(file_hash_jsonpath, "w") as file_and_hash_json:
+        json.dump(file_and_hash_list, file_and_hash_json)
+
+    return file_hash_jsonpath
+
+
+def download_multiple_filenames_and_hashs(file_hash_jsonpath, atlas_dir_path):
+    """
+    Opens the json file to write into, requests file names and uses these
+    to download the vtk annotation files, iterating through the folder
+
+    Returns:
+        Json.file : a updated nested list containing [filepath,hash]
+    """
+
+    vtk_folder_url = (
+        "https://github.com/CerebralSystemsLab/CATLAS/"
+        + "blob/main/SlicerFiles/CorticalAtlasModel_A/"
+    )
+
+    vtk_file_url = (
+        "https://github.com/CerebralSystemsLab/CATLAS/raw/"
+        + "refs/heads/main/SlicerFiles/CorticalAtlasModel_A/"
+    )
+
+    with open(file_hash_jsonpath, "r") as json_file_to_edit:
+        file_and_hash_list = json.load(json_file_to_edit)
+
+    response = requests.get(vtk_folder_url)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, "html.parser")
+        files = soup.find_all("a", class_="Link--primary")
+
+        seen_files = set()
+        for file in files:
+            file_name = file.get_text()
+
+            if file_name not in seen_files:
+                seen_files.add(file_name)
+
+                cached_file = pooch.retrieve(
+                    url=vtk_file_url + file_name,
+                    known_hash=None,
+                    path=atlas_dir_path,
+                )
+                file_hash = pooch.file_hash(cached_file, alg="md5")
+                file_and_hash_list.append([cached_file, file_hash])
+            else:
+                continue
+
+    else:
+        print("Incorrect URL given for VTK files")
+
+    with open(file_hash_jsonpath, "w") as file_and_hash_json:
+        json.dump(file_and_hash_list, file_and_hash_json)
+
+    return file_hash_jsonpath
 
 
 def retrieve_template_and_annotations(file_path_list):
@@ -104,10 +205,10 @@ def add_rgb_col_and_heirarchy(labels_df):
 
 def retrieve_structure_information(file_path_list, csv_of_full_name):
     """
-    This function should return a pandas DataFrame
+    This function should return a list of dictionaries
     with information about your atlas.
 
-    The DataFrame should be in the following format:
+    The list of dictionaries should be in the following format:
 
     ╭─────┬──────────────────┬─────────┬───────────────────┬─────────────────╮
     | id  | name             | acronym | structure_id_path | rgb_triplet     |
@@ -121,7 +222,7 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
     ╰─────┴──────────────────┴─────────┴───────────────────┴─────────────────╯
 
     Returns:
-        pandas.DataFrame: A DataFrame containing the atlas information.
+        list of dicts: A list containing a dict of the atlas information.
     """
 
     label_df_col = ["id", "acronym", "r", "g", "b", "alpha"]
@@ -165,32 +266,48 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
     structures_df = structure_info_mix[combined_df_col]
     structures_dict = structures_df.to_dict(orient="records")
 
-    structures_tree = get_structures_tree(structures_dict)
-    return structures_tree, structures_dict, structures_df
+    return structures_dict
 
 
-def extract_mesh_from_vtk(mesh_folder_path):
+def extract_mesh_from_vtk(working_dir):
+    """
+    Given the path to a folder containing annotation.vtk files
+    extracts the data as a vedo.mesh and saves as .obj
+    to be readable by other functions
+
+    Returns:
+        dict: Key is obj id - value is obj file path
+    """
     mesh_dict = {}
-    list_of_mesh_files = os.listdir(mesh_folder_path)
+
+    atlas_dir_path = working_dir / "download_dir" / "atlas_dir"
+    mesh_save_folder = atlas_dir_path / "meshes"
+    mesh_save_folder.mkdir(parents=True, exist_ok=True)
+
+    list_of_mesh_files = os.listdir(atlas_dir_path)
+
     for vtk_file in list_of_mesh_files:
-        if vtk_file[-4:] != ".vtk":
+        if not vtk_file.endswith(".vtk"):
             continue
-        elif vtk_file == "A_32_Cerebelum.vtk":  # duplicate
+
+        # Checking for duplicates
+        elif vtk_file in ["A_32_Cerebelum.vtk", "A_36_pPE.vtk"]:
             continue
-        elif vtk_file == "A_36_pPE.vtk":  # duplicate & different acronym
-            continue
-        mesh = Mesh(mesh_folder_path + vtk_file)
+
+        mesh = Mesh(str(atlas_dir_path / vtk_file))
 
         # Re-creating the transformations from mesh_utils
         mesh.triangulate()
         mesh.decimate_pro(0.6)
         mesh.smooth()
 
-        index = vtk_file[2:4]
+        # Saves object files with a numerical index
+        index = str(vtk_file)
+        index = index.split("-")
+        index = index[1][2:4]
         if index[-1] == "_":
-            index = vtk_file[2]
-
-        file_name = index + ".obj"
+            index = index[0]
+        file_name = f"{index}.obj"
         file_path = str(mesh_save_folder / file_name)
         mesh_dict[index] = file_path
 
@@ -198,33 +315,30 @@ def extract_mesh_from_vtk(mesh_folder_path):
             write(mesh, file_path)
         else:
             continue
-
     return mesh_dict
 
 
-# A CSV I made from table 1 of the paper, cerebellum added
+# A CSV Table1 of paper, cerebellum added
 # ALv and ALd included in catlas but not included on the table
 csv_of_full_name = "~/Desktop/catlas_table1_name.csv"
 
-working_dir = Path("F:/Users/Henry/Downloads/Setup/CATLAS-main/temp_pooch")
-temp_dir = "F:/Users/Henry/Downloads/Setup/CATLAS-main/"
-mesh_folder_path = temp_dir + "CATLAS-main/SlicerFiles/CorticalAtlasModel_A/"
-mesh_save_folder = working_dir / "meshes"
+bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 
-# If the code above this line has been filled correctly, nothing needs to be
-# edited below (unless variables need to be passed between the functions).
-# bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-# bg_root_dir.mkdir(exist_ok=True)
-# working_dir = bg_root_dir
+# Deletes the folder since wrapup doesnt work if folder is created
+if bg_root_dir.exists():
+    shutil.rmtree(bg_root_dir)
+
+bg_root_dir.mkdir(parents=True, exist_ok=True)
+working_dir = bg_root_dir
 local_file_path_list = download_resources(working_dir)
 template_volume, reference_volume = retrieve_template_and_annotations(
     local_file_path_list
 )
-# hemispheres_stack = retrieve_hemisphere_map(local_file_path_list)
-structures_tree, structures_dict, structures_df = (
-    retrieve_structure_information(local_file_path_list, csv_of_full_name)
+structures_dict = retrieve_structure_information(
+    local_file_path_list, csv_of_full_name
 )
-meshes_dict = extract_mesh_from_vtk(mesh_folder_path)
+meshes_dict = extract_mesh_from_vtk(working_dir)
+
 output_filename = wrapup_atlas_from_data(
     atlas_name=ATLAS_NAME,
     atlas_minor_version=__version__,

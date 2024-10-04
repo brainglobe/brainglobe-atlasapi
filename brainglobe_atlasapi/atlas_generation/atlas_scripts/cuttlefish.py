@@ -8,12 +8,7 @@ import pooch
 from brainglobe_utils.IO.image import load
 
 from brainglobe_atlasapi import utils
-
-# from skimage import io
-"""from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    Region,
-    create_region_mesh,
-)"""
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 
 def hex_to_rgb(hex):
@@ -27,14 +22,22 @@ def hex_to_rgb(hex):
 
 
 def create_atlas(working_dir, resolution):
+    ATLAS_NAME = "columbia_cuttlefish"
+    SPECIES = "Sepia bandensis"
+    ATLAS_LINK = "https://www.cuttlebase.org/"
+    CITATION = (
+        "Montague et al, 2023, https://doi.org/10.1016/j.cub.2023.06.007"
+    )
+    ORIENTATION = "srp"
+    ATLAS_PACKAGER = "Jung Woo Kim"
+    ADDITIONAL_METADATA = {}
 
-    HIERARCHY_FILE_URL = "https://raw.githubusercontent.com/noisyneuron/cuttlebase-util/main/data/brain-hierarchy.csv"
-    TEMPLATE_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ABflM0-v-b4_2WthGaeYM4s/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template.nii.gz?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"
-    ANNOTATION_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ALfSeAj81IM0v56bEeoTfUQ/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template_lobe-labels.nii.seg.nrrd?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"
+    HIERARCHY_FILE_URL = "https://raw.githubusercontent.com/noisyneuron/cuttlebase-util/main/data/brain-hierarchy.csv"  # noqa E501
+    TEMPLATE_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ABflM0-v-b4_2WthGaeYM4s/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template.nii.gz?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"  # noqa E501
+    ANNOTATION_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ALfSeAj81IM0v56bEeoTfUQ/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template_lobe-labels.nii.seg.nrrd?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"  # noqa E501
 
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    atlas_path = download_dir_path / "atlas_files"
 
     # download hierarchy files
     utils.check_internet_connection()
@@ -57,18 +60,20 @@ def create_atlas(working_dir, resolution):
     print("Processing brain annotations:")
     readdata, header = nrrd.read(annotation_path)
 
-    # Extract annotation mapping information from nrrd headers, to be applied to hierarchy file later.
+    # Extract annotation mapping information from nrrd headers,
+    # to be applied to hierarchy file later.
     mapping = []
     for n in range(0, 70):
         mapping.append(
             {
                 "color": header[f"Segment{n}_Color"],
-                "ID": header[f"Segment{n}_LabelValue"],
+                "id": header[f"Segment{n}_LabelValue"],
                 "acronym": header[f"Segment{n}_Name"],
             }
         )
 
-    # convert the color information stored as a string of 3 RGB floats into a list of 3 RGB integers from 0 to 255.
+    # convert the color information stored as a string of 3 RGB floats
+    # into a list of 3 RGB integers from 0 to 255.
     for index, Map in enumerate(mapping):
         mapping[index]["color"] = Map["color"].split(" ")
         mapping[index]["color"] = list(map(float, mapping[index]["color"]))
@@ -106,10 +111,11 @@ def create_atlas(working_dir, resolution):
             else:
                 hierarchy.append(row)
 
-    # use layer1 and layer2 to give IDs to regions which do not have existing IDs.
+    # use layers to give IDs to regions which do not have existing IDs.
     layer1 = 100
     layer2 = 200
-    # remove 'hasSides' and 'function' keys, reorder and rename the remaining keys
+    # remove 'hasSides' and 'function' keys,
+    # reorder and rename the remaining keys
     for i in range(0, len(hierarchy)):
         hierarchy[i]["acronym"] = hierarchy[i].pop("abbreviation")
         hierarchy[i].pop("hasSides")
@@ -124,17 +130,18 @@ def create_atlas(working_dir, resolution):
             and hierarchy[i]["structure_id_path"][-2] != 3
         ):
             if len(hierarchy[i]["structure_id_path"]) == 3:
-                hierarchy[i]["ID"] = layer2
+                hierarchy[i]["id"] = layer2
                 layer2 += 1
             elif len(hierarchy[i]["structure_id_path"]) == 2:
-                hierarchy[i]["ID"] = layer1
+                hierarchy[i]["id"] = layer1
                 layer1 += 1
         if hierarchy[i]["acronym"] == "SB":
-            hierarchy[i]["ID"] = 71
+            hierarchy[i]["id"] = 71
         elif hierarchy[i]["acronym"] == "IB":
-            hierarchy[i]["ID"] = 72
+            hierarchy[i]["id"] = 72
 
-    # remove erroneous key for the VS region (error due to commas being included in the 'function' column)
+    # remove erroneous key for the VS region
+    # (error due to commas being included in the 'function' column)
     hierarchy[-3].pop(None)
     hierarchy[-4].pop(None)
 
@@ -144,46 +151,42 @@ def create_atlas(working_dir, resolution):
             "name": "root",
             "acronym": "root",
             "structure_id_path": [999],
-            "ID": 999,
-            "parent_structure_id": None,
+            "id": 999,
         }
     )
 
-    # apply colour and ID map to each region
+    # apply colour and id map to each region
     for index, region in enumerate(hierarchy):
         for Map in mapping:
             if region["acronym"] == Map["acronym"]:
                 hierarchy[index]["rgb_triplet"] = Map["color"]
-                hierarchy[index]["ID"] = int(Map["ID"])
+                hierarchy[index]["id"] = int(Map["id"])
 
-    # amend each region's structure_id_path by iterating through entire list, and replacing dummy values with actual ID values.
+    # amend each region's structure_id_path by iterating through entire list,
+    # and replacing dummy values with actual ID values.
     for i in range(0, len(hierarchy)):
         if len(hierarchy[i]["structure_id_path"]) == 2:
-            hierarchy[i]["structure_id_path"][1] = hierarchy[i]["ID"]
+            hierarchy[i]["structure_id_path"][1] = hierarchy[i]["id"]
             len2_shortest_index = i
 
         elif len(hierarchy[i]["structure_id_path"]) == 3:
             hierarchy[i]["structure_id_path"][1] = hierarchy[
                 len2_shortest_index
-            ]["ID"]
-            hierarchy[i]["structure_id_path"][2] = hierarchy[i]["ID"]
+            ]["id"]
+            hierarchy[i]["structure_id_path"][2] = hierarchy[i]["id"]
             len3_shortest_index = i
 
         elif len(hierarchy[i]["structure_id_path"]) == 4:
             hierarchy[i]["structure_id_path"][1] = hierarchy[
                 len2_shortest_index
-            ]["ID"]
+            ]["id"]
             hierarchy[i]["structure_id_path"][2] = hierarchy[
                 len3_shortest_index
-            ]["ID"]
-            hierarchy[i]["structure_id_path"][3] = hierarchy[i]["ID"]
-        # find parent_structure_id using resulting structure_id_path
-        if hierarchy[i]["name"] != "root":
-            hierarchy[i]["parent_structure_id"] = hierarchy[i][
-                "structure_id_path"
-            ][-2]
+            ]["id"]
+            hierarchy[i]["structure_id_path"][3] = hierarchy[i]["id"]
 
-    # original atlas does not give colours to some regions, so we give random RGB triplets to regions without specified RGB triplet values
+    # original atlas does not give colours to some regions, so we give
+    # random RGB triplets to regions without specified RGB triplet values
     random_rgb_triplets = [
         [156, 23, 189],
         [45, 178, 75],
@@ -230,20 +233,43 @@ def create_atlas(working_dir, resolution):
     # import cuttlefish .nii file
     template_path = pooch.retrieve(
         TEMPLATE_URL,
-        known_hash="195125305a11abe6786be1b32830a8aed1bc8f68948ad53fa84bf74efe7cbe9c",
+        known_hash="195125305a11abe6786be1b32830a8aed1bc8f68948ad53fa84bf74efe7cbe9c",  # noqa E501
         progressbar=True,
     )
 
     # process brain template MRI file
     print("Processing brain template:")
-    brain_template = load.load_nii(template_path)
+    brain_template = load.load_nii(template_path, as_array=True)
 
     # check the transformed version of the hierarchy.csv file
     print(hierarchy)
     # df = pd.DataFrame(hierarchy)
     # df.to_csv('hierarchy_test.csv')
 
-    return None
+    output_filename = wrapup_atlas_from_data(
+        atlas_name=ATLAS_NAME,
+        atlas_minor_version=__version__,
+        citation=CITATION,
+        atlas_link=ATLAS_LINK,
+        species=SPECIES,
+        resolution=resolution,
+        orientation=ORIENTATION,
+        root_id=999,
+        reference_stack=brain_template,
+        annotation_stack=readdata,
+        structures_list=hierarchy,
+        meshes_dict={},
+        scale_meshes=True,
+        working_dir=working_dir,
+        hemispheres_stack=None,
+        cleanup_files=False,
+        compress=True,
+        atlas_packager=ATLAS_PACKAGER,
+        additional_metadata=ADDITIONAL_METADATA,
+        additional_references={},
+    )
+
+    return output_filename
 
 
 if __name__ == "__main__":

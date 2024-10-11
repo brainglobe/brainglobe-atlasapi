@@ -245,9 +245,12 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         index_col=False,
     )
 
-    full_name_df = pd.read_csv(
-        csv_of_full_name, names=full_name_df_col, index_col=False
-    )
+    # COMMENTED OUT CSV WORKFLOW AS HARDCODED INSTEAD
+    full_name_df = pd.DataFrame(csv_of_full_name, columns=full_name_df_col)
+
+    # full_name_df = pd.read_csv(
+    #     csv_of_full_name, names=full_name_df_col, index_col=False
+    # )
 
     labels_df = add_rgb_col_and_heirarchy(labels_df)
     root_id_row = pd.DataFrame(
@@ -318,9 +321,93 @@ def extract_mesh_from_vtk(working_dir):
     return mesh_dict
 
 
-# A CSV Table1 of paper, cerebellum added
-# ALv and ALd included in catlas but not included on the table
-csv_of_full_name = "~/Desktop/catlas_table1_name.csv"
+# pre-commit wouldn't let me add this as a docstring
+
+# A copy of Table 1, manually copied from the paper.
+# Previously read from a csv I created, hard-coded for sharing purposes
+# the csv code will be commented out as we might
+# return to that method after testing.
+# Cerebellum added to full name csv, as not included in table 1
+# ALv and ALd are included in catlas text file but not included on the table,
+# replaced with NaN for full name - line 265
+
+
+# csv_of_full_name = "~/Desktop/catlas_table1_name.csv"
+csv_of_full_name = [
+    ["root", "root"],
+    ["A1", "Primary auditory cortex"],
+    ["A2", "Second auditory cortex"],
+    ["AAF", "Anterior auditory field"],
+    ["DP", "Posterior ectosylvian auditory cortex, dorsal division"],
+    ["DZ", "Dorsal zone of auditory cortex"],
+    ["EPp", "Posterior ectosylvian gyrus, posterior division"],
+    ["FAES", "FAES, Field of the anterior ectosylvian sulcus"],
+    ["IN", "Auditory insular cortex"],
+    ["iPE", "Posterior ectosylvian auditory cortex, intermediate division"],
+    ["PAF", "Posterior auditory field"],
+    ["TE", "Temporal cortex"],
+    ["VAF", "Ventral auditory field"],
+    ["vPAF", "Posterior auditory field, ventral division"],
+    ["vPE", "Posterior ectosylvian auditory cortex, ventral division"],
+    ["1", "Area 1, primary somatosensory cortex"],
+    ["2", "Area 2, primary somatosensory cortex"],
+    ["3a", "Area 3a primary somatosensory cortex"],
+    ["3b", "Area 3b primary somatosensory cortex"],
+    ["5al", "Area 5a, lateral division"],
+    ["5am", "Area 5a, medial division"],
+    ["5bl", "Area 5b, lateral division"],
+    ["5bm", "Area 5b, medial division"],
+    ["5m", "Area 5, medial division"],
+    ["S2", "Second somatosensory cortex"],
+    ["S2m", "Second somatosensory cortex, medial division"],
+    ["S3", "Third somatosensory cortex"],
+    ["S4", "Fourth somatosensory cortex"],
+    ["S5", "Fifth somatosensory cortex"],
+    ["17", "Area 17"],
+    ["18", "Area 18"],
+    ["19", "Area 19"],
+    ["20a", "Area 20a"],
+    ["20b", "Area 20b"],
+    ["21a", "Area 21a"],
+    ["21b", "Area 21b"],
+    ["7a", "Area 7"],
+    ["7m", "Area 7"],
+    ["7p", "Area 7"],
+    ["AEV", "Anterior ectosylvian visual area"],
+    ["ALLS", "Anterolateral lateral suprasylvian area"],
+    ["AMLS", "Anteromedial lateral suprasylvian area"],
+    ["CVA", "Cingulate visual area"],
+    ["DLS", "Dorsolateral suprasylvian visual area"],
+    ["PLLS", "Posterolateral lateral suprasylvian area"],
+    ["PMLS", "Posteromedial lateral suprasylvian area"],
+    ["PS", "Posterior suprasylvian visual area"],
+    ["SVA", "Splenial visual area"],
+    ["VLS", "Ventrolateral suprasylvian area"],
+    ["4Delta", "Area praecentralis macropyramidalis"],
+    ["4fu", "Area praecentralis in fundo"],
+    ["4Gamma", "Area praecentralis"],
+    ["4sfu", "Area praecentralis supra fundo"],
+    ["6aAlpha", "Area frontalis agranularis mediopyramidalis"],
+    ["6aBeta", "Area frontalis agranularis macropyramidalis"],
+    ["6aGamma", "Area 6, lateral division"],
+    ["6iffu", "Area 6, infra fundum"],
+    ["PFdl", "Prefrontal cortex, dorsolateral division"],
+    ["PFdm", "Prefrontal cortex, dorsomedial division"],
+    ["PFv", "Prefrontal cortex, ventral division"],
+    ["36", "Perirhinal cortex"],
+    ["AId", "Agranular insular area, dorsal division"],
+    ["AIv", "Agranular insular area, ventral division"],
+    ["DI", "Dysgranular insular area"],
+    ["GI", "Granular insular area"],
+    ["CGa", "Anterior cingulate area"],
+    ["CGp", "Posterior cingulate area"],
+    ["PL", "Prelimbic area"],
+    ["G", "Primary gustatory area"],
+    ["MZ", "Multisensory zone"],
+    ["Pp", "Prepyriform cortex"],
+    ["RS", "Retrosplenial area"],
+    ["Cbm", "Cerebellum"],
+]
 
 bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 

@@ -23,14 +23,14 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def create_atlas(working_dir):
-    ATLAS_NAME = "..."
-    SPECIES = "..."
-    ATLAS_LINK = "https://elifesciences.org/articles/87029#data"
+    ATLAS_NAME = "prairie_vole_brain"
+    SPECIES = "Microtus ochrogaster"
+    ATLAS_LINK = "Gustison et al. 2024, https://doi.org/10.7554/eLife.87029"
     CITATION = "..."
     ATLAS_BASE_URL = "https://ndownloader.figshare.com/files/"
-    ORIENTATION = "..."
+    ORIENTATION = "asr"
     ROOT_ID = 997
-    ATLAS_PACKAGER = "..."
+    ATLAS_PACKAGER = "Sacha Hadaway-Andreae"
     ADDITIONAL_METADATA = {}
 
     # setup folder for downloading
@@ -61,11 +61,8 @@ def create_atlas(working_dir):
             known_hash=None,
         )
 
-    with zipfile.ZipFile(
-        r"C:\Users\sacha\Downloads\atlas shit\PrV_results_datasets.zip", "r"
-    ) as zip_ref:
-        file_list = zip_ref.namelist()
-        print(f"Files: {file_list}")
+    zip_file_path = atlas_path / "PrV_results_datasets.zip"
+    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
         zip_ref.extract(
             "results_datasets/neural_nomenclature_hierarchy.csv", atlas_path
         )
@@ -119,15 +116,22 @@ def create_atlas(working_dir):
             elif name in name_to_id:
                 structure_hierarchy.append(name_to_id[name])
 
-        structure_template = {
-            "acronym": acronyms[ids.index(structure_hierarchy[-1])],
-            "id": structure_hierarchy[-1],
-            "name": names[ids.index(structure_hierarchy[-1])],
-            "structure_id_path": structure_hierarchy,
-            "rgb_triplet": [random.randint(0, 255) for _ in range(3)],
-        }
+        structure_hierarchy = [ROOT_ID] + structure_hierarchy
 
-        hierarchy.append(structure_template)
+        result = [structure_hierarchy[:i + 1] for i in range(len(structure_hierarchy))]
+
+        for a in result:
+            structure_template = {
+                "acronym": acronyms[ids.index(a[-1])],
+                "id": a[-1],
+                "name": names[ids.index(a[-1])],
+                "structure_id_path": a,
+                "rgb_triplet": [random.randint(0, 255) for _ in range(3)],
+            }
+
+            hierarchy.append(structure_template)
+
+    hierarchy = list({tuple(d["structure_id_path"]): d for d in hierarchy}.values())
 
     # use tifffile to read annotated file
     annotated_volume = tifffile.imread(annotations_file).astype(np.uint8)
@@ -154,48 +158,25 @@ def create_atlas(working_dir):
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
-    if PARALLEL:
-        pool = mp.Pool(mp.cpu_count() - 2)
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        ROOT_ID,
-                        closing_n_iters,
-                        decimate_fraction,
-                        smooth,
-                    )
-                    for node in tree.nodes.values()
-                ],
-            )
-        except mp.pool.MaybeEncodingError:
-            # Error with returning results from pool.map, but we don't care
-            pass
-    else:
-        for node in track(
+
+    for node in track(
             tree.nodes.values(),
             total=tree.size(),
             description="Creating meshes",
-        ):
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
+    ):
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
+        )
     print(
         "Finished mesh extraction in: ",
         round((time.time() - start) / 60, 2),
@@ -241,7 +222,7 @@ def create_atlas(working_dir):
         compress=True,
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
-        resolution=("idk",),
+        resolution=(25, 25, 25),
         meshes_dict=tree,
     )
 

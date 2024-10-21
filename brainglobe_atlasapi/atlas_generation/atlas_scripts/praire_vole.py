@@ -26,7 +26,8 @@ def create_atlas(working_dir):
     SPECIES = "Microtus ochrogaster"
     ATLAS_LINK = "https://doi.org/10.7554/eLife.87029"
     CITATION = (
-        "Morgan L Gustison, Rodrigo Muñoz-Castañeda, Pavel Osten, Steven M Phelps (2024) Sexual coordination "
+        "Morgan L Gustison, Rodrigo Muñoz-Castañeda, Pavel Osten, "
+        "Steven M Phelps (2024) Sexual coordination "
         "in a whole-brain map of prairie vole pair bonding eLife 12:RP87029 "
         "https://doi.org/10.7554/eLife.87029.3"
     )
@@ -72,12 +73,17 @@ def create_atlas(working_dir):
 
     if not (atlas_path / "neural_nomenclature_hierarchy.csv").exists():
         shutil.move(
-            atlas_path / r"results_datasets\neural_nomenclature_hierarchy.csv",
+            (
+                atlas_path
+                / "results_datasets"
+                / "neural_nomenclature_hierarchy.csv"
+            ),
             atlas_path,
         )
     else:
         print(
-            f"File '{(atlas_path / 'neural_nomenclature_hierarchy.csv')}' already exists, skipping move operation."
+            f"File '{(atlas_path / 'neural_nomenclature_hierarchy.csv')}' "
+            f"already exists, skipping move operation."
         )
 
     shutil.rmtree(atlas_path / r"results_datasets")

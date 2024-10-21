@@ -143,7 +143,6 @@ def create_atlas(working_dir):
     reference_volume = tifffile.imread(reference_file)
 
     print(f"Saving atlas data at {atlas_path}")
-    print(hierarchy)
 
     tree = get_structures_tree(hierarchy)
     print(

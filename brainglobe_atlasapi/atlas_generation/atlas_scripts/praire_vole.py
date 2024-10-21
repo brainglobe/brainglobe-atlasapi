@@ -25,8 +25,10 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 def create_atlas(working_dir):
     ATLAS_NAME = "prairie_vole_brain"
     SPECIES = "Microtus ochrogaster"
-    ATLAS_LINK = "Gustison et al. 2024, https://doi.org/10.7554/eLife.87029"
-    CITATION = "..."
+    ATLAS_LINK = "https://doi.org/10.7554/eLife.87029"
+    CITATION = ("Morgan L Gustison, Rodrigo Muñoz-Castañeda, Pavel Osten, Steven M Phelps (2024) Sexual coordination "
+                "in a whole-brain map of prairie vole pair bonding eLife 12:RP87029 "
+                "https://doi.org/10.7554/eLife.87029.3")
     ATLAS_BASE_URL = "https://ndownloader.figshare.com/files/"
     ORIENTATION = "asr"
     ROOT_ID = 997
@@ -67,11 +69,15 @@ def create_atlas(working_dir):
             "results_datasets/neural_nomenclature_hierarchy.csv", atlas_path
         )
 
-    shutil.move(
-        atlas_path / r"results_datasets\neural_nomenclature_hierarchy.csv",
-        atlas_path,
-    )
-    os.rmdir(atlas_path / r"results_datasets")
+    if not (atlas_path / "neural_nomenclature_hierarchy.csv").exists():
+        shutil.move(
+            atlas_path / r"results_datasets\neural_nomenclature_hierarchy.csv",
+            atlas_path,
+        )
+    else:
+        print(f"File '{(atlas_path / 'neural_nomenclature_hierarchy.csv')}' already exists, skipping move operation.")
+
+    shutil.rmtree(atlas_path / r"results_datasets")
 
     annotations_file = atlas_path / "PrV_Annotation_bilateral.tif"
     reference_file = atlas_path / "PrV_ReferenceBrain_bilateral.tif"
@@ -118,10 +124,7 @@ def create_atlas(working_dir):
 
         structure_hierarchy = [ROOT_ID] + structure_hierarchy
 
-        result = [
-            structure_hierarchy[: i + 1]
-            for i in range(len(structure_hierarchy))
-        ]
+        result = [structure_hierarchy[:i + 1] for i in range(len(structure_hierarchy))]
 
         for a in result:
             structure_template = {
@@ -134,9 +137,7 @@ def create_atlas(working_dir):
 
             hierarchy.append(structure_template)
 
-    hierarchy = list(
-        {tuple(d["structure_id_path"]): d for d in hierarchy}.values()
-    )
+    hierarchy = list({tuple(d["structure_id_path"]): d for d in hierarchy}.values())
 
     # use tifffile to read annotated file
     annotated_volume = tifffile.imread(annotations_file).astype(np.uint8)
@@ -157,6 +158,8 @@ def create_atlas(working_dir):
             is_label = False
         node.data = Region(is_label)
 
+
+    
     # Mesh creation
     closing_n_iters = 2
     decimate_fraction = 0.2
@@ -164,9 +167,9 @@ def create_atlas(working_dir):
     start = time.time()
 
     for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
+            tree.nodes.values(),
+            total=tree.size(),
+            description="Creating meshes",
     ):
         create_region_mesh(
             (
@@ -186,7 +189,30 @@ def create_atlas(working_dir):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
+    
+    
+    # Create meshes dict
+    meshes_dict = dict()
+    for s in hierarchy:
+        # Check if a mesh was created
+        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        if not mesh_path.exists():
+            print(f"No mesh file exists for: {s}, ignoring it")
+            continue
+        else:
+            # Check that the mesh actually exists (i.e. not empty)
+            if mesh_path.stat().st_size < 512:
+                print(f"obj file for {s} is too small, ignoring it.")
+                continue
 
+        meshes_dict[s["id"]] = mesh_path
+        print(meshes_dict)
+
+    print(
+        f"In the end, {len(meshes_dict)} structures with mesh are kept"
+    )
+
+    
     # Create meshes dict
     meshes_dict = dict()
     structs_with_mesh = []
@@ -209,6 +235,10 @@ def create_atlas(working_dir):
         f"In the end, {len(structs_with_mesh)} structures with mesh are kept"
     )
 
+    for item in hierarchy:
+        item["id"] = int(item["id"])
+        item["structure_id_path"] = [int(i) for i in item["structure_id_path"]]
+
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
@@ -227,7 +257,7 @@ def create_atlas(working_dir):
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
         resolution=(25, 25, 25),
-        meshes_dict=tree,
+        meshes_dict=meshes_dict,
     )
 
     return output_filename

@@ -1,6 +1,5 @@
 __version__ = "0"
 
-import os
 import random
 import shutil
 import time
@@ -26,9 +25,11 @@ def create_atlas(working_dir):
     ATLAS_NAME = "prairie_vole_brain"
     SPECIES = "Microtus ochrogaster"
     ATLAS_LINK = "https://doi.org/10.7554/eLife.87029"
-    CITATION = ("Morgan L Gustison, Rodrigo Muñoz-Castañeda, Pavel Osten, Steven M Phelps (2024) Sexual coordination "
-                "in a whole-brain map of prairie vole pair bonding eLife 12:RP87029 "
-                "https://doi.org/10.7554/eLife.87029.3")
+    CITATION = (
+        "Morgan L Gustison, Rodrigo Muñoz-Castañeda, Pavel Osten, Steven M Phelps (2024) Sexual coordination "
+        "in a whole-brain map of prairie vole pair bonding eLife 12:RP87029 "
+        "https://doi.org/10.7554/eLife.87029.3"
+    )
     ATLAS_BASE_URL = "https://ndownloader.figshare.com/files/"
     ORIENTATION = "asr"
     ROOT_ID = 997
@@ -75,7 +76,9 @@ def create_atlas(working_dir):
             atlas_path,
         )
     else:
-        print(f"File '{(atlas_path / 'neural_nomenclature_hierarchy.csv')}' already exists, skipping move operation.")
+        print(
+            f"File '{(atlas_path / 'neural_nomenclature_hierarchy.csv')}' already exists, skipping move operation."
+        )
 
     shutil.rmtree(atlas_path / r"results_datasets")
 
@@ -124,7 +127,10 @@ def create_atlas(working_dir):
 
         structure_hierarchy = [ROOT_ID] + structure_hierarchy
 
-        result = [structure_hierarchy[:i + 1] for i in range(len(structure_hierarchy))]
+        result = [
+            structure_hierarchy[: i + 1]
+            for i in range(len(structure_hierarchy))
+        ]
 
         for a in result:
             structure_template = {
@@ -137,7 +143,9 @@ def create_atlas(working_dir):
 
             hierarchy.append(structure_template)
 
-    hierarchy = list({tuple(d["structure_id_path"]): d for d in hierarchy}.values())
+    hierarchy = list(
+        {tuple(d["structure_id_path"]): d for d in hierarchy}.values()
+    )
 
     # use tifffile to read annotated file
     annotated_volume = tifffile.imread(annotations_file).astype(np.uint8)
@@ -158,8 +166,6 @@ def create_atlas(working_dir):
             is_label = False
         node.data = Region(is_label)
 
-
-    
     # Mesh creation
     closing_n_iters = 2
     decimate_fraction = 0.2
@@ -167,9 +173,9 @@ def create_atlas(working_dir):
     start = time.time()
 
     for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
     ):
         create_region_mesh(
             (
@@ -189,8 +195,7 @@ def create_atlas(working_dir):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-    
-    
+
     # Create meshes dict
     meshes_dict = dict()
     for s in hierarchy:
@@ -208,11 +213,8 @@ def create_atlas(working_dir):
         meshes_dict[s["id"]] = mesh_path
         print(meshes_dict)
 
-    print(
-        f"In the end, {len(meshes_dict)} structures with mesh are kept"
-    )
+    print(f"In the end, {len(meshes_dict)} structures with mesh are kept")
 
-    
     # Create meshes dict
     meshes_dict = dict()
     structs_with_mesh = []

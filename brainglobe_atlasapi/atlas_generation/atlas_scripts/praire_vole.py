@@ -118,7 +118,10 @@ def create_atlas(working_dir):
 
         structure_hierarchy = [ROOT_ID] + structure_hierarchy
 
-        result = [structure_hierarchy[:i + 1] for i in range(len(structure_hierarchy))]
+        result = [
+            structure_hierarchy[: i + 1]
+            for i in range(len(structure_hierarchy))
+        ]
 
         for a in result:
             structure_template = {
@@ -131,7 +134,9 @@ def create_atlas(working_dir):
 
             hierarchy.append(structure_template)
 
-    hierarchy = list({tuple(d["structure_id_path"]): d for d in hierarchy}.values())
+    hierarchy = list(
+        {tuple(d["structure_id_path"]): d for d in hierarchy}.values()
+    )
 
     # use tifffile to read annotated file
     annotated_volume = tifffile.imread(annotations_file).astype(np.uint8)
@@ -160,9 +165,9 @@ def create_atlas(working_dir):
     start = time.time()
 
     for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
     ):
         create_region_mesh(
             (

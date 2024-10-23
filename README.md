@@ -37,7 +37,7 @@ A number of atlases are in development, but those available currently are:
 | [3D Edge-Aware Refined Atlases Derived from the Allen Developing Mouse Brain Atlases](https://doi.org/10.7554/eLife.61408) | 16, 16.75, and 25 micron | E13, E15, E18, P4, P14, P28 & P56 | Nissl
 | [Princeton Mouse Brain Atlas](https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links) | 20 micron | >P56 (older animals included) | LSFM
 | [Kim Lab Developmental CCF](https://data.mendeley.com/datasets/2svx788ddf/1) | 10 micron | P56  | STP, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2)
-| [Blind Mexican Cavefish Brain Atlas](https://doi.org/10.7554/eLife.80777) | 2 micron | 1 year | IHC
+| [Blind Mexican Cavefish Brain Atlas](https://doi.org/10.7554/eLife.80777) | 2 micron | 6 days post fertilisation | IHC
 | [BlueBrain Barrel Cortex Atlas](https://doi.org/10.1162/imag_a_00209) | 10 and 25 micron | P56 | STPT
 | [UNAM Axolotl Brain Atlas](https://doi.org/10.1038/s41598-021-89357-3) | 40 micron | ~ 3 months post hatching | MRI
 

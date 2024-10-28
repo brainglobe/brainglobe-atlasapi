@@ -266,6 +266,7 @@ def create_atlas(working_dir):
         additional_metadata=ADDITIONAL_METADATA,
         resolution=(25, 25, 25),
         meshes_dict=meshes_dict,
+        scale_meshes=True
     )
 
     return output_filename

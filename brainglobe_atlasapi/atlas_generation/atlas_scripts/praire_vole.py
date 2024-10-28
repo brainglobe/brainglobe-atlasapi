@@ -154,7 +154,7 @@ def create_atlas(working_dir):
     )
 
     # use tifffile to read annotated file
-    annotated_volume = tifffile.imread(annotations_file).astype(np.uint8)
+    annotated_volume = tifffile.imread(annotations_file)
     reference_volume = tifffile.imread(reference_file)
 
     print(f"Saving atlas data at {atlas_path}")

@@ -115,6 +115,15 @@ def retrieve_or_construct_meshes():
     return meshes_dict
 
 
+def retrieve_additional_references():
+    """This function only needs editing if the atlas has additional reference
+    images. It should return a dictionary that maps the name of each
+    additional reference image to an image stack containing its data.
+    """
+    additional_references = {}
+    return additional_references
+
+
 ### If the code above this line has been filled correctly, nothing needs to be
 ### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
@@ -122,6 +131,7 @@ if __name__ == "__main__":
     bg_root_dir.mkdir(exist_ok=True)
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes()
@@ -144,4 +154,5 @@ if __name__ == "__main__":
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
+        additional_references=additional_references,
     )

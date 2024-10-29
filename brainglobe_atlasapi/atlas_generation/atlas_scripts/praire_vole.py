@@ -204,25 +204,6 @@ def create_atlas(working_dir):
 
     # Create meshes dict
     meshes_dict = dict()
-    for s in hierarchy:
-        # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
-        if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it")
-            continue
-        else:
-            # Check that the mesh actually exists (i.e. not empty)
-            if mesh_path.stat().st_size < 512:
-                print(f"obj file for {s} is too small, ignoring it.")
-                continue
-
-        meshes_dict[s["id"]] = mesh_path
-        print(meshes_dict)
-
-    print(f"In the end, {len(meshes_dict)} structures with mesh are kept")
-
-    # Create meshes dict
-    meshes_dict = dict()
     structs_with_mesh = []
     for s in hierarchy:
         # Check if a mesh was created

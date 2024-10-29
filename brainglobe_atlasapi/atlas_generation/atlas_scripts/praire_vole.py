@@ -22,7 +22,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def create_atlas(working_dir):
-    ATLAS_NAME = "prairie_vole_brain"
+    ATLAS_NAME = "prairie_vole"
     SPECIES = "Microtus ochrogaster"
     ATLAS_LINK = "https://doi.org/10.7554/eLife.87029"
     CITATION = (

@@ -17,10 +17,16 @@ def test_get_downloaded_atlases():
     assert "example_mouse_100um" in available_atlases
 
 
-def test_get_local_atlas_version():
+def test_get_local_atlas_version_real_atlas():
     v = get_local_atlas_version("example_mouse_100um")
-
     assert len(v.split(".")) == 2
+
+
+def test_get_local_atlas_version_missing_atlas(capsys):
+    atlas_name = "unicorn_atlas"
+    assert get_local_atlas_version(atlas_name) is None
+    captured = capsys.readouterr()
+    assert f"No atlas found with the name: {atlas_name}" in captured.out
 
 
 def test_lastversions():

@@ -93,7 +93,9 @@ def create_atlas(working_dir):
     meshes_dir_path = atlas_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
-    nmh = pd.read_csv(atlas_path / "neural_nomenclature_hierarchy.csv").values
+    nomenclature_hierarchy = pd.read_csv(
+        atlas_path / "neural_nomenclature_hierarchy.csv"
+    ).values
     reference_id = pd.read_csv(atlas_path / "PrV_Atlas_Ontology.csv")
 
     acronyms = reference_id["acronym"].values
@@ -114,7 +116,7 @@ def create_atlas(working_dir):
         }
     ]
 
-    for row in nmh:
+    for row in nomenclature_hierarchy:
         structure_hierarchy = []
         unique_pairs = []
         pairs = [(row[i], row[i + 1]) for i in range(0, len(row), 2)]
@@ -202,7 +204,8 @@ def create_atlas(working_dir):
         " minutes",
     )
 
-    # Create meshes dict
+    # Create meshes dict & hierarchy to match
+    hierarchy_with_mesh = []
     meshes_dict = dict()
     structs_with_mesh = []
     for s in hierarchy:
@@ -220,11 +223,13 @@ def create_atlas(working_dir):
         structs_with_mesh.append(s)
         meshes_dict[s["id"]] = mesh_path
 
+        hierarchy_with_mesh.append(s)
+
     print(
         f"In the end, {len(structs_with_mesh)} structures with mesh are kept"
     )
 
-    for item in hierarchy:
+    for item in hierarchy_with_mesh:
         item["id"] = int(item["id"])
         item["structure_id_path"] = [int(i) for i in item["structure_id_path"]]
 
@@ -238,7 +243,7 @@ def create_atlas(working_dir):
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=hierarchy,
+        structures_list=hierarchy_with_mesh,
         working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,

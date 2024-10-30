@@ -24,7 +24,7 @@ def get_downloaded_atlases():
     brainglobe_dir = config.get_brainglobe_dir()
 
     return [
-        f.name.split("_v")[0]
+        f.name.rsplit("_v", 1)[0]
         for f in brainglobe_dir.glob("*_*_*_v*")
         if f.is_dir()
     ]

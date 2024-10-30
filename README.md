@@ -40,7 +40,7 @@ A number of atlases are in development, but those available currently are:
 | [Blind Mexican Cavefish Brain Atlas](https://doi.org/10.7554/eLife.80777) | 2 micron | 6 days post fertilisation | IHC
 | [BlueBrain Barrel Cortex Atlas](https://doi.org/10.1162/imag_a_00209) | 10 and 25 micron | P56 | STPT
 | [UNAM Axolotl Brain Atlas](https://doi.org/10.1038/s41598-021-89357-3) | 40 micron | ~ 3 months post hatching | MRI
-
+| [Prairie Vole Brain Atlas](https://doi.org/10.7554/eLife.87029.3) | 25 micron | 8–10 weeks post natal | STPT
 ## Installation
 
 brainglobe-atlasapi works with Python >3.6, and can be installed from PyPI with:

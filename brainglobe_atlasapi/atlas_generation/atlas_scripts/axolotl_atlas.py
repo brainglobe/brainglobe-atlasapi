@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pooch
-from brainglobe_utils.image_io import load_nii
+from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 from skimage.filters.rank import modal
 from skimage.measure import label, regionprops

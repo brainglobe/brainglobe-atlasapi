@@ -256,7 +256,6 @@ def create_atlas(working_dir):
             description="Creating meshes",
         ):
 
-            # root_node = tree.nodes[ROOT_ID]
             if node.tag == "root":
                 annotated_volume[annotated_volume > 0] = node.identifier
             else:

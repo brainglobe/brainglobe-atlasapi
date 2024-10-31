@@ -33,7 +33,7 @@ ROOT_ID = 997
 ATLAS_FILE_URL = (
     "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
 )
-RESOLUTION = 20  # some resolution, in microns
+RESOLUTION = 20
 
 
 def get_id_from_acronym(df, acronym):

@@ -34,7 +34,7 @@ CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
 ORIENTATION = "rpi"
 
 ### Settings
-PARALLEL = True  # disable parallel mesh extraction for easier debugging
+PARALLEL = False  # disable parallel mesh extraction for easier debugging
 TEST = False
 
 

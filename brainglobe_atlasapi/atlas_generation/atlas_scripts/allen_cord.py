@@ -218,17 +218,6 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 def create_atlas(working_dir):
-    # ATLAS_NAME = "allen_cord"
-    # SPECIES = "Mus musculus"
-    # ATLAS_LINK = "https://data.mendeley.com/datasets/4rrggzv5d5/1"
-    # CITATION = (
-    #     "Fiederling et al. 2021, https://doi.org/10.1101/2021.05.06.443008"
-    # )
-    # ORIENTATION = "asr"
-    # RESOLUTION = (20, 10, 10)
-    # ROOT_ID = 250
-    # ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/4rrggzv5d5-1.zip"
-    # ATLAS_PACKAGER = "MetaCell LLC, Ltd."
 
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)

@@ -39,7 +39,6 @@ RESOLUTION = 4
 
 def create_atlas(working_dir, resolution):
 
-    working_dir = working_dir
     download_path = working_dir / "downloads"
     download_path.mkdir(exist_ok=True, parents=True)
 

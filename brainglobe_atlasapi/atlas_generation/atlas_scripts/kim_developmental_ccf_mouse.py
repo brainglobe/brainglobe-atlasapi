@@ -1,3 +1,5 @@
+__version__ = "2"
+
 import json
 import multiprocessing as mp
 import time
@@ -20,8 +22,6 @@ from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
-
-__version__ = "2"
 
 ATLAS_GROUP_NAME = "kim_dev_mouse"  # multiple versions of the same atlas
 SPECIES = "Mus musculus"

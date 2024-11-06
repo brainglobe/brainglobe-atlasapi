@@ -1,3 +1,5 @@
+__version__ = "1"
+
 import json
 import multiprocessing as mp
 import time
@@ -23,8 +25,6 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
 TEST = False
-
-__version__ = "1"
 
 ATLAS_NAME = "allen_cord"
 SPECIES = "Mus musculus"

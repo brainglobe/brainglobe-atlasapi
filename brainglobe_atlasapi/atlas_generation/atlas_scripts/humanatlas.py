@@ -1,3 +1,5 @@
+__version__ = "0"
+
 import json
 import multiprocessing as mp
 import time
@@ -20,9 +22,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
-### Metadata
-__version__ = "0"
 
 RES_UM = 500
 VERSION = 1

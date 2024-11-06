@@ -1,3 +1,5 @@
+__version__ = "2"
+
 import json
 import multiprocessing as mp
 import time
@@ -20,7 +22,6 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
 
-__version__ = "2"
 ATLAS_NAME = "whs_sd_rat"
 SPECIES = "Rattus norvegicus"
 ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"

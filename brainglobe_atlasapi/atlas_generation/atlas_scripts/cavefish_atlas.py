@@ -10,7 +10,6 @@ import tifffile
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
-
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,

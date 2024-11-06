@@ -1,4 +1,3 @@
-from pathlib import Path
 import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
@@ -8,7 +7,6 @@ from tqdm import tqdm
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
-
 
 # a working example atlas-packaging script, which makes a simplified version
 # of the Allen Mouse Brain Atlas, at 100um resolution. See `template_script.py`
@@ -45,13 +43,12 @@ def retrieve_reference_and_annotation():
     # Create temporary download directory
     download_dir_path = BG_ROOT_DIR / "downloading_path"
     print(download_dir_path)
-    
+
     download_dir_path.mkdir(exist_ok=True)
 
     # Setup the reference space cache
     spacecache = ReferenceSpaceCache(
         manifest=download_dir_path / "manifest.json",
-
         resolution=RESOLUTION,
         reference_space_key="annotation/ccf_2017",
     )

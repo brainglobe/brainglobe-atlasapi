@@ -1,4 +1,3 @@
-### Import
 import csv
 import time
 from pathlib import Path
@@ -20,7 +19,6 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-### Metadata
 __version__ = "0"
 
 ATLAS_NAME = "unam_axolotl"

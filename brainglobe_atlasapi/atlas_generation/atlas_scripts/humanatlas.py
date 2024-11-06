@@ -1,4 +1,3 @@
-### Import
 import json
 import multiprocessing as mp
 import time
@@ -9,7 +8,7 @@ import pooch
 import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
-from brainglobe_utils.image_io import load_nii
+from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 
 from brainglobe_atlasapi import utils

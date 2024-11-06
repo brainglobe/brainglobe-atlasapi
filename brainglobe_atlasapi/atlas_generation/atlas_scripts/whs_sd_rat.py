@@ -1,4 +1,3 @@
-### Import
 import json
 import multiprocessing as mp
 import time
@@ -7,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pooch
 import xmltodict
-from brainglobe_utils.image_io import load_any
+from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -19,10 +18,8 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-### Settings
 PARALLEL = True
 
-### Metadata
 __version__ = "2"
 ATLAS_NAME = "whs_sd_rat"
 SPECIES = "Rattus norvegicus"

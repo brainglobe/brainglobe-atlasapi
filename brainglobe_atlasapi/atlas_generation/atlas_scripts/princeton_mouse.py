@@ -1,4 +1,3 @@
-### Import
 import json
 import multiprocessing as mp
 import os.path
@@ -20,10 +19,8 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-### Settings
 PARALLEL = False
 
-### Metadata
 __version__ = "0"
 
 ATLAS_NAME = "princeton_mouse"

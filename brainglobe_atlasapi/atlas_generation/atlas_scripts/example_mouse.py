@@ -1,6 +1,4 @@
-__version__ = "2"
 
-### Import
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -10,7 +8,8 @@ from tqdm import tqdm
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
-### Metadata
+__version__ = "2"
+
 RES_UM = 100  # 100
 ATLAS_NAME = "example_mouse"
 SPECIES = "Mus musculus"

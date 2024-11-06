@@ -1,6 +1,3 @@
-__version__ = "0"
-
-### Import
 import csv
 import time
 from pathlib import Path
@@ -12,7 +9,6 @@ from rich.progress import track
 
 from brainglobe_atlasapi import utils
 
-# from skimage import io
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -21,7 +17,8 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-### Metadata
+__version__ = "0"
+
 ATLAS_NAME = "sju_cavefish"
 SPECIES = "Astyanax mexicanus"
 ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"

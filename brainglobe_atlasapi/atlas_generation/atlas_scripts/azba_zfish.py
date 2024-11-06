@@ -5,7 +5,6 @@ for the Adult Zebrafish Brain Atlas (AZBA)
 @author: Kailyn Fields, kailyn.fields@wayne.edu
 """
 
-### Import
 import csv
 import time
 
@@ -22,7 +21,6 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-### Metadata
 __version__ = "2"
 
 ATLAS_NAME = "azba_zfish"

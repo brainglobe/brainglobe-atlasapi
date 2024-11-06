@@ -1,4 +1,3 @@
-### Import
 import json
 import multiprocessing as mp
 import time
@@ -7,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pooch
-from brainglobe_utils.image_io import load_nii
+from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 from scipy.ndimage import zoom
 
@@ -20,10 +19,8 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-### Settings
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
-### Metadata
 __version__ = "2"
 
 ATLAS_GROUP_NAME = "kim_dev_mouse"  # multiple versions of the same atlas

@@ -1,4 +1,3 @@
-### Import
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -9,7 +8,6 @@ from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
-### Metadata
 __version__ = "2"
 
 ATLAS_NAME = "allen_mouse"

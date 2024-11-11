@@ -38,7 +38,6 @@ def create_atlas(working_dir, resolution):
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    # atlas_files_dir = download_dir_path / "atlas_files"
 
     # Download atlas_file
     utils.check_internet_connection()

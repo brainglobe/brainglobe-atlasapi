@@ -1,11 +1,11 @@
-__version__ = "2"
-
 """
 Script to generate a Brainglobe compatible atlas object
 for the Adult Zebrafish Brain Atlas (AZBA)
 
 @author: Kailyn Fields, kailyn.fields@wayne.edu
 """
+
+__version__ = "2"
 
 import csv
 import time

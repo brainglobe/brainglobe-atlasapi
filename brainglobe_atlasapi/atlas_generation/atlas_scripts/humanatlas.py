@@ -1,26 +1,39 @@
-import gzip
+__version__ = "0"
+
 import json
 import multiprocessing as mp
 import time
-import zipfile
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import requests
+import pooch
 import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
-from brainglobe_utils.image_io import load_nii
+from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
     inspect_meshes_folder,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+RES_UM = 500
+VERSION = 1
+ATLAS_NAME = "allen_human"
+SPECIES = "Homo sapiens"
+ATLAS_LINK = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/"
+CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
+ORIENTATION = "rpi"
+
+### Settings
+PARALLEL = False  # disable parallel mesh extraction for easier debugging
+TEST = False
 
 
 def prune_tree(tree):
@@ -54,70 +67,59 @@ def prune_tree(tree):
     return tree
 
 
-if __name__ == "__main__":
-    PARALLEL = True  # disable parallel mesh extraction for easier debugging
-    TEST = False
+def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
+    utils.check_internet_connection()
 
-    # ----------------- #
-    #   PREP METADATA   #
-    # ----------------- #
-    RES_UM = 500
-    VERSION = 1
-    ATLAS_NAME = "allen_human"
-    SPECIES = "Homo sapiens"
-    ATLAS_LINK = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/"
-    CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
-    ORIENTATION = "rpi"
+    data_fld = download_dir_path
+    # data_fld.mkdir(exist_ok=True)
 
+    # downloading and un-compressing full annotation file
+
+    print("Downloading annotation file...")
+    pooch.retrieve(
+        url=atlas_file_url,
+        known_hash="2b05581e39c44f2623d9b0a69f64e3df0823c20d054abef92973812313335dc3",
+        path=download_dir_path,
+        progressbar=True,
+        processor=pooch.Decompress(name="annotation_full.nii"),
+    )
+
+    # downloading and un-compressing anatomy image
+    print("Downloading anatomy image...")
+    pooch.retrieve(
+        url=template_file_url,
+        known_hash="acce3b85039176aaf7de2c3169272551ddfcae5d9a4e5ce642025b795f9f1d20",
+        path=download_dir_path,
+        progressbar=True,
+        processor=pooch.Unzip(extract_dir="."),
+    )
+
+    print("Download and decompression completed.")
+
+    return data_fld
+
+
+def create_atlas(working_dir):
     # ------------------ #
     #   PREP FILEPATHS   #
     # ------------------ #
 
-    data_fld = Path(Path.home() / ".brainglobe" / "downloads")
-    data_fld.mkdir(exist_ok=True)
-
-    # downloading and un-compressing full annotation file
     annotation_full_url = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation_full.nii.gz"
-    response = requests.get(annotation_full_url)
-    with open(data_fld / annotation_full_url.split("/")[-1], "wb") as f:
-        f.write(response.content)
-    with gzip.open(
-        data_fld / annotation_full_url.split("/")[-1], "rb"
-    ) as f_in:
-        with open(
-            data_fld / annotation_full_url.split("/")[-1].replace(".gz", ""),
-            "wb",
-        ) as f_out:
-            f_out.writelines(f_in)
-
-    # downloading and un-compressing anatomy image
     anatomy_url = "https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09b_nifti.zip"
-    response = requests.get(anatomy_url)
-    with open(data_fld / anatomy_url.split("/")[-1], "wb") as f:
-        f.write(response.content)
-    with zipfile.ZipFile(
-        data_fld / anatomy_url.split("/")[-1], "r"
-    ) as zip_ref:
-        zip_ref.extractall(
-            data_fld / anatomy_url.split("/")[-1].replace(".zip", "")
-        )
 
-    print("Download and decompression completed.")
+    atlas_files_dir = download_atlas_files(
+        working_dir, annotation_full_url, anatomy_url
+    )
 
-    annotations_image = data_fld / "annotation_full.nii"
+    annotations_image = atlas_files_dir / "annotation_full.nii"
     anatomy_image = (
-        data_fld
-        / "mni_icbm152_nlin_sym_09b_nifti"
+        atlas_files_dir
         / "mni_icbm152_nlin_sym_09b"
         / "mni_icbm152_pd_tal_nlin_sym_09b_hires.nii"
     )
 
-    # Generated atlas path:
-    bg_root_dir = Path.home() / ".brainglobe"
-    bg_root_dir.mkdir(exist_ok=True)
-
     # Temporary folder for nrrd files download:
-    temp_path = data_fld
+    temp_path = working_dir
     temp_path.mkdir(exist_ok=True)
 
     # Temporary folder for files before compressing:
@@ -251,6 +253,7 @@ if __name__ == "__main__":
             total=tree.size(),
             description="Creating meshes",
         ):
+
             if node.tag == "root":
                 annotated_volume[annotated_volume > 0] = node.identifier
             else:
@@ -309,7 +312,7 @@ if __name__ == "__main__":
 
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
-    wrapup_atlas_from_data(
+    output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=VERSION,
         citation=CITATION,
@@ -322,9 +325,17 @@ if __name__ == "__main__":
         annotation_stack=annotated_volume,
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
     )
+
+    return output_filename
+
+
+if __name__ == "__main__":
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
+    bg_root_dir.mkdir(exist_ok=True)
+    create_atlas(bg_root_dir)

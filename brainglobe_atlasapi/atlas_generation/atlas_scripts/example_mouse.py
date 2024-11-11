@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
@@ -8,6 +6,7 @@ from requests import exceptions
 from tqdm import tqdm
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
 # a working example atlas-packaging script, which makes a simplified version
 # of the Allen Mouse Brain Atlas, at 100um resolution. See `template_script.py`
@@ -21,7 +20,7 @@ ORIENTATION = "asr"  # The orientation of the atlas
 ROOT_ID = 997  # The id of the highest level of the atlas.
 RESOLUTION = 100  # The resolution of your volume in microns.
 
-BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
 
 
 def download_resources():
@@ -44,6 +43,7 @@ def retrieve_reference_and_annotation():
     # Create temporary download directory
     download_dir_path = BG_ROOT_DIR / "downloading_path"
     print(download_dir_path)
+
     download_dir_path.mkdir(exist_ok=True)
 
     # Setup the reference space cache

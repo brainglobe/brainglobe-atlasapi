@@ -1,7 +1,6 @@
 __version__ = "0"
 
 import csv
-import glob as glob
 import time
 from pathlib import Path
 
@@ -19,23 +18,25 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+ATLAS_NAME = "unam_axolotl"
+SPECIES = "Ambystoma mexicanum"
+ATLAS_LINK = "https://zenodo.org/records/4595016"
+CITATION = (
+    "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3"
+)
+ORIENTATION = "lpi"
+ROOT_ID = 999
+ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
+ADDITIONAL_METADATA = {}
+RESOLUTION = 40, 40, 40  # Resolution tuple
 
 
 def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "unam_axolotl"
-    SPECIES = "Ambystoma mexicanum"
-    ATLAS_LINK = "https://zenodo.org/records/4595016"
-    CITATION = (
-        "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3"
-    )
-    ORIENTATION = "lpi"
-    ROOT_ID = 999
-    ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
-    ADDITIONAL_METADATA = {}
 
     # setup folder for downloading
-
     working_dir = Path(working_dir)
 
     download_dir_path = working_dir / "downloads"
@@ -48,24 +49,33 @@ def create_atlas(working_dir, resolution):
     hashes = [
         "md5:3a9ba5a23c17180981b5678329915226",
         "md5:66df0da5d7eed10ff59add32741d0bf2",
-        "md5:ab13eb8b8f9324a67fdd162f4e79f3c0",
     ]
     list_files = {
         "axolotl_labels_66rois_40micra.nii.gz": hashes[0],
         "axolotl_template_40micra.nii.gz": hashes[1],
-        "axolotl_label_names_66rois.csv": hashes[2],
     }
+
     for filename, hash in list_files.items():
         pooch.retrieve(
             url=f"{ATLAS_LINK}/files/{filename}",
             known_hash=hash,
             path=atlas_path,
             progressbar=True,
+            processor=pooch.Decompress(name=filename[:-3]),
         )
 
+    # download structure file
+    pooch.retrieve(
+        url=f"{ATLAS_LINK}/files/axolotl_label_names_66rois.csv",
+        known_hash="md5:ab13eb8b8f9324a67fdd162f4e79f3c0",
+        path=atlas_path,
+        progressbar=True,
+        fname="axolotl_label_names_66rois.csv",
+    )
+
     structures_file = atlas_path / "axolotl_label_names_66rois.csv"
-    annotations_file = atlas_path / "axolotl_labels_66rois_40micra.nii.gz"
-    reference_file = atlas_path / "axolotl_template_40micra.nii.gz"
+    annotations_file = atlas_path / "axolotl_labels_66rois_40micra.nii"
+    reference_file = atlas_path / "axolotl_template_40micra.nii"
 
     annotation_image = load_nii(annotations_file, as_array=True)
     reference_image = load_nii(reference_file, as_array=True)
@@ -278,9 +288,8 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    res = 40, 40, 40  # Resolution tuple
     home = str(Path.home())
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
-    create_atlas(bg_root_dir, res)
+    create_atlas(bg_root_dir, RESOLUTION)

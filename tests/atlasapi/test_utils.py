@@ -145,7 +145,7 @@ def test_conf_from_file_no_file(temp_path):
         assert "Last versions cache file not found." == str(e)
 
 
-@pytest.skipif(sys.platform == "win32", reason="Does not run on Windows")
+@pytest.mark.skipif(sys.platform == "win32", reason="Does not run on Windows")
 def test_conf_from_url_read_only(temp_path, mocker):
     # Test with a valid URL and a non-existing parent folder
     mocker.patch(

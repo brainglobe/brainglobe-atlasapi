@@ -163,4 +163,4 @@ def test_conf_from_url_read_only(temp_path, mocker):
     )
 
     # Set the permissions back to the original
-    os.chmod(temp_path, int(curr_mode, 8))
+    temp_path.chmod(int(curr_mode, 8))

@@ -291,7 +291,7 @@ def get_download_size(url: str) -> int:
 
 
 def conf_from_url(url) -> configparser.ConfigParser:
-    """Read conf file from an URL. And cache a copy in the brainglobe dir.
+    """Read conf file from a URL. And cache a copy in the brainglobe dir.
     Parameters
     ----------
     url : str
@@ -305,14 +305,17 @@ def conf_from_url(url) -> configparser.ConfigParser:
     text = requests.get(url).text
     config_obj = configparser.ConfigParser()
     config_obj.read_string(text)
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
 
-    if not cache_path.parent.exists():
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if not cache_path.parent.exists():
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Cache the available atlases
-    with open(cache_path, "w") as f_out:
-        config_obj.write(f_out)
+        # Cache the available atlases
+        with open(cache_path, "w") as f_out:
+            config_obj.write(f_out)
+    except OSError as e:
+        print(f"Could not update the latest atlas versions cache: {e}")
 
     return config_obj
 

@@ -5,6 +5,7 @@ import os
 import shutil
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pooch
 import requests
@@ -12,6 +13,9 @@ from brainglobe_utils.IO.image import load_nii
 from bs4 import BeautifulSoup
 from vedo import Mesh, write
 
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    extract_mesh_from_mask,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import check_internet_connection
 
@@ -133,6 +137,7 @@ def download_multiple_filenames_and_hashs(file_hash_jsonpath, atlas_dir_path):
 
         seen_files = set()
         for file in files:
+            print(file)
             file_name = file.get_text()
 
             if file_name not in seen_files:
@@ -160,17 +165,25 @@ def download_multiple_filenames_and_hashs(file_hash_jsonpath, atlas_dir_path):
 def retrieve_template_and_annotations(file_path_list):
     """
     Retrieve the desired template and annotations as two numpy arrays.
-    Template is MRI image of brain
-    Annotations is an annotated 'segmentation' - each label has a unique ID
+    Template_volume is an MRI image of brain
+    Reference_volume is an annotated segmentation - each label has a unique ID
 
     Returns:
         tuple: A tuple containing two numpy arrays.
-        The first array is the template volume,
-        and the second array is the reference volume.
+        The first array is a downscaled template volume,
+        and the second array is a reference volume.
     """
-    template = load_nii(file_path_list[0], as_array=True)
-    annotations = load_nii(file_path_list[1], as_array=True)
-    return template, annotations
+    template_volume = load_nii(file_path_list[0], as_array=True)
+    reference_volume = load_nii(file_path_list[1], as_array=True)
+
+    dmin = np.min(template_volume)
+    dmax = np.max(template_volume)
+    drange = dmax - dmin
+    dscale = (2**16 - 1) / drange
+    template_volume = (template_volume - dmin) * dscale
+    template_volume = template_volume.astype(np.uint16)
+
+    return template_volume, reference_volume
 
 
 def add_heirarchy(labels_df_row):
@@ -272,6 +285,35 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
     return structures_dict
 
 
+def create_mask_for_root(template_volume, reference_volume, mesh_save_folder):
+    """
+    A root_id mask of the mri image, with the annotations removed from it,
+    remaining is the root mask
+
+    returns:
+        a saved .obj file within mesh_save_folder
+    """
+
+    print(template_volume[100])
+    binarised_template_volume = np.where(
+        template_volume < 9000, 0, template_volume
+    )
+    binarised_template_volume = np.where(
+        binarised_template_volume != 0, ROOT_ID, binarised_template_volume
+    )
+    root_mask = np.where(reference_volume, 0, binarised_template_volume)
+
+    file_name = f"{ROOT_ID}.obj"
+    file_path = str(mesh_save_folder / file_name)
+
+    extract_mesh_from_mask(
+        root_mask,
+        obj_filepath=file_path,
+        smooth=True,
+        decimate_fraction=0.6,
+    )
+
+
 def extract_mesh_from_vtk(working_dir):
     """
     Given the path to a folder containing annotation.vtk files
@@ -288,7 +330,6 @@ def extract_mesh_from_vtk(working_dir):
     mesh_save_folder.mkdir(parents=True, exist_ok=True)
 
     list_of_mesh_files = os.listdir(atlas_dir_path)
-
     for vtk_file in list_of_mesh_files:
         if not vtk_file.endswith(".vtk"):
             continue
@@ -318,6 +359,9 @@ def extract_mesh_from_vtk(working_dir):
             write(mesh, file_path)
         else:
             continue
+
+    create_mask_for_root(template_volume, reference_volume, mesh_save_folder)
+    mesh_dict[ROOT_ID] = str(mesh_save_folder / f"{ROOT_ID}.obj")
     return mesh_dict
 
 

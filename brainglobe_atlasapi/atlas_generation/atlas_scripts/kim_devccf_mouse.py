@@ -22,7 +22,7 @@ SPECIES = "Mus musculus"
 AGE = "P14"
 ATLAS_LINK = "https://kimlab.io/brain-map/DevCCF/"
 CITATION = "Kronman, F.N., Liwang, J.K., Betty, R. et al. 2024, https://doi.org/10.1038/s41467-024-53254-w"
-ORIENTATION = "posterior superior left"
+ORIENTATION = ["left", "superior", "posterior"]
 ROOT_ID = 15564
 RESOLUTION_UM = 20
 VERSION = 1
@@ -130,7 +130,7 @@ def create_meshes(download_dir_path: str|Path,
     smooth = False  # smooth meshes after creation
     start = time.time()
     if PARALLEL:
-        pool = mp.Pool(mp.cpu_count() - 2)
+        pool = mp.Pool(min(mp.cpu_count() - 2, 16))
         try:
             pool.map(
                 create_region_mesh,
@@ -180,7 +180,6 @@ def create_meshes(download_dir_path: str|Path,
     )
     return meshes_dir_path
 
-
 def create_mesh_dict(structures, meshes_dir_path):
     meshes_dict = dict()
     structures_with_mesh = []
@@ -195,16 +194,13 @@ def create_mesh_dict(structures, meshes_dir_path):
             if mesh_path.stat().st_size < 512:
                 print(f"obj file for {s} is too small, ignoring it.")
                 continue
-
         structures_with_mesh.append(s)
         meshes_dict[s["id"]] = mesh_path
-
     print(
         f"In the end, {len(structures_with_mesh)} "
         "structures with mesh are kept"
     )
     return meshes_dict, structures_with_mesh
-
 
 if __name__ == "__main__":
     atlas_root = "/home/castoldi/Downloads/DevCCFv1"
@@ -213,11 +209,12 @@ if __name__ == "__main__":
     bg_root_dir = DEFAULT_WORKDIR/ATLAS_NAME
     download_dir_path = bg_root_dir/"downloads"
     download_dir_path.mkdir(exist_ok=True, parents=True)
-    
+
     structures = get_ontology(atlas_root)
     # save regions list json:
     with open(download_dir_path/"structures.json", "w") as f:
         json.dump(structures, f)
+
     annotation_volume = get_annotations(atlas_root, AGE, RESOLUTION_UM)
     reference_volume = get_reference(atlas_root, AGE, RESOLUTION_UM, "LSFM")
     # Create meshes:
@@ -228,7 +225,7 @@ if __name__ == "__main__":
         annotation_volume,
         ROOT_ID
     )
-
+    # meshes_dir_path = download_dir_path/"meshes"
     meshes_dict, structures_with_mesh = create_mesh_dict(
         structures, meshes_dir_path
     )
@@ -240,7 +237,7 @@ if __name__ == "__main__":
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=RESOLUTION_UM,
+        resolution=(RESOLUTION_UM,)*3,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=reference_volume,

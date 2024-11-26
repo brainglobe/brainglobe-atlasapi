@@ -3,6 +3,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from time import sleep
 from typing import Callable, Optional
 
 import requests
@@ -305,6 +306,15 @@ def conf_from_url(url) -> configparser.ConfigParser:
     cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
 
     result = requests.get(url)
+    max_tries = 5
+    sleep_time = 0.25
+
+    while max_tries > 0 and result.status_code != 200:
+        result = requests.get(url)
+        max_tries -= 1
+        sleep(sleep_time)
+        sleep_time *= 2
+
     if result.status_code != 200:
         print(
             f"Could not fetch the latest atlas versions: {result.status_code}"

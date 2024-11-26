@@ -37,7 +37,7 @@ jobs:
     name: ${{ matrix.os }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     env:
-      WEEK_NUMBER: ${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+      WEEK_NUMBER: ${{ needs.get-week-number.outputs.week-number }}
     strategy:
       matrix:
         # Run all supported Python versions on linux

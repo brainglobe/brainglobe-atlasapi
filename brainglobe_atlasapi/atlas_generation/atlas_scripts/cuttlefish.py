@@ -15,6 +15,8 @@ from vedo import Mesh, write
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
+import brainglobe_space as bg
+
 
 def hex_to_rgb(hex):
     hex = hex.lstrip("#")
@@ -310,22 +312,53 @@ def create_atlas(working_dir, resolution):
     brain_template = load.load_nii(template_path, as_array=True)
 
     # check the transformed version of the hierarchy.csv file
-    print(hierarchy)
+    #print(hierarchy)
     # df = pd.DataFrame(hierarchy)
     # df.to_csv('hierarchy_test.csv')
 
+    import matplotlib.pyplot as plt 
+    sc = bg.AnatomicalSpace("srp")  # origin for the stack to be plotted
+
+    '''fig, axs = plt.subplots(1,3)
+    for i, (plane, labels) in enumerate(zip(sc.sections, sc.axis_labels)):
+        axs[i].imshow(brain_template.mean(i))
+        axs[i].set_title(f"{plane.capitalize()} view")
+        axs[i].set_ylabel(labels[0])
+        axs[i].set_xlabel(labels[1])
+    plt.show()'''
+    
     # write meshes
+    source_origin = ("Superior", "Right", "Posterior")
+    source_space = bg.AnatomicalSpace(source_origin, brain_template.shape)
     atlas_dir_name = f"{ATLAS_NAME}_{resolution[0]}um_v1.{__version__}"
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
     glbfile = pooch.retrieve(MESH_URL, known_hash=None, progressbar=True)
     gltf = GLTF2.load(glbfile)
     for node in gltf.nodes:
+        #print(node)
         # gltf stores meshes/nodes in alphabetical order of region name!
-        mesh_index = (
-            node.mesh
-        )  # needs to be matched to annotation label instead
-        # maybe useful for matching:
+        # given that the gtlf meshes id don't match the region ids,
+        # match the mesh names to our region names to find the correct id
+        for region in hierarchy:
+            if node.name == region["acronym"]:
+                mesh_id = region["id"]
+                break
+            else:
+                mesh_id = -1
+                
+        # the following code tests for which meshes did not have a corresponding region in
+        # our hierarchy region list.
+        # they are: C, GLASS and SK. 
+        # manual checking on Blender shows that: 
+        # SK is the cuttlefish body (unnecessary)
+        # GLASS is the overall mesh for the brain 
+        # C is the cartilage behind the brain (unnecessary)
+        
+        #if mesh_id == -1:
+        #    print("error for ", node)
+        
+        mesh_index = node.mesh
         print(
             f"writing mesh for region {gltf.meshes[mesh_index].name}"
             f" and index {mesh_index}"
@@ -333,16 +366,49 @@ def create_atlas(working_dir, resolution):
         points, triangles = points_and_triangles_from_gltf(
             gltf=gltf, mesh_index=mesh_index
         )
+        mapped_points = source_space.map_points_to("asr", points)
+
         # points need to be transformed from SRP to ASR
         # see `map_points to` function in `brainglobe-space`,
         # e.g. https://github.com/brainglobe/brainglobe-space?tab=readme-ov-file#the-anatomicalspace-class # noqa E501
-        write_obj(points, triangles, mesh_dir / f"{mesh_index}.obj")
-
-        # we need to think about the points' scale (should be in microns)!
+        
+        points = np.multiply(points, 1000)
+        write_obj(points, triangles, mesh_dir / f"{mesh_id}.obj")
+    test = np.asarray(points)
+    #print(test.shape)
+    #print(brain_template.shape)
+    #np.savetxt("footest.csv", test, delimiter=',')
+    # we need to think about the points' scale (should be in microns)!
 
     # create meshes for regions that don't have a premade mesh, e.g. the root?
     # in a separate loop
 
+    # create meshes_dict
+    
+    ############################## FIND A WAY TO MATCH THE MESH ID WITH THE ACRONYMS. 
+    
+    
+    meshes_dict = dict()
+    structures_with_mesh = []
+    for s in hierarchy:
+        # check if a mesh was created
+        mesh_path = mesh_dir / f"{s['id']}.obj"
+        if not mesh_path.exists():
+            print(f"No mesh file exists for: {s}, ignoring it.")
+            continue
+        else:
+            # check that the mesh actually exists and isn't empty
+            if mesh_path.stat().st_size < 512:
+                print(f"obj file for {s} is too small, ignoring it.")
+                continue
+        structures_with_mesh.append(s)
+        meshes_dict[s["id"]] = mesh_path
+
+    print(
+        f"In the end, {len(structures_with_mesh)} "
+        "structures with mesh are kept"
+    )
+    
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

@@ -25,6 +25,8 @@ jobs:
 
   get-week-number:
     runs-on: ubuntu-latest
+    outputs:
+        WEEK_NUMBER: ${{ steps.get-week-number.outputs.WEEK_NUMBER }}
     steps:
     - name: Get week number
       id: get-week-number

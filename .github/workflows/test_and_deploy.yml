@@ -26,16 +26,18 @@ jobs:
   get-week-number:
     runs-on: ubuntu-latest
     outputs:
-      week_number: ${{ steps.get-week-number.outputs.week_number }}
+      week-number: ${{ steps.get-week-number.outputs.WEEK_NUMBER }}
     steps:
     - name: Get week number
       run:
-        echo "week_number=$(/bin/date -u "+%V")" >> $GITHUB_OUTPUT
+        echo "WEEK_NUMBER=$(/bin/date -u "+%V")" >> $GITHUB_OUTPUT
 
   test:
     needs: [linting, manifest, get-week-number]
     name: ${{ matrix.os }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
+    env:
+      WEEK_NUMBEr: ${{ needs.get-week-number.outputs.WEEK_NUMBER }}
     strategy:
       matrix:
         # Run all supported Python versions on linux
@@ -58,9 +60,9 @@ jobs:
             ~/.brainglobe
             !~/.brainglobe/atlas.tar.gz
           enableCrossOsArchive: 'true'
-          key: brainglobe-${{ steps.get-week-number.outputs.week_number }}
+          key: brainglobe-${{ github.env.WEEK_NUMBER }}
           restore-keys: |
-              brainglobe-${{ steps.get-week-number.outputs.week_number }}
+              brainglobe-${{ github.env.WEEK_NUMBER }}
               brainglobe
 
       - uses: neuroinformatics-unit/actions/test@v2

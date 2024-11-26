@@ -302,10 +302,20 @@ def conf_from_url(url) -> configparser.ConfigParser:
     conf object
 
     """
-    text = requests.get(url).text
+    cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
+
+    result = requests.get(url)
+    if result.status_code != 200:
+        print(
+            f"Could not fetch the latest atlas versions: {result.status_code}"
+        )
+        print(f"Using the last cached version from {cache_path}")
+
+        return conf_from_file(cache_path)
+
+    text = result.text
     config_obj = configparser.ConfigParser()
     config_obj.read_string(text)
-    cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
 
     try:
         if not cache_path.parent.exists():

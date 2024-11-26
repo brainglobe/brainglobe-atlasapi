@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Get week number
+      id: get-week-number
       run:
         echo "WEEK_NUMBER=$(date -u "+%V")" >> "$GITHUB_OUTPUT"
 

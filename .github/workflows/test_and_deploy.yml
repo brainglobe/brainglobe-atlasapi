@@ -27,9 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       week_number: ${{ steps.get-week-number.outputs.week_number }}
-    steps:
-      run:
-        echo "week_number=$(/bin/date -u "+%V")" >> $GITHUB_OUTPUT
+    run:
+      echo "week_number=$(/bin/date -u "+%V")" >> $GITHUB_OUTPUT
 
   test:
     needs: [linting, manifest]

@@ -37,7 +37,7 @@ jobs:
     name: ${{ matrix.os }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     env:
-      WEEK_NUMBEr: ${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+      WEEK_NUMBER: ${{ needs.get-week-number.outputs.WEEK_NUMBER }}
     strategy:
       matrix:
         # Run all supported Python versions on linux
@@ -60,9 +60,9 @@ jobs:
             ~/.brainglobe
             !~/.brainglobe/atlas.tar.gz
           enableCrossOsArchive: 'true'
-          key: brainglobe-${{ github.env.WEEK_NUMBER }}
+          key: brainglobe-$WEEK_NUMBER
           restore-keys: |
-              brainglobe-${{ github.env.WEEK_NUMBER }}
+              brainglobe-$WEEK_NUMBER
               brainglobe
 
       - uses: neuroinformatics-unit/actions/test@v2

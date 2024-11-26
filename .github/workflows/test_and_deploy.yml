@@ -33,7 +33,7 @@ jobs:
         echo "week_number=$(/bin/date -u "+%V")" >> $GITHUB_OUTPUT
 
   test:
-    needs: [linting, manifest]
+    needs: [linting, manifest, get-week-number]
     name: ${{ matrix.os }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:

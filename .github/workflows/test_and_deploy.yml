@@ -23,6 +23,14 @@ jobs:
     steps:
       - uses: neuroinformatics-unit/actions/check_manifest@v2
 
+  get-week-number:
+    runs-on: ubuntu-latest
+    outputs:
+      week_number: ${{ steps.get-week-number.outputs.week_number }}
+    steps:
+      run:
+        echo "week_number=$(/bin/date -u "+%V")" >> $GITHUB_OUTPUT
+
   test:
     needs: [linting, manifest]
     name: ${{ matrix.os }} py${{ matrix.python-version }}
@@ -43,12 +51,16 @@ jobs:
 
     steps:
       - name: Cache atlases
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: | # ensure we don't cache any interrupted atlas download and extraction, if e.g. we cancel the workflow manually
             ~/.brainglobe
             !~/.brainglobe/atlas.tar.gz
-          key: brainglobe
+          enableCrossOsArchive: 'true'
+          key: brainglobe-${{ steps.get-week-number.outputs.week_number }}
+          restore-keys: |
+              brainglobe-${{ steps.get-week-number.outputs.week_number }}
+              brainglobe
 
       - uses: neuroinformatics-unit/actions/test@v2
         with:

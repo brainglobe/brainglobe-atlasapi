@@ -30,8 +30,7 @@ jobs:
     steps:
     - name: Get week number
       id: get-week-number
-      run:
-        echo "WEEK_NUMBER=$(date -u "+%V")" >> "$GITHUB_OUTPUT"
+      run: echo "WEEK_NUMBER=$(date -u '+%V')" >> "$GITHUB_OUTPUT"
 
   test:
     needs: [linting, manifest, get-week-number]
@@ -59,9 +58,9 @@ jobs:
             ~/.brainglobe
             !~/.brainglobe/atlas.tar.gz
           enableCrossOsArchive: 'true'
-          key: brainglobe-${{ steps.get-week-number.outputs.WEEK_NUMBER }}
+          key: brainglobe-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
           restore-keys: |
-              brainglobe-${{ steps.get-week-number.outputs.WEEK_NUMBER }}
+              brainglobe-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
               brainglobe
 
       - uses: neuroinformatics-unit/actions/test@v2

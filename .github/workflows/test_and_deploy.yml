@@ -57,10 +57,10 @@ jobs:
           path: | # ensure we don't cache any interrupted atlas download and extraction, if e.g. we cancel the workflow manually
             ~/.brainglobe
             !~/.brainglobe/atlas.tar.gz
-          enableCrossOsArchive: 'true'
-          key: brainglobe-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+          key: brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
           restore-keys: |
-              brainglobe-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+              brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+              brainglobe-${{ runner.os }}-
               brainglobe
 
       - uses: neuroinformatics-unit/actions/test@v2

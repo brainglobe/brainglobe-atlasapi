@@ -1,6 +1,10 @@
-"""Helper functions to read annotation metadata from common formats"""
+"""Helper functions to read annotation metadata from common formats,
+or manipulate annotations."""
 
 from pathlib import Path
+
+import numpy as np
+from scipy.ndimage import generic_filter
 
 
 def split_label_text(name: str) -> str:
@@ -62,10 +66,46 @@ def write_itk_labels(path: Path, labels):
         labels_file.write(ITK_CLEAR_LABEL)
         for label in labels:
             labels_file.write(
-                f"{label['id']} {label['rgb_triplet'][0]} {label['rgb_triplet'][1]} {label['rgb_triplet'][2]} 1.00 1 1 \"{label['name'] + ' (' + label['acronym']+')'}\"\n"
+                f"{label['id']} "
+                f"{label['rgb_triplet'][0]} "
+                f"{label['rgb_triplet'][1]} "
+                f"{label['rgb_triplet'][2]} 1.00 1 1 "
+                f"\"{label['name'] + ' (' + label['acronym']+')'}\"\n"
             )
 
 
+def modal_filter_ignore_zeros(window):
+    """
+    Compute the mode of the window ignoring zero values.
+    """
+    # Remove zeros from the window
+    non_zero_values = window[window != 0]
+    if len(non_zero_values) == 0:
+        return 0  # If all values are zero, return 0
+    # Compute the mode (most common value)
+    values, counts = np.unique(non_zero_values, return_counts=True)
+    return values[np.argmax(counts)]
+
+
+def apply_modal_filter(image, filter_size=3):
+    """
+    Apply a modal filter to the image, ignoring zero neighbors.
+
+    Parameters:
+        image (ndarray): Input image as a 2D NumPy array.
+        filter_size (int): Size of the filtering window (must be odd).
+
+    Returns:
+        ndarray: Filtered image.
+    """
+    # Apply the modal filter using a sliding window
+    filtered_image = generic_filter(
+        image, function=modal_filter_ignore_zeros, size=filter_size
+    )
+    return filtered_image
+
+
+# TODO turn into test
 if __name__ == "__main__":
     path = Path.home() / "Downloads" / "corrected_LabelMainBrainAreas_SW.txt"
     labels = read_itk_labels(path)

@@ -710,6 +710,14 @@ def retrieve_structure_information():
                 [ROOT_ID, 1004],
                 [ROOT_ID, 1005],
             ],
+            "rgb_triplet":[
+                [255,255,255],
+                [255, 100, 30],
+                [100,255,30],
+                [30,100,255],
+                [100,30,255],
+                [0,255,0]
+            ]
         }
     )
     label_list = []

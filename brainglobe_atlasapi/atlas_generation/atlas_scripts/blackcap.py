@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
+from scipy.ndimage import binary_erosion
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
     read_itk_labels,
@@ -40,16 +41,15 @@ def create_atlas(working_dir, resolution):
     )
 
     structures_file = (
-        atlas_path
-        / "Detailed annotations_281124/DetailedLabels_281124_fix.txt"
+        atlas_path / "CombinedBrainAreas_291124/combined_labels.txt"
     )
     annotations_file = (
         atlas_path
-        / "Detailed annotations_281124/DetailedAnnotations_281124.nii.gz"
+        / "CombinedBrainAreas_291124/combined_annotations_modal-3.nii.gz"
     )
     reference_file = (
         atlas_path
-        / "Detailed annotations_281124"
+        / "CombinedBrainAreas_291124"
         / "reference_res-25_hemi-right_IMAGE.nii.gz"
     )
     meshes_dir_path = Path.home() / "blackcap-meshes"
@@ -60,29 +60,34 @@ def create_atlas(working_dir, resolution):
         "mesh folder already exists"
 
     print("Reading structures files")
-    hierarchy_path = atlas_path / "hierarchy_291124_fix.csv"
-    small_to_main_map = {}
+    hierarchy_path = (
+        atlas_path / "CombinedBrainAreas_291124/combined_structures.csv"
+    )
+    structure_to_parent_map = {}
     with open(hierarchy_path, mode="r") as file:
         reader = csv.reader(file)
         next(reader)  # Skip the header
         for row in reader:
-            print(row)
-            if row[3]:
-                small_to_main_map[int(row[3])] = int(row[1])
+            structure_to_parent_map[int(row[1])] = [
+                int(parent) for parent in row[2].split(",")
+            ]
 
     structure_data_list = read_itk_labels(structures_file)
     for structure in structure_data_list:
         structure_id = structure["id"]
-        if structure_id in small_to_main_map.keys():
-            structure["structure_id_path"] = [
-                999,
-                small_to_main_map[structure_id],
-                structure_id,
-            ]
-        else:
-            structure["structure_id_path"] = [999, structure_id]
+        structure["structure_id_path"] = structure_to_parent_map[structure_id]
 
-    # append root structure
+    # append root and pallium structures, which don't have their own voxels
+    # and are therefore not in itk file
+    structure_data_list.append(
+        {
+            "id": 1,
+            "name": "Pallium",
+            "acronym": "P",
+            "structure_id_path": [999, 1],
+            "rgb_triplet": [0, 200, 100],
+        }
+    )
     structure_data_list.append(
         {
             "id": 999,
@@ -103,7 +108,7 @@ def create_atlas(working_dir, resolution):
 
     # use tifffile to read annotated file
     annotated_volume = load_nii(annotations_file, as_array=True).astype(
-        np.uint8
+        np.uint16
     )
     # Append a mirror image of the reference volume along axis 2
     mirrored_volume = np.flip(annotated_volume, axis=2)
@@ -126,7 +131,11 @@ def create_atlas(working_dir, resolution):
     )
 
     has_label = annotated_volume > 0
+    # annotations are a bit too wide
+    # erode by two pixels
+    has_label = binary_erosion(has_label, iterations=4)
     reference_volume *= has_label
+    annotated_volume *= has_label
 
     # generate binary mask for mesh creation
     labels = np.unique(annotated_volume).astype(np.int_)
@@ -141,9 +150,9 @@ def create_atlas(working_dir, resolution):
         node.data = Region(is_label)
 
     # mesh creation
-    closing_n_iters = 2
+    closing_n_iters = 1
     decimate_fraction = 0.6  # higher = more triangles
-    smooth = True
+    smooth = False
 
     start = time.time()
 

@@ -335,6 +335,11 @@ def create_atlas(working_dir, resolution):
     mesh_dir.mkdir(exist_ok=True, parents=True)
     glbfile = pooch.retrieve(MESH_URL, known_hash=None, progressbar=True)
     gltf = GLTF2.load(glbfile)
+    
+    transformation_matrix = np.array([[0,0,-1],
+                                      [0,-1,0],
+                                      [1,0,0]])
+    
     for node in gltf.nodes:
         #print(node)
         # gltf stores meshes/nodes in alphabetical order of region name!
@@ -372,7 +377,11 @@ def create_atlas(working_dir, resolution):
         # see `map_points to` function in `brainglobe-space`,
         # e.g. https://github.com/brainglobe/brainglobe-space?tab=readme-ov-file#the-anatomicalspace-class # noqa E501
         
-        points = np.multiply(points, 1000)
+        points = np.multiply(points, 2000)
+        #print("pre-transformation: ", points)
+        for index, point in enumerate(points): 
+            points[index] = np.matmul(transformation_matrix,point)
+        #print("post-transformation: ", points)
         write_obj(points, triangles, mesh_dir / f"{mesh_id}.obj")
     test = np.asarray(points)
     #print(test.shape)

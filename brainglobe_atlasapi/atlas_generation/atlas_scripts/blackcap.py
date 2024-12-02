@@ -9,7 +9,6 @@ from pathlib import Path
 import numpy as np
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
-from scipy.ndimage import binary_erosion
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
     read_itk_labels,
@@ -45,7 +44,8 @@ def create_atlas(working_dir, resolution):
     )
     annotations_file = (
         atlas_path
-        / "CombinedBrainAreas_291124/combined_annotations_modal-3.nii.gz"
+        / "CombinedBrainAreas_291124"
+        / "combined_annotations_modal-3_eroded-3.nii.gz"
     )
     reference_file = (
         atlas_path
@@ -61,7 +61,7 @@ def create_atlas(working_dir, resolution):
 
     print("Reading structures files")
     hierarchy_path = (
-        atlas_path / "CombinedBrainAreas_291124/combined_structures.csv"
+        atlas_path / "CombinedBrainAreas_291124" / "combined_structures.csv"
     )
     structure_to_parent_map = {}
     with open(hierarchy_path, mode="r") as file:
@@ -131,11 +131,7 @@ def create_atlas(working_dir, resolution):
     )
 
     has_label = annotated_volume > 0
-    # annotations are a bit too wide
-    # erode by two pixels
-    has_label = binary_erosion(has_label, iterations=4)
     reference_volume *= has_label
-    annotated_volume *= has_label
 
     # generate binary mask for mesh creation
     labels = np.unique(annotated_volume).astype(np.int_)

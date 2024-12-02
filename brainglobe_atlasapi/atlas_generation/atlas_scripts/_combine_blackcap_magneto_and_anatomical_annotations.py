@@ -4,7 +4,7 @@ the second version of the annotations provided by the bird anatomists"""
 from pathlib import Path
 
 from brainglobe_utils.IO.image import load_nii, save_any
-from scipy.ndimage import generic_filter
+from scipy.ndimage import binary_erosion, generic_filter
 
 
 def modal_filter_ignore_zeros(window):
@@ -96,9 +96,6 @@ if __name__ == "__main__":
         np.logical_and(detailed_annotations == 50, magneto_annotations == 5)
     ] = 505
     combined_annotations[
-        np.logical_and(detailed_annotations == 60, magneto_annotations == 5)
-    ] = 605
-    combined_annotations[
         np.logical_and(detailed_annotations == 90, magneto_annotations == 5)
     ] = 905
 
@@ -114,10 +111,21 @@ if __name__ == "__main__":
         combined_annotations, filter_size=filter_size
     )
 
+    # annotations are a bit too wide
+    # erode by a few pixels
+    # but not on mid-sagittal plane!
+    erosions = 3
+    has_label = combined_annotations > 0
+    mirrored_has_label = np.flip(has_label, axis=2)
+    has_label = np.concatenate((has_label, mirrored_has_label), axis=2)
+    has_label = binary_erosion(has_label, iterations=erosions)
+    has_label = has_label[:, :, : has_label.shape[2] // 2]
+    combined_annotations *= has_label
+
     # save as nifti
     save_any(
         combined_annotations,
         atlas_path
         / "CombinedBrainAreas_291124"
-        / f"combined_annotations_modal-{filter_size}.nii.gz",
+        / f"combined_annotations_modal-{filter_size}_eroded-{erosions}.nii.gz",
     )

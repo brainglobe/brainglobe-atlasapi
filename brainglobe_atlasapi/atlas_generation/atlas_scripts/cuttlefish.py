@@ -328,8 +328,8 @@ def create_atlas(working_dir, resolution):
     plt.show()'''
     
     # write meshes
-    source_origin = ("Superior", "Right", "Posterior")
-    source_space = bg.AnatomicalSpace(source_origin, brain_template.shape)
+    mesh_source_origin = ("Right", "Anterior", "Inferior")
+    mesh_source_space = bg.AnatomicalSpace(mesh_source_origin, brain_template.shape)
     atlas_dir_name = f"{ATLAS_NAME}_{resolution[0]}um_v1.{__version__}"
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
@@ -371,19 +371,21 @@ def create_atlas(working_dir, resolution):
         points, triangles = points_and_triangles_from_gltf(
             gltf=gltf, mesh_index=mesh_index
         )
-        mapped_points = source_space.map_points_to("asr", points)
+        mapped_points = mesh_source_space.map_points_to("srp", points)
 
         # points need to be transformed from SRP to ASR
         # see `map_points to` function in `brainglobe-space`,
         # e.g. https://github.com/brainglobe/brainglobe-space?tab=readme-ov-file#the-anatomicalspace-class # noqa E501
         
-        points = np.multiply(points, 2000)
+        mapped_points = np.multiply(points, 1000)
         #print("pre-transformation: ", points)
-        for index, point in enumerate(points): 
-            points[index] = np.matmul(transformation_matrix,point)
+        
+        #for index, point in enumerate(points): 
+        #    points[index] = np.matmul(transformation_matrix,point)
+        
         #print("post-transformation: ", points)
-        write_obj(points, triangles, mesh_dir / f"{mesh_id}.obj")
-    test = np.asarray(points)
+        write_obj(mapped_points, triangles, mesh_dir / f"{mesh_id}.obj")
+    
     #print(test.shape)
     #print(brain_template.shape)
     #np.savetxt("footest.csv", test, delimiter=',')
@@ -430,7 +432,7 @@ def create_atlas(working_dir, resolution):
         reference_stack=brain_template,
         annotation_stack=readdata,
         structures_list=hierarchy,
-        meshes_dict={},
+        meshes_dict=meshes_dict,
         scale_meshes=True,
         working_dir=working_dir,
         hemispheres_stack=None,

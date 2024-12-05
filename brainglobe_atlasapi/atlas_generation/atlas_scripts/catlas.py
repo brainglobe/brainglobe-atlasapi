@@ -34,88 +34,137 @@ ATLAS_PACKAGER = "Henry Crosswell"
 
 def download_resources(working_dir):
     """
-    Downloads the nifti images, labels and annotations for the atlas.
-    Uses pooch hashes if they are present, if not obtains them
+    Checks to see if necessary files are already downloaded. If not,
+    downloads the nifti images, labels and annotations for the atlas.
+    Uses pooch hashes if they are present in hash_registry - creates
+    the json if it is not found
 
     Returns:
         List : list of all downloaded local filepaths
     """
     # Setup download folder
-    download_dir_path = working_dir / "download_dir"
-    download_dir_path.mkdir(parents=True, exist_ok=True)
+    temp_download_dir = working_dir / "download_dir"
 
-    # Setup atlas folder within download_dir
-    atlas_dir_path = download_dir_path / "atlas_dir"
-    file_hash_jsonpath = atlas_dir_path / "hash_registry.json"
+    # Hash_jsonpath needs to be external to the working dir, or it'll
+    # be overwritten - will need to change some variable names to make
+    # this work. For now it'll always be deleted and will therefore
+    # download the files without preset pooch hashes.
 
-    file_path_and_hash_list = []
+    # hash_jsonpath = "~/Desktop/hash_registry.json"
+    hash_jsonpath = working_dir / "hash_registry.json"
+    hash_json_exists = False
     file_path_list = []
     check_internet_connection()
 
-    if file_hash_jsonpath.exists():
-        print("Retrieving file paths and hash lists...")
-        hash_registry_json = atlas_dir_path / "hash_registry.json"
-        with open(hash_registry_json, "r") as json_file_to_edit:
-            file_path_and_hash_list = json.load(json_file_to_edit)
-
+    # Checks for json containing pooch registry
+    if hash_jsonpath.exists():
+        hash_json_exists = True
+        print("Retrieving file paths and pooch hashes...")
+        # Check to see if files are already downloaded
+        if not temp_download_dir.exists():
+            filepath_to_add, hash_to_add = download_files(
+                working_dir, hash_json_exists
+            )
+            filepath_jsonpath, hash_jsonpath = download_mesh_files(
+                filepath_to_add, hash_to_add, temp_download_dir
+            )
     else:
-        # If dir is not already created - it downloads the data
-        print("Downloading file paths and hash lists...")
-        atlas_dir_path.mkdir(exist_ok=True)
-        file_names = [
-            "meanBrain.nii",
-            "CorticalAtlas.nii",
-            "CATLAS_COLORS.txt",
-        ]
-
-        file_hash_jsonpath = download_filename_and_hash(
-            file_names, atlas_dir_path
+        # If json doesn't exist, it downloads the data and creates a json
+        print("Downloading file paths and pooch hashes...")
+        filepath_to_add, hash_to_add = download_files(
+            working_dir, hash_json_exists
+        )
+        filepath_jsonpath, hash_jsonpath = download_mesh_files(
+            filepath_to_add, hash_to_add, working_dir, hash_json_exists
         )
 
-        hash_registry_json = download_multiple_filenames_and_hashs(
-            file_hash_jsonpath, atlas_dir_path
-        )
+    with open(filepath_jsonpath, "r") as json_file_to_edit:
+        filename_and_path_list = json.load(json_file_to_edit)
 
-        with open(hash_registry_json, "r") as json_file_to_edit:
-            file_path_and_hash_list = json.load(json_file_to_edit)
-
-    for file_path, _ in file_path_and_hash_list:
+    for _, file_path in filename_and_path_list:
         file_path_list.append(file_path)
+
     return file_path_list
 
 
-def download_filename_and_hash(file_names, atlas_dir_path):
+def download_files(working_dir, hash_json_exists):
     """
-    Takes the given file names and uses pooch to download
-    the files converting into a json
+    Takes pre-assigned file names and uses pooch to download
+    the files, writing filepath and pooch hash to json.
+    If Json containing the pooch hashes exists then it'll use them
 
     Returns:
-        Json.file : a nested list containing [filepath,hash]
+        filepath_to_add, hash_to_add :
+            path to a json file containing [filename, filepath]
+
+        hash_jsonpath :
+            path to a json file containing [filename, hash]
     """
-    file_and_hash_list = []
-    file_hash_jsonpath = atlas_dir_path / "hash_registry.json"
 
-    for file in file_names:
-        cached_file = pooch.retrieve(
-            url=ATLAS_FILE_URL + file, known_hash=None, path=atlas_dir_path
-        )
-        file_hash = pooch.file_hash(cached_file, alg="md5")
-        file_and_hash_list.append([cached_file, file_hash])
+    filename_hash_list = []
+    filename_filepath_list = []
+    temp_download_dir = working_dir / "download_dir"
+    temp_download_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(file_hash_jsonpath, "w") as file_and_hash_json:
-        json.dump(file_and_hash_list, file_and_hash_json)
+    hash_jsonpath = working_dir / "hash_registry.json"
+    filepath_jsonpath = temp_download_dir / "path_registry.json"
+    file_names = [
+        "meanBrain.nii",
+        "CorticalAtlas.nii",
+        "CATLAS_COLORS.txt",
+    ]
 
-    return file_hash_jsonpath
+    # Loops through the files
+    for i, file in enumerate(file_names):
+
+        # If JSON exists, uses the pooch hashes to download the file
+        if hash_json_exists:
+            with open(hash_jsonpath, "r") as hash_json:
+                hash_json = json.load(hash_json)
+            hash = hash_json[i][1]
+            cached_file = pooch.retrieve(
+                url=ATLAS_FILE_URL + file,
+                known_hash=hash,
+                path=temp_download_dir,
+            )
+
+        else:
+            cached_file = pooch.retrieve(
+                url=ATLAS_FILE_URL + file,
+                known_hash=None,
+                path=temp_download_dir,
+            )
+            file_hash = pooch.file_hash(cached_file, alg="md5")
+            filename_hash_list.append([file, file_hash])
+            filename_filepath_list.append([file, cached_file])
+
+            with open(hash_jsonpath, "w") as hash_json:
+                json.dump(filename_hash_list, hash_json)
+
+        with open(filepath_jsonpath, "w") as filepath_json:
+            json.dump(filename_filepath_list, filepath_json)
+
+    return filepath_jsonpath, hash_jsonpath
 
 
-def download_multiple_filenames_and_hashs(file_hash_jsonpath, atlas_dir_path):
+def download_mesh_files(
+    filepath_to_add, hash_to_add, working_dir, hash_json_exists
+):
     """
-    Opens the json file to write into, requests file names and uses these
-    to download the vtk annotation files, iterating through the folder
+    Opens jsons from 'download files' function to add the
+    mesh filepath and hashes too. First checks to see if the hash_json
+    contains the necessary hashes for the download. If not then it
+    downloads the mesh files without and saves the hash to the hash_json.
 
     Returns:
-        Json.file : a updated nested list containing [filepath,hash]
+        filepath_to_add :
+            path to an updated json file containing [filename, filepath]
+        hash_to_add :
+            path to an updated json file containing [filename, hash]
     """
+
+    temp_download_dir = working_dir / "download_dir"
+    hash_jsonpath = working_dir / "hash_registry.json"
 
     vtk_folder_url = (
         "https://github.com/CerebralSystemsLab/CATLAS/"
@@ -127,39 +176,56 @@ def download_multiple_filenames_and_hashs(file_hash_jsonpath, atlas_dir_path):
         + "refs/heads/main/SlicerFiles/CorticalAtlasModel_A/"
     )
 
-    with open(file_hash_jsonpath, "r") as json_file_to_edit:
-        file_and_hash_list = json.load(json_file_to_edit)
+    with open(filepath_to_add, "r") as filepath_to_edit:
+        filepath_list = json.load(filepath_to_edit)
+    with open(hash_to_add, "r") as hash_to_edit:
+        hash_list = json.load(hash_to_edit)
 
     response = requests.get(vtk_folder_url)
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, "html.parser")
         files = soup.find_all("a", class_="Link--primary")
-
         seen_files = set()
-        for file in files:
-            print(file)
-            file_name = file.get_text()
+        index = 0
 
+        for file in files:
+            file_name = file.get_text()
             if file_name not in seen_files:
                 seen_files.add(file_name)
+                # If JSON exists, uses the pooch hashes for download
+                if hash_json_exists:
+                    with open(hash_jsonpath, "r") as hash_json:
+                        hash_json = json.load(hash_json)
+                    hash = hash_json[index][1]
 
-                cached_file = pooch.retrieve(
-                    url=vtk_file_url + file_name,
-                    known_hash=None,
-                    path=atlas_dir_path,
-                )
-                file_hash = pooch.file_hash(cached_file, alg="md5")
-                file_and_hash_list.append([cached_file, file_hash])
+                    cached_file = pooch.retrieve(
+                        url=vtk_file_url + file_name,
+                        known_hash=hash,
+                        path=temp_download_dir,
+                    )
+                    index = +1
+
+                else:
+                    cached_file = pooch.retrieve(
+                        url=vtk_file_url + file_name,
+                        known_hash=None,
+                        path=temp_download_dir,
+                    )
+                    file_hash = pooch.file_hash(cached_file, alg="md5")
+                    hash_list.append([file_name, file_hash])
+                    filepath_list.append([file_name, cached_file])
             else:
                 continue
 
     else:
         print("Incorrect URL given for VTK files")
 
-    with open(file_hash_jsonpath, "w") as file_and_hash_json:
-        json.dump(file_and_hash_list, file_and_hash_json)
+    with open(hash_to_add, "w") as hash_json:
+        json.dump(hash_list, hash_json)
+    with open(filepath_to_add, "w") as filepath_json:
+        json.dump(filepath_list, filepath_json)
 
-    return file_hash_jsonpath
+    return filepath_to_add, hash_to_add
 
 
 def retrieve_template_and_annotations(file_path_list):
@@ -293,8 +359,6 @@ def create_mask_for_root(template_volume, reference_volume, mesh_save_folder):
     returns:
         a saved .obj file within mesh_save_folder
     """
-
-    print(template_volume[100])
     binarised_template_volume = np.where(
         template_volume < 9000, 0, template_volume
     )
@@ -325,11 +389,11 @@ def extract_mesh_from_vtk(working_dir):
     """
     mesh_dict = {}
 
-    atlas_dir_path = working_dir / "download_dir" / "atlas_dir"
-    mesh_save_folder = atlas_dir_path / "meshes"
+    temp_download_dir = working_dir / "download_dir"
+    mesh_save_folder = temp_download_dir / "meshes"
     mesh_save_folder.mkdir(parents=True, exist_ok=True)
 
-    list_of_mesh_files = os.listdir(atlas_dir_path)
+    list_of_mesh_files = os.listdir(temp_download_dir)
     for vtk_file in list_of_mesh_files:
         if not vtk_file.endswith(".vtk"):
             continue
@@ -338,7 +402,7 @@ def extract_mesh_from_vtk(working_dir):
         elif vtk_file in ["A_32_Cerebelum.vtk", "A_36_pPE.vtk"]:
             continue
 
-        mesh = Mesh(str(atlas_dir_path / vtk_file))
+        mesh = Mesh(str(temp_download_dir / vtk_file))
 
         # Re-creating the transformations from mesh_utils
         mesh.triangulate()
@@ -454,13 +518,14 @@ csv_of_full_name = [
 ]
 
 bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+working_dir = bg_root_dir
+temp_download_dir = bg_root_dir / "download_dir"
 
 # Deletes the folder since wrapup doesnt work if folder is created
 if bg_root_dir.exists():
     shutil.rmtree(bg_root_dir)
 
 bg_root_dir.mkdir(parents=True, exist_ok=True)
-working_dir = bg_root_dir
 local_file_path_list = download_resources(working_dir)
 template_volume, reference_volume = retrieve_template_and_annotations(
     local_file_path_list
@@ -488,4 +553,7 @@ output_filename = wrapup_atlas_from_data(
     cleanup_files=False,
     compress=True,
     scale_meshes=True,
+    atlas_packager=ATLAS_PACKAGER,
 )
+
+shutil.rmtree(temp_download_dir)

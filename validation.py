@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import napari
@@ -15,11 +16,12 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_atlas_files,
     validate_checksum,
     validate_image_dimensions,
+    validate_mesh_matches_image_extents,
 )
 
 all_validation_functions = [
     validate_atlas_files,
-    # validate_mesh_matches_image_extents,
+    #validate_mesh_matches_image_extents,
     open_for_visual_check,
     validate_checksum,
     validate_image_dimensions,
@@ -40,16 +42,16 @@ minor_version = 0
 
 # make sure we have the latest packaged version in .brainglobe
 # by replacing it with the working_dir version if needed
-# atlas_name_with_version = f"{atlas_name}_{resolution}um_v1.{minor_version}"
-# source_dir = working_dir / atlas_name / atlas_name_with_version
-# destination_dir = brainglobe_dir / atlas_name_with_version
-# destination_dir = working_dir / atlas_name_with_version
-# if destination_dir.exists() and destination_dir.is_dir():
+#atlas_name_with_version = f"{atlas_name}_{resolution}um_v1.{minor_version}"
+#source_dir = working_dir / atlas_name / atlas_name_with_version
+#destination_dir = brainglobe_dir / atlas_name_with_version
+#destination_dir = working_dir / atlas_name_with_version
+#if destination_dir.exists() and destination_dir.is_dir():
 #    shutil.rmtree(destination_dir)
-# assert source_dir.exists()
-# if source_dir.exists():
+#assert source_dir.exists()
+#if source_dir.exists():
 #    shutil.copytree(source_dir, destination_dir)
-# assert destination_dir.exists()
+#assert destination_dir.exists()
 
 # run validation functions on the new atlas
 atlas = BrainGlobeAtlas(f"{atlas_name}_{resolution}um")
@@ -86,8 +88,13 @@ else:
 
 viewer = Viewer()
 viewer.dims.ndisplay = 3
-napari_atlas = NapariAtlasRepresentation(atlas, viewer)
+napari_atlas = NapariAtlasRepresentation(
+    atlas, viewer
+)
 napari_atlas.add_structure_to_viewer("AAB")
+napari_atlas.add_structure_to_viewer("V")
+napari_atlas.add_structure_to_viewer("Or")
+napari_atlas.add_structure_to_viewer("BPCl")
 napari_atlas.add_to_viewer()
 
 napari.run()

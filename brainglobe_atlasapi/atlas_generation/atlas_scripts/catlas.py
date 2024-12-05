@@ -50,8 +50,9 @@ def download_resources(working_dir):
     # this work. For now it'll always be deleted and will therefore
     # download the files without preset pooch hashes.
 
-    # hash_jsonpath = "~/Desktop/hash_registry.json"
-    hash_jsonpath = working_dir / "hash_registry.json"
+    hash_jsonpath = Path.home() / "hash_registry.json"
+    # hash_jsonpath = working_dir / "hash_registry.json"
+
     hash_json_exists = False
     file_path_list = []
     check_internet_connection()
@@ -66,7 +67,7 @@ def download_resources(working_dir):
                 working_dir, hash_json_exists
             )
             filepath_jsonpath, hash_jsonpath = download_mesh_files(
-                filepath_to_add, hash_to_add, temp_download_dir
+                filepath_to_add, hash_to_add, working_dir, hash_json_exists
             )
     else:
         # If json doesn't exist, it downloads the data and creates a json
@@ -106,7 +107,9 @@ def download_files(working_dir, hash_json_exists):
     temp_download_dir = working_dir / "download_dir"
     temp_download_dir.mkdir(parents=True, exist_ok=True)
 
-    hash_jsonpath = working_dir / "hash_registry.json"
+    # hash_jsonpath = working_dir / "hash_registry.json"
+    hash_jsonpath = Path.home() / "hash_registry.json"
+
     filepath_jsonpath = temp_download_dir / "path_registry.json"
     file_names = [
         "meanBrain.nii",
@@ -127,6 +130,7 @@ def download_files(working_dir, hash_json_exists):
                 known_hash=hash,
                 path=temp_download_dir,
             )
+            filename_filepath_list.append([file, cached_file])
 
         else:
             cached_file = pooch.retrieve(
@@ -135,8 +139,8 @@ def download_files(working_dir, hash_json_exists):
                 path=temp_download_dir,
             )
             file_hash = pooch.file_hash(cached_file, alg="md5")
+            file_hash = f"md5:{file_hash}"
             filename_hash_list.append([file, file_hash])
-            filename_filepath_list.append([file, cached_file])
 
             with open(hash_jsonpath, "w") as hash_json:
                 json.dump(filename_hash_list, hash_json)
@@ -163,8 +167,10 @@ def download_mesh_files(
             path to an updated json file containing [filename, hash]
     """
 
+    # hash_jsonpath = working_dir / "hash_registry.json"
+    hash_jsonpath = Path.home() / "hash_registry.json"
+
     temp_download_dir = working_dir / "download_dir"
-    hash_jsonpath = working_dir / "hash_registry.json"
 
     vtk_folder_url = (
         "https://github.com/CerebralSystemsLab/CATLAS/"
@@ -186,7 +192,7 @@ def download_mesh_files(
         soup = BeautifulSoup(response.content, "html.parser")
         files = soup.find_all("a", class_="Link--primary")
         seen_files = set()
-        index = 0
+        index = 3
 
         for file in files:
             file_name = file.get_text()
@@ -203,7 +209,8 @@ def download_mesh_files(
                         known_hash=hash,
                         path=temp_download_dir,
                     )
-                    index = +1
+                    filepath_list.append([file_name, cached_file])
+                    index += 1
 
                 else:
                     cached_file = pooch.retrieve(
@@ -212,6 +219,7 @@ def download_mesh_files(
                         path=temp_download_dir,
                     )
                     file_hash = pooch.file_hash(cached_file, alg="md5")
+                    file_hash = f"md5:{file_hash}"
                     hash_list.append([file_name, file_hash])
                     filepath_list.append([file_name, cached_file])
             else:
@@ -533,6 +541,8 @@ template_volume, reference_volume = retrieve_template_and_annotations(
 structures_dict = retrieve_structure_information(
     local_file_path_list, csv_of_full_name
 )
+
+print("Converting VTK files into .obj mesh")
 meshes_dict = extract_mesh_from_vtk(working_dir)
 
 output_filename = wrapup_atlas_from_data(

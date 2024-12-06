@@ -1,4 +1,4 @@
-__version__ = "0"
+__version__ = "1"
 
 import csv
 import time
@@ -102,6 +102,7 @@ def create_atlas(working_dir, resolution):
     annotation_image = annotation_image * largest_mask
 
     hierarchy = []
+    hemispheres_stack = np.zeros_like(annotation_image)
 
     # create dictionaries # create dictionary from data read from the CSV file
     print("Creating structure tree")
@@ -116,11 +117,22 @@ def create_atlas(working_dir, resolution):
             if "label_id" in row:
                 row["id"] = row.pop("label_id")
                 row["acronym"] = row.pop("Abbreviation/reference")
+                hemisphere = row.pop("hemisphere")
+                row["acronym"] += f" ({hemisphere[0]})"
                 row["name"] = row.pop("label_name")
                 row["rgb_triplet"] = [255, 0, 0]
-                row.pop("hemisphere")
                 row.pop("voxels")
                 row.pop("volume")
+
+                if hemisphere[0] == "R":
+                    hemispheres_stack[annotation_image == int(row["id"])] = 1
+                elif hemisphere[0] == "L":
+                    hemispheres_stack[annotation_image == int(row["id"])] = 2
+                else:
+                    raise ValueError(
+                        f"Unexpected hemisphere {hemisphere} "
+                        f"for region {row['acronym']}"
+                    )
             hierarchy.append(row)
 
     # clean out different columns
@@ -277,7 +289,7 @@ def create_atlas(working_dir, resolution):
         meshes_dict=meshes_dict,
         scale_meshes=True,
         working_dir=working_dir,
-        hemispheres_stack=None,
+        hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
         atlas_packager=ATLAS_PACKAGER,

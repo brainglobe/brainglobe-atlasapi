@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+import pooch
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 
@@ -32,16 +33,17 @@ def create_atlas(working_dir, resolution):
     ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
     ADDITIONAL_METADATA = {}
 
-    # setup folder for downloading
-
-    atlas_path = Path(
-        "/media/ceph/margrie/sweiler/AnalyzedData/"
-        "Bird_brain_project/black_cap/DH_checked/"
+    gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
+    atlas_path = pooch.retrieve(
+        gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
     )
 
-    structures_file = atlas_path / "labels051224.txt"
-    annotations_file = atlas_path / "annotations_051224.nii.gz"
-    reference_file = atlas_path / "reference_res-25_hemi-right_IMAGE.nii.gz"
+    hierarchy_path = atlas_path[0]  # "combined_structures.csv"
+    reference_file = atlas_path[
+        1
+    ]  # "reference_res-25_hemi-right_IMAGE.nii.gz"
+    structures_file = atlas_path[2]  # "labels051224.txt"
+    annotations_file = atlas_path[3]  # "annotations_051224.nii.gz"
     meshes_dir_path = Path.home() / "blackcap-meshes"
 
     try:
@@ -50,7 +52,6 @@ def create_atlas(working_dir, resolution):
         "mesh folder already exists"
 
     print("Reading structures files")
-    hierarchy_path = atlas_path / "combined_structures.csv"
     structure_to_parent_map = {}
     with open(hierarchy_path, mode="r") as file:
         reader = csv.reader(file)
@@ -92,7 +93,6 @@ def create_atlas(working_dir, resolution):
         f"max tree depth: {tree.depth()}"
     )
     print(tree)
-    print(f"Saving atlas data at {atlas_path}")
 
     # use tifffile to read annotated file
     annotated_volume = load_nii(annotations_file, as_array=True).astype(

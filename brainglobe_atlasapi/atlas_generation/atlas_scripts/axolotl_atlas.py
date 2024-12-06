@@ -118,22 +118,32 @@ def create_atlas(working_dir, resolution):
                 row["id"] = row.pop("label_id")
                 row["acronym"] = row.pop("Abbreviation/reference")
                 hemisphere = row.pop("hemisphere")
-                row["acronym"] += f" ({hemisphere[0]})"
                 row["name"] = row.pop("label_name")
                 row["rgb_triplet"] = [255, 0, 0]
                 row.pop("voxels")
                 row.pop("volume")
 
-                if hemisphere[0] == "R":
+                if hemisphere[0] == "L":
+                    # mark as left hemisphere and add to hierarchy
                     hemispheres_stack[annotation_image == int(row["id"])] = 1
-                elif hemisphere[0] == "L":
+                    hierarchy.append(row)
+                elif hemisphere[0] == "R":
+                    # mark as right hemisphere
+                    # update annotation image to have equivalent left id
                     hemispheres_stack[annotation_image == int(row["id"])] = 2
+                    id_in_left_hemi = [
+                        int(region["id"])
+                        for region in hierarchy
+                        if region["acronym"] == row["acronym"]
+                    ][0]
+                    annotation_image[annotation_image == int(row["id"])] = (
+                        id_in_left_hemi
+                    )
                 else:
                     raise ValueError(
                         f"Unexpected hemisphere {hemisphere} "
                         f"for region {row['acronym']}"
                     )
-            hierarchy.append(row)
 
     # clean out different columns
     for element in hierarchy:

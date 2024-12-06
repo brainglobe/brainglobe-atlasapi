@@ -36,22 +36,12 @@ def create_atlas(working_dir, resolution):
 
     atlas_path = Path(
         "/media/ceph/margrie/sweiler/AnalyzedData/"
-        "Bird_brain_project/black_cap/final_annotations24/"
+        "Bird_brain_project/black_cap/DH_checked/"
     )
 
-    structures_file = (
-        atlas_path / "CombinedBrainAreas_291124/combined_labels.txt"
-    )
-    annotations_file = (
-        atlas_path
-        / "CombinedBrainAreas_291124"
-        / "combined_annotations_modal-3_eroded-3.nii.gz"
-    )
-    reference_file = (
-        atlas_path
-        / "CombinedBrainAreas_291124"
-        / "reference_res-25_hemi-right_IMAGE.nii.gz"
-    )
+    structures_file = atlas_path / "labels051224.txt"
+    annotations_file = atlas_path / "annotations_051224.nii.gz"
+    reference_file = atlas_path / "reference_res-25_hemi-right_IMAGE.nii.gz"
     meshes_dir_path = Path.home() / "blackcap-meshes"
 
     try:
@@ -60,9 +50,7 @@ def create_atlas(working_dir, resolution):
         "mesh folder already exists"
 
     print("Reading structures files")
-    hierarchy_path = (
-        atlas_path / "CombinedBrainAreas_291124" / "combined_structures.csv"
-    )
+    hierarchy_path = atlas_path / "combined_structures.csv"
     structure_to_parent_map = {}
     with open(hierarchy_path, mode="r") as file:
         reader = csv.reader(file)

@@ -8,9 +8,8 @@ import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
-from skimage.filters.rank import modal
+from scipy.ndimage import generic_filter
 from skimage.measure import label, regionprops
-from skimage.morphology import ball
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -32,6 +31,37 @@ ROOT_ID = 999
 ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
 ADDITIONAL_METADATA = {}
 RESOLUTION = 40, 40, 40  # Resolution tuple
+
+
+def modal_filter_ignore_zeros(window):
+    """
+    Compute the mode of the window ignoring zero values.
+    """
+    # Remove zeros from the window
+    non_zero_values = window[window != 0]
+    if len(non_zero_values) == 0:
+        return 0  # If all values are zero, return 0
+    # Compute the mode (most common value)
+    values, counts = np.unique(non_zero_values, return_counts=True)
+    return values[np.argmax(counts)]
+
+
+def apply_modal_filter(image, filter_size=3):
+    """
+    Apply a modal filter to the image, ignoring zero neighbors.
+
+    Parameters:
+        image (ndarray): Input image as a 2D NumPy array.
+        filter_size (int): Size of the filtering window (must be odd).
+
+    Returns:
+        ndarray: Filtered image.
+    """
+    # Apply the modal filter using a sliding window
+    filtered_image = generic_filter(
+        image, function=modal_filter_ignore_zeros, size=filter_size
+    )
+    return filtered_image
 
 
 def create_atlas(working_dir, resolution):
@@ -221,9 +251,7 @@ def create_atlas(working_dir, resolution):
 
     # pass a smoothed version of the annotations for meshing
     smoothed_annotations = annotation_image.copy()
-    smoothed_annotations = modal(
-        smoothed_annotations.astype(np.uint8), ball(5)
-    )
+    smoothed_annotations = apply_modal_filter(smoothed_annotations)
 
     # Measure duration of mesh creation
     start = time.time()

@@ -1,3 +1,7 @@
+"""One-off script to reproduce how we halved the symmetric blackcap template
+to simplify annotation.
+"""
+
 from pathlib import Path
 
 from brainglobe_utils.IO.image import load_nii, save_any

@@ -483,7 +483,6 @@ TEMPLATE_STRING = "ambmc-c57bl6-label-{}_v0.8{}"
 def download_resources():
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
     ## Download atlas_file
-    # utils.check_internet_connection()
     destination_path = DOWNLOAD_DIR_PATH / "template.nii.tar.gz"
     if not os.path.isfile(destination_path):
         response = requests.get(REFERENCE_URL, stream=True)

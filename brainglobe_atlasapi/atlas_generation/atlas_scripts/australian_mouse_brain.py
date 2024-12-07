@@ -1,5 +1,4 @@
 __version__ = "1"
-import multiprocessing as mp
 import os
 import tarfile
 import time

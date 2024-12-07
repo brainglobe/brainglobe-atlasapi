@@ -487,7 +487,9 @@ def download_resources():
     if not os.path.isfile(destination_path):
         response = requests.get(REFERENCE_URL, stream=True)
         with open(destination_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192): #chunk size is 1 kibibyte
+            for chunk in response.iter_content(
+                chunk_size=8192
+            ):  # chunk size is 1 kibibyte
                 if chunk:
                     f.write(chunk)
         with tarfile.open(destination_path, "r:gz") as tar:

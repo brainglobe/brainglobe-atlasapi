@@ -315,8 +315,9 @@ def create_atlas(working_dir, resolution):
     # df = pd.DataFrame(hierarchy)
     # df.to_csv('hierarchy_test.csv')
 
-    source_space = bg.AnatomicalSpace("srp")  # origin for the stack to be plotted
-
+    source_space = bg.AnatomicalSpace(
+        "srp"
+    )  # origin for the stack to be plotted
 
     # write meshes
     mesh_source_origin = ("Right", "Anterior", "Inferior")
@@ -330,9 +331,7 @@ def create_atlas(working_dir, resolution):
     glbfile = pooch.retrieve(MESH_URL, known_hash=None, progressbar=True)
     gltf = GLTF2.load(glbfile)
 
-    transformation_matrix = np.array([[0, 0, -1], 
-                                      [1, 0, 0], 
-                                      [0, -1, 0]])
+    transformation_matrix = np.array([[0, 0, -1], [1, 0, 0], [0, -1, 0]])
     displacement = np.array([11.150002, 14.350002, 0])
 
     for node in gltf.nodes:
@@ -366,11 +365,11 @@ def create_atlas(working_dir, resolution):
         points, triangles = points_and_triangles_from_gltf(
             gltf=gltf, mesh_index=mesh_index
         )
-        
+
         points = np.multiply(points, 2000)
         mapped_points = mesh_source_space.map_points_to("pri", points)
         print(mapped_points)
-        
+
         for index, p in enumerate(mapped_points):
             mapped_points[index] = np.add(p, displacement)
         print(mapped_points)
@@ -378,9 +377,7 @@ def create_atlas(working_dir, resolution):
         # see `map_points to` function in `brainglobe-space`,
         # e.g. https://github.com/brainglobe/brainglobe-space?tab=readme-ov-file#the-anatomicalspace-class # noqa E501
 
-
         write_obj(mapped_points, triangles, mesh_dir / f"{mesh_id}.obj")
-
 
     # we need to think about the points' scale (should be in microns)!
 

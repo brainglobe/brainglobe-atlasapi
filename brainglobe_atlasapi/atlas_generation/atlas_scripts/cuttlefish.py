@@ -315,28 +315,25 @@ def create_atlas(working_dir, resolution):
     # df = pd.DataFrame(hierarchy)
     # df.to_csv('hierarchy_test.csv')
 
-    sc = bg.AnatomicalSpace("srp")  # origin for the stack to be plotted
+    source_space = bg.AnatomicalSpace("srp")  # origin for the stack to be plotted
 
-    """fig, axs = plt.subplots(1,3)
-    for i, (plane, labels) in enumerate(zip(sc.sections, sc.axis_labels)):
-        axs[i].imshow(brain_template.mean(i))
-        axs[i].set_title(f"{plane.capitalize()} view")
-        axs[i].set_ylabel(labels[0])
-        axs[i].set_xlabel(labels[1])
-    plt.show()"""
 
     # write meshes
     mesh_source_origin = ("Right", "Anterior", "Inferior")
     mesh_source_space = bg.AnatomicalSpace(
         mesh_source_origin, brain_template.shape
     )
+    print(brain_template.shape)
     atlas_dir_name = f"{ATLAS_NAME}_{resolution[0]}um_v1.{__version__}"
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
     glbfile = pooch.retrieve(MESH_URL, known_hash=None, progressbar=True)
     gltf = GLTF2.load(glbfile)
 
-    transformation_matrix = np.array([[0, 0, -1], [0, -1, 0], [1, 0, 0]])
+    transformation_matrix = np.array([[0, 0, -1], 
+                                      [1, 0, 0], 
+                                      [0, -1, 0]])
+    displacement = np.array([11.150002, 14.350002, 0])
 
     for node in gltf.nodes:
         # print(node)
@@ -369,33 +366,28 @@ def create_atlas(working_dir, resolution):
         points, triangles = points_and_triangles_from_gltf(
             gltf=gltf, mesh_index=mesh_index
         )
-        mapped_points = mesh_source_space.map_points_to("srp", points)
-
+        
+        points = np.multiply(points, 2000)
+        mapped_points = mesh_source_space.map_points_to("pri", points)
+        print(mapped_points)
+        
+        for index, p in enumerate(mapped_points):
+            mapped_points[index] = np.add(p, displacement)
+        print(mapped_points)
         # points need to be transformed from SRP to ASR
         # see `map_points to` function in `brainglobe-space`,
         # e.g. https://github.com/brainglobe/brainglobe-space?tab=readme-ov-file#the-anatomicalspace-class # noqa E501
 
-        mapped_points = np.multiply(points, 1000)
-        # print("pre-transformation: ", points)
 
-        # for index, point in enumerate(points):
-        #    points[index] = np.matmul(transformation_matrix,point)
-
-        # print("post-transformation: ", points)
         write_obj(mapped_points, triangles, mesh_dir / f"{mesh_id}.obj")
 
-    # print(test.shape)
-    # print(brain_template.shape)
-    # np.savetxt("footest.csv", test, delimiter=',')
+
     # we need to think about the points' scale (should be in microns)!
 
     # create meshes for regions that don't have a premade mesh, e.g. the root?
     # in a separate loop
 
     # create meshes_dict
-
-    ############################## FIND A WAY TO MATCH THE MESH ID WITH THE ACRONYMS.
-
     meshes_dict = dict()
     structures_with_mesh = []
     for s in hierarchy:
@@ -430,7 +422,7 @@ def create_atlas(working_dir, resolution):
         annotation_stack=readdata,
         structures_list=hierarchy,
         meshes_dict=meshes_dict,
-        scale_meshes=True,
+        scale_meshes=False,
         working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,

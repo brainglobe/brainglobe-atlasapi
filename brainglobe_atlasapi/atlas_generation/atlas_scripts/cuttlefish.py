@@ -366,8 +366,8 @@ def create_atlas(working_dir, resolution):
         points, triangles = points_and_triangles_from_gltf(
             gltf=gltf, mesh_index=mesh_index
         )
-        
-        points = np.multiply(points, 2000)
+        # figure out what number to put here
+        points = np.multiply(points, 40000)
         mapped_points = mesh_source_space.map_points_to("pri", points)
         print(mapped_points)
         
@@ -436,7 +436,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    res = 2, 2, 2
+    res = 50, 50, 50
     home = str(Path.home())
     bg_root_dir = Path.home() / "brainglobe_workingdir"
     bg_root_dir.mkdir(exist_ok=True, parents=True)

@@ -33,7 +33,7 @@ all_validation_functions = [
 brainglobe_dir = Path.home() / ".brainglobe/"
 working_dir = Path.home() / "brainglobe_workingdir/"
 atlas_name = "columbia_cuttlefish"
-resolution = 2
+resolution = 50
 minor_version = 0
 
 # nothing below this needs changing

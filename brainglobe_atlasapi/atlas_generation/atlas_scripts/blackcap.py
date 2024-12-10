@@ -1,4 +1,4 @@
-__version__ = "0"
+__version__ = "1"
 
 import csv
 import glob as glob

@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import napari
@@ -40,16 +41,17 @@ minor_version = 0
 
 # make sure we have the latest packaged version in .brainglobe
 # by replacing it with the working_dir version if needed
-# atlas_name_with_version = f"{atlas_name}_{resolution}um_v1.{minor_version}"
-# source_dir = working_dir / atlas_name / atlas_name_with_version
-# destination_dir = brainglobe_dir / atlas_name_with_version
-# destination_dir = working_dir / atlas_name_with_version
-# if destination_dir.exists() and destination_dir.is_dir():
-#    shutil.rmtree(destination_dir)
-# assert source_dir.exists()
-# if source_dir.exists():
-#    shutil.copytree(source_dir, destination_dir)
-# assert destination_dir.exists()
+atlas_name_with_version = f"{atlas_name}_{resolution}um_v1.{minor_version}"
+source_dir = working_dir / atlas_name_with_version
+destination_dir = brainglobe_dir / atlas_name_with_version
+if destination_dir.exists() and destination_dir.is_dir():
+    shutil.rmtree(destination_dir)
+assert source_dir.exists(), f"{source_dir} does not exist"
+if source_dir.exists():
+    shutil.copytree(source_dir, destination_dir)
+print(f"BrainGlobe dir is {brainglobe_dir}")
+print(f"Moved atlas to {destination_dir}")
+assert destination_dir.exists()
 
 # run validation functions on the new atlas
 atlas = BrainGlobeAtlas(f"{atlas_name}_{resolution}um")

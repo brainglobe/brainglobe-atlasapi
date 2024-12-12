@@ -334,6 +334,7 @@ def create_atlas(working_dir, resolution):
     transformation_matrix = np.array([[0, 0, -1], [1, 0, 0], [0, -1, 0]])
     displacement = np.array([11.150002, 14.350002, 0])
 
+    all_points = np.empty((0, 3))
     for node in gltf.nodes:
         # print(node)
         # gltf stores meshes/nodes in alphabetical order of region name!
@@ -365,14 +366,19 @@ def create_atlas(working_dir, resolution):
         points, triangles = points_and_triangles_from_gltf(
             gltf=gltf, mesh_index=mesh_index
         )
+        points = list(points)
         # figure out what number to put here
-        points = np.multiply(points, 40000)
-        mapped_points = mesh_source_space.map_points_to("pri", points)
+        # for index, p in enumerate(points):
+        #     points[index] = np.add(p, displacement)
+
+        points = np.array(points)
+        all_points = np.concatenate((all_points, points))
+        points = np.multiply(points, 20)  # move points from mm to pixels
+        mapped_points = (
+            points  # mesh_source_space.map_points_to("srp", points)
+        )
         print(mapped_points)
 
-        for index, p in enumerate(mapped_points):
-            mapped_points[index] = np.add(p, displacement)
-        print(mapped_points)
         # points need to be transformed from SRP to ASR
         # see `map_points to` function in `brainglobe-space`,
         # e.g. https://github.com/brainglobe/brainglobe-space?tab=readme-ov-file#the-anatomicalspace-class # noqa E501
@@ -419,7 +425,7 @@ def create_atlas(working_dir, resolution):
         annotation_stack=readdata,
         structures_list=hierarchy,
         meshes_dict=meshes_dict,
-        scale_meshes=False,
+        scale_meshes=True,
         working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,

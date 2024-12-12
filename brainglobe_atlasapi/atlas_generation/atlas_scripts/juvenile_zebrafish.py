@@ -231,7 +231,6 @@ def retrieve_or_construct_meshes(hierarchy, annotated_volume):
         f"In the end, {len(structures_with_mesh)} "
         "structures with mesh are kept"
     )
-    meshes_dict = {}
     return meshes_dict
 
 

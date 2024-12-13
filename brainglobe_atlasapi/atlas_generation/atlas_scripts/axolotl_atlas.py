@@ -1,4 +1,4 @@
-__version__ = "0"
+__version__ = "1"
 
 import csv
 import time
@@ -8,9 +8,8 @@ import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
-from skimage.filters.rank import modal
+from scipy.ndimage import generic_filter
 from skimage.measure import label, regionprops
-from skimage.morphology import ball
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -32,6 +31,37 @@ ROOT_ID = 999
 ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
 ADDITIONAL_METADATA = {}
 RESOLUTION = 40, 40, 40  # Resolution tuple
+
+
+def modal_filter_ignore_zeros(window):
+    """
+    Compute the mode of the window ignoring zero values.
+    """
+    # Remove zeros from the window
+    non_zero_values = window[window != 0]
+    if len(non_zero_values) == 0:
+        return 0  # If all values are zero, return 0
+    # Compute the mode (most common value)
+    values, counts = np.unique(non_zero_values, return_counts=True)
+    return values[np.argmax(counts)]
+
+
+def apply_modal_filter(image, filter_size=3):
+    """
+    Apply a modal filter to the image, ignoring zero neighbors.
+
+    Parameters:
+        image (ndarray): Input image as a 2D NumPy array.
+        filter_size (int): Size of the filtering window (must be odd).
+
+    Returns:
+        ndarray: Filtered image.
+    """
+    # Apply the modal filter using a sliding window
+    filtered_image = generic_filter(
+        image, function=modal_filter_ignore_zeros, size=filter_size
+    )
+    return filtered_image
 
 
 def create_atlas(working_dir, resolution):
@@ -102,6 +132,7 @@ def create_atlas(working_dir, resolution):
     annotation_image = annotation_image * largest_mask
 
     hierarchy = []
+    hemispheres_stack = np.zeros_like(annotation_image)
 
     # create dictionaries # create dictionary from data read from the CSV file
     print("Creating structure tree")
@@ -116,12 +147,33 @@ def create_atlas(working_dir, resolution):
             if "label_id" in row:
                 row["id"] = row.pop("label_id")
                 row["acronym"] = row.pop("Abbreviation/reference")
+                hemisphere = row.pop("hemisphere")
                 row["name"] = row.pop("label_name")
                 row["rgb_triplet"] = [255, 0, 0]
-                row.pop("hemisphere")
                 row.pop("voxels")
                 row.pop("volume")
-            hierarchy.append(row)
+
+                if hemisphere[0] == "L":
+                    # mark as left hemisphere and add to hierarchy
+                    hemispheres_stack[annotation_image == int(row["id"])] = 1
+                    hierarchy.append(row)
+                elif hemisphere[0] == "R":
+                    # mark as right hemisphere
+                    # update annotation image to have equivalent left id
+                    hemispheres_stack[annotation_image == int(row["id"])] = 2
+                    id_in_left_hemi = [
+                        int(region["id"])
+                        for region in hierarchy
+                        if region["acronym"] == row["acronym"]
+                    ][0]
+                    annotation_image[annotation_image == int(row["id"])] = (
+                        id_in_left_hemi
+                    )
+                else:
+                    raise ValueError(
+                        f"Unexpected hemisphere {hemisphere} "
+                        f"for region {row['acronym']}"
+                    )
 
     # clean out different columns
     for element in hierarchy:
@@ -199,9 +251,7 @@ def create_atlas(working_dir, resolution):
 
     # pass a smoothed version of the annotations for meshing
     smoothed_annotations = annotation_image.copy()
-    smoothed_annotations = modal(
-        smoothed_annotations.astype(np.uint8), ball(5)
-    )
+    smoothed_annotations = apply_modal_filter(smoothed_annotations)
 
     # Measure duration of mesh creation
     start = time.time()
@@ -277,7 +327,7 @@ def create_atlas(working_dir, resolution):
         meshes_dict=meshes_dict,
         scale_meshes=True,
         working_dir=working_dir,
-        hemispheres_stack=None,
+        hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
         atlas_packager=ATLAS_PACKAGER,

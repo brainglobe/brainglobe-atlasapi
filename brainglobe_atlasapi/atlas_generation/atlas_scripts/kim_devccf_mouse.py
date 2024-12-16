@@ -32,81 +32,90 @@ ATLAS_FILE_URL = "https://pennstateoffice365-my.sharepoint.com/personal/yuk17_ps
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
 
-TIMEPOINTS = (
-    "E11.5",
-    "E13.5",
-    "E15.5",
-    "E18.5",
-    "P04",
-    "P14",
-    "P56"
-)
+TIMEPOINTS = ("E11.5", "E13.5", "E15.5", "E18.5", "P04", "P14", "P56")
 RESOLUTIONS = (20, 50)
 MODALITIES = (
-    "LSFM",     # Light Sheet Fluorescence Microscopy
+    "LSFM",  # Light Sheet Fluorescence Microscopy
     "MRI-adc",  # MRI Apparent Diffusion Coefficient
     "MRI-dwi",  # MRI Difusion Weighted Imaging
-    "MRI-fa",   # MRI Fractional Anisotropy
+    "MRI-fa",  # MRI Fractional Anisotropy
     "MRI-MTR",  # MRI Magnetization Transfer Ratio
-    "MRI-T2"    # MRI T2-weighted
+    "MRI-T2",  # MRI T2-weighted
 )
 
-def get_annotations(devccfv1_root: str|Path,
-                    age: str,
-                    resolution: int):
+
+def get_annotations(devccfv1_root: str | Path, age: str, resolution: int):
     if not isinstance(devccfv1_root, Path):
         devccfv1_root = Path(devccfv1_root)
     assert age in TIMEPOINTS, f"Unknown age timepoint: '{age}'"
-    assert resolution in RESOLUTIONS, f"Unknown resolution in µm: '{resolution}'"
-    annotations_path = devccfv1_root/age/f"{age}_DevCCF_Annotations_{resolution}um.nii.gz"
+    assert (
+        resolution in RESOLUTIONS
+    ), f"Unknown resolution in µm: '{resolution}'"
+    annotations_path = (
+        devccfv1_root / age / f"{age}_DevCCF_Annotations_{resolution}um.nii.gz"
+    )
     annotations = load_nii(annotations_path, as_array=True)
     return annotations
 
-def get_reference(devccfv1_root: str|Path,
-                  age: str,
-                  resolution: int,
-                  modality: str):
+
+def get_reference(
+    devccfv1_root: str | Path, age: str, resolution: int, modality: str
+):
     if not isinstance(devccfv1_root, Path):
         devccfv1_root = Path(devccfv1_root)
     assert age in TIMEPOINTS, f"Unknown age timepoint: '{age}'"
     assert resolution in RESOLUTIONS, f"Unknown resolution: '{resolution}'"
     assert modality in MODALITIES, f"Unknown modality: '{modality}'"
-    reference_path = devccfv1_root/age/f"{age}_{modality}_{resolution}um.nii.gz"
+    reference_path = (
+        devccfv1_root / age / f"{age}_{modality}_{resolution}um.nii.gz"
+    )
     reference = load_nii(reference_path, as_array=True)
     return reference
 
-def get_ontology(devccfv1_root: str|Path):
+
+def get_ontology(devccfv1_root: str | Path):
     if not isinstance(devccfv1_root, Path):
         devccfv1_root = Path(devccfv1_root)
-    DevCCFv1_path = devccfv1_root/"DevCCFv1_OntologyStructure.xlsx"
+    DevCCFv1_path = devccfv1_root / "DevCCFv1_OntologyStructure.xlsx"
     xl = pd.ExcelFile(DevCCFv1_path)
     # xl.sheet_names # it has two excel sheets
-                     # 'DevCCFv1_Ontology', 'README'
+    # 'DevCCFv1_Ontology', 'README'
     df = xl.parse("DevCCFv1_Ontology", header=1)
     df = df[["Acronym", "ID16", "Name", "Structure ID Path16", "R", "G", "B"]]
-    df.rename(columns={
-        "Acronym": "acronym",
-        "ID16": "id",
-        "Name": "name",
-        "Structure ID Path16": "structure_id_path",
-        "R": "r",
-        "G": "g",
-        "B": "b"
-    }, inplace=True)
+    df.rename(
+        columns={
+            "Acronym": "acronym",
+            "ID16": "id",
+            "Name": "name",
+            "Structure ID Path16": "structure_id_path",
+            "R": "r",
+            "G": "g",
+            "B": "b",
+        },
+        inplace=True,
+    )
     structures = list(df.to_dict(orient="index").values())
     for structure in structures:
         if structure["acronym"] == "mouse":
             structure["acronym"] = "root"
         structure_path = structure["structure_id_path"]
-        structure["structure_id_path"] = [int(id) for id in structure_path.strip("/").split("/")]
-        structure["rgb_triplet"] = [structure["r"], structure["g"], structure["b"]]
+        structure["structure_id_path"] = [
+            int(id) for id in structure_path.strip("/").split("/")
+        ]
+        structure["rgb_triplet"] = [
+            structure["r"],
+            structure["g"],
+            structure["b"],
+        ]
         del structure["r"]
         del structure["g"]
         del structure["b"]
     return structures
 
-def create_meshes(download_dir_path: str|Path,
-                  structures, annotation_volume, root_id):
+
+def create_meshes(
+    download_dir_path: str | Path, structures, annotation_volume, root_id
+):
     if not isinstance(download_dir_path, Path):
         download_dir_path = Path(download_dir_path)
     meshes_dir_path = download_dir_path / "meshes"
@@ -125,7 +134,7 @@ def create_meshes(download_dir_path: str|Path,
 
     # Mesh creation
     closing_n_iters = 2
-    decimate_fraction = 0.2 # 0.04
+    decimate_fraction = 0.2  # 0.04
     # What fraction of the original number of vertices is to be kept.
     smooth = False  # smooth meshes after creation
     start = time.time()
@@ -180,6 +189,7 @@ def create_meshes(download_dir_path: str|Path,
     )
     return meshes_dir_path
 
+
 def create_mesh_dict(structures, meshes_dir_path):
     meshes_dict = dict()
     structures_with_mesh = []
@@ -202,17 +212,18 @@ def create_mesh_dict(structures, meshes_dir_path):
     )
     return meshes_dict, structures_with_mesh
 
+
 if __name__ == "__main__":
     atlas_root = "/home/castoldi/Downloads/DevCCFv1"
     # Generated atlas path:
-    DEFAULT_WORKDIR = Path.home()/"brainglobe_workingdir"
-    bg_root_dir = DEFAULT_WORKDIR/ATLAS_NAME
-    download_dir_path = bg_root_dir/"downloads"
+    DEFAULT_WORKDIR = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
+    download_dir_path = bg_root_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True, parents=True)
 
     structures = get_ontology(atlas_root)
     # save regions list json:
-    with open(download_dir_path/"structures.json", "w") as f:
+    with open(download_dir_path / "structures.json", "w") as f:
         json.dump(structures, f)
 
     annotation_volume = get_annotations(atlas_root, AGE, RESOLUTION_UM)
@@ -220,10 +231,7 @@ if __name__ == "__main__":
     # Create meshes:
     print(f"Saving atlas data at {download_dir_path}")
     meshes_dir_path = create_meshes(
-        download_dir_path,
-        structures,
-        annotation_volume,
-        ROOT_ID
+        download_dir_path, structures, annotation_volume, ROOT_ID
     )
     # meshes_dir_path = download_dir_path/"meshes"
     meshes_dict, structures_with_mesh = create_mesh_dict(
@@ -237,7 +245,7 @@ if __name__ == "__main__":
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(RESOLUTION_UM,)*3,
+        resolution=(RESOLUTION_UM,) * 3,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=reference_volume,
@@ -246,7 +254,7 @@ if __name__ == "__main__":
         meshes_dict=meshes_dict,
         working_dir=bg_root_dir,
         atlas_packager=PACKAGER,
-        hemispheres_stack=None, # it is symmetric
+        hemispheres_stack=None,  # it is symmetric
         cleanup_files=False,
         compress=True,
         scale_meshes=True,

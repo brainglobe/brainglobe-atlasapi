@@ -137,6 +137,10 @@ def create_meshes(output_path: str|Path,
         # total=5,
         description="Creating meshes",
     ):
+        output_file = output_path/f"{node.identifier}.obj"
+        if output_file.exists():
+            # print(f"mesh already existing: {output_file.exists()} - {output_file}")
+            continue
         # root_node = tree.nodes[root_id]
         create_region_mesh(
             (

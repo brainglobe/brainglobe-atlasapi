@@ -20,14 +20,14 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-ATLAS_NAME = "kim_devccf_mouse"  # multiple versions of the same atlas
+ATLAS_NAME = "kim_devccf_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://kimlab.io/brain-map/DevCCF/"
 CITATION = "Kronman, F.N., Liwang, J.K., Betty, R. et al. 2024, https://doi.org/10.1038/s41467-024-53254-w"
 ORIENTATION = ["left", "superior", "posterior"]
 ROOT_ID = 15564
 RESOLUTION_UM = 20
-VERSION = 1
+VERSION = 0
 PACKAGER = "Carlo Castoldi <castoldi[at]ipmc.cnrs.fr>"
 ATLAS_FILE_URL = "https://doi.org/10.6084/m9.figshare.26377171.v1"
 
@@ -57,7 +57,7 @@ def pooch_init(download_dir_path: Path):
     registry = {a+".zip": hash for a in TIMEPOINTS}
     registry["DevCCFv1_OntologyStructure.xlsx"] = hash
     return pooch.create(
-        path=download_dir_path, #/ATLAS_NAME,
+        path=download_dir_path,
         base_url="doi:10.6084/m9.figshare.26377171.v1/",
         registry=registry
     )
@@ -73,8 +73,6 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
                         progressbar=True,
                         processor=pooch.Unzip(extract_dir=".", members=members)
                         )
-    # archive_path: Path = (pooch_.path/archive)
-    # archive_path.unlink()
     annotations = load_nii(annotations_path, as_array=True)
     reference = load_nii(reference_path, as_array=True)
     return annotations, reference
@@ -126,8 +124,7 @@ def create_meshes(output_path: str|Path,
 
     # Mesh creation
     closing_n_iters = 2
-    decimate_fraction = 0.2 # 0.04
-    # What fraction of the original number of vertices is to be kept.
+    decimate_fraction = 0.2 # fraction of the original number of vertices to be kept
     smooth = False  # smooth meshes after creation
     start = time.time()
     for node in track(
@@ -141,11 +138,9 @@ def create_meshes(output_path: str|Path,
         if output_file.exists():
             # print(f"mesh already existing: {output_file.exists()} - {output_file}")
             continue
-        # root_node = tree.nodes[root_id]
         create_region_mesh(
             (
                 output_path,
-                # root_node,
                 node,
                 tree,
                 labels,
@@ -234,6 +229,5 @@ if __name__ == "__main__":
             cleanup_files=False,
             compress=True,
             scale_meshes=True,
-            # resolution_mapping=[2, 1, 0],
         )
         print("Done. Atlas generated at: ", output_filename)

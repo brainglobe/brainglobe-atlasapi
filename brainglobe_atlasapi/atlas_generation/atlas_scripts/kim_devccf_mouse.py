@@ -1,8 +1,7 @@
+import argparse
 import json
-import multiprocessing as mp
 import time
 from pathlib import Path
-from os import listdir, path
 import pooch
 
 import numpy as np
@@ -26,7 +25,6 @@ ATLAS_LINK = "https://kimlab.io/brain-map/DevCCF/"
 CITATION = "Kronman, F.N., Liwang, J.K., Betty, R. et al. 2024, https://doi.org/10.1038/s41467-024-53254-w"
 ORIENTATION = ["left", "superior", "posterior"]
 ROOT_ID = 15564
-RESOLUTION_UM = 20
 VERSION = 0
 PACKAGER = "Carlo Castoldi <castoldi[at]ipmc.cnrs.fr>"
 ATLAS_FILE_URL = "https://doi.org/10.6084/m9.figshare.26377171.v1"
@@ -40,7 +38,6 @@ TIMEPOINTS = (
     "P14",
     "P56"
 )
-RESOLUTIONS = (20, 50)
 MODALITIES = (
     "LSFM",     # Light Sheet Fluorescence Microscopy
     "MRI-adc",  # MRI Apparent Diffusion Coefficient
@@ -62,12 +59,32 @@ def pooch_init(download_dir_path: Path):
         registry=registry
     )
 
-def fetch_animal(pooch_: pooch.Pooch, age: str):
+def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     assert age in TIMEPOINTS, f"Unknown age timepoint: '{age}'"
     archive = age+".zip"
+    if modality == "LSFM":
+        resolution_um = 50
+    elif modality in MODALITIES:
+        match age:
+            case "E11.5":
+                resolution_um = 31.5
+                raise RuntimeError("Can't generate an atlas at embryonic stage with MRI reference images.")
+            case "E13.5":
+                resolution_um = 34
+                raise RuntimeError("Can't generate an atlas at embryonic stage with MRI reference images.")
+            case "E15.5":
+                resolution_um = 37.5
+                raise RuntimeError("Can't generate an atlas at embryonic stage with MRI reference images.")
+            case "E18.5":
+                resolution_um = 40
+                raise RuntimeError("Can't generate an atlas at embryonic stage with MRI reference images.")
+            case _:
+                resolution_um = 50
+    else:
+        raise RuntimeError(f"Unknown reference image modality: {modality}")
     members = [
-        f"{age}/{age.replace('.','-')}_DevCCF_Annotations_20um.nii.gz",
-        f"{age}/{age.replace('.','-')}_LSFM_20um.nii.gz"
+        f"{age}/{age.replace('.','-')}_DevCCF_Annotations_{resolution_um}um.nii.gz",
+        f"{age}/{age.replace('.','-')}_{modality}_{resolution_um}um.nii.gz"
     ]
     annotations_path, reference_path = pooch_.fetch(archive,
                         progressbar=True,
@@ -75,7 +92,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
                         )
     annotations = load_nii(annotations_path, as_array=True)
     reference = load_nii(reference_path, as_array=True)
-    return annotations, reference
+    return annotations, reference, resolution_um
 
 def fetch_ontology(pooch_: pooch.Pooch):
     devccfv1_path = pooch_.fetch("DevCCFv1_OntologyStructure.xlsx", progressbar=True)
@@ -181,8 +198,53 @@ def create_mesh_dict(structures, meshes_dir_path):
     )
     return meshes_dict, structures_with_mesh
 
+class HideChoicesRawTextHelpFormatter(argparse.RawTextHelpFormatter):
+    def _get_help_string(self, action):
+        help_text = action.help
+        if action.choices:
+            help_text = help_text.split('(choices')[0].strip()
+        return help_text
+
+    def _format_action_invocation(self, action):
+        if action.option_strings:
+            return ', '.join(action.option_strings)
+        if action.metavar:
+            return action.metavar
+        return super()._format_action_invocation(action)
+
+arg_parser = argparse.ArgumentParser(formatter_class=HideChoicesRawTextHelpFormatter)
+timepoints_help = """the age timepoint at which the atlas will be generated.
+    Options are:
+        - E11.5         ⅂
+        - E13.5         |- Embryonic day
+        - E15.5         |
+        - E18.5         ⅃
+        - P04           ⅂
+        - P14           |- Postnatal day
+        - P56           ⅃
+    
+By default, it generates an atlas for each timepoint.
+"""
+modalities_help = """the acquisition modalities with which the reference image was captured.
+    Options are:
+        - LSFM,         Light Sheet Fluorescence Microscopy
+        - MRI-adc       MRI Apparent Diffusion Coefficient
+        - MRI-dwi       MRI Difusion Weighted Imaging
+        - MRI-fa        MRI Fractional Anisotropy
+        - MRI-MTR       MRI Magnetization Transfer Ratio
+        - MRI-T2        MRI T2-weighted
+
+By default, it uses LSFM
+"""
+arg_parser.add_argument("-t", "--timepoints", default=TIMEPOINTS, type=str, nargs="+", choices=TIMEPOINTS, help=timepoints_help)
+arg_parser.add_argument("-m", "--modality", default="LSFM", type=str, choices=MODALITIES, help=modalities_help)
+
 if __name__ == "__main__":
-    bg_root_dir = DEFAULT_WORKDIR/ATLAS_NAME
+    params = vars(arg_parser.parse_args())
+    timepoints = params["timepoints"]
+    modality = params["modality"]
+    atlas_name = f"{ATLAS_NAME}_{modality}"
+    bg_root_dir = DEFAULT_WORKDIR/atlas_name
     download_dir_path = bg_root_dir/"downloads"
     download_dir_path.mkdir(exist_ok=True, parents=True)
     pooch_ = pooch_init(download_dir_path)
@@ -191,9 +253,9 @@ if __name__ == "__main__":
     with open(bg_root_dir/"structures.json", "w") as f:
         json.dump(structures, f)
 
-    for age in TIMEPOINTS:
-        atlas_name = f"{ATLAS_NAME}_{age.replace('.', '-')}"
-        annotation_volume, reference_volume = fetch_animal(pooch_, age)
+    for age in timepoints:
+        atlas_name = f"{atlas_name}_{age.replace('.', '-')}"
+        annotation_volume, reference_volume, resolution_um = fetch_animal(pooch_, age, modality)
         atlas_dir = bg_root_dir/atlas_name
         atlas_dir.mkdir(exist_ok=True)
         print(f"Saving atlas data at {atlas_dir}")
@@ -216,7 +278,7 @@ if __name__ == "__main__":
             citation=CITATION,
             atlas_link=ATLAS_LINK,
             species=SPECIES,
-            resolution=(RESOLUTION_UM,)*3,
+            resolution=(resolution_um,)*3,
             orientation=ORIENTATION,
             root_id=ROOT_ID,
             reference_stack=reference_volume,

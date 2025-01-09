@@ -253,15 +253,14 @@ if __name__ == "__main__":
     timepoints = params["timepoints"]
     modality = params["modality"]
     decimate_fraction = params["decimate_fraction"]
-    atlas_name = f"{ATLAS_NAME}_{modality}"
-    bg_root_dir = DEFAULT_WORKDIR/atlas_name
+    bg_root_dir = DEFAULT_WORKDIR/ATLAS_NAME
     download_dir_path = bg_root_dir/"downloads"
     download_dir_path.mkdir(exist_ok=True, parents=True)
     pooch_ = pooch_init(download_dir_path, timepoints)
     structures = fetch_ontology(pooch_)
 
     for age in timepoints:
-        atlas_name = f"{atlas_name}_{age.replace('.', '-')}"
+        atlas_name = f"{ATLAS_NAME}_{age.replace('.', '-')}_{modality}"
         annotation_volume, reference_volume, resolution_um = fetch_animal(pooch_, age, modality)
         atlas_dir = bg_root_dir/atlas_name
         atlas_dir.mkdir(exist_ok=True)

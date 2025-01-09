@@ -63,7 +63,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     assert age in TIMEPOINTS, f"Unknown age timepoint: '{age}'"
     archive = age+".zip"
     if modality == "LSFM":
-        resolution_um = 50
+        resolution_um = 20
     elif modality in MODALITIES:
         match age:
             case "E11.5":
@@ -142,7 +142,7 @@ def create_meshes(output_path: str|Path,
     # Mesh creation
     closing_n_iters = 2
     decimate_fraction = 0.2 # fraction of the original number of vertices to be kept
-    smooth = False  # smooth meshes after creation
+    smooth = True  # smooth meshes after creation
     start = time.time()
     for node in track(
         tree.nodes.values(),
@@ -249,9 +249,6 @@ if __name__ == "__main__":
     download_dir_path.mkdir(exist_ok=True, parents=True)
     pooch_ = pooch_init(download_dir_path, timepoints)
     structures = fetch_ontology(pooch_)
-    # save regions list json:
-    with open(bg_root_dir/"structures.json", "w") as f:
-        json.dump(structures, f)
 
     for age in timepoints:
         atlas_name = f"{atlas_name}_{age.replace('.', '-')}"

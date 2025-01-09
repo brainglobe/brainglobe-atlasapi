@@ -123,7 +123,7 @@ def fetch_ontology(pooch_: pooch.Pooch):
     return structures
 
 def create_meshes(output_path: str|Path,
-                  structures, annotation_volume, root_id):
+                  structures, annotation_volume, root_id, decimate_fraction):
     if not isinstance(output_path, Path):
         output_path = Path(output_path)
     output_path.mkdir(exist_ok=True)
@@ -141,7 +141,6 @@ def create_meshes(output_path: str|Path,
 
     # Mesh creation
     closing_n_iters = 2
-    decimate_fraction = 0.2 # fraction of the original number of vertices to be kept
     smooth = True  # smooth meshes after creation
     start = time.time()
     for node in track(
@@ -234,15 +233,26 @@ modalities_help = """the acquisition modalities with which the reference image w
         - MRI-MTR       MRI Magnetization Transfer Ratio
         - MRI-T2        MRI T2-weighted
 
-By default, it uses LSFM
+By default, LSFM
 """
+decimate_fraction_help = "fraction of the original number of meshes' vertices to be kept. Must be a number > 0 and <= 1.\nBy default, 0.2"
+def decimate_fraction_type(arg):
+    try:
+        f = float(arg)
+        if 0 < f <= 1:
+            return f
+    except ValueError:
+        pass
+    raise argparse.ArgumentTypeError(f"invalid value: '{arg}' (must be a number > 0 and <= 1)")
 arg_parser.add_argument("-t", "--timepoints", default=TIMEPOINTS, type=str, nargs="+", choices=TIMEPOINTS, help=timepoints_help)
 arg_parser.add_argument("-m", "--modality", default="LSFM", type=str, choices=MODALITIES, help=modalities_help)
+arg_parser.add_argument("-d", "--decimate-fraction", default=0.2, type=decimate_fraction_type, help=decimate_fraction_help)
 
 if __name__ == "__main__":
     params = vars(arg_parser.parse_args())
     timepoints = params["timepoints"]
     modality = params["modality"]
+    decimate_fraction = params["decimate_fraction"]
     atlas_name = f"{ATLAS_NAME}_{modality}"
     bg_root_dir = DEFAULT_WORKDIR/atlas_name
     download_dir_path = bg_root_dir/"downloads"
@@ -262,7 +272,8 @@ if __name__ == "__main__":
             meshes_dir_path,
             structures,
             annotation_volume,
-            ROOT_ID
+            ROOT_ID,
+            decimate_fraction
         )
         meshes_dict, structures_with_mesh = create_mesh_dict(
             structures, meshes_dir_path

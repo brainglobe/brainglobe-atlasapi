@@ -47,17 +47,17 @@ MODALITIES = (
     "MRI-T2"    # MRI T2-weighted
 )
 
-def pooch_init(download_dir_path: Path):
+def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
     utils.check_internet_connection()
 
-    hash = None
-    registry = {a+".zip": hash for a in TIMEPOINTS}
-    registry["DevCCFv1_OntologyStructure.xlsx"] = hash
-    return pooch.create(
+    empty_registry = {a+".zip": None for a in [*timepoints, "DevCCFv1_OntologyStructure.xlsx"]}
+    p = pooch.create(
         path=download_dir_path,
         base_url="doi:10.6084/m9.figshare.26377171.v1/",
-        registry=registry
+        registry=empty_registry
     )
+    p.load_registry(Path(__file__).parent.parent/"hashes"/(ATLAS_NAME+".txt"))
+    return p
 
 def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     assert age in TIMEPOINTS, f"Unknown age timepoint: '{age}'"
@@ -247,7 +247,7 @@ if __name__ == "__main__":
     bg_root_dir = DEFAULT_WORKDIR/atlas_name
     download_dir_path = bg_root_dir/"downloads"
     download_dir_path.mkdir(exist_ok=True, parents=True)
-    pooch_ = pooch_init(download_dir_path)
+    pooch_ = pooch_init(download_dir_path, timepoints)
     structures = fetch_ontology(pooch_)
     # save regions list json:
     with open(bg_root_dir/"structures.json", "w") as f:

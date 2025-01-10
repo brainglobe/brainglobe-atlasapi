@@ -65,28 +65,12 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
         match age:
             case "E11.5":
                 resolution_um = 31.5
-                raise RuntimeError(
-                    "Can't generate an atlas at embryonic stage"
-                    " with MRI reference images."
-                )
             case "E13.5":
                 resolution_um = 34
-                raise RuntimeError(
-                    "Can't generate an atlas at embryonic stage"
-                    " with MRI reference images."
-                )
             case "E15.5":
                 resolution_um = 37.5
-                raise RuntimeError(
-                    "Can't generate an atlas at embryonic stage"
-                    " with MRI reference images."
-                )
             case "E18.5":
                 resolution_um = 40
-                raise RuntimeError(
-                    "Can't generate an atlas at embryonic stage"
-                    " with MRI reference images."
-                )
             case _:
                 resolution_um = 50
     else:

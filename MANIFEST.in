@@ -11,3 +11,4 @@ graft brainglobe_atlasapi *.py
 prune tests
 prune tutorials
 prune brainglobe_atlasapi/atlas_generation/atlas_scripts/*
+prune brainglobe_atlasapi/atlas_generation/hashes

@@ -1,5 +1,4 @@
 import argparse
-import json
 import time
 from pathlib import Path
 import pooch
@@ -19,13 +18,13 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-ATLAS_NAME = "kim_devccf_mouse"
+ATLAS_NAME = "kim_dev_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://kimlab.io/brain-map/DevCCF/"
 CITATION = "Kronman, F.N., Liwang, J.K., Betty, R. et al. 2024, https://doi.org/10.1038/s41467-024-53254-w"
 ORIENTATION = ["left", "superior", "posterior"]
 ROOT_ID = 15564
-VERSION = 0
+VERSION = 3
 PACKAGER = "Carlo Castoldi <castoldi[at]ipmc.cnrs.fr>"
 ATLAS_FILE_URL = "https://doi.org/10.6084/m9.figshare.26377171.v1"
 

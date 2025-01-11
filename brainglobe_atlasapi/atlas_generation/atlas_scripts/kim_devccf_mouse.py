@@ -79,11 +79,16 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
         f"{age}/{age.replace('.','-')}_DevCCF_Annotations_{resolution_um}um.nii.gz",
         f"{age}/{age.replace('.','-')}_{modality}_{resolution_um}um.nii.gz",
     ]
-    annotations_path, reference_path = pooch_.fetch(
+    fetched_paths = pooch_.fetch(
         archive,
         progressbar=True,
         processor=pooch.Unzip(extract_dir=".", members=members),
     )
+    # the file paths returned by pooch.ExtractorProcessor (superclass of Unzip)
+    # may not respect the order of the given members.
+    # see: https://github.com/fatiando/pooch/issues/457
+    annotations_path = next(p for p in fetched_paths if p.endswith(members[0]))
+    reference_path = next(p for p in fetched_paths if p.endswith(members[1]))
     annotations = load_nii(annotations_path, as_array=True)
     reference = load_nii(reference_path, as_array=True)
     return annotations, reference, resolution_um

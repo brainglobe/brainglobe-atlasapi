@@ -91,6 +91,12 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     reference_path = next(p for p in fetched_paths if p.endswith(members[1]))
     annotations = load_nii(annotations_path, as_array=True)
     reference = load_nii(reference_path, as_array=True)
+    dmin = np.min(reference)
+    dmax = np.max(reference)
+    drange = dmax - dmin
+    dscale = (2**16 - 1) / drange
+    reference = (reference - dmin) * dscale
+    reference = reference.astype(np.uint16)
     return annotations, reference, resolution_um
 
 

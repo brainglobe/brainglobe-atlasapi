@@ -266,6 +266,18 @@ decimate_fraction_help = (
     "fraction of original meshes' vertices to be kept."
     " Must be a number > 0 and <= 1.\nBy default, 0.2"
 )
+cached_meshes_help = (
+    "A pre-computed atlas whose meshes can be used for the "
+    + """chosen modality.
+    Options are:
+        - LSFM,         Light Sheet Fluorescence Microscopy
+        - MRI-adc       MRI Apparent Diffusion Coefficient
+        - MRI-dwi       MRI Difusion Weighted Imaging
+        - MRI-fa        MRI Fractional Anisotropy
+        - MRI-MTR       MRI Magnetization Transfer Ratio
+        - MRI-T2        MRI T2-weighted
+"""
+)
 
 
 def decimate_fraction_type(arg):
@@ -304,12 +316,33 @@ arg_parser.add_argument(
     type=decimate_fraction_type,
     help=decimate_fraction_help,
 )
+arg_parser.add_argument(
+    "-c",
+    "--cached-meshes",
+    type=str,
+    choices=MODALITIES,
+    help=cached_meshes_help,
+)
 
 if __name__ == "__main__":
+    import sys
+
     params = vars(arg_parser.parse_args())
     timepoints = params["timepoints"]
     modality = params["modality"]
     decimate_fraction = params["decimate_fraction"]
+    cached_modality = params["cached_meshes"]
+    if (
+        cached_modality is not None
+        and modality.split("-")[0] != cached_modality.split("-")[0]
+    ):
+        # one is LSFM and the other is MRI-based
+        print(
+            f"Incompatible cached meshes '{cached_modality}' "
+            + f"with modality '{modality}'!",
+            file=sys.stderr,
+        )
+        exit(-1)
     bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     download_dir_path = bg_root_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True, parents=True)
@@ -325,14 +358,24 @@ if __name__ == "__main__":
         atlas_dir.mkdir(exist_ok=True)
         print(f"Saving atlas data at {atlas_dir}")
         # Create meshes:
-        meshes_dir_path = atlas_dir / "meshes"
-        create_meshes(
-            meshes_dir_path,
-            structures,
-            annotation_volume,
-            ROOT_ID,
-            decimate_fraction,
-        )
+        if (
+            cached_modality is not None
+            and (
+                cache_dir := bg_root_dir
+                / f"{ATLAS_NAME}_{age.replace('.', '-')}_{cached_modality}"
+                / "meshes"
+            ).exists()
+        ):
+            meshes_dir_path = cache_dir
+        else:
+            meshes_dir_path = atlas_dir / "meshes"
+            create_meshes(
+                meshes_dir_path,
+                structures,
+                annotation_volume,
+                ROOT_ID,
+                decimate_fraction,
+            )
         meshes_dict, structures_with_mesh = create_mesh_dict(
             structures, meshes_dir_path
         )

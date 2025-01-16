@@ -27,67 +27,6 @@ def hex_to_rgb(hex):
     return rgb
 
 
-def points_and_triangles_from_gltf(
-    gltf, mesh_index
-) -> Tuple[NDArray, NDArray]:
-    """
-    Extracts points and triangles from a GLTF mesh.
-    See "Decode numpy arrays from GLTF2" at
-    https://gitlab.com/dodgyville/pygltflib
-
-    Parameters
-    ----------
-    gltf : object
-        The GLTF object containing the mesh data.
-    mesh_index : int
-        The index of the mesh to extract data from.
-
-    Returns
-    -------
-    Tuple[NDArray, NDArray]
-        A tuple containing two numpy arrays:
-        - points:
-            An array of shape (n, 3) representing the vertex positions.
-        - triangles:
-            An array of shape (m, 3) representing the triangle indices.
-    """
-    binary_blob = gltf.binary_blob()
-
-    triangles_accessor = gltf.accessors[
-        gltf.meshes[mesh_index].primitives[0].indices
-    ]
-    triangles_buffer_view = gltf.bufferViews[triangles_accessor.bufferView]
-    triangles = np.frombuffer(
-        binary_blob[
-            triangles_buffer_view.byteOffset
-            + triangles_accessor.byteOffset : triangles_buffer_view.byteOffset
-            + triangles_buffer_view.byteLength
-        ],
-        dtype="uint16",  # cuttlefish triangle indices are uint16
-        count=triangles_accessor.count,
-    ).reshape((-1, 3))
-
-    points_accessor = gltf.accessors[
-        gltf.meshes[mesh_index].primitives[0].attributes.POSITION
-    ]
-    points_buffer_view = gltf.bufferViews[points_accessor.bufferView]
-    points = np.frombuffer(
-        binary_blob[
-            points_buffer_view.byteOffset
-            + points_accessor.byteOffset : points_buffer_view.byteOffset
-            + points_buffer_view.byteLength
-        ],
-        dtype="float32",
-        count=points_accessor.count * 3,
-    ).reshape((-1, 3))
-
-    return points, triangles
-
-
-def write_obj(points, triangles, obj_filepath):
-    mesh = Mesh((points, triangles))
-    write(mesh, str(obj_filepath))
-
 
 def create_atlas(working_dir, resolution):
     ATLAS_NAME = "columbia_cuttlefish"
@@ -315,75 +254,12 @@ def create_atlas(working_dir, resolution):
     # df = pd.DataFrame(hierarchy)
     # df.to_csv('hierarchy_test.csv')
 
-    source_space = bg.AnatomicalSpace(
-        "srp"
-    )  # origin for the stack to be plotted
 
     # write meshes
-    mesh_source_origin = ("Right", "Anterior", "Inferior")
-    mesh_source_space = bg.AnatomicalSpace(
-        mesh_source_origin, brain_template.shape
-    )
-    print(brain_template.shape)
     atlas_dir_name = f"{ATLAS_NAME}_{resolution[0]}um_v1.{__version__}"
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
-    glbfile = pooch.retrieve(MESH_URL, known_hash=None, progressbar=True)
-    gltf = GLTF2.load(glbfile)
-
-    transformation_matrix = np.array([[0, 0, -1], [1, 0, 0], [0, -1, 0]])
-    displacement = np.array([11.150002, 14.350002, 0])
-
-    for node in gltf.nodes:
-        # print(node)
-        # gltf stores meshes/nodes in alphabetical order of region name!
-        # given that the gtlf meshes id don't match the region ids,
-        # match the mesh names to our region names to find the correct id
-        for region in hierarchy:
-            if node.name == region["acronym"]:
-                mesh_id = region["id"]
-                break
-            else:
-                mesh_id = -1
-
-        # the following code tests for which meshes did not have a corresponding region in
-        # our hierarchy region list.
-        # they are: C, GLASS and SK.
-        # manual checking on Blender shows that:
-        # SK is the cuttlefish body (unnecessary)
-        # GLASS is the overall mesh for the brain
-        # C is the cartilage behind the brain (unnecessary)
-
-        # if mesh_id == -1:
-        #    print("error for ", node)
-
-        mesh_index = node.mesh
-        print(
-            f"writing mesh for region {gltf.meshes[mesh_index].name}"
-            f" and index {mesh_index}"
-        )
-        points, triangles = points_and_triangles_from_gltf(
-            gltf=gltf, mesh_index=mesh_index
-        )
-        # figure out what number to put here
-        points = np.multiply(points, 40000)
-        mapped_points = mesh_source_space.map_points_to("pri", points)
-        print(mapped_points)
-
-        for index, p in enumerate(mapped_points):
-            mapped_points[index] = np.add(p, displacement)
-        print(mapped_points)
-        # points need to be transformed from SRP to ASR
-        # see `map_points to` function in `brainglobe-space`,
-        # e.g. https://github.com/brainglobe/brainglobe-space?tab=readme-ov-file#the-anatomicalspace-class # noqa E501
-
-        write_obj(mapped_points, triangles, mesh_dir / f"{mesh_id}.obj")
-
-    # we need to think about the points' scale (should be in microns)!
-
-    # create meshes for regions that don't have a premade mesh, e.g. the root?
-    # in a separate loop
-
+    
     # create meshes_dict
     meshes_dict = dict()
     structures_with_mesh = []

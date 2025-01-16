@@ -3,15 +3,9 @@ __version__ = "0"
 import csv
 import glob as glob
 from pathlib import Path
-from typing import Tuple
 
-import brainglobe_space as bg
-import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load
-from numpy.typing import NDArray
-from pygltflib import GLTF2
-from vedo import Mesh, write
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
@@ -25,7 +19,6 @@ def hex_to_rgb(hex):
         rgb.append(decimal)
 
     return rgb
-
 
 
 def create_atlas(working_dir, resolution):
@@ -254,12 +247,11 @@ def create_atlas(working_dir, resolution):
     # df = pd.DataFrame(hierarchy)
     # df.to_csv('hierarchy_test.csv')
 
-
     # write meshes
     atlas_dir_name = f"{ATLAS_NAME}_{resolution[0]}um_v1.{__version__}"
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
-    
+
     # create meshes_dict
     meshes_dict = dict()
     structures_with_mesh = []

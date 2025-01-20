@@ -143,10 +143,6 @@ def wrapup_atlas_from_data(
         atlas_name, resolution[0], ATLAS_VERSION, atlas_minor_version
     )
 
-    atlas_name_for_validation = atlas_name_from_repr(
-        atlas_name, resolution[0]
-    )
-
     dest_dir = Path(working_dir) / atlas_dir_name
 
     # exist_ok would be more permissive but error-prone here as there might
@@ -249,6 +245,11 @@ def wrapup_atlas_from_data(
         additional_metadata=additional_metadata,
     )
 
+    atlas_name_for_validation = atlas_name_from_repr(
+        atlas_name, resolution[0]
+    )
+
+    # creating BrainGlobe object from local folder (working_dir)
     atlas_to_validate = BrainGlobeAtlas(
         atlas_name=atlas_name_for_validation,
         brainglobe_dir=working_dir,
@@ -260,24 +261,25 @@ def wrapup_atlas_from_data(
 
     validation_results = {}
 
-    for func in [
-        validate_atlas_files,
-        validate_mesh_matches_image_extents,
-        open_for_visual_check,
-        validate_checksum,
-        validate_image_dimensions,
-        validate_additional_references,
-        catch_missing_structures,
-        catch_missing_mesh_files
-    ]:
+    functions = [
+        (validate_atlas_files, atlas_to_validate, working_dir),
+        (catch_missing_structures, atlas_to_validate, working_dir),
+        (catch_missing_mesh_files, atlas_to_validate, working_dir),
+        (validate_mesh_matches_image_extents, atlas_to_validate),
+        (open_for_visual_check, atlas_to_validate),
+        (validate_checksum, atlas_to_validate),
+        (validate_image_dimensions, atlas_to_validate),
+        (validate_additional_references, atlas_to_validate)
+    ]
+
+    for func, *args in functions:
         try:
-            func(atlas_to_validate)
+            func(*args)
             validation_results[func.__name__] = "Pass"
+            print(f"{atlas_dir_name} passed {func.__name__}")
         except AssertionError as e:
             print(f"Validation failed: {e}")
             validation_results[func.__name__] = f"Fail: {str(e)}"
-
-    print("Validation complete")
 
     # Compress if required:
     if compress:

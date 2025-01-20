@@ -19,12 +19,18 @@ from brainglobe_atlasapi.update_atlases import update_atlas
 def validate_atlas_files(
     atlas: BrainGlobeAtlas, custom_atlas_path: Path = None
 ):
-    """Checks if basic files exist in the atlas folder"""
+    """
+    Checks if basic files exist in the atlas folder
+
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
+    """
 
     if custom_atlas_path is None:
         atlas_path = (
-            Path(get_brainglobe_dir())
-            / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+            Path(get_brainglobe_dir()) / f"{atlas.atlas_name}_v"
+            f"{get_local_atlas_version(atlas.atlas_name)}"
         )
     else:
         atlas_path = Path(
@@ -157,14 +163,18 @@ def catch_missing_mesh_files(
 ):
     """
     Checks if all the structures in the atlas have a corresponding mesh file
+
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
     """
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     if custom_atlas_path is None:
         atlas_path = (
-            Path(get_brainglobe_dir())
-            / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+            Path(get_brainglobe_dir()) / f"{atlas.atlas_name}_v"
+            f"{get_local_atlas_version(atlas.atlas_name)}"
         )
     else:
         atlas_path = Path(
@@ -198,14 +208,18 @@ def catch_missing_structures(
     """
     Checks if all the mesh files in the atlas folder
     are listed as a structure in the atlas.
+
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
     """
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     if custom_atlas_path is None:
         atlas_path = (
-            Path(get_brainglobe_dir())
-            / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+            Path(get_brainglobe_dir()) / f"{atlas.atlas_name}_v"
+            f"{get_local_atlas_version(atlas.atlas_name)}"
         )
     else:
         atlas_path = Path(

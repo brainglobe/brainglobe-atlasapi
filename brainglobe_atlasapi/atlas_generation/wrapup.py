@@ -271,9 +271,9 @@ def wrapup_atlas_from_data(
         try:
             func(*args)
             validation_results[func.__name__] = "Pass"
-            print(f"{atlas_dir_name} passed {func.__name__}")
+            print(f"passed {func.__name__}")
         except AssertionError as e:
-            print(f"Validation failed: {e}")
+            print(f"failed {func.__name__}: {e}")
             validation_results[func.__name__] = f"Fail: {str(e)}"
 
     # Compress if required:

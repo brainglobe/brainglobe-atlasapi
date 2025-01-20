@@ -8,7 +8,7 @@ import meshio as mio
 import tifffile
 
 import brainglobe_atlasapi.atlas_generation
-from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     create_metadata_files,
     generate_metadata_dict,
@@ -22,20 +22,17 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
 from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
 )
-from brainglobe_atlasapi.utils import atlas_name_from_repr
-
-from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
-    validate_atlas_files,
-    validate_mesh_matches_image_extents,
+    catch_missing_mesh_files,
+    catch_missing_structures,
     open_for_visual_check,
+    validate_additional_references,
+    validate_atlas_files,
     validate_checksum,
     validate_image_dimensions,
-    validate_additional_references,
-    catch_missing_structures,
-    catch_missing_mesh_files
+    validate_mesh_matches_image_extents,
 )
-
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas
 # structure:
@@ -143,9 +140,7 @@ def wrapup_atlas_from_data(
         atlas_name, resolution[0], ATLAS_VERSION, atlas_minor_version
     )
 
-    atlas_name_for_validation = atlas_name_from_repr(
-        atlas_name, resolution[0]
-    )
+    atlas_name_for_validation = atlas_name_from_repr(atlas_name, resolution[0])
 
     dest_dir = Path(working_dir) / atlas_dir_name
 
@@ -252,7 +247,7 @@ def wrapup_atlas_from_data(
     atlas_to_validate = BrainGlobeAtlas(
         atlas_name=atlas_name_for_validation,
         brainglobe_dir=working_dir,
-        check_latest=False
+        check_latest=False,
     )
 
     # Run validation functions
@@ -268,7 +263,7 @@ def wrapup_atlas_from_data(
         validate_image_dimensions,
         validate_additional_references,
         catch_missing_structures,
-        catch_missing_mesh_files
+        catch_missing_mesh_files,
     ]:
         try:
             func(atlas_to_validate)

@@ -7,15 +7,13 @@ from pathlib import Path
 import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
-from brainglobe_atlasapi.config import get_brainglobe_dir
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR, get_brainglobe_dir
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
-    get_local_atlas_version,
 )
 from brainglobe_atlasapi.update_atlases import update_atlas
 
-from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
 def validate_atlas_files(atlas: BrainGlobeAtlas):
     """Checks if basic files exist in the atlas folder"""
@@ -25,10 +23,10 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
     #     / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
     # )
 
-    atlas_path = (
-        Path(DEFAULT_WORKDIR
-             / f"{atlas.metadata['name']}"
-             / f"{atlas.atlas_name}_v{atlas.metadata['version']}")
+    atlas_path = Path(
+        DEFAULT_WORKDIR
+        / f"{atlas.metadata['name']}"
+        / f"{atlas.atlas_name}_v{atlas.metadata['version']}"
     )
 
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
@@ -163,10 +161,10 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     #     / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
     # )
 
-    atlas_path = (
-        Path(DEFAULT_WORKDIR
-             / f"{atlas.metadata['name']}"
-             / f"{atlas.atlas_name}_v{atlas.metadata['version']}")
+    atlas_path = Path(
+        DEFAULT_WORKDIR
+        / f"{atlas.metadata['name']}"
+        / f"{atlas.atlas_name}_v{atlas.metadata['version']}"
     )
 
     obj_path = Path(atlas_path / "meshes")
@@ -202,10 +200,10 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     #     / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
     # )
 
-    atlas_path = (
-        Path(DEFAULT_WORKDIR
-             / f"{atlas.metadata['name']}"
-             / f"{atlas.atlas_name}_v{atlas.metadata['version']}")
+    atlas_path = Path(
+        DEFAULT_WORKDIR
+        / f"{atlas.metadata['name']}"
+        / f"{atlas.atlas_name}_v{atlas.metadata['version']}"
     )
 
     obj_path = Path(atlas_path / "meshes")

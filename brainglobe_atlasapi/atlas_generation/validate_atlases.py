@@ -15,14 +15,22 @@ from brainglobe_atlasapi.list_atlases import (
 )
 from brainglobe_atlasapi.update_atlases import update_atlas
 
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
 def validate_atlas_files(atlas: BrainGlobeAtlas):
     """Checks if basic files exist in the atlas folder"""
 
+    # atlas_path = (
+    #     Path(get_brainglobe_dir())
+    #     / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+    # )
+
     atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+        Path(DEFAULT_WORKDIR
+             / f"{atlas.metadata['name']}"
+             / f"{atlas.atlas_name}_v{atlas.metadata['version']}")
     )
+
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
     expected_files = [
         "annotation.tiff",
@@ -150,10 +158,17 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
+    # atlas_path = (
+    #     Path(get_brainglobe_dir())
+    #     / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+    # )
+
     atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+        Path(DEFAULT_WORKDIR
+             / f"{atlas.metadata['name']}"
+             / f"{atlas.atlas_name}_v{atlas.metadata['version']}")
     )
+
     obj_path = Path(atlas_path / "meshes")
 
     ids_from_mesh_files = [
@@ -182,10 +197,17 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
+    # atlas_path = (
+    #     Path(get_brainglobe_dir())
+    #     / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+    # )
+
     atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
+        Path(DEFAULT_WORKDIR
+             / f"{atlas.metadata['name']}"
+             / f"{atlas.atlas_name}_v{atlas.metadata['version']}")
     )
+
     obj_path = Path(atlas_path / "meshes")
 
     ids_from_mesh_files = [

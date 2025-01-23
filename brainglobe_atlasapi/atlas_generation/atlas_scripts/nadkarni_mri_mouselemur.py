@@ -1,7 +1,6 @@
 import time
 from pathlib import Path
 
-import mp
 import numpy as np
 import pandas as pd
 import pooch
@@ -44,10 +43,6 @@ ATLAS_LINK = (
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 ORIENTATION = "ria"
-
-# The id of the highest level of the atlas. This is commonly called root or
-# brain. Include some information on what to do if your atlas is not
-# hierarchical
 ROOT_ID = 9999
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
@@ -178,7 +173,7 @@ def retrieve_structure_information():
     return new_df.to_dict("records")
 
 
-def retrieve_or_construct_meshes():
+def retrieve_or_construct_meshes(structures):
     """
     This function should return a dictionary of ids and corresponding paths to
     mesh files. Some atlases are packaged with mesh files, in these cases we
@@ -209,49 +204,25 @@ def retrieve_or_construct_meshes():
 
     smooth = False
     start = time.time()
-    if PARALLEL:
-        pool = mp.Pool(mp.cpu_count() - 2)
 
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        ROOT_ID,
-                        closing_n_iters,
-                        decimate_fraction,
-                        smooth,
-                    )
-                    for node in tree.nodes.values()
-                ],
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
-        except mp.pool.MaybeEncodingError:
-            # error with returning results from pool.map but we don't care
-            pass
-    else:
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+        )
 
     print(
         "Finished mesh extraction in: ",
@@ -281,7 +252,6 @@ def retrieve_or_construct_meshes():
         f"In the end, {len(structures_with_mesh)} "
         "structures with mesh are kept"
     )
-
     return meshes_dict
 
 
@@ -294,8 +264,7 @@ if __name__ == "__main__":
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    meshes_dict = retrieve_or_construct_meshes()
-
+    meshes_dict = retrieve_or_construct_meshes(structures)
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

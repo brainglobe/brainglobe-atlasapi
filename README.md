@@ -41,6 +41,7 @@ A number of atlases are in development, but those available currently are:
 | [BlueBrain Barrel Cortex Atlas](https://doi.org/10.1162/imag_a_00209) | 10 and 25 micron | P56 | STPT | allen_mouse_bluebrain_barrels_10um, allen_mouse_bluebrain_barrels_25um
 | [UNAM Axolotl Brain Atlas](https://doi.org/10.1038/s41598-021-89357-3) | 40 micron | ~ 3 months post hatching | MRI | unam_axolotl_40um
 | [Prairie Vole Brain Atlas](https://doi.org/10.7554/eLife.87029.3.sa0) | 25 micron | Unknown | LSFM | prairie_vole_25um
+| [Gubra's stereotaxic MRI mouse brain atlas](https://doi.org/10.1007/s12021-023-09623-9) | 25 micron | 10-week-old  | MRI | perens_stereotaxic_mouse_mri_25um
 
 ## Installation
 

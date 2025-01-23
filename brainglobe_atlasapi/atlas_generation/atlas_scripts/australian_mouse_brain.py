@@ -233,19 +233,12 @@ acronym_dict = {
         "VL": "ventrolateral thalamic nucleus",
         "VLi": "ventral linear nucleus",
         "VM": "ventromedial thalamic nucleus",
-        "VPL": "ventral posterolateral thalamic nucleus",
-        "VPM": "ventral posteromedial thalamic nucleus",
-        "VPPC": "ventral posterior thalamic nucleus",
         "VRe": "ventral reuniens thalamic nucleus",
         "VTA": "ventral tegmental area",
         "VTAR": "ventral tegmental area, rostral part",
         "vtgx": "ventral tegmental decussation",
-        "Xi": "xiphoid nucleus",
-        "ZI": "zona incerta",
         "ZIC": "zona incerta, central part",
-        "ZID": "zona incerta, dorsal part",
         "ZIR": "zona incerta, rostral part",
-        "ZIV": "zona incerta, ventral part",
     },
     "basalganglia": {
         "aca": "Anterior limb of anterior commissure",
@@ -297,17 +290,6 @@ acronym_dict = {
         "VP": "Ventral pallidum",
     },
     "cerebellum": {
-        "IC": "Unclassified",
-        "1Cb": "Lobule 1",
-        "1/2Cb": "Lobules 1/2",
-        "2Cb": "Lobule 2",
-        "2/3Cb": "Lobules 2/3",
-        "3Cb": "Lobule 3",
-        "3/4Cb": "Lobules 3/4",
-        "4Cb": "Lobule 4",
-        "4/5Cb": "Lobules 4/5",
-        "5Cb": "Lobule 5",
-        "6Cb": "Lobule 6",
         "7Cb": "Lobule 7",
         "8Cb": "Lobule 8",
         "9Cb": "Lobule 9",
@@ -570,6 +552,7 @@ def preprocess_annotations():
             / TEMPLATE_STRING.format(region, "-nii")
             / TEMPLATE_STRING.format(region, "_new.idx")
         )
+        
         label.to_csv(label_path)
         label_list.append(label)
 
@@ -756,12 +739,18 @@ def retrieve_structure_information():
     total_df = total_df[
         ["acronym", "id", "name", "structure_id_path", "rgb_triplet"]
     ]
+    # unwanted_structure_id_paths = 
     structures = total_df.to_dict("records")
 
     for s in structures:
         if isinstance(s["structure_id_path"], str):
             s["structure_id_path"] = eval(s["structure_id_path"])
-    return structures
+    filtered_structures = []
+    ids_to_filter = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 62, 64, 256, 257, 258, 259, 260, 261, 262]
+    for s in structures:
+        if s['id'] not in ids_to_filter:
+            filtered_structures.append(s)
+    return filtered_structures
 
 
 def retrieve_or_construct_meshes(annotated_volume, structures):
@@ -853,7 +842,6 @@ if __name__ == "__main__":
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)
-
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

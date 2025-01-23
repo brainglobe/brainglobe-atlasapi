@@ -1,3 +1,5 @@
+import os
+import sys
 from unittest import mock
 
 import pytest
@@ -7,6 +9,9 @@ from requests import HTTPError
 from brainglobe_atlasapi import utils
 
 test_url = "https://gin.g-node.org/BrainGlobe/atlases/raw/master/example_mouse_100um_v1.2.tar.gz"
+conf_url = (
+    "https://gin.g-node.org/BrainGlobe/atlases/raw/master/last_versions.conf"
+)
 
 
 def test_http_check():
@@ -138,3 +143,26 @@ def test_conf_from_file_no_file(temp_path):
         utils.conf_from_file(conf_path)
 
         assert "Last versions cache file not found." == str(e)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Does not run on Windows")
+def test_conf_from_url_read_only(temp_path, mocker):
+    # Test with a valid URL and a non-existing parent folder
+    mocker.patch(
+        "brainglobe_atlasapi.utils.config.get_brainglobe_dir"
+    ).return_value = temp_path
+    mock_print = mocker.patch("builtins.print")
+    # Save the current permissions
+    curr_mode = oct(os.stat(temp_path).st_mode)[-3:]
+
+    # Change the permissions to read-only
+    temp_path.chmod(0o444)
+    utils.conf_from_url(conf_url)
+
+    mock_print.assert_called_once_with(
+        f"Could not update the latest atlas versions cache: [Errno 13] "
+        f"Permission denied: '{temp_path / 'last_versions.conf'}'"
+    )
+
+    # Set the permissions back to the original
+    temp_path.chmod(int(curr_mode, 8))

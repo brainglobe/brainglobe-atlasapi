@@ -279,10 +279,34 @@ def wrapup_atlas_from_data(
         try:
             func(*args)
             validation_results[func.__name__] = "Pass"
-            print(f"passed {func.__name__}")
         except AssertionError as e:
-            print(f"failed {func.__name__}: {e}")
             validation_results[func.__name__] = f"Fail: {str(e)}"
+
+    def _check_validations(validation_results):
+        # Helper function to check if all validations passed
+        all_passed = all(
+            result == "Pass" for result in validation_results.values()
+        )
+
+        if all_passed:
+            print("This atlas is valid")
+        else:
+            failed_functions = [
+                func
+                for func, result in validation_results.items()
+                if result != "Pass"
+            ]
+            error_messages = [
+                result.split(": ")[1]
+                for result in validation_results.values()
+                if result != "Pass"
+            ]
+
+            print("These validation functions have failed:")
+            for func, error in zip(failed_functions, error_messages):
+                print(f"- {func}: {error}")
+
+    _check_validations(validation_results)
 
     # Compress if required:
     if compress:

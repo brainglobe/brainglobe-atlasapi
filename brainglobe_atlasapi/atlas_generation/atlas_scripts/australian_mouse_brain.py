@@ -552,7 +552,7 @@ def preprocess_annotations():
             / TEMPLATE_STRING.format(region, "-nii")
             / TEMPLATE_STRING.format(region, "_new.idx")
         )
-        
+
         label.to_csv(label_path)
         label_list.append(label)
 
@@ -739,16 +739,37 @@ def retrieve_structure_information():
     total_df = total_df[
         ["acronym", "id", "name", "structure_id_path", "rgb_triplet"]
     ]
-    # unwanted_structure_id_paths = 
+    # unwanted_structure_id_paths =
     structures = total_df.to_dict("records")
 
     for s in structures:
         if isinstance(s["structure_id_path"], str):
             s["structure_id_path"] = eval(s["structure_id_path"])
     filtered_structures = []
-    ids_to_filter = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 62, 64, 256, 257, 258, 259, 260, 261, 262]
+    ids_to_filter = [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        62,
+        64,
+        256,
+        257,
+        258,
+        259,
+        260,
+        261,
+        262,
+    ]
     for s in structures:
-        if s['id'] not in ids_to_filter:
+        if s["id"] not in ids_to_filter:
             filtered_structures.append(s)
     return filtered_structures
 

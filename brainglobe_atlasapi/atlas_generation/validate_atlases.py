@@ -33,10 +33,7 @@ def validate_atlas_files(
             f"{get_local_atlas_version(atlas.atlas_name)}"
         )
     else:
-        atlas_path = Path(
-            custom_atlas_path
-            / f"{atlas.atlas_name}_v{atlas.metadata['version']}"
-        )
+        atlas_path = custom_atlas_path
 
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
     expected_files = [
@@ -177,10 +174,7 @@ def catch_missing_mesh_files(
             f"{get_local_atlas_version(atlas.atlas_name)}"
         )
     else:
-        atlas_path = Path(
-            custom_atlas_path
-            / f"{atlas.atlas_name}_v{atlas.metadata['version']}"
-        )
+        atlas_path = custom_atlas_path
 
     obj_path = Path(atlas_path / "meshes")
 
@@ -222,10 +216,7 @@ def catch_missing_structures(
             f"{get_local_atlas_version(atlas.atlas_name)}"
         )
     else:
-        atlas_path = Path(
-            custom_atlas_path
-            / f"{atlas.atlas_name}_v{atlas.metadata['version']}"
-        )
+        atlas_path = custom_atlas_path
 
     obj_path = Path(atlas_path / "meshes")
 

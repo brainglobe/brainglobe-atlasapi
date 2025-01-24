@@ -142,7 +142,7 @@ def test_conf_from_file_no_file(temp_path):
     with pytest.raises(FileNotFoundError) as e:
         utils.conf_from_file(conf_path)
 
-        assert "Last versions cache file not found." == str(e)
+    assert "Last versions cache file not found." == str(e.value)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Does not run on Windows")

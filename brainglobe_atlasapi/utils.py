@@ -316,9 +316,10 @@ def conf_from_url(url) -> configparser.ConfigParser:
             if status_code == 200:
                 break
         except requests.exceptions.ConnectionError:
-            max_tries -= 1
-            sleep(sleep_time)
-            sleep_time *= 2
+            pass  # keep trying to connect
+        max_tries -= 1
+        sleep(sleep_time)
+        sleep_time *= 2
 
     if status_code != 200:
         print(f"Could not fetch the latest atlas versions: {status_code}")

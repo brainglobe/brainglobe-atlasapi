@@ -42,7 +42,7 @@ ATLAS_LINK = (
 )
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
-ORIENTATION = "ria"
+ORIENTATION = "lia"
 ROOT_ID = 9999
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.

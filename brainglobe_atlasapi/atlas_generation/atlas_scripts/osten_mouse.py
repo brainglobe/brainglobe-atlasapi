@@ -2,12 +2,11 @@ __version__ = "0"
 
 import json
 import multiprocessing as mp
-import tarfile
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pooch
 import tifffile
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from rich.progress import track
@@ -19,40 +18,45 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
+ATLAS_NAME = "osten_mouse"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://doi.org/10.1016/j.celrep.2014.12.014"
+CITATION = "Kim et al. 2015, https://doi.org/10.1016/j.celrep.2014.12.014"
+ORIENTATION = "asr"
+ROOT_ID = 997
+ANNOTATIONS_RES_UM = 10
+ATLAS_FILE_URL = (
+    "https://gin.g-node.org/brainglobe/osten_atlas_"
+    "materials/raw/master/osten_atlas_materials.tar.gz"
+)
+RESOLUTION = 100  # some resolution, in microns
+
 
 def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "osten_mouse"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://doi.org/10.1016/j.celrep.2014.12.014"
-    CITATION = "Kim et al. 2015, https://doi.org/10.1016/j.celrep.2014.12.014"
-    ORIENTATION = "asr"
-    ROOT_ID = 997
-    ANNOTATIONS_RES_UM = 10
-    ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/osten_atlas_materials/raw/master/osten_atlas_materials.tar.gz"
-
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    atlas_files_dir = download_dir_path / "atlas_files"
 
     # Download atlas_file
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download"
-    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
 
-    tar = tarfile.open(destination_path)
-    tar.extractall(path=atlas_files_dir)
-    tar.close()
+    pooch.retrieve(
+        url=ATLAS_FILE_URL,
+        known_hash="ee2760152b8a4086965b9ff2dcdc9c476df676f8fee54cac695bb7ce12eaf4aa",
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Untar(extract_dir="."),
+    )
 
-    destination_path.unlink()
-
-    structures_file = atlas_files_dir / "osten_atlas" / "structures.csv"
-    annotations_file = atlas_files_dir / "osten_atlas" / "annotation.tiff"
+    structures_file = destination_path / "osten_atlas" / "structures.csv"
+    annotations_file = destination_path / "osten_atlas" / "annotation.tiff"
 
     # ---------------- #
     #   GET TEMPLATE   #
@@ -234,9 +238,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 100  # some resolution, in microns
-
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "osten_mouse"
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    create_atlas(bg_root_dir, resolution)
+    create_atlas(bg_root_dir, RESOLUTION)

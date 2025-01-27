@@ -1,7 +1,7 @@
 __version__ = "0"
+
 import json
 import time
-from pathlib import Path
 
 import meshio as mio
 import nrrd
@@ -20,20 +20,21 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+ATLAS_NAME = "allen_mouse_bluebrain_barrels"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "http://www.brain-map.org"
+CITATION = "Bolaños-Puchet S., Teska A., et al. (2024).  https://doi.org/10.1162/imag_a_00209"
+ATLAS_PACKAGER = "Axel Bisi"
+ORIENTATION = "asr"
+ROOT_ID = 997
+RES_UM = 25
 
 
 def create_atlas(working_dir, resolution):
-    # Specify information about the atlas:
-    ATLAS_NAME = "allen_mouse_bluebrain_barrels"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "http://www.brain-map.org"
-    CITATION = "Bolaños-Puchet S., Teska A., et al. (2024).  https://doi.org/10.1162/imag_a_00209"
-    ATLAS_PACKAGER = "Axel Bisi"
-    ORIENTATION = "asr"
-
     # Parameters for mesh creation:
-    ROOT_ID = 997
     CLOSING_N_ITERS = 2
     DECIMATE_FRACTION = 0.3
     SMOOTH = True
@@ -365,11 +366,8 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    RES_UM = 25
     # Generated atlas path:
-    bg_root_dir = (
-        Path.home() / "brainglobe_workingdir" / "allen_mouse_bluebrain_barrels"
-    )
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True)
 
     create_atlas(bg_root_dir, RES_UM)

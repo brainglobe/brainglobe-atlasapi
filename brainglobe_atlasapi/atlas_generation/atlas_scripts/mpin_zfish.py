@@ -1,9 +1,9 @@
 __version__ = "1"
+__atlas__ = "mpin_zfish"
 
 import tarfile
 import warnings
 import zipfile
-from pathlib import Path
 
 import numpy as np
 import requests
@@ -12,6 +12,7 @@ from scipy.ndimage import binary_dilation, binary_erosion, binary_fill_holes
 from tifffile import imread
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.utils import retrieve_over_http
 
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
@@ -260,7 +261,7 @@ def create_atlas(working_dir, resolution):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "fish"
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     create_atlas(bg_root_dir, 1)

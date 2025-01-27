@@ -3,12 +3,11 @@ __version__ = "1"
 import argparse
 import json
 import multiprocessing as mp
-import tarfile
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pooch
 import tifffile
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from rich.progress import track
@@ -20,40 +19,40 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
+ATLAS_NAME = "kim_mouse"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://kimlab.io/brain-map/atlas/"
+CITATION = "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w"
+ORIENTATION = "asr"
+ROOT_ID = 997
+ANNOTATIONS_RES_UM = 10
+ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/kim_atlas_materials/raw/master/kim_atlas_materials.tar.gz"
+
 
 def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "kim_mouse"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://kimlab.io/brain-map/atlas/"
-    CITATION = "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w"
-    ORIENTATION = "asr"
-    ROOT_ID = 997
-    ANNOTATIONS_RES_UM = 10
-    ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/kim_atlas_materials/raw/master/kim_atlas_materials.tar.gz"
-
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    atlas_files_dir = download_dir_path / "atlas_files"
 
     # Download atlas_file
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download"
-    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
+    pooch.retrieve(
+        url=ATLAS_FILE_URL,
+        known_hash="7ed3c13e6612aef68784d8d5fa9dae5e76d15783f0ff8d31b55e9481112e9919",
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Untar(extract_dir="."),
+    )
 
-    tar = tarfile.open(destination_path)
-    tar.extractall(path=atlas_files_dir)
-    tar.close()
-
-    destination_path.unlink()
-
-    structures_file = atlas_files_dir / "kim_atlas" / "structures.csv"
-    annotations_file = atlas_files_dir / "kim_atlas" / "annotation.tiff"
+    structures_file = destination_path / "kim_atlas" / "structures.csv"
+    annotations_file = destination_path / "kim_atlas" / "annotation.tiff"
 
     # ---------------- #
     #   GET TEMPLATE   #
@@ -247,7 +246,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "kim_mouse"
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # Use the parsed resolution

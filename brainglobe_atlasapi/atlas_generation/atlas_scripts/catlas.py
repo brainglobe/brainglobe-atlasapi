@@ -21,7 +21,7 @@ from brainglobe_atlasapi.utils import check_internet_connection
 
 ### Metadata
 __version__ = 1
-ATLAS_NAME = "CSL_catlas"
+ATLAS_NAME = "csl_catlas"
 CITATION = "Stolzberg, Daniel et al 2017.https://doi.org/10.1002/cne.24271"
 SPECIES = "Felis catus"
 ATLAS_LINK = "https://github.com/CerebralSystemsLab/CATLAS"
@@ -138,8 +138,8 @@ def download_files(working_dir, hash_json_exists):
                 known_hash=None,
                 path=temp_download_dir,
             )
-            file_hash = pooch.file_hash(cached_file, alg="md5")
-            file_hash = f"md5:{file_hash}"
+            file_hash = pooch.file_hash(cached_file)
+            file_hash = f"sha256:{file_hash}"
             filename_hash_list.append([file, file_hash])
 
             with open(hash_jsonpath, "w") as hash_json:
@@ -218,8 +218,8 @@ def download_mesh_files(
                         known_hash=None,
                         path=temp_download_dir,
                     )
-                    file_hash = pooch.file_hash(cached_file, alg="md5")
-                    file_hash = f"md5:{file_hash}"
+                    file_hash = pooch.file_hash(cached_file)
+                    file_hash = f"sha256:{file_hash}"
                     hash_list.append([file_name, file_hash])
                     filepath_list.append([file_name, cached_file])
             else:

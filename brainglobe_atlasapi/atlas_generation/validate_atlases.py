@@ -173,6 +173,7 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
             f"Structures with IDs {in_bg_not_mesh} are in the atlas, "
             "but don't have a corresponding mesh file."
         )
+    return True
 
 
 def catch_missing_structures(atlas: BrainGlobeAtlas):
@@ -205,6 +206,7 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
             f"Structures with IDs {in_mesh_not_bg} have a mesh file, "
             "but are not accessible through the atlas."
         )
+    return True
 
 
 def validate_reference_image_pixels(atlas: BrainGlobeAtlas):

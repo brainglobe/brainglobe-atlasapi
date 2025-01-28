@@ -20,7 +20,7 @@ from brainglobe_atlasapi.core import AdditionalRefDict
 
 
 @pytest.fixture
-def atlas():
+def valid_atlas():
     """A fixture providing a small atlas for testing.
     Tests assume this atlas is valid"""
     return BrainGlobeAtlas("kim_dev_mouse_e11-5_mri-adc_31.5um")
@@ -121,7 +121,7 @@ def atlas_with_reference_matching_additional_reference():
     os.remove(additional_reference_name)
 
 
-def test_valid_atlas_passes_all_validations(atlas):
+def test_valid_atlas_passes_all_validations(valid_atlas):
     """
     Check all our validation functions return True
     for a valid atlas
@@ -129,12 +129,12 @@ def test_valid_atlas_passes_all_validations(atlas):
     validation_functions = get_all_validation_functions()
     for validation_function in validation_functions:
         assert validation_function(
-            atlas
+            valid_atlas
         ), f"Function {validation_function.__name__} fails on valid atlas."
 
 
-def test_validate_mesh_matches_image_extents_negative(mocker, atlas):
-    flipped_annotation_image = np.transpose(atlas.annotation)
+def test_validate_mesh_matches_image_extents_negative(mocker, valid_atlas):
+    flipped_annotation_image = np.transpose(valid_atlas.annotation)
     mocker.patch(
         "brainglobe_atlasapi.BrainGlobeAtlas.annotation",
         new_callable=mocker.PropertyMock,
@@ -143,7 +143,7 @@ def test_validate_mesh_matches_image_extents_negative(mocker, atlas):
     with pytest.raises(
         AssertionError, match="differ by more than 10 times pixel size"
     ):
-        validate_mesh_matches_image_extents(atlas)
+        validate_mesh_matches_image_extents(valid_atlas)
 
 
 def test_invalid_atlas_path(atlas_with_bad_reference_file):

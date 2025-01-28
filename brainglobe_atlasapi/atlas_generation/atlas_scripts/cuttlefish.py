@@ -1,15 +1,12 @@
 __version__ = "0"
 
-import time
 import csv
 import glob as glob
+import time
 from pathlib import Path
 
 import pooch
 from brainglobe_utils.IO.image import load
-from numpy.typing import NDArray
-from pygltflib import GLTF2
-from vedo import Mesh, write
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -264,7 +261,7 @@ def create_atlas(working_dir, resolution):
     # df = pd.DataFrame(hierarchy)
     # df.to_csv('hierarchy_test.csv')
 
-        # generate binary mask for mesh creation
+    # generate binary mask for mesh creation
     labels = np.unique(readdata).astype(np.int_)
     for key, node in tree.nodes.items():
         if key in labels:
@@ -278,11 +275,11 @@ def create_atlas(working_dir, resolution):
     atlas_dir_name = f"{ATLAS_NAME}_{resolution[0]}um_v1.{__version__}"
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
-    
+
     closing_n_iters = 2
     decimate_fraction = 0.3
     smooth = True
-    
+
     start = time.time()
 
     for node in track(
@@ -309,7 +306,7 @@ def create_atlas(working_dir, resolution):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-    
+
     # create meshes_dict
     meshes_dict = dict()
     structures_with_mesh = []

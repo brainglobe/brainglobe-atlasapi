@@ -1,5 +1,6 @@
 __version__ = "0"
 
+import time
 import csv
 import glob as glob
 from pathlib import Path
@@ -12,9 +13,15 @@ from brainglobe_utils.IO.image import load
 from numpy.typing import NDArray
 from pygltflib import GLTF2
 from vedo import Mesh, write
+from rich.progress import track
 
 from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    Region,
+    create_region_mesh,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def hex_to_rgb(hex):
@@ -38,7 +45,7 @@ def create_atlas(working_dir, resolution):
     ORIENTATION = "srp"
     ATLAS_PACKAGER = "Jung Woo Kim"
     ADDITIONAL_METADATA = {}
-
+    ROOT_ID = 999
     HIERARCHY_FILE_URL = "https://raw.githubusercontent.com/noisyneuron/cuttlebase-util/main/data/brain-hierarchy.csv"  # noqa E501
     TEMPLATE_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ABflM0-v-b4_2WthGaeYM4s/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template.nii.gz?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"  # noqa E501
     ANNOTATION_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ALfSeAj81IM0v56bEeoTfUQ/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template_lobe-labels.nii.seg.nrrd?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"  # noqa E501
@@ -238,6 +245,13 @@ def create_atlas(working_dir, resolution):
             hierarchy[index]["acronym"] = missing_acronyms[n]
             n = n + 1
 
+    # generate hierarchy tree
+    tree = get_structures_tree(hierarchy)
+    print(
+        f"Number of brain regions: {tree.size()}, "
+        f"max tree depth: {tree.depth()}"
+    )
+
     # import cuttlefish .nii file
     template_path = pooch.retrieve(
         TEMPLATE_URL,
@@ -254,11 +268,51 @@ def create_atlas(working_dir, resolution):
     # df = pd.DataFrame(hierarchy)
     # df.to_csv('hierarchy_test.csv')
 
+        # generate binary mask for mesh creation
+    labels = np.unique(readdata).astype(np.int_)
+    for key, node in tree.nodes.items():
+        if key in labels:
+            is_label = True
+        else:
+            is_label = False
+
+        node.data = Region(is_label)
 
     # write meshes
     atlas_dir_name = f"{ATLAS_NAME}_{resolution[0]}um_v1.{__version__}"
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
+    
+    closing_n_iters = 2
+    decimate_fraction = 0.3
+    smooth = True
+    
+    start = time.time()
+
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
+            (
+                mesh_dir,
+                node,
+                tree,
+                labels,
+                readdata,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
+            )
+        )
+
+    print(
+        "Finished mesh extraction in : ",
+        round((time.time() - start) / 60, 2),
+        " minutes",
+    )
     
     # create meshes_dict
     meshes_dict = dict()
@@ -295,7 +349,7 @@ def create_atlas(working_dir, resolution):
         annotation_stack=readdata,
         structures_list=hierarchy,
         meshes_dict=meshes_dict,
-        scale_meshes=False,
+        scale_meshes=True,
         working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,

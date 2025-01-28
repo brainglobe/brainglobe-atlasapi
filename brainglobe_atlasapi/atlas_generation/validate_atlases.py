@@ -236,6 +236,16 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
     return True
 
 
+def validate_atlas_name(atlas: BrainGlobeAtlas):
+    """
+    Ensures atlas names are all lowercase
+    """
+    assert (
+        atlas.atlas_name == atlas.atlas_name.lower()
+    ), "Atlas name cannot contain capitals."
+    return True
+
+
 def get_all_validation_functions():
     return [
         validate_atlas_files,
@@ -246,6 +256,7 @@ def get_all_validation_functions():
         catch_missing_structures,
         validate_reference_image_pixels,
         validate_annotation_symmetry,
+        validate_atlas_name,
     ]
 
 

@@ -247,6 +247,8 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
 
 
 def get_all_validation_functions():
+    """Returns all individual validation functions as a list.
+    All functions should expect 1 argument, a BrainGlobeAtlas."""
     return [
         validate_atlas_files,
         validate_mesh_matches_image_extents,

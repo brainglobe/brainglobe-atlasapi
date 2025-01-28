@@ -232,7 +232,7 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
     label_5_right_of_centre = central_leftright_axis_annotations[centre[2] - 5]
     assert (
         label_5_left_of_centre == label_5_right_of_centre
-    ), "Annotation labels are asymmetric"
+    ), "Annotation labels are asymmetric."
     return True
 
 
@@ -242,7 +242,7 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
     """
     assert (
         atlas.atlas_name == atlas.atlas_name.lower()
-    ), "Atlas name cannot contain capitals."
+    ), f"Atlas name {atlas.atlas_name} cannot contain capitals."
     return True
 
 

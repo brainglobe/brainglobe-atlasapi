@@ -11,16 +11,19 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     catch_missing_structures,
     get_all_validation_functions,
     validate_additional_references,
+    validate_annotation_symmetry,
     validate_atlas_files,
+    validate_atlas_name,
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
+    validate_reference_image_pixels,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
 
 
 @pytest.fixture
-def valid_atlas():
+def atlas():
     """A fixture providing a small atlas for testing.
     Tests assume this atlas is valid"""
     return BrainGlobeAtlas("kim_dev_mouse_e11-5_mri-adc_31.5um")
@@ -121,7 +124,7 @@ def atlas_with_reference_matching_additional_reference():
     os.remove(additional_reference_name)
 
 
-def test_valid_atlas_passes_all_validations(valid_atlas):
+def test_valid_atlas_passes_all_validations(atlas):
     """
     Check all our validation functions return True
     for a valid atlas
@@ -129,12 +132,12 @@ def test_valid_atlas_passes_all_validations(valid_atlas):
     validation_functions = get_all_validation_functions()
     for validation_function in validation_functions:
         assert validation_function(
-            valid_atlas
+            atlas
         ), f"Function {validation_function.__name__} fails on valid atlas."
 
 
-def test_validate_mesh_matches_image_extents_negative(mocker, valid_atlas):
-    flipped_annotation_image = np.transpose(valid_atlas.annotation)
+def test_validate_mesh_matches_image_extents_negative(mocker, atlas):
+    flipped_annotation_image = np.transpose(atlas.annotation)
     mocker.patch(
         "brainglobe_atlasapi.BrainGlobeAtlas.annotation",
         new_callable=mocker.PropertyMock,
@@ -143,7 +146,7 @@ def test_validate_mesh_matches_image_extents_negative(mocker, valid_atlas):
     with pytest.raises(
         AssertionError, match="differ by more than 10 times pixel size"
     ):
-        validate_mesh_matches_image_extents(valid_atlas)
+        validate_mesh_matches_image_extents(atlas)
 
 
 def test_invalid_atlas_path(atlas_with_bad_reference_file):
@@ -225,3 +228,46 @@ def test_atlas_additional_reference_same(
         validate_additional_references(
             atlas_with_reference_matching_additional_reference
         )
+
+
+def test_badly_scaled_reference_fails(mocker, atlas):
+    """Checks that an atlas with only ones as reference image fails"""
+    invalid_reference = np.ones_like(atlas.reference)
+    mocker.patch(
+        "brainglobe_atlasapi.BrainGlobeAtlas.reference",
+        new_callable=mocker.PropertyMock,
+        return_value=invalid_reference,
+    )
+    with pytest.raises(
+        AssertionError,
+        match=r"Reference image is likely wrongly rescaled to.",
+    ):
+        validate_reference_image_pixels(atlas)
+
+
+def test_asymmetrical_annotation_fails(mocker, atlas):
+    """Checks that an atlas with LR annotation mismatch fails"""
+    asymmetrical_lr_labels = atlas.annotation.copy()
+    midsagittal_index = asymmetrical_lr_labels.shape[2] // 2
+    asymmetrical_lr_labels[:, :, midsagittal_index:] += 1
+
+    mocker.patch(
+        "brainglobe_atlasapi.BrainGlobeAtlas.annotation",
+        new_callable=mocker.PropertyMock,
+        return_value=asymmetrical_lr_labels,
+    )
+    with pytest.raises(
+        AssertionError,
+        match=r"Annotation labels are asymmetric.",
+    ):
+        validate_annotation_symmetry(atlas)
+
+
+def test_upper_case_name_fails(atlas):
+    """Checks that an atlas with capital letters in name fails"""
+    atlas.atlas_name = atlas.atlas_name.upper()
+    with pytest.raises(
+        AssertionError,
+        match=r"cannot contain capitals.",
+    ):
+        validate_atlas_name(atlas)

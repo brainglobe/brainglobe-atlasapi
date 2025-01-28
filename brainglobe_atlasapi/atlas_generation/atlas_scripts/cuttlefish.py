@@ -4,10 +4,7 @@ import time
 import csv
 import glob as glob
 from pathlib import Path
-from typing import Tuple
 
-import brainglobe_space as bg
-import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load
 from numpy.typing import NDArray
@@ -32,7 +29,6 @@ def hex_to_rgb(hex):
         rgb.append(decimal)
 
     return rgb
-
 
 
 def create_atlas(working_dir, resolution):

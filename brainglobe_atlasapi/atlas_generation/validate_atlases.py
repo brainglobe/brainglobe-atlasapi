@@ -8,6 +8,7 @@ import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.config import get_brainglobe_dir
+from brainglobe_atlasapi.descriptors import REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
@@ -204,6 +205,46 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
             f"Structures with IDs {in_mesh_not_bg} have a mesh file, "
             "but are not accessible through the atlas."
         )
+
+
+def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
+    """Validates that reference image was correctly rescaled to
+    target datatype. Often goes wrong when naively passing float64
+    (MRI) data to wrapup function.
+    """
+    assert not np.all(
+        atlas.reference < 10
+    ), f"Reference image is likely wrongly rescaled to {REFERENCE_DTYPE}"
+    return True
+
+
+def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
+    """Validates that equivalent regions in L+R hemispheres have same
+    annotation value. This is done by naively comparing two central pixels
+    that are opposite each other along the mid-sagittal plane, and near
+    the mid-sagittal plane."""
+    annotation = atlas.annotation
+    centre = np.array(annotation.shape) // 2
+    central_leftright_axis_annotations = annotation[centre[0], centre[1], :]
+    label_5_left_of_centre = central_leftright_axis_annotations[centre[2] + 5]
+    label_5_right_of_centre = central_leftright_axis_annotations[centre[2] - 5]
+    assert (
+        label_5_left_of_centre == label_5_right_of_centre
+    ), "Annotation labels are asymmetric"
+    return True
+
+
+def get_all_validation_functions():
+    return [
+        validate_atlas_files,
+        validate_mesh_matches_image_extents,
+        validate_image_dimensions,
+        validate_additional_references,
+        catch_missing_mesh_files,
+        catch_missing_structures,
+        validate_reference_image_pixels,
+        validate_annotation_symmetry,
+    ]
 
 
 def validate_atlas(atlas_name, version, validation_functions):

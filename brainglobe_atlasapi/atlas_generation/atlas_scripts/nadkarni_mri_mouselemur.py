@@ -23,8 +23,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 # if this is the first time this atlas has been added the value should be 0
 # (minor version is the first number after the decimal point, ie the minor
 # version of 1.2 is 2)
-__version__ = 0
-PARALLEL = False
+__version__ = 1
 # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 ATLAS_NAME = "nadkarni_mri_mouselemur"
@@ -53,9 +52,7 @@ DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 def download_resources():
     """
-    Download the necessary resources for the atlas.
-
-    If possible, please use the Pooch library to retrieve any resources.
+    Downloads the necessary resources for the atlas with Pooch.
     """
     # Define the path to the doggie bag
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
@@ -74,6 +71,11 @@ def download_resources():
 def retrieve_reference_and_annotation():
     """
     Retrieve the desired reference and annotation as two numpy arrays.
+
+    Because BrainGlobe wants the same annotation for the same region in
+    opposite hemispheres (and the raw data is ~symmetric but differs in LR
+    annotation), we additionally mirror the right annotation hemisphere to
+    overwrite the original left annotation hemisphere.
 
     Returns:
         tuple: A tuple containing two numpy arrays. The first array is the
@@ -97,6 +99,10 @@ def retrieve_reference_and_annotation():
         / "MIRCen-MouseLemurAtlas_V0.01"
         / "MouseLemurLabels_V0.01.nii.gz"
     )
+    lr_shape = annotation.shape[0]  # LIA at this point
+    # need a +1 to account for odd number of pixels along LR
+    # replace L annotations with mirror of R hemisphere.
+    annotation[: lr_shape // 2] = annotation[(lr_shape // 2) + 1 :][::-1]
     return reference, annotation
 
 
@@ -104,25 +110,28 @@ def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
-    This is an array in the same shape as your template,
-    with 0's marking the left hemisphere, and 1's marking the right.
-
-    If your atlas is symmetrical, ignore this function.
+    This atlas is symmetrical "enough" that we mark it as symmetrical.
+    (The template is not entirely pixel-by-pixel symmetrical).
+    Symmetrical enough means that we can easily compute the hemispheres,
+    by taking half the annotation along the LR axis, so we
+    don't need to store it.
 
     Returns:
         numpy.array or None: A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
-    return None  # Symmetrical
+    return None
 
 
 def retrieve_structure_information():
     """
-    This function should return a pandas DataFrame with information about your
-    atlas.
+    Entries ending with '_L' or ' L ' are dropped,
+    to match the symmetrised annotation.
 
-    The DataFrame should be in the following format:
+    Then we return a Dataframe that in the following format.
+    In the mouselemur case, the original data doesn't provide acronyms.
+    And there is no easy way to come up with a sensible unique acronym
+    programmatically. So we use the name as the acronym too.
 
     ╭────┬───────────────────┬─────────┬───────────────────┬─────────────────╮
     | id | name              | acronym | structure_id_path | rgb_triplet     |
@@ -155,7 +164,6 @@ def retrieve_structure_information():
     new_df = pd.DataFrame()
     new_df["id"] = df["IDX"]
     new_df["name"] = df["LABEL"]
-    new_df["acronym"] = df["LABEL"]
     new_df["rgb_triplet"] = df[["R", "G", "B"]].values.tolist()
     new_df["structure_id_path"] = new_df["id"].apply(lambda x: [ROOT_ID, x])
     new_df["rgb_triplet"] = df[["R", "G", "B"]].values.tolist()
@@ -170,16 +178,22 @@ def retrieve_structure_information():
     )
     new_df = pd.concat([root, new_df]).reset_index(drop=True)
     new_df = new_df[new_df["name"] != "Clear Label"].reset_index(drop=True)
+    # drop regions from left hemisphere (we have replaced them with their
+    # equivalent label from the right hemisphere)
+    # these regions end with " L" or " L "
+    new_df = new_df[~new_df["name"].str.endswith(" L")].reset_index(drop=True)
+    new_df = new_df[~new_df["name"].str.endswith(" L ")].reset_index(drop=True)
+    new_df["name"] = new_df["name"].str.replace(" R$", "", regex=True)
+
+    new_df["acronym"] = new_df["name"]
     return new_df.to_dict("records")
 
 
 def retrieve_or_construct_meshes(structures):
     """
     This function should return a dictionary of ids and corresponding paths to
-    mesh files. Some atlases are packaged with mesh files, in these cases we
-    should use these files. Then this function should download those meshes.
-    In other cases we need to construct the meshes ourselves. For this we have
-    helper functions to achieve this.
+    mesh files. We construct the meshes ourselves for this atlas, as the
+    original data does not provide precomputed meshes.
     """
     print("constructing meshes")
 

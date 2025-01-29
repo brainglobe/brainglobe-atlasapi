@@ -56,14 +56,14 @@ def test_additional_ref_dict(temp_path):
 @pytest.mark.parametrize(
     "stack_name, val",
     [
-        ("reference", [[[146, 155], [153, 157]], [[148, 150], [153, 153]]]),
-        ("annotation", [[[59, 362], [59, 362]], [[59, 362], [59, 362]]]),
+        ("reference", [[[155, 146], [157, 153]], [[151, 148], [154, 153]]]),
+        ("annotation", [[[59, 59], [59, 59]], [[59, 59], [59, 59]]]),
         ("hemispheres", [[[2, 1], [2, 1]], [[2, 1], [2, 1]]]),
     ],
 )
 def test_stacks(atlas, stack_name, val):
     loaded_stack = getattr(atlas, stack_name)
-    assert np.allclose(loaded_stack[65:67, 39:41, 57:59], val)
+    assert np.allclose(loaded_stack[65:67, 39:41, 56:58], val)
 
 
 def test_structures(atlas):
@@ -92,13 +92,13 @@ def test_data_from_coords(atlas, coords):
         )
         == "root"
     )
-    assert atlas.hemisphere_from_coords(coords) == atlas.right_hemisphere_value
-    assert atlas.hemisphere_from_coords(coords, as_string=True) == "right"
+    assert atlas.hemisphere_from_coords(coords) == atlas.left_hemisphere_value
+    assert atlas.hemisphere_from_coords(coords, as_string=True) == "left"
     assert (
         atlas.hemisphere_from_coords(
             [c * r for c, r in zip(coords, res)], microns=True, as_string=True
         )
-        == "right"
+        == "left"
     )
 
 

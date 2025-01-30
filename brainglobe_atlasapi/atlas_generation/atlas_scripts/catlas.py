@@ -413,45 +413,48 @@ csv_of_full_name = [
     ["Cbm", "Cerebellum"],
 ]
 
-bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-working_dir = bg_root_dir
-temp_download_dir = bg_root_dir / "download_dir"
 
-# Deletes the folder since wrapup doesnt work if folder is created
-if bg_root_dir.exists():
-    shutil.rmtree(bg_root_dir)
+if __name__ == "__main__":
 
-bg_root_dir.mkdir(parents=True, exist_ok=True)
-local_file_path_list = download_resources(working_dir)
-template_volume, reference_volume = retrieve_template_and_annotations(
-    local_file_path_list
-)
-structures_dict = retrieve_structure_information(
-    local_file_path_list, csv_of_full_name
-)
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+    working_dir = bg_root_dir
+    temp_download_dir = bg_root_dir / "download_dir"
 
-print("Converting VTK files into .obj mesh")
-meshes_dict = extract_mesh_from_vtk(working_dir)
+    # Deletes the folder since wrapup doesnt work if folder is created
+    if bg_root_dir.exists():
+        shutil.rmtree(bg_root_dir)
 
-output_filename = wrapup_atlas_from_data(
-    atlas_name=ATLAS_NAME,
-    atlas_minor_version=__version__,
-    citation=CITATION,
-    atlas_link=ATLAS_LINK,
-    species=SPECIES,
-    resolution=(RESOLUTION,) * 3,
-    orientation=ORIENTATION,
-    root_id=ROOT_ID,
-    reference_stack=template_volume,
-    annotation_stack=reference_volume,
-    structures_list=structures_dict,
-    meshes_dict=meshes_dict,
-    working_dir=working_dir,
-    hemispheres_stack=None,
-    cleanup_files=False,
-    compress=True,
-    scale_meshes=True,
-    atlas_packager=ATLAS_PACKAGER,
-)
+    bg_root_dir.mkdir(parents=True, exist_ok=True)
+    local_file_path_list = download_resources(working_dir)
+    template_volume, reference_volume = retrieve_template_and_annotations(
+        local_file_path_list
+    )
+    structures_dict = retrieve_structure_information(
+        local_file_path_list, csv_of_full_name
+    )
 
-shutil.rmtree(temp_download_dir)
+    print("Converting VTK files into .obj mesh")
+    meshes_dict = extract_mesh_from_vtk(working_dir)
+
+    output_filename = wrapup_atlas_from_data(
+        atlas_name=ATLAS_NAME,
+        atlas_minor_version=__version__,
+        citation=CITATION,
+        atlas_link=ATLAS_LINK,
+        species=SPECIES,
+        resolution=(RESOLUTION,) * 3,
+        orientation=ORIENTATION,
+        root_id=ROOT_ID,
+        reference_stack=template_volume,
+        annotation_stack=reference_volume,
+        structures_list=structures_dict,
+        meshes_dict=meshes_dict,
+        working_dir=working_dir,
+        hemispheres_stack=None,
+        cleanup_files=False,
+        compress=True,
+        scale_meshes=True,
+        atlas_packager=ATLAS_PACKAGER,
+    )
+
+    shutil.rmtree(temp_download_dir)

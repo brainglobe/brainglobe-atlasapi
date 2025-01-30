@@ -1,6 +1,5 @@
 """ Atlas for a domestic cat """
 
-import json
 import os
 import shutil
 from pathlib import Path
@@ -8,9 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pooch
-import requests
 from brainglobe_utils.IO.image import load_nii
-from bs4 import BeautifulSoup
 from vedo import Mesh, write
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -32,208 +29,105 @@ RESOLUTION = 500  # microns
 ATLAS_PACKAGER = "Henry Crosswell"
 
 
+def pooch_init(temp_download_dir, base_url):
+    """
+    initiate a pooch object to be used to fetch files in the future,
+    using the hashes saved to the hashes folder.
+
+    """
+    hash_folder = (
+        Path(__file__).parent.parent / "hashes" / (ATLAS_NAME + ".txt")
+    )
+    dawg = pooch.create(
+        path=temp_download_dir,
+        base_url=base_url,
+    )
+
+    dawg.load_registry(hash_folder)
+
+    return dawg, hash_folder
+
+
 def download_resources(working_dir):
     """
-    Checks to see if necessary files are already downloaded. If not,
-    downloads the nifti images, labels and annotations for the atlas.
-    Uses pooch hashes if they are present in hash_registry - creates
-    the json if it is not found
+    Uses Pooch to download the nifti images, labels and annotations
+    for the atlas, using the pooch hashes from the hash folder.
 
     Returns:
         List : list of all downloaded local filepaths
     """
-    # Setup download folder
-    temp_download_dir = working_dir / "download_dir"
 
-    # Hash_jsonpath needs to be external to the working dir, or it'll
-    # be overwritten - will need to change some variable names to make
-    # this work. For now it'll always be deleted and will therefore
-    # download the files without preset pooch hashes.
-
-    hash_jsonpath = Path.home() / "hash_registry.json"
-    # hash_jsonpath = working_dir / "hash_registry.json"
-
-    hash_json_exists = False
-    file_path_list = []
     check_internet_connection()
 
-    # Checks for json containing pooch registry
-    if hash_jsonpath.exists():
-        hash_json_exists = True
-        print("Retrieving file paths and pooch hashes...")
-        # Check to see if files are already downloaded
-        if not temp_download_dir.exists():
-            filepath_to_add, hash_to_add = download_files(
-                working_dir, hash_json_exists
-            )
-            filepath_jsonpath, hash_jsonpath = download_mesh_files(
-                filepath_to_add, hash_to_add, working_dir, hash_json_exists
-            )
-    else:
-        # If json doesn't exist, it downloads the data and creates a json
-        print("Downloading file paths and pooch hashes...")
-        filepath_to_add, hash_to_add = download_files(
-            working_dir, hash_json_exists
-        )
-        filepath_jsonpath, hash_jsonpath = download_mesh_files(
-            filepath_to_add, hash_to_add, working_dir, hash_json_exists
-        )
+    # Setup download folder
+    temp_download_dir = working_dir / "download_dir"
+    temp_download_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(filepath_jsonpath, "r") as json_file_to_edit:
-        filename_and_path_list = json.load(json_file_to_edit)
+    file_path_list = []
 
-    for _, file_path in filename_and_path_list:
+    file_paths = download_nifti_files(temp_download_dir)
+
+    file_paths = download_mesh_files(file_paths, temp_download_dir)
+
+    for _, file_path in file_paths:
         file_path_list.append(file_path)
 
     return file_path_list
 
 
-def download_files(working_dir, hash_json_exists):
+def download_nifti_files(temp_download_dir):
     """
     Takes pre-assigned file names and uses pooch to download
-    the files, writing filepath and pooch hash to json.
-    If Json containing the pooch hashes exists then it'll use them
+    the files, writing the file_path to a list.
 
     Returns:
-        filepath_to_add, hash_to_add :
-            path to a json file containing [filename, filepath]
-
-        hash_jsonpath :
-            path to a json file containing [filename, hash]
+        file_paths :
+            a list of downloaded file paths containing [filename, filepath]
     """
+    file_paths = []
 
-    filename_hash_list = []
-    filename_filepath_list = []
-    temp_download_dir = working_dir / "download_dir"
-    temp_download_dir.mkdir(parents=True, exist_ok=True)
-
-    # hash_jsonpath = working_dir / "hash_registry.json"
-    hash_jsonpath = Path.home() / "hash_registry.json"
-
-    filepath_jsonpath = temp_download_dir / "path_registry.json"
     file_names = [
         "meanBrain.nii",
         "CorticalAtlas.nii",
         "CATLAS_COLORS.txt",
     ]
 
+    dawg, _ = pooch_init(temp_download_dir, ATLAS_FILE_URL)
+
     # Loops through the files
-    for i, file in enumerate(file_names):
+    for file in file_names:
+        cached_file = dawg.fetch(file)
+        file_paths.append([file, cached_file])
 
-        # If JSON exists, uses the pooch hashes to download the file
-        if hash_json_exists:
-            with open(hash_jsonpath, "r") as hash_json:
-                hash_json = json.load(hash_json)
-            hash = hash_json[i][1]
-            cached_file = pooch.retrieve(
-                url=ATLAS_FILE_URL + file,
-                known_hash=hash,
-                path=temp_download_dir,
-            )
-            filename_filepath_list.append([file, cached_file])
-
-        else:
-            cached_file = pooch.retrieve(
-                url=ATLAS_FILE_URL + file,
-                known_hash=None,
-                path=temp_download_dir,
-            )
-            file_hash = pooch.file_hash(cached_file)
-            file_hash = f"sha256:{file_hash}"
-            filename_hash_list.append([file, file_hash])
-
-            with open(hash_jsonpath, "w") as hash_json:
-                json.dump(filename_hash_list, hash_json)
-
-        with open(filepath_jsonpath, "w") as filepath_json:
-            json.dump(filename_filepath_list, filepath_json)
-
-    return filepath_jsonpath, hash_jsonpath
+    return file_paths
 
 
-def download_mesh_files(
-    filepath_to_add, hash_to_add, working_dir, hash_json_exists
-):
+def download_mesh_files(file_paths, temp_download_dir):
     """
-    Opens jsons from 'download files' function to add the
-    mesh filepath and hashes too. First checks to see if the hash_json
-    contains the necessary hashes for the download. If not then it
-    downloads the mesh files without and saves the hash to the hash_json.
+    Retrieves the file names from the hash file,
+    then downloads the mesh files using the associated hash.
+    Appends this to the nifti file path list
 
     Returns:
-        filepath_to_add :
-            path to an updated json file containing [filename, filepath]
-        hash_to_add :
-            path to an updated json file containing [filename, hash]
+        nifti_file_paths :
+            List containing nifti and mesh file paths [filename, filepath]
     """
-
-    # hash_jsonpath = working_dir / "hash_registry.json"
-    hash_jsonpath = Path.home() / "hash_registry.json"
-
-    temp_download_dir = working_dir / "download_dir"
-
-    vtk_folder_url = (
-        "https://github.com/CerebralSystemsLab/CATLAS/"
-        + "blob/main/SlicerFiles/CorticalAtlasModel_A/"
-    )
 
     vtk_file_url = (
         "https://github.com/CerebralSystemsLab/CATLAS/raw/"
         + "refs/heads/main/SlicerFiles/CorticalAtlasModel_A/"
     )
 
-    with open(filepath_to_add, "r") as filepath_to_edit:
-        filepath_list = json.load(filepath_to_edit)
-    with open(hash_to_add, "r") as hash_to_edit:
-        hash_list = json.load(hash_to_edit)
+    dawg, hash_folder = pooch_init(temp_download_dir, vtk_file_url)
 
-    response = requests.get(vtk_folder_url)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, "html.parser")
-        files = soup.find_all("a", class_="Link--primary")
-        seen_files = set()
-        index = 3
+    with open(hash_folder, "r") as file:
+        file_names = [line.strip().split()[0] for line in file]
 
-        for file in files:
-            file_name = file.get_text()
-            if file_name not in seen_files:
-                seen_files.add(file_name)
-                # If JSON exists, uses the pooch hashes for download
-                if hash_json_exists:
-                    with open(hash_jsonpath, "r") as hash_json:
-                        hash_json = json.load(hash_json)
-                    hash = hash_json[index][1]
+    for file in file_names[3:]:
+        cached_file = dawg.fetch(file)
+        file_paths.append([file, cached_file])
 
-                    cached_file = pooch.retrieve(
-                        url=vtk_file_url + file_name,
-                        known_hash=hash,
-                        path=temp_download_dir,
-                    )
-                    filepath_list.append([file_name, cached_file])
-                    index += 1
-
-                else:
-                    cached_file = pooch.retrieve(
-                        url=vtk_file_url + file_name,
-                        known_hash=None,
-                        path=temp_download_dir,
-                    )
-                    file_hash = pooch.file_hash(cached_file)
-                    file_hash = f"sha256:{file_hash}"
-                    hash_list.append([file_name, file_hash])
-                    filepath_list.append([file_name, cached_file])
-            else:
-                continue
-
-    else:
-        print("Incorrect URL given for VTK files")
-
-    with open(hash_to_add, "w") as hash_json:
-        json.dump(hash_list, hash_json)
-    with open(filepath_to_add, "w") as filepath_json:
-        json.dump(filepath_list, filepath_json)
-
-    return filepath_to_add, hash_to_add
+    return file_paths
 
 
 def retrieve_template_and_annotations(file_path_list):
@@ -247,6 +141,7 @@ def retrieve_template_and_annotations(file_path_list):
         The first array is a downscaled template volume,
         and the second array is a reference volume.
     """
+
     template_volume = load_nii(file_path_list[0], as_array=True)
     reference_volume = load_nii(file_path_list[1], as_array=True)
 
@@ -406,10 +301,6 @@ def extract_mesh_from_vtk(working_dir):
         if not vtk_file.endswith(".vtk"):
             continue
 
-        # Checking for duplicates
-        elif vtk_file in ["A_32_Cerebelum.vtk", "A_36_pPE.vtk"]:
-            continue
-
         mesh = Mesh(str(temp_download_dir / vtk_file))
 
         # Re-creating the transformations from mesh_utils
@@ -419,10 +310,7 @@ def extract_mesh_from_vtk(working_dir):
 
         # Saves object files with a numerical index
         index = str(vtk_file)
-        index = index.split("-")
-        index = index[1][2:4]
-        if index[-1] == "_":
-            index = index[0]
+        index = index[:-4]
         file_name = f"{index}.obj"
         file_path = str(mesh_save_folder / file_name)
         mesh_dict[index] = file_path

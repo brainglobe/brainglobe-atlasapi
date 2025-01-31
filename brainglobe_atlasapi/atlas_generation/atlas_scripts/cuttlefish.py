@@ -3,15 +3,13 @@ __version__ = "0"
 import csv
 import glob as glob
 import time
+import time
 from pathlib import Path
 import nrrd
 
 import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load
-from numpy.typing import NDArray
-from pygltflib import GLTF2
-from vedo import Mesh, write
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -256,6 +254,7 @@ def create_atlas(working_dir, resolution):
     brain_template = load.load_nii(template_path, as_array=True)
 
     # generate binary mask for mesh creation
+    # generate binary mask for mesh creation
     labels = np.unique(readdata).astype(np.int_)
     for key, node in tree.nodes.items():
         if key in labels:
@@ -274,7 +273,7 @@ def create_atlas(working_dir, resolution):
     closing_n_iters = 2
     decimate_fraction = 0.3
     smooth = True
-    
+
     start = time.time()
 
     for node in track(
@@ -301,7 +300,7 @@ def create_atlas(working_dir, resolution):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-    
+
     # create meshes_dict
     meshes_dict = dict()
     structures_with_mesh = []

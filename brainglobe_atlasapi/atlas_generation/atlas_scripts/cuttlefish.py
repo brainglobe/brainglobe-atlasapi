@@ -3,10 +3,9 @@ __version__ = "0"
 import csv
 import glob as glob
 import time
-import time
 from pathlib import Path
-import nrrd
 
+import nrrd
 import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load
@@ -268,7 +267,7 @@ def create_atlas(working_dir, resolution):
     atlas_dir_name = f"{ATLAS_NAME}_{resolution[0]}um_v1.{__version__}"
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
-    
+
     # define smoothing information for meshes
     closing_n_iters = 2
     decimate_fraction = 0.3

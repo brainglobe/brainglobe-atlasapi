@@ -174,3 +174,16 @@ def test_descendants(atlas):
 
     desc = atlas.get_structure_descendants("root")
     assert desc == ["grey", "CH"]
+
+
+def test_odd_hemisphere_size(atlas):
+    atlas.metadata["shape"] = [132, 80, 115]
+    assert atlas.hemispheres.shape == (132, 80, 115)
+    assert (atlas.hemispheres[:, :, 57] == 2).all()
+    assert (atlas.hemispheres[:, :, 58] == 1).all()
+
+
+def test_even_hemisphere_size(atlas):
+    assert atlas.hemispheres.shape == (132, 80, 114)
+    assert (atlas.hemispheres[:, :, 56] == 2).all()
+    assert (atlas.hemispheres[:, :, 57] == 1).all()

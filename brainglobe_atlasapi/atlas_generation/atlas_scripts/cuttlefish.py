@@ -1,10 +1,12 @@
 __version__ = "0"
 
-import time
 import csv
 import glob as glob
+import time
 from pathlib import Path
+import nrrd
 
+import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load
 from numpy.typing import NDArray
@@ -65,8 +67,6 @@ def create_atlas(working_dir, resolution):
         progressbar=True,
     )
 
-    import nrrd
-
     # process brain annotation file. There are a total of 70 segments.
     print("Processing brain annotations:")
     readdata, header = nrrd.read(annotation_path)
@@ -92,11 +92,7 @@ def create_atlas(working_dir, resolution):
             int(255 * x) for x in mapping[index]["color"]
         ]
 
-    # print(mapping)
-    # df = pd.DataFrame(mapping)
-    # df.to_csv('mappingtest.csv')
-
-    # create dictionaries
+    # create dictionaries for regions hierarchy
     print("Creating structure tree")
     with open(
         hierarchy_path, mode="r", encoding="utf-8-sig"
@@ -162,7 +158,7 @@ def create_atlas(working_dir, resolution):
             "name": "root",
             "acronym": "root",
             "structure_id_path": [999],
-            "id": 999,
+            "id": ROOT_ID,
         }
     )
 
@@ -259,12 +255,7 @@ def create_atlas(working_dir, resolution):
     print("Processing brain template:")
     brain_template = load.load_nii(template_path, as_array=True)
 
-    # check the transformed version of the hierarchy.csv file
-    # print(hierarchy)
-    # df = pd.DataFrame(hierarchy)
-    # df.to_csv('hierarchy_test.csv')
-
-        # generate binary mask for mesh creation
+    # generate binary mask for mesh creation
     labels = np.unique(readdata).astype(np.int_)
     for key, node in tree.nodes.items():
         if key in labels:
@@ -279,6 +270,7 @@ def create_atlas(working_dir, resolution):
     mesh_dir = Path(working_dir) / ATLAS_NAME / atlas_dir_name / "meshes"
     mesh_dir.mkdir(exist_ok=True, parents=True)
     
+    # define smoothing information for meshes
     closing_n_iters = 2
     decimate_fraction = 0.3
     smooth = True
@@ -340,7 +332,7 @@ def create_atlas(working_dir, resolution):
         species=SPECIES,
         resolution=resolution,
         orientation=ORIENTATION,
-        root_id=999,
+        root_id=ROOT_ID,
         reference_stack=brain_template,
         annotation_stack=readdata,
         structures_list=hierarchy,

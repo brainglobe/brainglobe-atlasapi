@@ -215,7 +215,7 @@ def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
     (MRI) data to wrapup function.
     """
     assert not np.all(
-        atlas.reference < 10
+        atlas.reference < 128
     ), f"Reference image is likely wrongly rescaled to {REFERENCE_DTYPE}"
     return True
 

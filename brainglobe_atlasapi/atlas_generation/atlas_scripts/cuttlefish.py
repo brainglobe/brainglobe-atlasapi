@@ -45,7 +45,6 @@ def create_atlas(working_dir, resolution):
     HIERARCHY_FILE_URL = "https://raw.githubusercontent.com/noisyneuron/cuttlebase-util/main/data/brain-hierarchy.csv"  # noqa E501
     TEMPLATE_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ABflM0-v-b4_2WthGaeYM4s/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template.nii.gz?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"  # noqa E501
     ANNOTATION_URL = r"https://www.dropbox.com/scl/fo/fz8gnpt4xqduf0dnmgrat/ALfSeAj81IM0v56bEeoTfUQ/Averaged%2C%20template%20brain/2023_FINAL-Cuttlebase_warped_template_lobe-labels.nii.seg.nrrd?rlkey=eklemeh57slu7v6j1gphqup4z&dl=1"  # noqa E501
-    MESH_URL = r"https://www.cuttlebase.org/assets/models/cuttlefish_brain.glb"
 
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
@@ -252,6 +251,12 @@ def create_atlas(working_dir, resolution):
     # process brain template MRI file
     print("Processing brain template:")
     brain_template = load.load_nii(template_path, as_array=True)
+    dmin = np.min(brain_template)
+    dmax = np.max(brain_template)
+    drange = dmax - dmin
+    dscale = (2**16 - 1) / drange
+    brain_template = (brain_template - dmin) * dscale
+    brain_template = brain_template.astype(np.uint16)
 
     # generate binary mask for mesh creation
     # generate binary mask for mesh creation

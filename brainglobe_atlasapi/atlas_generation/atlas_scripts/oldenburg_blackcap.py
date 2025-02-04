@@ -1,4 +1,4 @@
-__version__ = "1"
+__version__ = "2"
 
 import csv
 import glob as glob
@@ -23,7 +23,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "oldenburg_blackcap"
+    ATLAS_NAME = "eurasian_blackcap"
     SPECIES = "Sylvia atricapilla"
     ATLAS_LINK = "https://uol.de/en/ibu/animal-navigation"
     CITATION = "unpublished"

@@ -17,7 +17,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import check_internet_connection
 
 ### Metadata
-__version__ = 1
+__version__ = 0
 ATLAS_NAME = "csl_catlas"
 CITATION = "Stolzberg, Daniel et al 2017.https://doi.org/10.1002/cne.24271"
 SPECIES = "Felis catus"
@@ -310,7 +310,7 @@ def extract_mesh_from_vtk(working_dir):
 
         # Saves object files with a numerical index
         index = str(vtk_file)
-        index = index[:-4]
+        index = index.split("_")[1]
         file_name = f"{index}.obj"
         file_path = str(mesh_save_folder / file_name)
         mesh_dict[index] = file_path

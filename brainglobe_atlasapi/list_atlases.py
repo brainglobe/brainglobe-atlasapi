@@ -1,6 +1,8 @@
 """
-    Some functionality to list all available and downloaded brainglobe atlases
+Some functionality to list all available and downloaded brainglobe atlases
 """
+
+import re
 
 from rich import print as rprint
 from rich.panel import Panel
@@ -22,7 +24,7 @@ def get_downloaded_atlases():
     brainglobe_dir = config.get_brainglobe_dir()
 
     return [
-        f.name.split("_v")[0]
+        f.name.rsplit("_v", 1)[0]
         for f in brainglobe_dir.glob("*_*_*_v*")
         if f.is_dir()
     ]
@@ -43,11 +45,15 @@ def get_local_atlas_version(atlas_name):
     """
 
     brainglobe_dir = config.get_brainglobe_dir()
-    return [
-        f.name.split("_v")[1]
-        for f in brainglobe_dir.glob(f"*{atlas_name}*")
-        if f.is_dir()
-    ][0]
+    try:
+        return [
+            re.search(r"_v(\d+\.\d+)$", f.name).group(1)
+            for f in brainglobe_dir.glob(f"*{atlas_name}*")
+            if f.is_dir() and re.search(r"_v(\d+\.\d+)$", f.name)
+        ][0]
+    except IndexError:
+        print(f"No atlas found with the name: {atlas_name}")
+        return None
 
 
 def get_all_atlases_lastversions():

@@ -3,6 +3,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from time import sleep
 from typing import Callable, Optional
 
 import requests
@@ -291,7 +292,7 @@ def get_download_size(url: str) -> int:
 
 
 def conf_from_url(url) -> configparser.ConfigParser:
-    """Read conf file from an URL. And cache a copy in the brainglobe dir.
+    """Read conf file from a URL. And cache a copy in the brainglobe dir.
     Parameters
     ----------
     url : str
@@ -302,17 +303,42 @@ def conf_from_url(url) -> configparser.ConfigParser:
     conf object
 
     """
-    text = requests.get(url).text
+    cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
+
+    max_tries = 5
+    sleep_time = 0.5
+    status_code = 418  # teapot status code
+
+    while max_tries > 0:
+        try:
+            result = requests.get(url)
+            status_code = result.status_code
+            if status_code == 200:
+                break
+        except requests.exceptions.ConnectionError:
+            pass  # keep trying to connect
+        max_tries -= 1
+        sleep(sleep_time)
+
+    if status_code != 200:
+        print(f"Could not fetch the latest atlas versions: {status_code}")
+        print(f"Using the last cached version from {cache_path}")
+
+        return conf_from_file(cache_path)
+
+    text = result.text
     config_obj = configparser.ConfigParser()
     config_obj.read_string(text)
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
 
-    if not cache_path.parent.exists():
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if not cache_path.parent.exists():
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Cache the available atlases
-    with open(cache_path, "w") as f_out:
-        config_obj.write(f_out)
+        # Cache the available atlases
+        with open(cache_path, "w") as f_out:
+            config_obj.write(f_out)
+    except OSError as e:
+        print(f"Could not update the latest atlas versions cache: {e}")
 
     return config_obj
 

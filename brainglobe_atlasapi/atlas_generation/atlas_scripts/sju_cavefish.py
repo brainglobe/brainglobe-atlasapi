@@ -1,7 +1,6 @@
 __version__ = "0"
 
 import csv
-import glob as glob
 import time
 from pathlib import Path
 
@@ -11,27 +10,27 @@ import tifffile
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
-
-# from skimage import io
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+ATLAS_NAME = "sju_cavefish"
+SPECIES = "Astyanax mexicanus"
+ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"
+CITATION = "Kozol et al. 2023, https://doi.org/10.7554/eLife.80777"
+ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/35s9sm-asty-atlas.zip"
+ORIENTATION = "sla"
+ROOT_ID = 999
+ATLAS_PACKAGER = "Robert Kozol, kozolrobert@gmail.com"
+ADDITIONAL_METADATA = {}
+RESOLUTION = 2, 2, 2
 
 
 def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "sju_cavefish"
-    SPECIES = "Astyanax mexicanus"
-    ATLAS_LINK = "https://a-cavefishneuroevoluti.vev.site/lab-website"
-    CITATION = "Kozol et al. 2023, https://doi.org/10.7554/eLife.80777"
-    ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/35s9sm-asty-atlas.zip"
-    ORIENTATION = "sla"
-    ROOT_ID = 999
-    ATLAS_PACKAGER = "Robert Kozol, kozolrobert@gmail.com"
-    ADDITIONAL_METADATA = {}
-
     # setup folder for downloading
 
     download_dir_path = working_dir / "downloads"
@@ -206,9 +205,8 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    res = 2, 2, 2
     home = str(Path.home())
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
-    create_atlas(bg_root_dir, res)
+    create_atlas(bg_root_dir, RESOLUTION)

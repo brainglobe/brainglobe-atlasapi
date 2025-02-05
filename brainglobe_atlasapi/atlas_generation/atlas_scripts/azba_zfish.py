@@ -9,7 +9,6 @@ __version__ = "2"
 
 import csv
 import time
-from pathlib import Path
 
 import numpy as np
 import pooch
@@ -21,22 +20,23 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+ATLAS_NAME = "azba_zfish"
+SPECIES = "Danio rerio"
+ATLAS_LINK = "http://www.azba.wayne.edu"
+CITATION = "Kenney et al. 2021, https://doi.org/10.7554/elife.69988"
+ATLAS_FILE_URL = "http://www.azba.wayne.edu/2021-08-22_AZBA.tar.gz"
+ORIENTATION = "las"
+ROOT_ID = 9999
+ATLAS_PACKAGER = "Kailyn Fields, kailyn.fields@wayne.edu"
+ADDITIONAL_METADATA = {}
+RESOLUTION = 4
 
 
 def create_atlas(working_dir, resolution):
-    # metadata
-    ATLAS_NAME = "azba_zfish"
-    SPECIES = "Danio rerio"
-    ATLAS_LINK = "http://www.azba.wayne.edu"
-    CITATION = "Kenney et al. 2021, https://doi.org/10.7554/elife.69988"
-    ATLAS_FILE_URL = "http://www.azba.wayne.edu/2021-08-22_AZBA.tar.gz"
-    ORIENTATION = "las"
-    ROOT_ID = 9999
-    ATLAS_PACKAGER = "Kailyn Fields, kailyn.fields@wayne.edu"
-    ADDITIONAL_METADATA = {}
 
-    working_dir = working_dir / ATLAS_NAME
     download_path = working_dir / "downloads"
     download_path.mkdir(exist_ok=True, parents=True)
 
@@ -202,8 +202,6 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 4
-
     # generated atlas path
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
-    create_atlas(bg_root_dir, resolution)
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
+    create_atlas(bg_root_dir, RESOLUTION)

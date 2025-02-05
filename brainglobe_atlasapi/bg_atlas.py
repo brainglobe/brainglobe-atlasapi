@@ -204,10 +204,14 @@ class BrainGlobeAtlas(core.Atlas):
             True if it is, and None if we are offline.
         """
 
-        if self.remote_version is None:  # in this case, we are offline
+        # Cache remote version to avoid multiple requests
+        remote_version = self.remote_version
+        # If we are offline, return None
+        if remote_version is None:
             return
+
         local = _version_str_from_tuple(self.local_version)
-        online = _version_str_from_tuple(self.remote_version)
+        online = _version_str_from_tuple(remote_version)
 
         if local != online:
             if print_warning:

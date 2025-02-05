@@ -7,6 +7,9 @@ on:
     tags:
       - "v**"
   pull_request:
+  schedule:
+  # Runs at 6:10am UTC on Monday
+    - cron: '10 6 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -20,8 +23,17 @@ jobs:
     steps:
       - uses: neuroinformatics-unit/actions/check_manifest@v2
 
+  get-week-number:
+    runs-on: ubuntu-latest
+    outputs:
+        WEEK_NUMBER: ${{ steps.get-week-number.outputs.WEEK_NUMBER }}
+    steps:
+    - name: Get week number
+      id: get-week-number
+      run: echo "WEEK_NUMBER=$(date -u '+%V')" >> "$GITHUB_OUTPUT"
+
   test:
-    needs: [linting, manifest]
+    needs: [linting, manifest, get-week-number]
     name: ${{ matrix.os }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -40,17 +52,32 @@ jobs:
 
     steps:
       - name: Cache atlases
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: | # ensure we don't cache any interrupted atlas download and extraction, if e.g. we cancel the workflow manually
             ~/.brainglobe
             !~/.brainglobe/atlas.tar.gz
-          key: brainglobe
+          key: brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+          restore-keys: |
+              brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+              brainglobe-${{ runner.os }}-
+              brainglobe
 
       - uses: neuroinformatics-unit/actions/test@v2
         with:
           python-version: ${{ matrix.python-version }}
           secret-codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+
+      - name: Notify slack on scheduled failure
+        if: failure() && github.event_name == 'schedule'
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }} # required
+          notify_when: 'failure'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFYBOT_WEBHOOK_URL }} # required
+
 
   build_sdist_wheels:
     name: Build source distribution and wheel
@@ -66,6 +93,11 @@ jobs:
     if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
-    - uses: neuroinformatics-unit/actions/upload_pypi@v2
+    - uses: actions/download-artifact@v4
       with:
-        secret-pypi-key: ${{ secrets.TWINE_API_KEY }}
+        name: artifact
+        path: dist
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.TWINE_API_KEY }}

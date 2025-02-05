@@ -2,12 +2,11 @@ __version__ = "2"
 
 import json
 import multiprocessing as mp
-import tarfile
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pooch
 import SimpleITK as sitk
 from rich.progress import track
 
@@ -17,15 +16,23 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True  # disable parallel mesh extraction for easier debugging
 
+ATLAS_NAME = "perens_lsfm_mouse"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas"
+CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
+ORIENTATION = "ial"
+ROOT_ID = 997
+ATLAS_FILE_URL = (
+    "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
+)
+RESOLUTION = 20
 
-### Additional functions #####################################################
 
-
-##############################################################################
 def get_id_from_acronym(df, acronym):
     """
     Get Allen's brain atlas ID from brain region acronym(s)
@@ -133,52 +140,38 @@ def get_all_parents(df, key):
     return parents
 
 
-##############################################################################
-
-##############################################################################
-# %%
-
-
 def create_atlas(working_dir, resolution):
-    ATLAS_NAME = "perens_lsfm_mouse"
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas"
-    CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
-    ORIENTATION = "ial"
-    ROOT_ID = 997
-    ATLAS_FILE_URL = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas/archive/master.tar.gz"
-
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
-    atlas_files_dir = download_dir_path / "atlas_files"
 
     ## Download atlas_file
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download.tar.gz"
-    utils.retrieve_over_http(ATLAS_FILE_URL, destination_path)
 
-    tar = tarfile.open(destination_path)
-    tar.extractall(path=atlas_files_dir)
-    tar.close()
-
-    destination_path.unlink()
+    pooch.retrieve(
+        url=ATLAS_FILE_URL,
+        known_hash="f8722e855263f71f9e7cbdfc05b348be30ea627a3d7c1e9b1f77e17febeb4774",
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Untar(extract_dir="."),
+    )
 
     structures_file = (
-        atlas_files_dir
+        destination_path
         / "LSFM-mouse-brain-atlas-master"
         / "LSFM_atlas_files"
         / "ARA2_annotation_info_avail_regions.csv"
     )
     annotations_file = (
-        atlas_files_dir
+        destination_path
         / "LSFM-mouse-brain-atlas-master"
         / "LSFM_atlas_files"
         / "gubra_ano_olf.nii.gz"
     )
     reference_file = (
-        atlas_files_dir
+        destination_path
         / "LSFM-mouse-brain-atlas-master"
         / "LSFM_atlas_files"
         / "gubra_template_olf.nii.gz"
@@ -353,9 +346,7 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    resolution = 20  # some resolution, in microns
-
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / "perens_lsfm_mouse"
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    create_atlas(bg_root_dir, resolution)
+    create_atlas(bg_root_dir, RESOLUTION)

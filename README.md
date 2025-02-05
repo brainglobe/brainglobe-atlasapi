@@ -50,6 +50,7 @@ A number of atlases are in development, but those available currently are:
 | [Prairie Vole Brain Atlas](https://doi.org/10.7554/eLife.87029.3.sa0) | 25 micron | Unknown | LSFM | prairie_vole_25um
 | [Gubra's stereotaxic MRI mouse brain atlas](https://doi.org/10.1007/s12021-023-09623-9) | 25 micron | 10-week-old  | MRI | perens_stereotaxic_mouse_mri_25um
 | [MRI mouse lemur brain atlas](https://doi.org/10.1016/j.dib.2018.10.067) | 91 micron | 15–58 months  | MRI | nadkarni_mri_mouselemur_91um
+| [Australian Mouse Brain Atlas](https://doi.org/10.1016/j.ymeth.2015.01.005) | 15 micron | 12 week old | MRI | australian_mouse_15um
 
 ## Installation
 

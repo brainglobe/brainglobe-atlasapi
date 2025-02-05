@@ -1,4 +1,4 @@
-""" Atlas for a domestic cat """
+"""Atlas for a domestic cat"""
 
 import os
 import shutil

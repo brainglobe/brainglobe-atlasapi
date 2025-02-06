@@ -7,7 +7,7 @@
 [![Downloads](https://pepy.tech/badge/brainglobe-atlasapi)](https://pepy.tech/project/brainglobe-atlasapi)
 [![Tests](https://img.shields.io/github/actions/workflow/status/brainglobe/brainglobe-atlasapi/test_and_deploy.yml?branch=main)](
     https://github.com/brainglobe/brainglobe-atlasapi/actions)
-[![codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/branch/master/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
+[![codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/branch/main/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)

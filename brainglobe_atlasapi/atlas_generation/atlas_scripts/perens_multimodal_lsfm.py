@@ -70,7 +70,7 @@ __version__ = 0
 
 # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
 # Institution_SpeciesCommonName, e.g. allen_mouse.
-ATLAS_NAME = "perens_lsfm_mouse_v2"
+ATLAS_NAME = "perens_multimodal_lsfm"
 
 # DOI of the most relevant citable document
 CITATION = "Perens et al. 2023, https://doi.org/10.1007/s12021-023-09623-9"

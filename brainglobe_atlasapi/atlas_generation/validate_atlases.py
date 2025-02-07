@@ -11,14 +11,11 @@ from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
-    get_local_atlas_version,
 )
 from brainglobe_atlasapi.update_atlases import update_atlas
 
 
-def validate_atlas_files(
-    atlas: BrainGlobeAtlas, custom_atlas_path: Path = None
-):
+def validate_atlas_files(atlas: BrainGlobeAtlas):
     """
     Checks if basic files exist in the atlas folder
 
@@ -27,13 +24,7 @@ def validate_atlas_files(
     input is working_dir
     """
 
-    if custom_atlas_path is None:
-        atlas_path = (
-            Path(get_brainglobe_dir()) / f"{atlas.atlas_name}_v"
-            f"{get_local_atlas_version(atlas.atlas_name)}"
-        )
-    else:
-        atlas_path = custom_atlas_path
+    atlas_path = atlas.root_dir
 
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
     expected_files = [
@@ -155,9 +146,7 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
     return True
 
 
-def catch_missing_mesh_files(
-    atlas: BrainGlobeAtlas, custom_atlas_path: Path = None
-):
+def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     """
     Checks if all the structures in the atlas have a corresponding mesh file
 
@@ -168,13 +157,7 @@ def catch_missing_mesh_files(
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
-    if custom_atlas_path is None:
-        atlas_path = (
-            Path(get_brainglobe_dir()) / f"{atlas.atlas_name}_v"
-            f"{get_local_atlas_version(atlas.atlas_name)}"
-        )
-    else:
-        atlas_path = custom_atlas_path
+    atlas_path = atlas.root_dir
 
     obj_path = Path(atlas_path / "meshes")
 
@@ -196,9 +179,7 @@ def catch_missing_mesh_files(
         )
 
 
-def catch_missing_structures(
-    atlas: BrainGlobeAtlas, custom_atlas_path: Path = None
-):
+def catch_missing_structures(atlas: BrainGlobeAtlas):
     """
     Checks if all the mesh files in the atlas folder
     are listed as a structure in the atlas.
@@ -210,13 +191,7 @@ def catch_missing_structures(
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
-    if custom_atlas_path is None:
-        atlas_path = (
-            Path(get_brainglobe_dir()) / f"{atlas.atlas_name}_v"
-            f"{get_local_atlas_version(atlas.atlas_name)}"
-        )
-    else:
-        atlas_path = custom_atlas_path
+    atlas_path = atlas.root_dir
 
     obj_path = Path(atlas_path / "meshes")
 

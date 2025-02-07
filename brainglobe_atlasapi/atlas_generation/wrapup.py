@@ -257,17 +257,9 @@ def wrapup_atlas_from_data(
     validation_results = {}
 
     functions = [
-        (validate_atlas_files, atlas_to_validate, atlas_to_validate.root_dir),
-        (
-            catch_missing_structures,
-            atlas_to_validate,
-            atlas_to_validate.root_dir,
-        ),
-        (
-            catch_missing_mesh_files,
-            atlas_to_validate,
-            atlas_to_validate.root_dir,
-        ),
+        (validate_atlas_files, atlas_to_validate),
+        (catch_missing_structures, atlas_to_validate),
+        (catch_missing_mesh_files, atlas_to_validate),
         (validate_mesh_matches_image_extents, atlas_to_validate),
         (open_for_visual_check, atlas_to_validate),
         (validate_checksum, atlas_to_validate),

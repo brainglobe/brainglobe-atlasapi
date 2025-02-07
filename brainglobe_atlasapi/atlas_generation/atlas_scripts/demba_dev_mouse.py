@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -14,63 +15,49 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
 
-### Metadata ###
+@dataclass
+class AtlasMetadata:
+    version: int
+    name: str
+    citation: str
+    species: str
+    atlas_link: tuple[str, str]
+    orientation: str
+    root_id: int
 
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
-__version__ = 0
 
-# The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
-# Institution_SpeciesCommonName, e.g. allen_mouse.
-ATLAS_NAME = "demba_dev_mouse"
-
-# DOI of the most relevant citable document
-CITATION = "https://doi.org/10.1101/2024.06.14.598876"
-
-# The scientific name of the species, ie; Rattus norvegicus
-SPECIES = "Mus musculus"
-
-# The URL for the data files
-ATLAS_LINK = (
-    "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/\
-        buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_segmentations",
-    "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/\
-        buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_volumes",
+# Define the atlas metadata
+METADATA = AtlasMetadata(
+    version=0,
+    name="demba_dev_mouse",
+    citation="https://doi.org/10.1101/2024.06.14.598876",
+    atlas_link="https://doi.org/10.25493/V3AH-HK7",
+    species="Mus musculus",
+    orientation="rsa",
+    root_id=997,
 )
 
-
-# The orientation of the **original** atlas data, in BrainGlobe convention:
-# https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "asr"
-
-# The id of the highest level of the atlas. This is commonly called root or
-# brain. Include some information on what to do if your atlas is not
-# hierarchical
-ROOT_ID = 997
-
-# The resolution of your volume in microns. Details on how to format this
-# parameter for non isotropic datasets or datasets with multiple resolutions.
-
-
-RESOLUTION_TO_MODALITIES = {
-    25: ["MRI", "LSFM"],
-    10: ["ALLEN_STPT"],
-    20: ["STPT"],
+data_file_url = (
+    "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/"
+    "buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_segmentations",
+    "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/"
+    "buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_volumes",
+)
+resolution_to_modalities = {
+    25: ["mri", "lsfm"],
+    10: ["allen_stpt"],
+    20: ["stpt"],
 }
 
 
-def download_resources(download_dir_path, atlas_file_url, ATLAS_NAME):
+def download_resources(download_dir_path, atlas_file_url, atlas_name):
 
     utils.check_internet_connection()
 
-    download_name = ATLAS_NAME
+    download_name = atlas_name
     destination_path = download_dir_path / download_name
-    for afu in atlas_file_url:
+    for url in atlas_file_url:
         """
         Slight issue that the hash seems different each time. I think the
         files are being zipped on the server each time we request and it's
@@ -78,13 +65,54 @@ def download_resources(download_dir_path, atlas_file_url, ATLAS_NAME):
         file when zipped)
         """
         pooch.retrieve(
-            url=afu,
+            url=url,
             known_hash=None,
             path=destination_path,
             progressbar=True,
             processor=pooch.Unzip(extract_dir="."),
         )
     return destination_path
+
+
+def get_reference_and_annotation_paths(download_dir_path, age, modality):
+    """
+    Determine the reference and annotation paths based on the modality.
+
+    Returns:
+        tuple: A tuple containing the reference path and annotation path.
+    """
+    base_path = f"{download_dir_path}/{METADATA.name}/"
+    if modality == "stpt":
+        reference_path = (
+            f"{base_path}DeMBA_templates/DeMBA_P{age}_brain.nii.gz"
+        )
+        annotation_path = (
+            f"{base_path}AllenCCFv3_segmentations/20um/2022/"
+            f"DeMBA_P{age}_segmentation_2022_20um.nii.gz"
+        )
+    elif modality == "allen_stpt":
+        reference_path = (
+            f"{base_path}allen_stpt_10um/DeMBA_P{age}_AllenSTPT_10um.nii.gz"
+        )
+        annotation_path = (
+            f"{base_path}AllenCCFv3_segmentations/10um/2022/"
+            f"DeMBA_P{age}_segmentation_2022_10um.nii.gz"
+        )
+    elif modality == "mri":
+        reference_path = f"{base_path}mri_volumes/DeMBA_P{age}_mri.nii.gz"
+        annotation_path = (
+            f"{base_path}AllenCCFv3_segmentations/20um/2022/"
+            f"DeMBA_P{age}_segmentation_2022_20um.nii.gz"
+        )
+    elif modality == "lsfm":
+        reference_path = f"{base_path}lsfm_volumes/DeMBA_P{age}_lsfm.nii.gz"
+        annotation_path = (
+            f"{base_path}AllenCCFv3_segmentations/20um/2022/"
+            f"DeMBA_P{age}_segmentation_2022_20um.nii.gz"
+        )
+    else:
+        raise ValueError(f"Unknown modality: {modality}")
+    return reference_path, annotation_path
 
 
 def retrieve_reference_and_annotation(download_dir_path, age, modality):
@@ -95,30 +123,9 @@ def retrieve_reference_and_annotation(download_dir_path, age, modality):
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
-    if modality == "STPT":
-        reference_path = f"{download_dir_path}/demba_dev_mouse/\
-            DeMBA_templates/DeMBA_P{age}_brain.nii.gz"
-        annotation_path = f"{download_dir_path}/demba_dev_mouse/\
-            AllenCCFv3_segmentations/20um/2022/\
-                DeMBA_P{age}_segmentation_2022_20um.nii.gz"
-    elif modality == "ALLEN_STPT":
-        reference_path = f"{download_dir_path}/demba_dev_mouse/\
-            allen_stpt_10um/DeMBA_P{age}_AllenSTPT_10um.nii.gz"
-        annotation_path = f"{download_dir_path}/demba_dev_mouse/\
-            AllenCCFv3_segmentations/10um/2022/\
-            DeMBA_P{age}_segmentation_2022_10um.nii.gz"
-    elif modality == "MRI":
-        reference_path = f"{download_dir_path}/demba_dev_mouse/\
-            mri_volumes/DeMBA_P{age}_mri.nii.gz"
-        annotation_path = f"{download_dir_path}/demba_dev_mouse/\
-            AllenCCFv3_segmentations/20um/2022/\
-                DeMBA_P{age}_segmentation_2022_20um.nii.gz"
-    elif modality == "LSFM":
-        reference_path = f"{download_dir_path}/demba_dev_mouse/\
-            lsfm_volumes/DeMBA_P{age}_lsfm.nii.gz"
-        annotation_path = f"{download_dir_path}/demba_dev_mouse/\
-            AllenCCFv3_segmentations/20um/2022/\
-            DeMBA_P{age}_segmentation_2022_20um.nii.gz"
+    reference_path, annotation_path = get_reference_and_annotation_paths(
+        download_dir_path, age, modality
+    )
     annotation = load_any(annotation_path)
     reference = load_any(reference_path)
     if annotation.shape != reference.shape:
@@ -141,18 +148,9 @@ def retrieve_additional_references(download_dir_path, age, modalities):
     """
     additional_references = {}
     for modality in modalities:
-        if modality == "STPT":
-            reference_path = f"{download_dir_path}/demba_dev_mouse/\
-                DeMBA_templates/DeMBA_P{age}_brain.nii.gz"
-        elif modality == "ALLEN_STPT":
-            reference_path = f"{download_dir_path}/demba_dev_mouse/\
-                allen_stpt_10um/DeMBA_P{age}_AllenSTPT_10um.nii.gz"
-        elif modality == "MRI":
-            reference_path = f"{download_dir_path}/demba_dev_mouse/\
-                mri_volumes/DeMBA_P{age}_mri.nii.gz"
-        elif modality == "LSFM":
-            reference_path = f"{download_dir_path}/demba_dev_mouse/\
-                lsfm_volumes/DeMBA_P{age}_lsfm.nii.gz"
+        reference_path, _ = get_reference_and_annotation_paths(
+            download_dir_path, age, modality
+        )
         ref = load_any(reference_path)
         additional_references[modality] = ref
     return additional_references
@@ -237,7 +235,7 @@ def retrieve_or_construct_meshes(
                 tree,
                 labels,
                 annotated_volume,
-                ROOT_ID,
+                METADATA.root_id,
                 closing_n_iters,
                 decimate_fraction,
                 smooth,
@@ -271,19 +269,19 @@ def retrieve_or_construct_meshes(
 ### If the code above this line has been filled correctly, nothing needs to be
 ### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / METADATA.name
     bg_root_dir.mkdir(exist_ok=True)
     download_resources(
         download_dir_path=bg_root_dir,
-        ATLAS_NAME=ATLAS_NAME,
-        atlas_file_url=ATLAS_LINK,
+        atlas_name=METADATA.name,
+        atlas_file_url=data_file_url,
     )
     meshes_dict = None
 
     for age in range(4, 57):
         age_specific_root_dir = bg_root_dir / f"P{age}"
         age_specific_root_dir.mkdir(exist_ok=True)
-        for resolution, modalities in RESOLUTION_TO_MODALITIES.items():
+        for resolution, modalities in resolution_to_modalities.items():
             reference_volume, annotated_volume = (
                 retrieve_reference_and_annotation(
                     bg_root_dir, age, modalities[0]
@@ -307,16 +305,16 @@ if __name__ == "__main__":
                 meshes_dict = retrieve_or_construct_meshes(
                     structures, annotated_volume, age_specific_root_dir
                 )
-            current_name = f"{ATLAS_NAME}_p{age}_{modalities[0]}"
+            current_name = f"{METADATA.name}_p{age}_{modalities[0]}"
             output_filename = wrapup_atlas_from_data(
                 atlas_name=current_name,
-                atlas_minor_version=__version__,
-                citation=CITATION,
-                atlas_link=ATLAS_LINK,
-                species=SPECIES,
+                atlas_minor_version=METADATA.version,
+                citation=METADATA.citation,
+                atlas_link=METADATA.atlas_link,
+                species=METADATA.species,
                 resolution=(resolution,) * 3,
-                orientation=ORIENTATION,
-                root_id=ROOT_ID,
+                orientation=METADATA.orientation,
+                root_id=METADATA.root_id,
                 reference_stack=reference_volume,
                 annotation_stack=annotated_volume,
                 structures_list=structures,

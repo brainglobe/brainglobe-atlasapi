@@ -27,10 +27,13 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     catch_missing_structures,
     open_for_visual_check,
     validate_additional_references,
+    validate_annotation_symmetry,
     validate_atlas_files,
+    validate_atlas_name,
     validate_checksum,
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
+    validate_reference_image_pixels,
 )
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -265,6 +268,9 @@ def wrapup_atlas_from_data(
         (validate_checksum, atlas_to_validate),
         (validate_image_dimensions, atlas_to_validate),
         (validate_additional_references, atlas_to_validate),
+        (validate_reference_image_pixels, atlas_to_validate),
+        (validate_annotation_symmetry, atlas_to_validate),
+        (validate_atlas_name, atlas_to_validate),
     ]
 
     for func, *args in functions:

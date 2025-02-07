@@ -259,6 +259,8 @@ def get_all_validation_functions():
     return [
         validate_atlas_files,
         validate_mesh_matches_image_extents,
+        open_for_visual_check,
+        validate_checksum,
         validate_image_dimensions,
         validate_additional_references,
         catch_missing_mesh_files,
@@ -305,6 +307,9 @@ if __name__ == "__main__":
         validate_additional_references,
         catch_missing_mesh_files,
         catch_missing_structures,
+        validate_reference_image_pixels,
+        validate_annotation_symmetry,
+        validate_atlas_name,
     ]
 
     valid_atlases = []

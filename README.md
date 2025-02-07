@@ -22,7 +22,7 @@ The brainglobe atlas API (brainglobe-atlasapi) provides a common interface for p
 ## Atlases available
 
 A number of atlases are in development, but those available currently are:
-| Atlas Name | Resolution | Ages | Reference Images | Name in API & More Info |
+| Atlas Name | Resolution | Ages | Reference Images | Name in API & More Info |
 | --- |  --- | --- | --- | --- |
 | [Allen Mouse Brain Atlas](https://doi.org/10.1016/j.cell.2020.04.007) | 10, 25, 50, and 100 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-adult-mouse-brain-atlas) |
 | [Allen Human Brain Atlas](https://www.brain-map.org) | 500 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-human-brain-atlas) |

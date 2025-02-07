@@ -305,20 +305,23 @@ def conf_from_url(url) -> configparser.ConfigParser:
     """
     cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
 
-    result = requests.get(url)
     max_tries = 5
-    sleep_time = 0.25
+    sleep_time = 0.5
+    status_code = 418  # teapot status code
 
-    while max_tries > 0 and result.status_code != 200:
-        result = requests.get(url)
+    while max_tries > 0:
+        try:
+            result = requests.get(url)
+            status_code = result.status_code
+            if status_code == 200:
+                break
+        except requests.exceptions.ConnectionError:
+            pass  # keep trying to connect
         max_tries -= 1
         sleep(sleep_time)
-        sleep_time *= 2
 
-    if result.status_code != 200:
-        print(
-            f"Could not fetch the latest atlas versions: {result.status_code}"
-        )
+    if status_code != 200:
+        print(f"Could not fetch the latest atlas versions: {status_code}")
         print(f"Using the last cached version from {cache_path}")
 
         return conf_from_file(cache_path)

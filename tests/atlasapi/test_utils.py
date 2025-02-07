@@ -142,7 +142,7 @@ def test_conf_from_file_no_file(temp_path):
     with pytest.raises(FileNotFoundError) as e:
         utils.conf_from_file(conf_path)
 
-        assert "Last versions cache file not found." == str(e)
+    assert "Last versions cache file not found." == str(e.value)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Does not run on Windows")
@@ -166,3 +166,96 @@ def test_conf_from_url_read_only(temp_path, mocker):
 
     # Set the permissions back to the original
     temp_path.chmod(int(curr_mode, 8))
+
+
+def test_conf_from_url_gin_200(temp_path, mocker):
+    """Connected to the internet, GIN is available and returns 200"""
+    mocker.patch(
+        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
+        return_value=temp_path,
+    )
+    mock_response = mock.patch("requests.Response", autospec=True)
+    mock_response.status_code = 200
+    mock_response.text = (
+        "[atlases]\n"
+        "example_mouse_100um = 1.2\n"
+        "allen_mouse_10um = 1.2\n"
+        "allen_mouse_25um = 1.2"
+    )
+    with mock.patch(
+        "requests.get", autospec=True, return_value=mock_response
+    ) as mock_request:
+        config = utils.conf_from_url(conf_url)
+        mock_request.assert_called_once_with(conf_url)
+        assert dict(config["atlases"]) == {
+            "example_mouse_100um": "1.2",
+            "allen_mouse_10um": "1.2",
+            "allen_mouse_25um": "1.2",
+        }
+
+
+def test_conf_from_url_wrong_status_with_cache(temp_path, mocker):
+    """Connected to the internet, but GIN is down (404),
+    so we revert to local cache of atlas versions"""
+    mock_response = mock.patch("requests.Response", autospec=True)
+    mock_response.status_code = 404
+
+    with open(temp_path / "last_versions.conf", "w") as f:
+        f.write(
+            "[atlases]\n"
+            "example_mouse_100um = 1.2\n"
+            "allen_mouse_10um = 1.2\n"
+            "allen_mouse_25um = 1.2"
+        )
+    mocker.patch(
+        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
+        return_value=temp_path,
+    )
+    with mock.patch(
+        "requests.get", autospec=True, return_value=mock_response
+    ) as mock_request:
+        config = utils.conf_from_url(conf_url)
+        mock_request.assert_called_with(conf_url)
+        assert dict(config["atlases"]) == {
+            "example_mouse_100um": "1.2",
+            "allen_mouse_10um": "1.2",
+            "allen_mouse_25um": "1.2",
+        }
+
+
+def test_conf_from_url_no_connection_with_cache(temp_path, mocker):
+    """Not connected to the internet,
+    but we can revert to local cache of atlas versions"""
+    with open(temp_path / "last_versions.conf", "w") as f:
+        f.write(
+            "[atlases]\n"
+            "example_mouse_100um = 1.2\n"
+            "allen_mouse_10um = 1.2\n"
+            "allen_mouse_25um = 1.2"
+        )
+    mocker.patch(
+        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
+        return_value=temp_path,
+    )
+    with mock.patch("requests.get", autospec=True) as mock_request:
+        mock_request.side_effect = requests.ConnectionError()
+        config = utils.conf_from_url(conf_url)
+        assert dict(config["atlases"]) == {
+            "example_mouse_100um": "1.2",
+            "allen_mouse_10um": "1.2",
+            "allen_mouse_25um": "1.2",
+        }
+
+
+def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
+    """Not connected to the internet
+    and we have no local cache of atlas version"""
+    mocker.patch(
+        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
+        return_value=temp_path,
+    )
+    with mock.patch("requests.get", autospec=True) as mock_request:
+        mock_request.side_effect = requests.ConnectionError()
+        with pytest.raises(FileNotFoundError) as e:
+            utils.conf_from_url(conf_url)
+        assert "Last versions cache file not found." == str(e.value)

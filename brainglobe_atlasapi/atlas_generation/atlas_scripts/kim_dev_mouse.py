@@ -351,6 +351,7 @@ if __name__ == "__main__":
 
     for age in timepoints:
         atlas_name = f"{ATLAS_NAME}_{age.replace('.', '-')}_{modality}"
+        atlas_name = atlas_name.lower()
         annotation_volume, reference_volume, resolution_um = fetch_animal(
             pooch_, age, modality
         )
@@ -362,8 +363,8 @@ if __name__ == "__main__":
             cached_modality is not None
             and (
                 cache_dir := bg_root_dir
-                / f"{ATLAS_NAME}_{age.replace('.', '-')}_{cached_modality}"
-                / "meshes"
+                / f"{ATLAS_NAME}_{age.replace('.', '-')}"
+                f"_{cached_modality}".lower() / "meshes"
             ).exists()
         ):
             meshes_dir_path = cache_dir

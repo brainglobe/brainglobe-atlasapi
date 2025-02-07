@@ -1,1 +1,3 @@
 comment: off
+ignore:
+  - "brainglobe_atlasapi/atlas_generation/atlas_scripts"  # not part of library

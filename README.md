@@ -7,7 +7,7 @@
 [![Downloads](https://pepy.tech/badge/brainglobe-atlasapi)](https://pepy.tech/project/brainglobe-atlasapi)
 [![Tests](https://img.shields.io/github/actions/workflow/status/brainglobe/brainglobe-atlasapi/test_and_deploy.yml?branch=main)](
     https://github.com/brainglobe/brainglobe-atlasapi/actions)
-[![codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/branch/master/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
+[![codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/branch/main/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/python/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
@@ -36,15 +36,25 @@ A number of atlases are in development, but those available currently are:
 | [Waxholm Space atlas of the Sprague Dawley rat brain](https://doi.org/10.1038/s41592-023-02034-3) | 39 micron | P80  | MRI | whs_sd_rat_39um
 | [3D Edge-Aware Refined Atlases Derived from the Allen Developing Mouse Brain Atlases](https://doi.org/10.7554/eLife.61408) | 16, 16.75, and 25 micron | E13, E15, E18, P4, P14, P28 & P56 | Nissl | admba_3d_e11_5_mouse_16um, admba_3d_e13_5_mouse_16um, admba_3d_e15_5_mouse_16um, admba_3d_e18_5_mouse_16um, admba_3d_p14_mouse_16.752um, admba_3d_p28_mouse_16.752um, admba_3d_p4_mouse_16.752um, admba_3d_p56_mouse_25um
 | [Princeton Mouse Brain Atlas](https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links) | 20 micron | >P56 (older animals included) | LSFM | princeton_mouse_20um
-| [Kim Lab Developmental CCF](https://data.mendeley.com/datasets/2svx788ddf/1) | 10 micron | P56  | STP, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2) | kim_dev_mouse_stp_10um, kim_dev_mouse_idisco_10um, kim_dev_mouse_mri_a0_10um, kim_dev_mouse_mri_adc_10um, kim_dev_mouse_mri_dwi_10um, kim_dev_mouse_mri_fa_10um, kim_dev_mouse_mri_mtr_10um, kim_dev_mouse_mri_t2_10um
+| [Kim Lab Developmental CCF v1.0 (E11.5)](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20 and 31.5 micron | E11.5 | LSFM and MRI (adc, dwi, fa, T2) | kim_dev_mouse_e11-5_lsfm_20um, kim_dev_mouse_e11-5_mri-adc_31.5um, kim_dev_mouse_e11-5_mri-dwi_31.5um, kim_dev_mouse_e11-5_mri-fa_31.5um, kim_dev_mouse_e11-5_mri-t2_31.5um
+| [Kim Lab Developmental CCF v1.0 (E13.5)](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20 and 34 micron | E13.5 | LSFM and MRI (adc, dwi, fa, T2) | kim_dev_mouse_e13-5_lsfm_20um, kim_dev_mouse_e13-5_mri-adc_34um, kim_dev_mouse_e13-5_mri-dwi_34um, kim_dev_mouse_e13-5_mri-fa_34um, kim_dev_mouse_e13-5_mri-t2_34um
+| [Kim Lab Developmental CCF v1.0 (E15.5)](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20 and 37.5 micron | E15.5 | LSFM and MRI (adc, dwi, fa, T2, MTR) | kim_dev_mouse_e15-5_lsfm_20um, kim_dev_mouse_e15-5_mri-adc_37.5um, kim_dev_mouse_e15-5_mri-dwi_37.5um, kim_dev_mouse_e15-5_mri-fa_37.5um, kim_dev_mouse_e15-5_mri-t2_37.5um, kim_dev_mouse_e15-5_mri-mtr_37.5um
+| [Kim Lab Developmental CCF v1.0 (E18.5)](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20 and 40 micron | E18.5 | LSFM and MRI (adc, dwi, fa, T2) | kim_dev_mouse_e18-5_lsfm_20um, kim_dev_mouse_e18-5_mri-adc_40um, kim_dev_mouse_e18-5_mri-dwi_40um, kim_dev_mouse_e18-5_mri-fa_40um, kim_dev_mouse_e18-5_mri-t2_40um
+| [Kim Lab Developmental CCF v1.0 (P04)](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20 and 50 micron | P04 | LSFM and MRI (adc, dwi, fa, T2, MTR) | kim_dev_mouse_p04_lsfm_20um, kim_dev_mouse_p04_mri-adc_50um, kim_dev_mouse_p04_mri-dwi_50um, kim_dev_mouse_p04_mri-fa_50um, kim_dev_mouse_p04_mri-t2_50um, kim_dev_mouse_p04_mri-mtr_50um
+| [Kim Lab Developmental CCF v1.0 (P14)](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20 and 50 micron | P14 | LSFM and MRI (adc, dwi, fa, T2, MTR) | kim_dev_mouse_p14_lsfm_20um, kim_dev_mouse_p14_mri-adc_50um, kim_dev_mouse_p14_mri-dwi_50um, kim_dev_mouse_p14_mri-fa_50um, kim_dev_mouse_p14_mri-t2_50um, kim_dev_mouse_p14_mri-mtr_50um
+| [Kim Lab Developmental CCF v1.0 (P56)](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20 and 50 micron | P56 | LSFM and MRI (adc, dwi, fa, T2) | kim_dev_mouse_p56_lsfm_20um, kim_dev_mouse_p56_mri-adc_50um, kim_dev_mouse_p56_mri-dwi_50um, kim_dev_mouse_p56_mri-fa_50um, kim_dev_mouse_p56_mri-t2_50um
+| [Kim Lab Developmental CCF v001](https://data.mendeley.com/datasets/2svx788ddf/1) | 10 micron | P56  | STP, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2) | kim_dev_mouse_stp_10um, kim_dev_mouse_idisco_10um, kim_dev_mouse_mri_a0_10um, kim_dev_mouse_mri_adc_10um, kim_dev_mouse_mri_dwi_10um, kim_dev_mouse_mri_fa_10um, kim_dev_mouse_mri_mtr_10um, kim_dev_mouse_mri_t2_10um
 | [Blind Mexican Cavefish Brain Atlas](https://doi.org/10.7554/eLife.80777) | 2 micron | 6 days post fertilisation | IHC | sju_cavefish_2um
 | [BlueBrain Barrel Cortex Atlas](https://doi.org/10.1162/imag_a_00209) | 10 and 25 micron | P56 | STPT | allen_mouse_bluebrain_barrels_10um, allen_mouse_bluebrain_barrels_25um
 | [UNAM Axolotl Brain Atlas](https://doi.org/10.1038/s41598-021-89357-3) | 40 micron | ~ 3 months post hatching | MRI | unam_axolotl_40um
 | [Prairie Vole Brain Atlas](https://doi.org/10.7554/eLife.87029.3.sa0) | 25 micron | Unknown | LSFM | prairie_vole_25um
+| [Gubra's stereotaxic MRI mouse brain atlas](https://doi.org/10.1007/s12021-023-09623-9) | 25 micron | 10-week-old  | MRI | perens_stereotaxic_mouse_mri_25um
+| [MRI mouse lemur brain atlas](https://doi.org/10.1016/j.dib.2018.10.067) | 91 micron | 15–58 months  | MRI | nadkarni_mri_mouselemur_91um
+| [Australian Mouse Brain Atlas](https://doi.org/10.1016/j.ymeth.2015.01.005) | 15 micron | 12 week old | MRI | australian_mouse_15um
 
 ## Installation
 
-brainglobe-atlasapi works with Python >3.6, and can be installed from PyPI with:
+brainglobe-atlasapi can be installed from PyPI with:
 
 ```bash
 pip install brainglobe-atlasapi

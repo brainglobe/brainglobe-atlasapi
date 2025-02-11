@@ -107,12 +107,12 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
 
 def open_for_visual_check(atlas: BrainGlobeAtlas):
     # implement visual checks later
-    pass
+    return True
 
 
 def validate_checksum(atlas: BrainGlobeAtlas):
     # implement later
-    pass
+    return True
 
 
 def validate_image_dimensions(atlas: BrainGlobeAtlas):

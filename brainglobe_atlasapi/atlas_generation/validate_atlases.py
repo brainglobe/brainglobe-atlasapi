@@ -185,10 +185,6 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     """
     Checks if all the mesh files in the atlas folder
     are listed as a structure in the atlas.
-
-    custom_atlas_path is used when the function is called as part of
-    the wrapup function in the atlas packaging script. The expected
-    input is working_dir
     """
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())

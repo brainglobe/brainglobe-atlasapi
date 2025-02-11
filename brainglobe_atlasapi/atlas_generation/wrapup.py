@@ -22,7 +22,6 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
 from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
 )
-from brainglobe_atlasapi.atlas_generation.validate_atlases import get_all_validation_functions
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas

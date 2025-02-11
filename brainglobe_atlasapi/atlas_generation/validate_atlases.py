@@ -12,18 +12,21 @@ from brainglobe_atlasapi.descriptors import REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
-    get_local_atlas_version,
 )
 from brainglobe_atlasapi.update_atlases import update_atlas
 
 
 def validate_atlas_files(atlas: BrainGlobeAtlas):
-    """Checks if basic files exist in the atlas folder"""
+    """
+    Checks if basic files exist in the atlas folder
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
+    """
+
+    atlas_path = atlas.root_dir
+
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
     expected_files = [
         "annotation.tiff",
@@ -104,12 +107,12 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
 
 def open_for_visual_check(atlas: BrainGlobeAtlas):
     # implement visual checks later
-    pass
+    return True
 
 
 def validate_checksum(atlas: BrainGlobeAtlas):
     # implement later
-    pass
+    return True
 
 
 def validate_image_dimensions(atlas: BrainGlobeAtlas):
@@ -147,14 +150,16 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
 def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     """
     Checks if all the structures in the atlas have a corresponding mesh file
+
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
     """
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    atlas_path = atlas.root_dir
+
     obj_path = Path(atlas_path / "meshes")
 
     ids_from_mesh_files = [
@@ -184,10 +189,8 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    atlas_path = atlas.root_dir
+
     obj_path = Path(atlas_path / "meshes")
 
     ids_from_mesh_files = [
@@ -252,6 +255,8 @@ def get_all_validation_functions():
     return [
         validate_atlas_files,
         validate_mesh_matches_image_extents,
+        open_for_visual_check,
+        validate_checksum,
         validate_image_dimensions,
         validate_additional_references,
         catch_missing_mesh_files,
@@ -298,6 +303,9 @@ if __name__ == "__main__":
         validate_additional_references,
         catch_missing_mesh_files,
         catch_missing_structures,
+        validate_reference_image_pixels,
+        validate_annotation_symmetry,
+        validate_atlas_name,
     ]
 
     valid_atlases = []

@@ -74,7 +74,7 @@ def get_all_atlases_lastversions():
         custom_atlases = utils.conf_from_file(custom_path)
     except FileNotFoundError:
         return dict(official_atlases["atlases"])
-    return dict(official_atlases["atlases"]) | dict(custom_atlases["atlases"])
+    return {**official_atlases["atlases"], **custom_atlases["atlases"]}
 
 
 def get_atlases_lastversions():

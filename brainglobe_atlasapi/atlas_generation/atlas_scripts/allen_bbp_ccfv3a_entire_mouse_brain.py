@@ -63,7 +63,7 @@ METADATA = AtlasMetadata(
     citation="https://doi.org/10.1101/2024.11.06.622212",
     atlas_link="https://zenodo.org/api/records/14034334/files-archive",
     species="Mus musculus",
-    orientation="asr",
+    orientation="spr",
     root_id=997,
     resolution=25,
 )
@@ -134,6 +134,8 @@ def retrieve_additional_references(download_path, resolution):
     reference = load_any(additional_reference_path)
     if resolution == 25:
         reference = zoom(reference, 0.4, order=1)
+    reference = (reference * 65535).astype(np.uint16)
+    reference = reference.transpose(1, 2, 0)[::-1, ::-1]
     return {"population_average_nissl": reference}
 
 
@@ -235,20 +237,21 @@ if __name__ == "__main__":
         additional_references = retrieve_additional_references(
             bg_root_dir, resolution=resolution
         )
+
         hemispheres_stack = retrieve_hemisphere_map()
         if resolution == 25:
             structures = retrieve_structure_information(bg_root_dir)
             meshes_dict = retrieve_or_construct_meshes(
                 bg_root_dir, annotated_volume, structures
             )
-
+        reference_volume = (reference_volume * 65535).astype(np.uint16)
         output_filename = wrapup_atlas_from_data(
             atlas_name=METADATA.name,
             atlas_minor_version=METADATA.version,
             citation=METADATA.citation,
             atlas_link=METADATA.atlas_link,
             species=METADATA.species,
-            resolution=(METADATA.resolution,) * 3,
+            resolution=(resolution,) * 3,
             orientation=METADATA.orientation,
             root_id=METADATA.root_id,
             reference_stack=reference_volume,

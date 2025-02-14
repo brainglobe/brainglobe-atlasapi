@@ -2,6 +2,7 @@ import json
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Tuple, Union
 
 import nrrd
 import numpy as np
@@ -28,14 +29,32 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 @dataclass
 class AtlasMetadata:
+    """
+    Holds metadata describing a BrainGlobe atlas.
+
+    Attributes:
+        version (int): The minor version of the atlas (the first number after
+            the decimal point).
+        name (str): Atlas name, following "FirstAuthor_SpeciesCommonName" or
+            "Institution_SpeciesCommonName".
+        citation (str): A DOI of the most relevant citable document.
+        species (str): The scientific name of the species.
+        atlas_link (Union[str, Tuple[str, ...]]): URL(s) for the data files.
+        orientation (str): The **original** atlas orientation in BrainGlobe
+            convention.
+        root_id (int): The ID of the highest atlas level. This is commonly
+            called root or brain.
+        resolution (Union[int, float]): The atlas resolution in microns.
+    """
+
     version: int
     name: str
     citation: str
     species: str
-    atlas_link: str
+    atlas_link: Union[str, Tuple[str, ...]]
     orientation: str
     root_id: int
-    resolution: int
+    resolution: Union[int, float]
 
 
 METADATA = AtlasMetadata(
@@ -194,7 +213,7 @@ def retrieve_or_construct_meshes(download_path, annotated_volume, structures):
     helper functions to achieve this.
     """
     meshes_dict = construct_meshes_from_annotation(
-        download_path, annotated_volume, structures
+        download_path, annotated_volume, structures, METADATA.root_id
     )
     return meshes_dict
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import brainglobe_space as bgs
 import meshio as mio
+import numpy as np
 import tifffile
 
 import brainglobe_atlasapi.atlas_generation
@@ -27,6 +28,25 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 # This should be changed every time we make changes in the atlas
 # structure:
 ATLAS_VERSION = brainglobe_atlasapi.atlas_generation.__version__
+
+
+def filter_structures_not_present_in_annotation(structures, annotation):
+    """
+    Filter out structures that are not present in the annotation volume.
+    Also prints removed structures.
+
+    Args:
+        structures (list of dict): List containing structure information
+        annotation (np.ndarray): Annotation volume
+
+    Returns:
+        list of dict: Filtered list of structure dictionaries
+    """
+    present_ids = set(np.unique(annotation))
+    removed = [s for s in structures if s["id"] not in present_ids]
+    for r in removed:
+        print("Removed structure:", r["name"], "(ID:", r["id"], ")")
+    return [s for s in structures if s["id"] in present_ids]
 
 
 def wrapup_atlas_from_data(
@@ -116,6 +136,11 @@ def wrapup_atlas_from_data(
 
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
+    if isinstance(annotation_stack, str) or isinstance(annotation_stack, Path):
+        annotation_stack = tifffile.imread(annotation_stack)
+    structures_list = filter_structures_not_present_in_annotation(
+        structures_list, annotation_stack
+    )
 
     # Instantiate BGSpace obj, using original stack size in um as meshes
     # are un um:

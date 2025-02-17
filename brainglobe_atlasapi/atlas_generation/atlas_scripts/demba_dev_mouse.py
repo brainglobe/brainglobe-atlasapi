@@ -45,9 +45,9 @@ data_file_url = (
     "buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_volumes",
 )
 resolution_to_modalities = {
-    25: ["mri", "lsfm"],
+    25: ["stpt", "mri", "lsfm", "allen_stpt"],
     10: ["allen_stpt"],
-    20: ["stpt"],
+    20: ["stpt", "allen_stpt"],
 }
 
 
@@ -90,6 +90,7 @@ def get_reference_and_annotation_paths(download_dir_path, age, modality):
             f"{base_path}AllenCCFv3_segmentations/20um/2022/"
             f"DeMBA_P{age}_segmentation_2022_20um.nii.gz"
         )
+        volume_resolution = 20
     elif modality == "allen_stpt":
         reference_path = (
             f"{base_path}allen_stpt_10um/DeMBA_P{age}_AllenSTPT_10um.nii.gz"
@@ -98,24 +99,31 @@ def get_reference_and_annotation_paths(download_dir_path, age, modality):
             f"{base_path}AllenCCFv3_segmentations/10um/2022/"
             f"DeMBA_P{age}_segmentation_2022_10um.nii.gz"
         )
+        volume_resolution = 10
+
     elif modality == "mri":
         reference_path = f"{base_path}mri_volumes/DeMBA_P{age}_mri.nii.gz"
         annotation_path = (
             f"{base_path}AllenCCFv3_segmentations/20um/2022/"
             f"DeMBA_P{age}_segmentation_2022_20um.nii.gz"
         )
+        volume_resolution = 25
+
     elif modality == "lsfm":
         reference_path = f"{base_path}lsfm_volumes/DeMBA_P{age}_lsfm.nii.gz"
         annotation_path = (
             f"{base_path}AllenCCFv3_segmentations/20um/2022/"
             f"DeMBA_P{age}_segmentation_2022_20um.nii.gz"
         )
+        volume_resolution = 25
     else:
         raise ValueError(f"Unknown modality: {modality}")
-    return reference_path, annotation_path
+    return reference_path, annotation_path, volume_resolution
 
 
-def retrieve_reference_and_annotation(download_dir_path, age, modality):
+def retrieve_reference_and_annotation(
+    download_dir_path, age, resolution, modality
+):
     """
     Retrieve the desired reference and annotation as two numpy arrays.
 
@@ -123,11 +131,13 @@ def retrieve_reference_and_annotation(download_dir_path, age, modality):
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
-    reference_path, annotation_path = get_reference_and_annotation_paths(
-        download_dir_path, age, modality
+    reference_path, annotation_path, volume_resolution = (
+        get_reference_and_annotation_paths(download_dir_path, age, modality)
     )
     annotation = load_any(annotation_path)
     reference = load_any(reference_path)
+    zoom_factors = tuple(volume_resolution / resolution for _ in range(3))
+    reference = zoom(reference, zoom_factors, order=1)
     if annotation.shape != reference.shape:
         """
         we unfortunately did not provide 25um segmentations so
@@ -141,17 +151,23 @@ def retrieve_reference_and_annotation(download_dir_path, age, modality):
     return reference, annotation
 
 
-def retrieve_additional_references(download_dir_path, age, modalities):
+def retrieve_additional_references(
+    download_dir_path, age, resolution, modalities
+):
     """This function only needs editing if the atlas has additional reference
     images. It should return a dictionary that maps the name of each
     additional reference image to an image stack containing its data.
     """
     additional_references = {}
     for modality in modalities:
-        reference_path, _ = get_reference_and_annotation_paths(
-            download_dir_path, age, modality
+        reference_path, _, volume_resolution = (
+            get_reference_and_annotation_paths(
+                download_dir_path, age, modality
+            )
         )
         ref = load_any(reference_path)
+        zoom_factors = tuple(volume_resolution / resolution for _ in range(3))
+        ref = zoom(ref, zoom_factors, order=1)
         additional_references[modality] = ref
     return additional_references
 
@@ -284,12 +300,12 @@ if __name__ == "__main__":
         for resolution, modalities in resolution_to_modalities.items():
             reference_volume, annotated_volume = (
                 retrieve_reference_and_annotation(
-                    bg_root_dir, age, modalities[0]
+                    bg_root_dir, age, resolution, modalities[0]
                 )
             )
             if len(modalities) > 1:
                 additional_references = retrieve_additional_references(
-                    bg_root_dir, age, modalities[1:]
+                    bg_root_dir, age, resolution, modalities[1:]
                 )
             hemispheres_stack = retrieve_hemisphere_map()
             structures = retrieve_structure_information()

@@ -1,7 +1,7 @@
 """
-    Automatic creation of
-        . structures.csv
-        . README.txt
+Automatic creation of
+    . structures.csv
+    . README.txt
 """
 
 import json

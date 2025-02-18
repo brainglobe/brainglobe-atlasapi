@@ -331,15 +331,6 @@ if __name__ == "__main__":
             structures = [
                 {k: s[k] for k in TEMPLATE_KEYS if k in s} for s in structures
             ]
-            if meshes_dict is None:
-                if resolution != 25:
-                    raise (
-                        """"
-                        The order or resolutions is wrong,
-                        25um should be first since its the most
-                        efficient to produce (10um is far too slow)
-                        """
-                    )
             # generate pixel-scale mesh files only once, for 25um, and
             # re-use them and the meshes_dict
             if meshes_dict is None:

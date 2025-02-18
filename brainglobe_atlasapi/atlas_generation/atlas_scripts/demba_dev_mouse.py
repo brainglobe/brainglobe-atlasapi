@@ -3,11 +3,13 @@ from pathlib import Path
 
 import numpy as np
 import pooch
+from allensdk.api.queries.ontologies_api import OntologiesApi
+from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 from scipy.ndimage import zoom
 
-from brainglobe_atlasapi import BrainGlobeAtlas, utils
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -37,6 +39,7 @@ METADATA = AtlasMetadata(
     orientation="rsa",
     root_id=997,
 )
+TEMPLATE_KEYS = ["acronym", "id", "name", "structure_id_path", "rgb_triplet"]
 
 data_file_url = (
     "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/"
@@ -181,29 +184,52 @@ def retrieve_hemisphere_map():
     """
 
 
-def retrieve_structure_information():
+def filter_structures_not_present_in_annotation(structures, annotation):
     """
-    Retrieve the structures tree and meshes for the Allen mouse brain atlas.
+    Filter out structures that are not present in the annotation volume.
+    Also prints removed structures.
+
+    Args:
+        structures (list of dict): List containing structure information
+        annotation (np.ndarray): Annotation volume
 
     Returns:
-        pandas.DataFrame: A DataFrame containing the atlas information.
+        list of dict: Filtered list of structure dictionaries
     """
-    # Since this atlas inherits from the allen can we not simply get the data
-    # from the bgapi?
-    print("determining structures")
-    allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
-    allen_structures = allen_atlas.structures_list
-    allen_structures = [
-        {
-            "id": i["id"],
-            "name": i["name"],
-            "acronym": i["acronym"],
-            "structure_id_path": i["structure_id_path"],
-            "rgb_triplet": i["rgb_triplet"],
-        }
-        for i in allen_structures
+    present_ids = set(np.unique(annotation))
+    removed = [s for s in structures if s["id"] not in present_ids]
+    for r in removed:
+        print("Removed structure:", r["name"], "(ID:", r["id"], ")")
+    return [s for s in structures if s["id"] in present_ids]
+
+
+def retrieve_structure_information(download_path):
+    """
+    Get structures that have a corresponding mesh in the Allen
+    """
+    spacecache = ReferenceSpaceCache(
+        manifest=download_path / "manifest.json",
+        # downloaded files are stored relative to here
+        resolution=resolution,
+        reference_space_key="annotation/ccf_2022",
+        # use the latest version of the CCF
+    )
+    # Download structures tree and meshes:
+    ######################################
+    oapi = OntologiesApi()  # ontologies
+    struct_tree = spacecache.get_structure_tree()  # structures tree
+
+    # Find id of set of regions with mesh:
+    select_set = (
+        "Structures whose surfaces are represented by a precomputed mesh"
+    )
+    mesh_set_ids = [
+        s["id"]
+        for s in oapi.get_structure_sets()
+        if s["description"] == select_set
     ]
-    return allen_structures
+    structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
+    return structs_with_mesh
 
 
 def retrieve_or_construct_meshes(
@@ -298,7 +324,13 @@ if __name__ == "__main__":
                     bg_root_dir, age, resolution, modalities[1:]
                 )
             hemispheres_stack = retrieve_hemisphere_map()
-            structures = retrieve_structure_information()
+            structures = retrieve_structure_information(bg_root_dir)
+            structures = filter_structures_not_present_in_annotation(
+                structures, annotated_volume
+            )
+            structures = [
+                {k: s[k] for k in TEMPLATE_KEYS if k in s} for s in structures
+            ]
             if meshes_dict is None:
                 if resolution != 25:
                     raise (

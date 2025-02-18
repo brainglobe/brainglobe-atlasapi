@@ -59,7 +59,7 @@ def get_local_atlas_version(atlas_name):
 def get_all_atlases_lastversions():
     """Read from URL or local cache all available last versions"""
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
-    custom_path = config.get_brainglobe_dir() / "custom.conf"
+    custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
 
     if utils.check_internet_connection(
         raise_error=False

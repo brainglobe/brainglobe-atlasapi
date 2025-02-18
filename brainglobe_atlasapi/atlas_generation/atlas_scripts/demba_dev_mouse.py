@@ -52,18 +52,18 @@ resolution_to_modalities = {
 
 
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
-
+    """
+    Slight issue that the hash seems different each time. I think the
+    files are being zipped on the server each time we request and it's
+    changing the hash somehow (Maybe date and time is encoded in the
+    file when zipped)
+    """
     utils.check_internet_connection()
 
     download_name = atlas_name
     destination_path = download_dir_path / download_name
     for url in atlas_file_url:
-        """
-        Slight issue that the hash seems different each time. I think the
-        files are being zipped on the server each time we request and it's
-        changing the hash somehow (Maybe date and time is encoded in the
-        file when zipped)
-        """
+
         pooch.retrieve(
             url=url,
             known_hash=None,
@@ -126,7 +126,8 @@ def retrieve_reference_and_annotation(
 ):
     """
     Retrieve the desired reference and annotation as two numpy arrays.
-
+    we unfortunately did not provide 25um segmentations so
+    we will just downsample the 20um ones
     Returns:
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
@@ -139,10 +140,7 @@ def retrieve_reference_and_annotation(
     zoom_factors = tuple(volume_resolution / resolution for _ in range(3))
     reference = zoom(reference, zoom_factors, order=1)
     if annotation.shape != reference.shape:
-        """
-        we unfortunately did not provide 25um segmentations so
-        we will just downsample the 20um ones
-        """
+
         zoom_factors = tuple(
             ref_dim / ann_dim
             for ref_dim, ann_dim in zip(reference.shape, annotation.shape)
@@ -154,9 +152,10 @@ def retrieve_reference_and_annotation(
 def retrieve_additional_references(
     download_dir_path, age, resolution, modalities
 ):
-    """This function only needs editing if the atlas has additional reference
-    images. It should return a dictionary that maps the name of each
-    additional reference image to an image stack containing its data.
+    """
+    The additional references are MRI LSFM and Allen STPT.
+    For the 10um Allen stpt is the main and only reference.
+    This is because it is the only volume with 10um resolution.
     """
     additional_references = {}
     for modality in modalities:
@@ -175,18 +174,11 @@ def retrieve_additional_references(
 def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
-
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
-    This is an array in the same shape as your template,
-    with 0's marking the left hemisphere, and 1's marking the right.
-
-    If your atlas is symmetrical, ignore this function.
+    Atlas is symmetrical, so hemisphere map is None.
 
     Returns:
-        numpy.array or None: A numpy array representing the hemisphere map,
-        or None if the atlas is symmetrical.
+        None: Atlas is symmetrical
     """
-    return None
 
 
 def retrieve_structure_information():
@@ -282,8 +274,6 @@ def retrieve_or_construct_meshes(
     return meshes_dict
 
 
-### If the code above this line has been filled correctly, nothing needs to be
-### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / METADATA.name
     bg_root_dir.mkdir(exist_ok=True)
@@ -309,6 +299,17 @@ if __name__ == "__main__":
                 )
             hemispheres_stack = retrieve_hemisphere_map()
             structures = retrieve_structure_information()
+            if meshes_dict is None:
+                if resolution != 25:
+                    raise (
+                        """"
+                        The order or resolutions is wrong,
+                        25um should be first since its the most
+                        efficient to produce (10um is far too slow)
+                        """
+                    )
+            # generate pixel-scale mesh files only once, for 25um, and
+            # re-use them and the meshes_dict
             if meshes_dict is None:
                 if resolution != 25:
                     raise (

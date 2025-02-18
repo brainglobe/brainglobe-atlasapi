@@ -228,8 +228,8 @@ def retrieve_or_construct_meshes(
         node.data = Region(is_label)
 
     # Mesh creation
-    closing_n_iters = 2  # not used for this atlas
-    decimate_fraction = 0.2  # not used for this atlas
+    closing_n_iters = 2
+    decimate_fraction = 0.2
     smooth = False
     for node in track(
         tree.nodes.values(),

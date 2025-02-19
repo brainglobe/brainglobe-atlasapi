@@ -63,7 +63,7 @@ def download_resources(download_dir_path, atlas_file_url, atlas_name):
     """
     Download the necessary resources for the atlas.
 
-    If possible, please use the Pooch library to retrieve any resources.
+    Pooch for some reason refused to download the entire file.
     """
     if "download=1" not in atlas_file_url:
         atlas_file_url = atlas_file_url + "?download=1"
@@ -96,10 +96,9 @@ def download_resources(download_dir_path, atlas_file_url, atlas_name):
 def retrieve_reference_and_annotation(download_path, resolution):
     """
     Retrieve the desired reference and annotation as two numpy arrays.
-
-    Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the
-        reference volume, and the second array is the annotation volume.
+    When the volume is 10 microns the authors only provided a hemi
+    segmentation. I checked with the lead author and he confirmed this was
+    accidental. Here I correct this by mirroring if the resolution is 10um.
     """
     reference_path = download_path / f"arav3a_bbp_nisslCOR_{resolution}.nrrd"
     reference, header = nrrd.read(reference_path)
@@ -116,9 +115,10 @@ def retrieve_reference_and_annotation(download_path, resolution):
 
 
 def retrieve_additional_references(download_path, resolution):
-    """This function only needs editing if the atlas has additional reference
-    images. It should return a dictionary that maps the name of each
-    additional reference image to an image stack containing its data.
+    """
+    This returns the population average nissl and converts it
+    to 16 bit unsigned int which bg requires. The developers
+    only provided a 10um template so I downsample here.
     """
     additional_reference_path = download_path / "nissl_average_full.nii.gz"
     reference = load_any(additional_reference_path)
@@ -131,17 +131,11 @@ def retrieve_additional_references(download_path, resolution):
 
 def retrieve_hemisphere_map():
     """
-    Retrieve a hemisphere map for the atlas.
-
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
-    This is an array in the same shape as your template,
-    with 0's marking the left hemisphere, and 1's marking the right.
-
-    If your atlas is symmetrical, ignore this function.
-
-    Returns:
-        numpy.array or None: A numpy array representing the hemisphere map,
-        or None if the atlas is symmetrical.
+    At least one of the templates is technically not
+    symmetrical as in pixels differ in left vs right
+    hemisphere. But it is registered to a symmetrical
+    template meaning there should not be morphological
+    differences.
     """
     return None
 
@@ -182,7 +176,7 @@ def flatten_structure_tree(node, structure_id_path=None):
 
 def retrieve_structure_information(download_path):
     """
-    Return a pandas DataFrame with flattened atlas structure information.
+    The authors provide a json which is nested so I unest it.
     """
     with open(download_path / "hierarchy_bbp_atlas_pipeline.json") as f:
         metadata_json = json.load(f)
@@ -198,11 +192,8 @@ def retrieve_structure_information(download_path):
 
 def retrieve_or_construct_meshes(download_path, annotated_volume, structures):
     """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. Some atlases are packaged with mesh files, in these cases we
-    should use these files. Then this function should download those meshes.
-    In other cases we need to construct the meshes ourselves. For this we have
-    helper functions to achieve this.
+    I use the construct_meshes_from_annotation helper function introduced in
+    this pull request
     """
     meshes_dict = construct_meshes_from_annotation(
         download_path, annotated_volume, structures, METADATA.root_id

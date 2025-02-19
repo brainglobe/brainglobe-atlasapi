@@ -17,7 +17,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 
-
 @dataclass
 class AtlasMetadata:
     """

@@ -248,7 +248,8 @@ def create_region_mesh(args):
 
 
 def construct_meshes_from_annotation(
-    download_path, volume, structures_list, root_id
+    download_path, volume, structures_list, root_id, closing_n_iters = 2,
+    decimate_fraction = 0, smooth = False
 ):
     """
     Retrieve or construct atlas region meshes for a given annotation volume.
@@ -267,7 +268,15 @@ def construct_meshes_from_annotation(
         List of structure dictionaries containing id information.
     root_id : int
         Identifier for the root structure.
-
+    smooth: bool
+        if True the surface mesh is smoothed
+    closing_n_iters: int
+        number of iterations of closing morphological operation.
+        set to None to avoid applying morphological operations
+    decimate_fraction: float  in range [0, 1].
+        What fraction of the original number of vertices is to be kept.
+        EG .5 means that 50% of the vertices are kept,
+        the others are removed.
     Returns
     -------
     dict
@@ -282,9 +291,6 @@ def construct_meshes_from_annotation(
     for key, node in tree.nodes.items():
         node.data = Region(key in labels)
 
-    closing_n_iters = 2
-    decimate_fraction = 0
-    smooth = False
 
     for node in track(
         tree.nodes.values(),

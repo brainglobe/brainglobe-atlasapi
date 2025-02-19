@@ -248,8 +248,13 @@ def create_region_mesh(args):
 
 
 def construct_meshes_from_annotation(
-    download_path, volume, structures_list, root_id, closing_n_iters = 2,
-    decimate_fraction = 0, smooth = False
+    download_path,
+    volume,
+    structures_list,
+    root_id,
+    closing_n_iters=2,
+    decimate_fraction=0,
+    smooth=False,
 ):
     """
     Retrieve or construct atlas region meshes for a given annotation volume.
@@ -290,7 +295,6 @@ def construct_meshes_from_annotation(
 
     for key, node in tree.nodes.items():
         node.data = Region(key in labels)
-
 
     for node in track(
         tree.nodes.values(),

@@ -32,7 +32,7 @@ class AtlasMetadata:
 # Define the atlas metadata
 METADATA = AtlasMetadata(
     version=0,
-    name="demba_dev_mouse",
+    name="demba_allen_seg_dev_mouse",
     citation="https://doi.org/10.1101/2024.06.14.598876",
     atlas_link="https://doi.org/10.25493/V3AH-HK7",
     species="Mus musculus",

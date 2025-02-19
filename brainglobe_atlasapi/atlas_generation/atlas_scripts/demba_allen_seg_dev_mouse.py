@@ -205,7 +205,7 @@ def filter_structures_not_present_in_annotation(structures, annotation):
 
 def retrieve_structure_information(download_path):
     """
-    Get structures that have a corresponding mesh in the Allen
+    Use the allen ccf 2022 ontology via the allen ontology api
     """
     spacecache = ReferenceSpaceCache(
         manifest=download_path / "manifest.json",
@@ -236,9 +236,7 @@ def retrieve_or_construct_meshes(
     structures, annotated_volume, download_dir_path
 ):
     """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. We construct the meshes ourselves for this atlas, as the
-    original data does not provide precomputed meshes.
+    generates meshes based on the segmentation volume
     """
     print("constructing meshes")
     meshes_dir_path = download_dir_path / "meshes"

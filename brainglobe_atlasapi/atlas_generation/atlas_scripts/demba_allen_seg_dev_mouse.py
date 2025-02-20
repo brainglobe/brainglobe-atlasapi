@@ -301,11 +301,11 @@ def retrieve_or_construct_meshes(
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / METADATA.name
     bg_root_dir.mkdir(exist_ok=True)
-    download_resources(
-        download_dir_path=bg_root_dir,
-        atlas_name=METADATA.name,
-        atlas_file_url=data_file_url,
-    )
+    # download_resources(
+    #     download_dir_path=bg_root_dir,
+    #     atlas_name=METADATA.name,
+    #     atlas_file_url=data_file_url,
+    # )
     meshes_dict = None
 
     for age in range(4, 57):
@@ -323,12 +323,7 @@ if __name__ == "__main__":
                 )
             hemispheres_stack = retrieve_hemisphere_map()
             structures = retrieve_structure_information(bg_root_dir)
-            structures = filter_structures_not_present_in_annotation(
-                structures, annotated_volume
-            )
-            structures = [
-                {k: s[k] for k in TEMPLATE_KEYS if k in s} for s in structures
-            ]
+
             # generate pixel-scale mesh files only once, for 25um, and
             # re-use them and the meshes_dict
             if meshes_dict is None:
@@ -344,6 +339,12 @@ if __name__ == "__main__":
                     structures, annotated_volume, age_specific_root_dir
                 )
             current_name = f"{METADATA.name}_p{age}_{modalities[0]}"
+            structures = filter_structures_not_present_in_annotation(
+                structures, annotated_volume
+            )
+            structures = [
+                {k: s[k] for k in TEMPLATE_KEYS if k in s} for s in structures
+            ]
             output_filename = wrapup_atlas_from_data(
                 atlas_name=current_name,
                 atlas_minor_version=METADATA.version,

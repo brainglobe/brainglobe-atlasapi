@@ -1,8 +1,6 @@
 import json
 import zipfile
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple, Union
 
 import nrrd
 import numpy as np
@@ -16,47 +14,14 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
-
-@dataclass
-class AtlasMetadata:
-    """
-    Holds metadata describing a BrainGlobe atlas.
-
-    Attributes:
-        version (int): The minor version of the atlas (the first number after
-            the decimal point).
-        name (str): Atlas name, following "FirstAuthor_SpeciesCommonName" or
-            "Institution_SpeciesCommonName".
-        citation (str): A DOI of the most relevant citable document.
-        species (str): The scientific name of the species.
-        atlas_link (Union[str, Tuple[str, ...]]): URL(s) for the data files.
-        orientation (str): The **original** atlas orientation in BrainGlobe
-            convention.
-        root_id (int): The ID of the highest atlas level. This is commonly
-            called root or brain.
-        resolution (Union[int, float]): The atlas resolution in microns.
-    """
-
-    version: int
-    name: str
-    citation: str
-    species: str
-    atlas_link: Union[str, Tuple[str, ...]]
-    orientation: str
-    root_id: int
-    resolution: Union[int, float]
-
-
-METADATA = AtlasMetadata(
-    version=0,
-    name="allen_bbp_ccfv3a_entire_mouse_brain",
-    citation="https://doi.org/10.1101/2024.11.06.622212",
-    atlas_link="https://zenodo.org/api/records/14034334/files-archive",
-    species="Mus musculus",
-    orientation="spr",
-    root_id=997,
-    resolution=25,
-)
+VERSION = 0
+NAME = "allen_bbp_ccfv3a_entire_mouse_brain"
+CITATION = "https://doi.org/10.1101/2024.11.06.622212"
+ATLAS_LINK = "https://zenodo.org/api/records/14034334/files-archive"
+SPECIES = "Mus musculus"
+ORIENTATION = "spr"
+ROOT_ID = 997
+RESOLUTION = 25
 
 
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
@@ -196,7 +161,7 @@ def retrieve_or_construct_meshes(download_path, annotated_volume, structures):
     this pull request
     """
     meshes_dict = construct_meshes_from_annotation(
-        download_path, annotated_volume, structures, METADATA.root_id
+        download_path, annotated_volume, structures, ROOT_ID
     )
     return meshes_dict
 
@@ -204,12 +169,12 @@ def retrieve_or_construct_meshes(download_path, annotated_volume, structures):
 ### If the code above this line has been filled correctly, nothing needs to be
 ### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / METADATA.name
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / NAME
     bg_root_dir.mkdir(exist_ok=True)
     download_resources(
         download_dir_path=bg_root_dir,
-        atlas_name=METADATA.name,
-        atlas_file_url=METADATA.atlas_link,
+        atlas_name=NAME,
+        atlas_file_url=ATLAS_LINK,
     )
     for resolution in [25, 10]:
         reference_volume, annotated_volume = retrieve_reference_and_annotation(
@@ -227,14 +192,14 @@ if __name__ == "__main__":
             )
         reference_volume = (reference_volume * 65535).astype(np.uint16)
         output_filename = wrapup_atlas_from_data(
-            atlas_name=METADATA.name,
-            atlas_minor_version=METADATA.version,
-            citation=METADATA.citation,
-            atlas_link=METADATA.atlas_link,
-            species=METADATA.species,
+            atlas_name=NAME,
+            atlas_minor_version=VERSION,
+            citation=CITATION,
+            atlas_link=ATLAS_LINK,
+            species=SPECIES,
             resolution=(resolution,) * 3,
-            orientation=METADATA.orientation,
-            root_id=METADATA.root_id,
+            orientation=ORIENTATION,
+            root_id=ROOT_ID,
             reference_stack=reference_volume,
             annotation_stack=annotated_volume,
             structures_list=structures,

@@ -171,8 +171,8 @@ def retrieve_hemisphere_map():
 
 def filter_structures_not_present_in_annotation(structures, annotation):
     """
-    Filter out structures that are not present in the annotation volume.
-    Also prints removed structures.
+    Filter out structures that are not present in the annotation volume,
+    or whose children are not present. Also prints removed structures.
 
     Args:
         structures (list of dict): List containing structure information
@@ -182,10 +182,27 @@ def filter_structures_not_present_in_annotation(structures, annotation):
         list of dict: Filtered list of structure dictionaries
     """
     present_ids = set(np.unique(annotation))
-    removed = [s for s in structures if s["id"] not in present_ids]
+
+    # Create a structure tree for easy parent-child relationship traversal
+    tree = get_structures_tree(structures)
+
+    # Function to check if a structure or any of its descendants are present
+    def is_present(structure):
+        node = tree.get_node(structure["id"])
+        if structure["id"] in present_ids:
+            return True
+
+        # Check if any children are present
+        for child in tree.children(node.identifier):
+            if child.identifier in present_ids:
+                return True
+        return False
+
+    removed = [s for s in structures if not is_present(s)]
     for r in removed:
         print("Removed structure:", r["name"], "(ID:", r["id"], ")")
-    return [s for s in structures if s["id"] in present_ids]
+
+    return [s for s in structures if is_present(s)]
 
 
 def retrieve_structure_information(download_path):
@@ -308,7 +325,9 @@ if __name__ == "__main__":
                 )
             hemispheres_stack = retrieve_hemisphere_map()
             structures = retrieve_structure_information(bg_root_dir)
-
+            structures = filter_structures_not_present_in_annotation(
+                structures, annotated_volume
+            )
             # generate pixel-scale mesh files only once, for 25um, and
             # re-use them and the meshes_dict
             if meshes_dict is None:
@@ -324,9 +343,7 @@ if __name__ == "__main__":
                     structures, annotated_volume, age_specific_root_dir
                 )
             current_name = f"{NAME}_p{age}_{modalities[0]}"
-            structures = filter_structures_not_present_in_annotation(
-                structures, annotated_volume
-            )
+
             structures = [
                 {k: s[k] for k in TEMPLATE_KEYS if k in s} for s in structures
             ]

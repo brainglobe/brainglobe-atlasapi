@@ -23,6 +23,7 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
 from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
 )
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas
@@ -32,8 +33,8 @@ ATLAS_VERSION = brainglobe_atlasapi.atlas_generation.__version__
 
 def filter_structures_not_present_in_annotation(structures, annotation):
     """
-    Filter out structures that are not present in the annotation volume.
-    Also prints removed structures.
+    Filter out structures that are not present in the annotation volume,
+    or whose children are not present. Also prints removed structures.
 
     Args:
         structures (list of dict): List containing structure information
@@ -43,10 +44,26 @@ def filter_structures_not_present_in_annotation(structures, annotation):
         list of dict: Filtered list of structure dictionaries
     """
     present_ids = set(np.unique(annotation))
-    removed = [s for s in structures if s["id"] not in present_ids]
+    # Create a structure tree for easy parent-child relationship traversal
+    tree = get_structures_tree(structures)
+
+    # Function to check if a structure or any of its descendants are present
+    def is_present(structure):
+        node = tree.get_node(structure["id"])
+        if structure["id"] in present_ids:
+            return True
+
+        # Check if any children are present
+        for child in tree.children(node.identifier):
+            if child.identifier in present_ids:
+                return True
+        return False
+
+    removed = [s for s in structures if not is_present(s)]
     for r in removed:
         print("Removed structure:", r["name"], "(ID:", r["id"], ")")
-    return [s for s in structures if s["id"] in present_ids]
+
+    return [s for s in structures if is_present(s)]
 
 
 def wrapup_atlas_from_data(

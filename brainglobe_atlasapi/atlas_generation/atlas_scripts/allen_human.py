@@ -17,7 +17,6 @@ from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
-    inspect_meshes_folder,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -33,7 +32,6 @@ ORIENTATION = "rpi"
 
 ### Settings
 PARALLEL = False  # disable parallel mesh extraction for easier debugging
-TEST = False
 
 
 def prune_tree(tree):
@@ -278,10 +276,6 @@ def create_atlas(working_dir):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-
-    if TEST:
-        # create visualization of the various meshes
-        inspect_meshes_folder(meshes_dir_path)
 
     # Create meshes dict
     meshes_dict = dict()

@@ -301,11 +301,11 @@ def retrieve_or_construct_meshes(
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / METADATA.name
     bg_root_dir.mkdir(exist_ok=True)
-    # download_resources(
-    #     download_dir_path=bg_root_dir,
-    #     atlas_name=METADATA.name,
-    #     atlas_file_url=data_file_url,
-    # )
+    download_resources(
+        download_dir_path=bg_root_dir,
+        atlas_name=METADATA.name,
+        atlas_file_url=data_file_url,
+    )
     meshes_dict = None
 
     for age in range(4, 57):

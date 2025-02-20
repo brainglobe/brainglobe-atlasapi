@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -17,28 +16,14 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
+VERSION = 0
+NAME = "demba_allen_seg_dev_mouse"
+CITATION = "https://doi.org/10.1101/2024.06.14.598876"
+ATLAS_LINK = "https://doi.org/10.25493/V3AH-HK7"
+SPECIES = "Mus musculus"
+ORIENTATION = "rsa"
+ROOT_ID = 997
 
-@dataclass
-class AtlasMetadata:
-    version: int
-    name: str
-    citation: str
-    species: str
-    atlas_link: tuple[str, str]
-    orientation: str
-    root_id: int
-
-
-# Define the atlas metadata
-METADATA = AtlasMetadata(
-    version=0,
-    name="demba_allen_seg_dev_mouse",
-    citation="https://doi.org/10.1101/2024.06.14.598876",
-    atlas_link="https://doi.org/10.25493/V3AH-HK7",
-    species="Mus musculus",
-    orientation="rsa",
-    root_id=997,
-)
 TEMPLATE_KEYS = ["acronym", "id", "name", "structure_id_path", "rgb_triplet"]
 
 data_file_url = (
@@ -84,7 +69,7 @@ def get_reference_and_annotation_paths(download_dir_path, age, modality):
     Returns:
         tuple: A tuple containing the reference path and annotation path.
     """
-    base_path = f"{download_dir_path}/{METADATA.name}/"
+    base_path = f"{download_dir_path}/{NAME}/"
     if modality == "stpt":
         reference_path = (
             f"{base_path}DeMBA_templates/DeMBA_P{age}_brain.nii.gz"
@@ -267,7 +252,7 @@ def retrieve_or_construct_meshes(
                 tree,
                 labels,
                 annotated_volume,
-                METADATA.root_id,
+                ROOT_ID,
                 closing_n_iters,
                 decimate_fraction,
                 smooth,
@@ -299,11 +284,11 @@ def retrieve_or_construct_meshes(
 
 
 if __name__ == "__main__":
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / METADATA.name
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / NAME
     bg_root_dir.mkdir(exist_ok=True)
     download_resources(
         download_dir_path=bg_root_dir,
-        atlas_name=METADATA.name,
+        atlas_name=NAME,
         atlas_file_url=data_file_url,
     )
     meshes_dict = None
@@ -338,7 +323,7 @@ if __name__ == "__main__":
                 meshes_dict = retrieve_or_construct_meshes(
                     structures, annotated_volume, age_specific_root_dir
                 )
-            current_name = f"{METADATA.name}_p{age}_{modalities[0]}"
+            current_name = f"{NAME}_p{age}_{modalities[0]}"
             structures = filter_structures_not_present_in_annotation(
                 structures, annotated_volume
             )
@@ -347,13 +332,13 @@ if __name__ == "__main__":
             ]
             output_filename = wrapup_atlas_from_data(
                 atlas_name=current_name,
-                atlas_minor_version=METADATA.version,
-                citation=METADATA.citation,
-                atlas_link=METADATA.atlas_link,
-                species=METADATA.species,
+                atlas_minor_version=VERSION,
+                citation=CITATION,
+                atlas_link=ATLAS_LINK,
+                species=SPECIES,
                 resolution=(resolution,) * 3,
-                orientation=METADATA.orientation,
-                root_id=METADATA.root_id,
+                orientation=ORIENTATION,
+                root_id=ROOT_ID,
                 reference_stack=reference_volume,
                 annotation_stack=annotated_volume,
                 structures_list=structures,

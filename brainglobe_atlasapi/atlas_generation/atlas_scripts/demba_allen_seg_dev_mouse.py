@@ -308,8 +308,6 @@ if __name__ == "__main__":
         atlas_name=NAME,
         atlas_file_url=data_file_url,
     )
-    meshes_dict = None
-
     for age in range(4, 57):
         age_specific_root_dir = bg_root_dir / f"P{age}"
         age_specific_root_dir.mkdir(exist_ok=True)
@@ -328,20 +326,10 @@ if __name__ == "__main__":
             structures = filter_structures_not_present_in_annotation(
                 structures, annotated_volume
             )
-            # generate pixel-scale mesh files only once, for 25um, and
-            # re-use them and the meshes_dict
-            if meshes_dict is None:
-                if resolution != 25:
-                    raise (
-                        """"
-                        The order or resolutions is wrong,
-                        25um should be first since its the most
-                        efficient to produce (10um is far too slow)
-                        """
-                    )
-                meshes_dict = retrieve_or_construct_meshes(
-                    structures, annotated_volume, age_specific_root_dir
-                )
+
+            meshes_dict = retrieve_or_construct_meshes(
+                structures, annotated_volume, age_specific_root_dir
+            )
             current_name = f"{NAME}_p{age}_{modalities[0]}"
 
             structures = [

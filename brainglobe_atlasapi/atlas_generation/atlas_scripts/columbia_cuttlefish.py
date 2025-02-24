@@ -65,7 +65,9 @@ def create_atlas(working_dir, resolution):
 
     # process brain annotation file. There are a total of 70 segments.
     print("Processing brain annotations:")
-    readdata, header = nrrd.read(annotation_path)
+    annotations, header = nrrd.read(annotation_path)
+    half_lr = annotations.shape[1] // 2
+    annotations[:, :half_lr, :] = np.flip(annotations[:, half_lr:, :], axis=1)
 
     # Extract annotation mapping information from nrrd headers,
     # to be applied to hierarchy file later.
@@ -102,15 +104,9 @@ def create_atlas(working_dir, resolution):
         for row in cuttlefish_dict_reader:
             if row["hasSides"] == "Y":
                 leftSide = dict(row)
-                leftSide["abbreviation"] = leftSide["abbreviation"] + "l"
-                leftSide["name"] = leftSide["name"] + " (left)"
-
-                rightSide = dict(row)
-                rightSide["abbreviation"] = rightSide["abbreviation"] + "r"
-                rightSide["name"] = rightSide["name"] + " (right)"
-
+                leftSide["abbreviation"] = leftSide["abbreviation"]
+                leftSide["name"] = leftSide["name"]
                 hierarchy.append(leftSide)
-                hierarchy.append(rightSide)
             else:
                 hierarchy.append(row)
 
@@ -143,10 +139,11 @@ def create_atlas(working_dir, resolution):
         elif hierarchy[i]["acronym"] == "IB":
             hierarchy[i]["id"] = 72
 
-    # remove erroneous key for the VS region
-    # (error due to commas being included in the 'function' column)
-    hierarchy[-3].pop(None)
-    hierarchy[-4].pop(None)
+    # manually fix visceral nerve region
+    visceral_nerves = hierarchy[55]
+    for s in visceral_nerves[None]:
+        visceral_nerves["name"] += f", {s}"
+    visceral_nerves.pop(None)
 
     # add the 'root' structure
     hierarchy.append(
@@ -259,7 +256,7 @@ def create_atlas(working_dir, resolution):
 
     # generate binary mask for mesh creation
     # generate binary mask for mesh creation
-    labels = np.unique(readdata).astype(np.int_)
+    labels = np.unique(annotations).astype(np.int_)
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
@@ -291,7 +288,7 @@ def create_atlas(working_dir, resolution):
                 node,
                 tree,
                 labels,
-                readdata,
+                annotations,
                 ROOT_ID,
                 closing_n_iters,
                 decimate_fraction,
@@ -337,7 +334,7 @@ def create_atlas(working_dir, resolution):
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=brain_template,
-        annotation_stack=readdata,
+        annotation_stack=annotations,
         structures_list=hierarchy,
         meshes_dict=meshes_dict,
         scale_meshes=True,

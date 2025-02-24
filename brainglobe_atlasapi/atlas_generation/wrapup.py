@@ -8,7 +8,7 @@ import meshio as mio
 import tifffile
 
 import brainglobe_atlasapi.atlas_generation
-from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     create_metadata_files,
     generate_metadata_dict,
@@ -21,6 +21,9 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
 )
 from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
+)
+from brainglobe_atlasapi.atlas_generation.validate_atlases import (
+    get_all_validation_functions,
 )
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -48,6 +51,7 @@ def wrapup_atlas_from_data(
     cleanup_files=False,
     compress=True,
     scale_meshes=False,
+    resolution_mapping=None,
     additional_references={},
     additional_metadata={},
 ):
@@ -102,6 +106,9 @@ def wrapup_atlas_from_data(
         If True the meshes points are scaled by the resolution
         to ensure that they are specified in microns,
         regardless of the atlas resolution.
+    resolution_mapping: list, optional
+        a list of three mapping the target space axes to the source axes
+        only needed for mesh scaling of anisotropic atlases
     additional_references: dict, optional
         (Default value = empty dict).
         Dictionary with secondary reference stacks.
@@ -125,6 +132,7 @@ def wrapup_atlas_from_data(
     atlas_dir_name = atlas_name_from_repr(
         atlas_name, resolution[0], ATLAS_VERSION, atlas_minor_version
     )
+
     dest_dir = Path(working_dir) / atlas_dir_name
 
     # exist_ok would be more permissive but error-prone here as there might
@@ -171,7 +179,20 @@ def wrapup_atlas_from_data(
 
         if scale_meshes:
             # Scale the mesh to the desired resolution, BEFORE transforming:
-            mesh.points *= resolution
+            # Note that this transformation happens in original space,
+            # but the resolution is passed in target space (typically ASR)
+            if not resolution_mapping:
+                # isotropic case, so don't need to re-map resolution
+                mesh.points *= resolution
+            else:
+                # resolution needs to be transformed back
+                # to original space in anisotropic case
+                original_resolution = (
+                    resolution[resolution_mapping[0]],
+                    resolution[resolution_mapping[1]],
+                    resolution[resolution_mapping[2]],
+                )
+                mesh.points *= original_resolution
 
         # Reorient points:
         mesh.points = space_convention.map_points_to(
@@ -214,6 +235,53 @@ def wrapup_atlas_from_data(
         additional_metadata=additional_metadata,
     )
 
+    atlas_name_for_validation = atlas_name_from_repr(atlas_name, resolution[0])
+
+    # creating BrainGlobe object from local folder (working_dir)
+    atlas_to_validate = BrainGlobeAtlas(
+        atlas_name=atlas_name_for_validation,
+        brainglobe_dir=working_dir,
+        check_latest=False,
+    )
+
+    # Run validation functions
+    print(f"Running atlas validation on {atlas_dir_name}")
+
+    validation_results = {}
+
+    for func in get_all_validation_functions():
+        try:
+            func(atlas_to_validate)
+            validation_results[func.__name__] = "Pass"
+        except AssertionError as e:
+            validation_results[func.__name__] = f"Fail: {str(e)}"
+
+    def _check_validations(validation_results):
+        # Helper function to check if all validations passed
+        all_passed = all(
+            result == "Pass" for result in validation_results.values()
+        )
+
+        if all_passed:
+            print("This atlas is valid")
+        else:
+            failed_functions = [
+                func
+                for func, result in validation_results.items()
+                if result != "Pass"
+            ]
+            error_messages = [
+                result.split(": ")[1]
+                for result in validation_results.values()
+                if result != "Pass"
+            ]
+
+            print("These validation functions have failed:")
+            for func, error in zip(failed_functions, error_messages):
+                print(f"- {func}: {error}")
+
+    _check_validations(validation_results)
+
     # Compress if required:
     if compress:
         output_filename = dest_dir.parent / f"{dest_dir.name}.tar.gz"
@@ -223,6 +291,7 @@ def wrapup_atlas_from_data(
 
     # Cleanup if required:
     if cleanup_files:
+        print(f"Cleaning up atlas data at: {dest_dir}")
         # Clean temporary directory and remove it:
         shutil.rmtree(dest_dir)
 

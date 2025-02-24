@@ -1,16 +1,17 @@
-__version__ = "0"
+__version__ = "1"
+__atlas__ = "admba_3d_dev_mouse"
 
 import dataclasses
 import json
 import multiprocessing as mp
 import time
-import zipfile
 from os import listdir, path
 from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
+import pooch
 from rich.progress import track
 from skimage import io
 
@@ -20,26 +21,32 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = True
+PARALLEL = False
 
 
-def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
+def download_atlas_files(
+    download_dir_path, atlas_file_url, ATLAS_NAME, known_hash
+):
     utils.check_internet_connection()
 
-    atlas_files_dir = download_dir_path / ATLAS_NAME
     try:
         download_name = ATLAS_NAME + "_atlas.zip"
     except TypeError:
         download_name = ATLAS_NAME / "_atlas.zip"
     destination_path = download_dir_path / download_name
-    utils.retrieve_over_http(atlas_file_url, destination_path)
 
-    with zipfile.ZipFile(destination_path, "r") as zip_ref:
-        zip_ref.extractall(atlas_files_dir)
+    pooch.retrieve(
+        url=atlas_file_url,
+        known_hash=known_hash,
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Unzip(extract_dir="."),
+    )
 
-    return atlas_files_dir
+    return destination_path
 
 
 def parse_structures(structures_file, root_id):
@@ -144,10 +151,11 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
             total=tree.size(),
             description="Creating meshes",
         ):
+            # root_node = tree.nodes[root_id]
             create_region_mesh(
                 (
                     meshes_dir_path,
-                    node,
+                    node,  # root_node
                     tree,
                     labels,
                     annotated_volume,
@@ -209,6 +217,8 @@ class AtlasConfig:
     citation: str
     root_id: int
     atlas_packager: str
+    # pooch hash for remote atlas file:
+    known_hash: str
 
 
 def create_atlas(
@@ -226,7 +236,7 @@ def create_atlas(
     if isinstance(working_dir, str):
         working_dir = Path(working_dir)
     # Generated atlas path:
-    working_dir = working_dir / "admba_3d_dev_mouse" / atlas_config.atlas_name
+    working_dir = working_dir / atlas_config.atlas_name
     working_dir.mkdir(exist_ok=True, parents=True)
 
     download_dir_path = working_dir / "downloads"
@@ -241,6 +251,7 @@ def create_atlas(
             download_dir_path,
             atlas_config.atlas_file_url,
             atlas_config.atlas_name,
+            atlas_config.known_hash,
         )
         ## Load files
 
@@ -298,6 +309,7 @@ def create_atlas(
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
+        resolution_mapping=[2, 1, 0],
     )
     print("Done. Atlas generated at: ", output_filename)
     return output_filename
@@ -305,7 +317,7 @@ def create_atlas(
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_WORKDIR / __atlas__
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     # set up E11.5 atlas settings and use as template for rest of brains
@@ -314,13 +326,19 @@ if __name__ == "__main__":
         species="Mus musculus",
         atlas_link="https://search.kg.ebrains.eu/instances/8ab25629-bdac-47d0-bc86-6f3aa3885f29",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000023_3Drecon-ADMBA-E11pt5_pub",
-        orientation="lsa",
-        resolution=(16, 16, 20),
+        orientation="rsa",
+        resolution=(
+            16,
+            16,
+            20,
+        ),  # this is in ASR, the target orientation.
+        # The resolution in LR is lower than SI and AP!
         citation="Young et al. 2021, https://doi.org/10.7554/eLife.61408",
         root_id=15564,
         atlas_packager="Pradeep Rajasekhar, WEHI, Australia, "
         "rajasekhardotp@wehidotedudotau; David Young, UCSF, "
         "United States, davedotyoung@ucsfdotedu",
+        known_hash="30e978c0f72939c9967442e3bc18adbb1d55eba902df4cfa76d4317df5059b08",
     )
 
     # E13.5 atlas, with updated name and URLs
@@ -329,6 +347,7 @@ if __name__ == "__main__":
         atlas_name="admba_3d_e13_5_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/bdb89f61-8dc4-4255-b4d5-50d470958b58",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000024_3Drecon-ADMBA-E13pt5_pub",
+        known_hash="7ab6d7fc62a7cce26ed0691716ccd00067df47e1a90ed05ed6a017709455593b",
     )
 
     # E15.5 atlas
@@ -337,6 +356,7 @@ if __name__ == "__main__":
         atlas_name="admba_3d_e15_5_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/Dataset/51a81ae5-d821-437a-a6d5-9b1f963cfe9b",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000025_3Drecon-ADMBA-E15pt5_pub",
+        known_hash="b85be368d2460c7193d7ecfbae91acefd88e4022d1d6d4c650d5b3082c56d43b",
     )
 
     # E18.5 atlas
@@ -345,6 +365,7 @@ if __name__ == "__main__":
         atlas_name="admba_3d_e18_5_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/633b41be-867a-4611-8570-82271aebd516",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000026_3Drecon-ADMBA-E18pt5_pub",
+        known_hash="18b57e4db2c2d87d5d19295b4167de0c67a24e63061d01098724615beed0192a",
     )
 
     # P4 atlas, which has different resolutions
@@ -354,6 +375,7 @@ if __name__ == "__main__":
         atlas_link="https://search.kg.ebrains.eu/instances/eea3589f-d74b-4988-8f4c-fd9ae8e3a4b3",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000027_3Drecon-ADMBA-P4_pub",
         resolution=(16.752, 16.752, 20),
+        known_hash="87dd3411737b5fdccffabfddb0ae900d358427156d397dc04668e3442f59b0f2",
     )
 
     # P14 atlas, which has slightly different resolutions
@@ -363,14 +385,17 @@ if __name__ == "__main__":
         atlas_link="https://search.kg.ebrains.eu/instances/114e50aa-156c-4283-af73-11b7f03d287e",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000028_3Drecon-ADMBA-P14_pub",
         resolution=(16.752, 16.752, 25),
+        known_hash="7c81bdb68493d7a31f865a06c08f430229e04dc5f1c0b85d4434fee8c2d0ebac",
     )
 
     # P28 atlas, which has same resolutions as P14
     p28_config = dataclasses.replace(
         p14_config,
+        resolution=(16.752, 16.752, 25),
         atlas_name="admba_3d_p28_mouse",
         atlas_link="https://search.kg.ebrains.eu/instances/3a1153f0-6779-43bd-9f02-f92700a585a4",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000029_3Drecon-ADMBA-P28_pub",
+        known_hash="be108596c14957f4b25019f4d23477f9e1abbb3d3e014c112ac42eec7b3686fd",
     )
 
     # P56 atlas, which has different resolutions
@@ -380,6 +405,7 @@ if __name__ == "__main__":
         atlas_link="https://search.kg.ebrains.eu/instances/a7e99105-1ec2-42e2-a53a-7aa0f2b78135",
         atlas_file_url="https://data.kg.ebrains.eu/zip?container=https://object.cscs.ch/v1/AUTH_4791e0a3b3de43e2840fe46d9dc2b334/ext-d000030_3Drecon-ADMBA-P56_pub",
         resolution=(25, 25, 25),
+        known_hash="0bad5f8e4dfa256d5f634834f1f07b58356b16a9165aebe3ff39f3133901986d",
     )
 
     # atlases to create

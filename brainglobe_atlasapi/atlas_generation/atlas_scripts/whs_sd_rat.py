@@ -1,14 +1,14 @@
-__version__ = "0"
+__version__ = "2"
 
 import json
 import multiprocessing as mp
 import time
-import zipfile
 from pathlib import Path
 
-import imio
 import numpy as np
+import pooch
 import xmltodict
+from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -17,27 +17,41 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = True
 
+ATLAS_NAME = "whs_sd_rat"
+SPECIES = "Rattus norvegicus"
+ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"
+CITATION = "Kleven et al 2023, https://doi.org/10.1038/s41592-023-02034-3"
+ORIENTATION = "lpi"
+RESOLUTION = (39, 39, 39)
+ROOT_ID = 10000
+REFERENCE_URL = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+ANNOTATION_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
+ATLAS_PACKAGER = (
+    "Harry Carey, University of Oslo, Norway, harry.carey@medisin.uio.no"
+)
+
 
 def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
-    atlas_files_dir = download_dir_path / ATLAS_NAME
-
-    if atlas_files_dir.exists():
-        return atlas_files_dir
 
     utils.check_internet_connection()
 
     download_name = ATLAS_NAME + "_atlas.zip"
     destination_path = download_dir_path / download_name
-    utils.retrieve_over_http(atlas_file_url, destination_path)
 
-    with zipfile.ZipFile(destination_path, "r") as zip_ref:
-        zip_ref.extractall(atlas_files_dir)
+    pooch.retrieve(
+        url=atlas_file_url,
+        known_hash=None,
+        path=destination_path,
+        progressbar=True,
+        processor=pooch.Unzip(extract_dir="."),
+    )
 
-    return atlas_files_dir
+    return destination_path
 
 
 def parse_structures_xml(root, path=None, structures=None):
@@ -196,52 +210,44 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 def create_atlas(working_dir):
-    ATLAS_NAME = "whs_sd_rat"
-    SPECIES = "Rattus norvegicus"
-    ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"
-    CITATION = (
-        "Papp et al 2014, https://doi.org/10.1016/j.neuroimage.2014.04.001"
-    )
-    ORIENTATION = "lpi"
-    RESOLUTION = (39, 39, 39)
-    ROOT_ID = 10000
-    ATLAS_FILE_URL = "https://www.nitrc.org/frs/download.php/12263/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
-    ATLAS_PACKAGER = (
-        "Ben Kantor, Tel Aviv University, Israel, benkantor@mail.tau.ac.il"
-    )
-
     assert len(ORIENTATION) == 3, (
         "Orientation is not 3 characters, Got" + ORIENTATION
     )
     assert len(RESOLUTION) == 3, "Resolution is not correct, Got " + RESOLUTION
     assert (
-        ATLAS_FILE_URL
+        REFERENCE_URL
     ), "No download link provided for atlas in ATLAS_FILE_URL"
 
     # Generated atlas path:
-    working_dir = working_dir / ATLAS_NAME
     working_dir.mkdir(exist_ok=True, parents=True)
 
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
 
     # Download atlas files from link provided
-    print("Downloading atlas from link: ", ATLAS_FILE_URL)
+
     atlas_files_dir = download_atlas_files(
-        download_dir_path, ATLAS_FILE_URL, ATLAS_NAME
+        download_dir_path, REFERENCE_URL, ATLAS_NAME
     )
     atlas_files_dir = atlas_files_dir / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 
+    annotation_files_dir = download_atlas_files(
+        download_dir_path, ANNOTATION_URL, ATLAS_NAME + "_annotation"
+    )
+    annotation_files_dir = (
+        annotation_files_dir / "MBAT_WHS_SD_rat_atlas_v4.01/Data"
+    )
+
     # Parse structure metadata
     structures = parse_structures(
-        atlas_files_dir / "WHS_SD_rat_atlas_v4_labels.ilf"
+        annotation_files_dir / "WHS_SD_rat_atlas_v4.01_labels.ilf"
     )
 
     # Load files
-    annotation_stack = imio.load_any(
-        atlas_files_dir / "WHS_SD_rat_atlas_v4.nii.gz", as_numpy=True
+    annotation_stack = load_any(
+        annotation_files_dir / "WHS_SD_rat_atlas_v4.01.nii.gz", as_numpy=True
     ).astype(np.int64)
-    reference_stack = imio.load_any(
+    reference_stack = load_any(
         atlas_files_dir / "WHS_SD_rat_T2star_v1.01.nii.gz", as_numpy=True
     )
 
@@ -313,6 +319,6 @@ def create_atlas(working_dir):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir"
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
     create_atlas(bg_root_dir)

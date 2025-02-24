@@ -26,6 +26,8 @@ TEMPLATE_CONF_DICT = {
     }
 }
 
+DEFAULT_WORKDIR = Path.home() / "brainglobe_workingdir"
+
 
 def write_default_config(path=None, template=None):
     """Write configuration file at first repo usage. In this way,

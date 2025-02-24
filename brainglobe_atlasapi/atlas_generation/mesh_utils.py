@@ -1,6 +1,6 @@
 try:
-    from vedo import Mesh, Volume, load, show, write
-    from vedo.applications import Browser, Slicer3DPlotter
+    from vedo import Mesh, Volume, write
+    from vedo.applications import Slicer3DPlotter
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
@@ -278,34 +278,3 @@ def compare_mesh_and_volume(mesh, volume):
     vp = Slicer3DPlotter(volume, bg2="white", showHisto=False)
     vp.add(mesh.alpha(0.5))
     vp.show()
-
-
-def inspect_meshes_folder(folder):
-    """
-    Used to create an interactive vedo visualisation
-    to scroll through all .obj files saved in a folder
-
-    Parameters
-    ----------
-    folder: str or Path object
-        path to folder with .obj files
-    """
-
-    if isinstance(folder, str):
-        folder = Path(folder)
-
-    if not folder.exists():
-        raise FileNotFoundError("The folder passed doesnt exist")
-
-    mesh_files = folder.glob("*.obj")
-
-    Browser([load(str(mf)).c("w").lw(0.25).lc("k") for mf in mesh_files])
-    logger.debug("visualization ready")
-    show()
-
-
-if __name__ == "__main__":
-    folder = (
-        r"C:\Users\Federico\.brainglobe\temp\allen_human_500um_v0.1\meshes"
-    )
-    inspect_meshes_folder(folder)

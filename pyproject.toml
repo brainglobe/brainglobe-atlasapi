@@ -56,6 +56,7 @@ allenmouse = ["allensdk"]
 allenmouse_barrels = [
     "allensdk",
     "voxcell"]
+perens_stereotaxic_mri_mouse = ["py7zr"]
 
 atlasgen = [
     "loguru",
@@ -104,6 +105,9 @@ fix = true
 
 [tool.ruff.lint]
 select = ["I", "E", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["E501"]
 
 [tool.tox]
 legacy_tox_ini = """

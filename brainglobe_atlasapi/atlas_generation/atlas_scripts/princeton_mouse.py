@@ -1,14 +1,13 @@
 __version__ = "0"
-__atlas__ = "princeton_mouse"
 
 import json
 import multiprocessing as mp
 import os.path
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pooch
 import tifffile
 from rich.progress import track
 from scipy.ndimage import zoom
@@ -19,24 +18,22 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 PARALLEL = False
 
+ATLAS_NAME = "princeton_mouse"
+SPECIES = "Mus musculus"
+ATLAS_LINK = "https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links/"
+CITATION = "Pisano et al 2021, https://doi.org/10.1016/j.celrep.2021.109721"
+ORIENTATION = "las"
+ROOT_ID = 997
+ATLAS_RES = 20
+PACKAGER = "Sam Clothier. sam.clothier.18@ucl.ac.uk"
+
 
 def create_atlas(working_dir, resolution):
-    # Specify information about the atlas:
-    ATLAS_NAME = __atlas__
-    SPECIES = "Mus musculus"
-    ATLAS_LINK = "https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links/"
-    CITATION = (
-        "Pisano et al 2021, https://doi.org/10.1016/j.celrep.2021.109721"
-    )
-    ORIENTATION = "las"
-    ROOT_ID = 997
-    ATLAS_RES = 20
-    PACKAGER = "Sam Clothier. sam.clothier.18@ucl.ac.uk"
-
     # Download the atlas tissue and annotation TIFFs:
     ######################################
 
@@ -48,16 +45,31 @@ def create_atlas(working_dir, resolution):
     download_dir_path.mkdir(exist_ok=True)
 
     utils.check_internet_connection()
-    reference_dest_path = download_dir_path / "reference_download.tif"
-    annotation_dest_path = download_dir_path / "annotation_download.tif"
 
-    if not os.path.isfile(reference_dest_path):
+    if not os.path.isfile(download_dir_path):
         print("Downloading tissue volume...")
-        utils.retrieve_over_http(reference_download_url, reference_dest_path)
-    if not os.path.isfile(annotation_dest_path):
+        pooch.retrieve(
+            url=reference_download_url,
+            known_hash="efe25ee9b5c52faae82fdcf53b96ef10529414ab61e22ef10753a1545ebc8128",
+            path=download_dir_path,
+            progressbar=True,
+        )
+    if not os.path.isfile(download_dir_path):
         print("Downloading annotation stack...")
-        utils.retrieve_over_http(annotation_download_url, annotation_dest_path)
+        pooch.retrieve(
+            url=annotation_download_url,
+            known_hash="36ac8f1d65f2ef76ea35e5f367e90fdeb904af5f2f39ed75568cfafc8ede357e",
+            path=download_dir_path,
+            progressbar=True,
+        )
     print("Download complete.")
+
+    reference_dest_path = (
+        download_dir_path / "85c139517e1de923e63d741a8d4dc345-pma_tissue"
+    )
+    annotation_dest_path = (
+        download_dir_path / "179d667f26ee659d1d11de70a9fc004f-pma_annotations"
+    )
 
     template_volume = tifffile.imread(reference_dest_path)
     template_volume = np.array(template_volume)
@@ -238,9 +250,8 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
-    RES_UM = 20
     # Generated atlas path:
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / __atlas__
+    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
-    create_atlas(bg_root_dir, RES_UM)
+    create_atlas(bg_root_dir, ATLAS_RES)

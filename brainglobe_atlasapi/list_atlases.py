@@ -1,6 +1,8 @@
 """
-    Some functionality to list all available and downloaded brainglobe atlases
+Some functionality to list all available and downloaded brainglobe atlases
 """
+
+import re
 
 from rich import print as rprint
 from rich.panel import Panel
@@ -22,7 +24,7 @@ def get_downloaded_atlases():
     brainglobe_dir = config.get_brainglobe_dir()
 
     return [
-        f.name.split("_v")[0]
+        f.name.rsplit("_v", 1)[0]
         for f in brainglobe_dir.glob("*_*_*_v*")
         if f.is_dir()
     ]
@@ -43,20 +45,36 @@ def get_local_atlas_version(atlas_name):
     """
 
     brainglobe_dir = config.get_brainglobe_dir()
-    return [
-        f.name.split("_v")[1]
-        for f in brainglobe_dir.glob(f"*{atlas_name}*")
-        if f.is_dir()
-    ][0]
+    try:
+        return [
+            re.search(r"_v(\d+\.\d+)$", f.name).group(1)
+            for f in brainglobe_dir.glob(f"*{atlas_name}*")
+            if f.is_dir() and re.search(r"_v(\d+\.\d+)$", f.name)
+        ][0]
+    except IndexError:
+        print(f"No atlas found with the name: {atlas_name}")
+        return None
 
 
 def get_all_atlases_lastversions():
-    """Read from URL all available last versions"""
-    available_atlases = utils.conf_from_url(
-        descriptors.remote_url_base.format("last_versions.conf")
-    )
-    available_atlases = dict(available_atlases["atlases"])
-    return available_atlases
+    """Read from URL or local cache all available last versions"""
+    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
+
+    if utils.check_internet_connection(
+        raise_error=False
+    ) and utils.check_gin_status(raise_error=False):
+        official_atlases = utils.conf_from_url(
+            descriptors.remote_url_base.format("last_versions.conf")
+        )
+    else:
+        print("Cannot fetch latest atlas versions from the server.")
+        official_atlases = utils.conf_from_file(cache_path)
+    try:
+        custom_atlases = utils.conf_from_file(custom_path)
+    except FileNotFoundError:
+        return dict(official_atlases["atlases"])
+    return {**official_atlases["atlases"], **custom_atlases["atlases"]}
 
 
 def get_atlases_lastversions():

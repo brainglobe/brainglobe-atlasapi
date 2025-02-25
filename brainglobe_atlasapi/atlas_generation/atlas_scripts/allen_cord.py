@@ -17,7 +17,6 @@ from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
-    inspect_meshes_folder,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -181,10 +180,6 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-
-    if TEST:
-        # create visualization of the various meshes
-        inspect_meshes_folder(meshes_dir_path)
 
     return meshes_dir_path
 

@@ -8,21 +8,25 @@ import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.config import get_brainglobe_dir
+from brainglobe_atlasapi.descriptors import REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
-    get_local_atlas_version,
 )
 from brainglobe_atlasapi.update_atlases import update_atlas
 
 
 def validate_atlas_files(atlas: BrainGlobeAtlas):
-    """Checks if basic files exist in the atlas folder"""
+    """
+    Checks if basic files exist in the atlas folder
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
+    """
+
+    atlas_path = atlas.root_dir
+
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
     expected_files = [
         "annotation.tiff",
@@ -103,12 +107,12 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
 
 def open_for_visual_check(atlas: BrainGlobeAtlas):
     # implement visual checks later
-    pass
+    return True
 
 
 def validate_checksum(atlas: BrainGlobeAtlas):
     # implement later
-    pass
+    return True
 
 
 def validate_image_dimensions(atlas: BrainGlobeAtlas):
@@ -146,14 +150,16 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
 def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     """
     Checks if all the structures in the atlas have a corresponding mesh file
+
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
     """
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    atlas_path = atlas.root_dir
+
     obj_path = Path(atlas_path / "meshes")
 
     ids_from_mesh_files = [
@@ -172,6 +178,7 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
             f"Structures with IDs {in_bg_not_mesh} are in the atlas, "
             "but don't have a corresponding mesh file."
         )
+    return True
 
 
 def catch_missing_structures(atlas: BrainGlobeAtlas):
@@ -182,10 +189,8 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    atlas_path = atlas.root_dir
+
     obj_path = Path(atlas_path / "meshes")
 
     ids_from_mesh_files = [
@@ -204,6 +209,62 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
             f"Structures with IDs {in_mesh_not_bg} have a mesh file, "
             "but are not accessible through the atlas."
         )
+    return True
+
+
+def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
+    """Validates that reference image was correctly rescaled to
+    target datatype. Often goes wrong when naively passing float64
+    (MRI) data to wrapup function.
+    """
+    assert not np.all(
+        atlas.reference < 128
+    ), f"Reference image is likely wrongly rescaled to {REFERENCE_DTYPE}"
+    return True
+
+
+def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
+    """Validates that equivalent regions in L+R hemispheres have same
+    annotation value. This is done by naively comparing two central pixels
+    that are opposite each other along the mid-sagittal plane, and near
+    the mid-sagittal plane."""
+    annotation = atlas.annotation
+    centre = np.array(annotation.shape) // 2
+    central_leftright_axis_annotations = annotation[centre[0], centre[1], :]
+    label_5_left_of_centre = central_leftright_axis_annotations[centre[2] + 5]
+    label_5_right_of_centre = central_leftright_axis_annotations[centre[2] - 5]
+    assert (
+        label_5_left_of_centre == label_5_right_of_centre
+    ), "Annotation labels are asymmetric."
+    return True
+
+
+def validate_atlas_name(atlas: BrainGlobeAtlas):
+    """
+    Ensures atlas names are all lowercase
+    """
+    assert (
+        atlas.atlas_name == atlas.atlas_name.lower()
+    ), f"Atlas name {atlas.atlas_name} cannot contain capitals."
+    return True
+
+
+def get_all_validation_functions():
+    """Returns all individual validation functions as a list.
+    All functions should expect 1 argument, a BrainGlobeAtlas."""
+    return [
+        validate_atlas_files,
+        validate_mesh_matches_image_extents,
+        open_for_visual_check,
+        validate_checksum,
+        validate_image_dimensions,
+        validate_additional_references,
+        catch_missing_mesh_files,
+        catch_missing_structures,
+        validate_reference_image_pixels,
+        validate_annotation_symmetry,
+        validate_atlas_name,
+    ]
 
 
 def validate_atlas(atlas_name, version, validation_functions):
@@ -242,6 +303,9 @@ if __name__ == "__main__":
         validate_additional_references,
         catch_missing_mesh_files,
         catch_missing_structures,
+        validate_reference_image_pixels,
+        validate_annotation_symmetry,
+        validate_atlas_name,
     ]
 
     valid_atlases = []

@@ -17,7 +17,7 @@
 [![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/documentation/brainglobe-atlasapi/index.html)
 [![Twitter](https://img.shields.io/twitter/follow/brain_globe?style=social)](https://twitter.com/brain_globe)
 
-The brainglobe atlas API (brainglobe-atlasapi) provides a common interface for programmers to download and process brain atlas data from multiple sources.
+The BrainGlobe Atlas API (`brainglobe-atlasapi`) provides a common interface for programmers to download and process brain atlas data from multiple sources.
 
 ## Atlases available
 
@@ -46,7 +46,7 @@ A number of atlases are in development, but those available currently are:
 | [Australian Mouse Brain Atlas](https://doi.org/10.1016/j.ymeth.2015.01.005) | 15 micron | 12 week old | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#australian-mouse-brain-atlas) |
 ## Installation
 
-brainglobe-atlasapi can be installed from PyPI with:
+`brainglobe-atlasapi` can be installed from PyPI with:
 
 ```bash
 pip install brainglobe-atlasapi

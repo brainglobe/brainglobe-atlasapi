@@ -1,7 +1,6 @@
 """Atlas for a domestic cat"""
 
 import os
-import shutil
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +17,7 @@ from brainglobe_atlasapi.utils import check_internet_connection
 
 ### Metadata
 __version__ = 0
-ATLAS_NAME = "csl_catlas"
+ATLAS_NAME = "csl_cat"
 CITATION = "Stolzberg, Daniel et al 2017.https://doi.org/10.1002/cne.24271"
 SPECIES = "Felis catus"
 ATLAS_LINK = "https://github.com/CerebralSystemsLab/CATLAS"
@@ -134,16 +133,16 @@ def retrieve_template_and_annotations(file_path_list):
     """
     Retrieve the desired template and annotations as two numpy arrays.
     Template_volume is an MRI image of brain
-    Reference_volume is an annotated segmentation - each label has a unique ID
+    annotation_volume is a segmentation - each label has a unique ID
 
     Returns:
         tuple: A tuple containing two numpy arrays.
-        The first array is a downscaled template volume,
+        The first array is a template volume rescale to uint16 range,
         and the second array is a reference volume.
     """
 
     template_volume = load_nii(file_path_list[0], as_array=True)
-    reference_volume = load_nii(file_path_list[1], as_array=True)
+    annotation_volume = load_nii(file_path_list[1], as_array=True)
 
     dmin = np.min(template_volume)
     dmax = np.max(template_volume)
@@ -152,10 +151,10 @@ def retrieve_template_and_annotations(file_path_list):
     template_volume = (template_volume - dmin) * dscale
     template_volume = template_volume.astype(np.uint16)
 
-    return template_volume, reference_volume
+    return template_volume, annotation_volume
 
 
-def add_heirarchy(labels_df_row):
+def add_hierarchy(labels_df_row):
     """
     Takes the index at a given row and adds the root_id -
     produces structural heirarchy
@@ -176,7 +175,7 @@ def add_rgb_col_and_heirarchy(labels_df):
         new_rgb_row = [row["r"], row["g"], row["b"]]
         rgb_list.append(new_rgb_row)
 
-        structure_id = add_heirarchy(row)
+        structure_id = add_hierarchy(row)
         structure_list.append(structure_id)
 
     labels_df = labels_df.drop(columns=["r", "g", "b", "alpha"])
@@ -254,7 +253,7 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
     return structures_dict
 
 
-def create_mask_for_root(template_volume, reference_volume, mesh_save_folder):
+def create_mask_for_root(template_volume, mesh_save_folder):
     """
     A root_id mask of the mri image, with the annotations removed from it,
     remaining is the root mask
@@ -262,14 +261,10 @@ def create_mask_for_root(template_volume, reference_volume, mesh_save_folder):
     returns:
         a saved .obj file within mesh_save_folder
     """
-    binarised_template_volume = np.where(
-        template_volume < 9000, 0, template_volume
-    )
-    binarised_template_volume = np.where(
-        binarised_template_volume != 0, ROOT_ID, binarised_template_volume
-    )
-    root_mask = np.where(reference_volume, 0, binarised_template_volume)
+    root_mask = (template_volume >= 8000).astype(np.uint8)
+    from scipy.ndimage import median_filter
 
+    root_mask = median_filter(root_mask, size=7)
     file_name = f"{ROOT_ID}.obj"
     file_path = str(mesh_save_folder / file_name)
 
@@ -277,7 +272,7 @@ def create_mask_for_root(template_volume, reference_volume, mesh_save_folder):
         root_mask,
         obj_filepath=file_path,
         smooth=True,
-        decimate_fraction=0.6,
+        decimate_fraction=0.1,
     )
 
 
@@ -315,28 +310,41 @@ def extract_mesh_from_vtk(working_dir):
         file_path = str(mesh_save_folder / file_name)
         mesh_dict[index] = file_path
 
+        # convert mesh from mm to pixels
+        # calculated by np.linalg.inv from nibabel.image.affine
+        # it's an oblique view close to LPS
+        nii_affine_inverse = np.array(
+            [
+                [1.99690761, 0.1024282, -0.0432288],
+                [-0.07216534, 1.78576813, 0.89767717],
+                [-0.08457204, 0.89472933, -1.78670276],
+            ]
+        )
+
+        transformed_coordinates = np.zeros_like(mesh.coordinates)
+        for i, c in enumerate(mesh.coordinates):
+            transformed_coordinates[i] = nii_affine_inverse.dot(c)
+
+        mesh.coordinates = transformed_coordinates
+
+        # shift to centre of image
+        # necessity for this operation found via trial and error
+        mesh.coordinates += np.array([75, 96, 48])
+
         if not Path(file_path).exists():
             write(mesh, file_path)
         else:
             continue
 
-    create_mask_for_root(template_volume, reference_volume, mesh_save_folder)
+    create_mask_for_root(template_volume, mesh_save_folder)
     mesh_dict[ROOT_ID] = str(mesh_save_folder / f"{ROOT_ID}.obj")
     return mesh_dict
 
 
-# pre-commit wouldn't let me add this as a docstring
-
-# A copy of Table 1, manually copied from the paper.
-# Previously read from a csv I created, hard-coded for sharing purposes
-# the csv code will be commented out as we might
-# return to that method after testing.
-# Cerebellum added to full name csv, as not included in table 1
+# A list form of Table 1, manually copied from the paper.
+# Cerebellum added to the list, as not included in table 1
 # ALv and ALd are included in catlas text file but not included on the table,
-# replaced with NaN for full name - line 265
-
-
-# csv_of_full_name = "~/Desktop/catlas_table1_name.csv"
+# replaced with NaN for full name
 csv_of_full_name = [
     ["root", "root"],
     ["A1", "Primary auditory cortex"],
@@ -420,10 +428,6 @@ if __name__ == "__main__":
     working_dir = bg_root_dir
     temp_download_dir = bg_root_dir / "download_dir"
 
-    # Deletes the folder since wrapup doesnt work if folder is created
-    if bg_root_dir.exists():
-        shutil.rmtree(bg_root_dir)
-
     bg_root_dir.mkdir(parents=True, exist_ok=True)
     local_file_path_list = download_resources(working_dir)
     template_volume, reference_volume = retrieve_template_and_annotations(
@@ -456,5 +460,3 @@ if __name__ == "__main__":
         scale_meshes=True,
         atlas_packager=ATLAS_PACKAGER,
     )
-
-    shutil.rmtree(temp_download_dir)

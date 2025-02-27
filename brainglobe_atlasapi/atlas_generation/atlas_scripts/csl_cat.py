@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
+from scipy.ndimage import median_filter
 from vedo import Mesh, write
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -122,6 +123,8 @@ def download_mesh_files(file_paths, temp_download_dir):
     with open(hash_folder, "r") as file:
         file_names = [line.strip().split()[0] for line in file]
 
+    # first 3 files are already read: template, annotation and colors.txt
+    # so we just need to fetch the remaining files
     for file in file_names[3:]:
         cached_file = dawg.fetch(file)
         file_paths.append([file, cached_file])
@@ -226,12 +229,7 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
         index_col=False,
     )
 
-    # COMMENTED OUT CSV WORKFLOW AS HARDCODED INSTEAD
     full_name_df = pd.DataFrame(csv_of_full_name, columns=full_name_df_col)
-
-    # full_name_df = pd.read_csv(
-    #     csv_of_full_name, names=full_name_df_col, index_col=False
-    # )
 
     labels_df = add_rgb_col_and_heirarchy(labels_df)
     root_id_row = pd.DataFrame(
@@ -255,15 +253,13 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
 
 def create_mask_for_root(template_volume, mesh_save_folder):
     """
-    A root_id mask of the mri image, with the annotations removed from it,
-    remaining is the root mask
+    Create a smooth mask from the template for the whole brain,
+    meshes and saves it .obj file within mesh_save_folder
 
-    returns:
-        a saved .obj file within mesh_save_folder
+    Returns:
+        None
     """
     root_mask = (template_volume >= 8000).astype(np.uint8)
-    from scipy.ndimage import median_filter
-
     root_mask = median_filter(root_mask, size=7)
     file_name = f"{ROOT_ID}.obj"
     file_path = str(mesh_save_folder / file_name)
@@ -274,6 +270,7 @@ def create_mask_for_root(template_volume, mesh_save_folder):
         smooth=True,
         decimate_fraction=0.1,
     )
+    return None
 
 
 def extract_mesh_from_vtk(working_dir):
@@ -345,7 +342,7 @@ def extract_mesh_from_vtk(working_dir):
 # Cerebellum added to the list, as not included in table 1
 # ALv and ALd are included in catlas text file but not included on the table,
 # replaced with NaN for full name
-csv_of_full_name = [
+acronym_to_region_map = [
     ["root", "root"],
     ["A1", "Primary auditory cortex"],
     ["A2", "Second auditory cortex"],
@@ -434,7 +431,7 @@ if __name__ == "__main__":
         local_file_path_list
     )
     structures_dict = retrieve_structure_information(
-        local_file_path_list, csv_of_full_name
+        local_file_path_list, acronym_to_region_map
     )
 
     print("Converting VTK files into .obj mesh")

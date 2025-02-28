@@ -41,10 +41,7 @@ jobs:
         # Run all supported Python versions on linux
         os: [ubuntu-latest]
         python-version: ["3.11", "3.12", "3.13"]
-        # Include one windows and two macOS (intel based and arm based) runs
         include:
-          - os: macos-13
-            python-version: "3.13"
           - os: macos-latest
             python-version: "3.13"
           - os: windows-latest

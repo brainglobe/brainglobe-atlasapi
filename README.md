@@ -46,6 +46,15 @@ A number of atlases are in development, but those available currently are:
 | [Australian Mouse Brain Atlas](https://doi.org/10.1016/j.ymeth.2015.01.005) | 15 micron | 12 week old | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#australian-mouse-brain-atlas) |
 | [Cat brain atlas](https://doi.org/10.1002/cne.24271) | 500 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#cat-brain-atlas) |
 
+
+## Pre-requisities
+Isnstall [uv](https://github.com/astral-sh/uv): "An extremely fast Python package manager".
+```bash
+uv venv --python 3.12 # Create a virtual environment at .venv.
+source .venv/bin/activate #To activate the virtual environment
+pip install -e .
+```
+
 ## Installation
 
 `brainglobe-atlasapi` can be installed from PyPI with:
@@ -173,6 +182,7 @@ The `brainglobe_atlasapi.atlas_generation` submodule contains code for the gener
 This code was previously the `bg-atlasgen` module.
 
 ## To contribute
+See [CONTRIBUTION.md](CONTRIBUTION.md) guideline.
 
 1. Fork this repo
 2. Clone your repo

@@ -2,10 +2,10 @@
 
 👍🎉 First off, thanks for taking the time to contribute! 🎉👍
 
-When contributing to this repository, please first discuss the change you wish to make via issue, instant message in clara-agx chatbox, or any other method with the owners of this repository before making a change. 
+When contributing to this repository, please first discuss the change you wish to make via issue, instant message in clara-agx chatbox, or any other method with the owners of this repository before making a change.
 Please note we have a [code of conduct](CODE_OF_CONDUCT.md), please follow it in all your interactions with the project.
 
-## :octocat: Setting up project locally. 
+## :octocat: Setting up project locally.
 1. Fork this repo
 2. Generate your SSH keys as suggested [here](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
 3. (Optional) setup you commit signature verification as shown [here](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification)
@@ -22,10 +22,10 @@ git clone git@github.com:brainglobe/brainglobe-atlasapi.git
 
 ## New issues
 * Open an issue (bug report, feature request, or something is not working): https://github.com/brainglobe/brainglobe-atlasapi//issues/new/choose
-* Workflow for issue management 
+* Workflow for issue management
 ```mermaid
   flowchart TD;
-      Z[Bug Reported] -->A[...];  
+      Z[Bug Reported] -->A[...];
       A[Bug resolution] -->B(Testing OK?);
       B--Yes-->C[Prepare commit];
       B--No-->D[Reopen issue];
@@ -33,16 +33,16 @@ git clone git@github.com:brainglobe/brainglobe-atlasapi.git
       C ----> E[Request Review];
       E ----> F[Commit changes];
       F --> H[Merge PR and close issue]
-```  
+```
 
-## Committing and pushing changes 
-The following commands are typed or copied via command line. 
+## Committing and pushing changes
+The following commands are typed or copied via command line.
 Alternatively, you can use the features of your integrated development environment (pycharm, code, vim, etc).
 
-1. Clone this repo 
+1. Clone this repo
 ```
 git clone git@github.com:brainglobe/brainglobe-atlasapi.git
-``` 
+```
 2. Create new branch `{FEATURE_BRANCH_NAME}` using issue number `{ISSUE_NUMBER}`
 ```
 git checkout -b ISSUE_NUMBER-FEATURE_BRANCH_NAME #(e.g. `git checkout -b 422-my-feature-branch`)
@@ -50,10 +50,10 @@ git checkout -b ISSUE_NUMBER-FEATURE_BRANCH_NAME #(e.g. `git checkout -b 422-my-
 3. Commit changes and push to your branch
 ```
 git add .
-git commit -m 'short message #ISSUE_NUMBER' #(e.g. git commit -m 'adding a message to my feature branch #422' 
+git commit -m 'short message #ISSUE_NUMBER' #(e.g. git commit -m 'adding a message to my feature branch #422'
 git push origin ISSUENUMBER-branch-name
 ```
-4. Submit a Pull Request against the `main` branch. 
+4. Submit a Pull Request against the `main` branch.
 
 ## Pull Request (PR) and merge to `main` branch
 1. Select branch that contain your commits.
@@ -88,9 +88,9 @@ git pull --rebase origin ISSUE_NUMBER_FEATURE_BRANCH
 7. Request a PR review.
 See [collaborating-with-pull-requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests) for further details.
 8. Once your PRs has been approved, procced to merge it to main. See [Merging a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/merging-a-pull-request)
-9. Delete and remove your merged branch   
-9.1 You can navigate branches in https://github.com/brainglobe/brainglobe-atlasapi/branches and removed merged branches by clickling :wastebasket: icon.    
-9.2 Alternatively, you can delete your local and merged branches using the following commands:     
+9. Delete and remove your merged branch
+9.1 You can navigate branches in https://github.com/brainglobe/brainglobe-atlasapi/branches and removed merged branches by clickling :wastebasket: icon.
+9.2 Alternatively, you can delete your local and merged branches using the following commands:
 ```
 #Local git clear
 git branch --merged | grep -v '\*\|master\|main\|develop' | xargs -n 1 git branch -d

@@ -170,6 +170,12 @@ This means that when plotting meshes and points using cartesian systems, you mig
 To make things as consistent as possible, in `brainglobe-atlasapi` the 0 of the meshes coordinates is assumed to coincide with the 0 index of the images stack, and meshes coordinates increase following the direction stack indexes increase.
 To deal with transformations between your data space and `brainglobe-atlasapi`, you might find the [brainglobe-space](https://github.com/brainglobe/brainglobe-space) package helpful.
 
+### Unit testing
+A quick way to run unit tests is through your project's terminal with the activated environment. You can also use VS Code or PyCharm.
+```bash
+pytest -vs tests/
+```
+
 ## Contributions
 ### How to contribute
 Refer to the [CONTRIBUTION.md](CONTRIBUTION.md) guideline for this repository. For more details, please check the [Brain Glove Developer’s Guide.](https://brainglobe.info/community/developers/index.html)

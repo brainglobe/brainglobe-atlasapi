@@ -47,17 +47,26 @@ A number of atlases are in development, but those available currently are:
 | [Cat brain atlas](https://doi.org/10.1002/cne.24271) | 500 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#cat-brain-atlas) |
 
 
-## Pre-requisities
-Isnstall [uv](https://github.com/astral-sh/uv): "An extremely fast Python package manager".
+## Pre-requisities and developer installation
+### Using conda
+Install [versions >=23.10.0](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#) in your operating system machine.
+```
+conda create -n brainglobe-atlasapi -c conda-forge python=3.12
+conda activate brainglobe-dev
+pip install -e ".[dev]"
+```
+### Using uv
+Install [uv >=0.4.13](https://github.com/astral-sh/uv): "An extremely fast Python package manager" in your operating system machine.
 ```bash
-uv venv --python 3.12 # Create a virtual environment at .venv.
-source .venv/bin/activate #To activate the virtual environment
-pip install -e .
+uv venv --python 3.12
+source .venv/bin/activate
+uv pip install --upgrade pip setuptools
+uv pip install -e ".[dev]"
 ```
 
 ## Installation
 
-`brainglobe-atlasapi` can be installed from PyPI with:
+Once you installed your prefered python environment, activate it and install `brainglobe-atlasapi` from PyPI as follows:
 
 ```bash
 pip install brainglobe-atlasapi
@@ -161,8 +170,19 @@ This means that when plotting meshes and points using cartesian systems, you mig
 To make things as consistent as possible, in `brainglobe-atlasapi` the 0 of the meshes coordinates is assumed to coincide with the 0 index of the images stack, and meshes coordinates increase following the direction stack indexes increase.
 To deal with transformations between your data space and `brainglobe-atlasapi`, you might find the [brainglobe-space](https://github.com/brainglobe/brainglobe-space) package helpful.
 
-## Seeking help or contributing
+## Contributions
+### How to contribute
+Refer to the [CONTRIBUTION.md](CONTRIBUTION.md) guideline for this repository. For more details, please check the [Brain Glove Developer’s Guide.](https://brainglobe.info/community/developers/index.html)
+
+### Seeking help or contributing
 We are always happy to help users of our tools, and welcome any contributions. If you would like to get in contact with us for any reason, please see the [contact page of our website](https://brainglobe.info/contact.html).
+
+### Atlas Generation and Adding a New Atlas
+
+For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe-atlasapi/adding-a-new-atlas.html).
+
+The `brainglobe_atlasapi.atlas_generation` submodule contains code for the generation of cleaned-up data, for the main `brainglobe_atlasapi` module.
+This code was previously the `bg-atlasgen` module.
 
 ## Citation
 
@@ -171,32 +191,3 @@ If you find the BrainGlobe Atlas API useful, please cite the paper in your work:
 >Claudi, F., Petrucco, L., Tyson, A. L., Branco, T., Margrie, T. W. and Portugues, R. (2020). BrainGlobe Atlas API: a common interface for neuroanatomical atlases. Journal of Open Source Software, 5(54), 2668, https://doi.org/10.21105/joss.02668
 
 **Don't forget to cite the developers of the atlas that you used!**
-
----
-
-# Atlas Generation and Adding a New Atlas
-
-For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe-atlasapi/adding-a-new-atlas.html).
-
-The `brainglobe_atlasapi.atlas_generation` submodule contains code for the generation of cleaned-up data, for the main `brainglobe_atlasapi` module.
-This code was previously the `bg-atlasgen` module.
-
-## To contribute
-See [CONTRIBUTION.md](CONTRIBUTION.md) guideline.
-
-1. Fork this repo
-2. Clone your repo
-3. Run `git clone https://github.com/brainglobe/brainglobe-atlasapi`
-4. Install an editable version of the package; by running `pip install -e .` within the cloned directory
-5. Create a script to package your atlas, and place into `brainglobe_atlasapi/atlas_generation/atlas_scripts`. Please see other scripts for examples.
-
-Your script should contain everything required to run.
-The raw data should be hosted on a publicly accessible repository so that anyone can run the script to recreate the atlas.
-
-If you need to add any dependencies, please add them as an extra in the `pyproject.toml` file, e.g.:
-
-```python
-[project.optional-dependencies]
-allenmouse = ["allensdk"]
-newatlas = ["dependency_1", "dependency_2"]
-```

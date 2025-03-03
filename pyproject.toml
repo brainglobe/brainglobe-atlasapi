@@ -4,7 +4,7 @@ description = "A lightweight python module to interact with and generate atlases
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
-    { name = "Luigi Petrucco, Federico Claudi, Adam Tyson", email = "code@adamltyson.com" },
+    { name = "Stella Prins, Miguel Xochicale, Luigi Petrucco, Federico Claudi, Adam Tyson", email = "code@adamltyson.com" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

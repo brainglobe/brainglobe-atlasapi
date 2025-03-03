@@ -6,11 +6,19 @@ When contributing to this repository, please first discuss the change you wish t
 Please note we have a [code of conduct](CODE_OF_CONDUCT.md), please follow it in all your interactions with the project.
 
 ## :octocat: Setting up project locally. 
-1. Generate your SSH keys as suggested [here](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
-2. Clone the repository by typing (or copying) the following lines in a terminal
+1. Fork this repo
+2. Generate your SSH keys as suggested [here](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+3. (Optional) setup you commit signature verification as shown [here](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification)
+4. Clone the repository by typing (or copying) the following lines in a terminal
+```bash
+git clone git@github.com:brainglobe/brainglobe-atlasapi.git
 ```
-git clone 
-```
+5. Install conda or uv in your operative system of your machine.
+6. Install an editable version of the package; by running `pip install -e ".[dev]"` within the cloned directory
+7. Create an issue and branch (as showing in the fellowing section)
+8. Create a script to package your atlas, and place into `brainglobe_atlasapi/atlas_generation/atlas_scripts`. Please see other scripts for examples.
+  8.1 Your script should contain everything required to run.
+  8.2 The raw data should be hosted on a publicly accessible repository so that anyone can run the script to recreate the atlas.
 
 ## New issues
 * Open an issue (bug report, feature request, or something is not working): https://github.com/brainglobe/brainglobe-atlasapi//issues/new/choose
@@ -88,4 +96,13 @@ See [collaborating-with-pull-requests](https://docs.github.com/en/pull-requests/
 git branch --merged | grep -v '\*\|master\|main\|develop' | xargs -n 1 git branch -d
 #Remote git clear
 git branch -r --merged | grep -v '\*\|master\|main\|develop' | sed 's/origin\///' | xargs -n 1 git push --delete origin
+```
+
+## Add packages to `pyproject.toml`
+If you need to add any dependencies, please add them as an extra in the `pyproject.toml` file, e.g.:
+
+```python
+[project.optional-dependencies]
+allenmouse = ["allensdk"]
+newatlas = ["dependency_1", "dependency_2"]
 ```

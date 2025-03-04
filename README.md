@@ -194,9 +194,6 @@ For full instructions to add a new BrainGlobe atlas, please see [here](https://b
 The `brainglobe_atlasapi.atlas_generation` submodule contains code for the generation of cleaned-up data, for the main `brainglobe_atlasapi` module.
 This code was previously the `bg-atlasgen` module.
 
-## To contribute
-
-
 ## Contributions
 ### How to contribute
 Please check the [Brain Glove Developer’s Guide.](https://brainglobe.info/community/developers/index.html)

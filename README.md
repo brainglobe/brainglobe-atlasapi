@@ -177,11 +177,33 @@ A quick way to run unit tests is through your project's terminal with the activa
 pytest -vs tests/
 ```
 
+## Citation
+
+If you find the BrainGlobe Atlas API useful, please cite the paper in your work:
+
+>Claudi, F., Petrucco, L., Tyson, A. L., Branco, T., Margrie, T. W. and Portugues, R. (2020). BrainGlobe Atlas API: a common interface for neuroanatomical atlases. Journal of Open Source Software, 5(54), 2668, https://doi.org/10.21105/joss.02668
+
+**Don't forget to cite the developers of the atlas that you used!**
+
+---
+
+# Atlas Generation and Adding a New Atlas
+
+For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe-atlasapi/adding-a-new-atlas.html).
+
+The `brainglobe_atlasapi.atlas_generation` submodule contains code for the generation of cleaned-up data, for the main `brainglobe_atlasapi` module.
+This code was previously the `bg-atlasgen` module.
+
+## To contribute
+
+
 ## Contributions
 ### How to contribute
+Please check the [Brain Glove Developer’s Guide.](https://brainglobe.info/community/developers/index.html)
+
 1. Fork this repo
 2. Generate your SSH keys as suggested [here](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
-3. (Optional) setup you commit signature verification as shown [here](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification)
+3. Setup you commit signature verification as shown [here](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification)
 4. Clone the repository by typing (or copying) the following lines in a terminal
 ```bash
 git clone git@github.com:brainglobe/brainglobe-atlasapi.git
@@ -193,22 +215,5 @@ git clone git@github.com:brainglobe/brainglobe-atlasapi.git
   8.1 Your script should contain everything required to run.
   8.2 The raw data should be hosted on a publicly accessible repository so that anyone can run the script to recreate the atlas.
 
-For more details, please check the [Brain Glove Developer’s Guide.](https://brainglobe.info/community/developers/index.html)
-
 ### Seeking help or contributing
 We are always happy to help users of our tools, and welcome any contributions. If you would like to get in contact with us for any reason, please see the [contact page of our website](https://brainglobe.info/contact.html).
-
-### Atlas Generation and Adding a New Atlas
-
-For full instructions to add a new BrainGlobe atlas, please see [here](https://brainglobe.info/documentation/brainglobe-atlasapi/adding-a-new-atlas.html).
-
-The `brainglobe_atlasapi.atlas_generation` submodule contains code for the generation of cleaned-up data, for the main `brainglobe_atlasapi` module.
-This code was previously the `bg-atlasgen` module.
-
-## Citation
-
-If you find the BrainGlobe Atlas API useful, please cite the paper in your work:
-
->Claudi, F., Petrucco, L., Tyson, A. L., Branco, T., Margrie, T. W. and Portugues, R. (2020). BrainGlobe Atlas API: a common interface for neuroanatomical atlases. Journal of Open Source Software, 5(54), 2668, https://doi.org/10.21105/joss.02668
-
-**Don't forget to cite the developers of the atlas that you used!**

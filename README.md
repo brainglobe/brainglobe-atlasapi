@@ -178,7 +178,21 @@ pytest -vs tests/
 
 ## Contributions
 ### How to contribute
-Refer to the [CONTRIBUTION.md](CONTRIBUTION.md) guideline for this repository. For more details, please check the [Brain Glove Developer’s Guide.](https://brainglobe.info/community/developers/index.html)
+1. Fork this repo
+2. Generate your SSH keys as suggested [here](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+3. (Optional) setup you commit signature verification as shown [here](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification)
+4. Clone the repository by typing (or copying) the following lines in a terminal
+```bash
+git clone git@github.com:brainglobe/brainglobe-atlasapi.git
+```
+5. Install conda or uv in your operative system of your machine.
+6. Install an editable version of the package; by running 'pip install -e ".[dev]"' within the cloned directory
+7. Create an issue and branch (as showing in the fellowing section)
+8. Create a script to package your atlas, and place into 'brainglobe_atlasapi/atlas_generation/atlas_scripts'. Please see other scripts for examples.
+  8.1 Your script should contain everything required to run.
+  8.2 The raw data should be hosted on a publicly accessible repository so that anyone can run the script to recreate the atlas.
+
+For more details, please check the [Brain Glove Developer’s Guide.](https://brainglobe.info/community/developers/index.html)
 
 ### Seeking help or contributing
 We are always happy to help users of our tools, and welcome any contributions. If you would like to get in contact with us for any reason, please see the [contact page of our website](https://brainglobe.info/contact.html).

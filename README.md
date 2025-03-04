@@ -173,6 +173,7 @@ To deal with transformations between your data space and `brainglobe-atlasapi`, 
 ### Unit testing
 A quick way to run unit tests is through your project's terminal with the activated environment. You can also use VS Code or PyCharm.
 ```bash
+#activate python env either conda activate brainglobe-dev or source .venv/bin/activate
 pytest -vs tests/
 ```
 

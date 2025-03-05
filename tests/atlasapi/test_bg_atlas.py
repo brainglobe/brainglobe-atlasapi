@@ -30,6 +30,13 @@ def test_remote_version_connection_error():
         assert atlas.remote_version is None
 
 
+def test_check_latest_version_offline():
+    with patch.object(BrainGlobeAtlas, "remote_version", new_callable=PropertyMock) as mock_remote_version:
+        mock_remote_version.return_value = None
+        atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
+        assert atlas.check_latest_version() is None
+
+
 def test_local_search():
     brainglobe_dir = tempfile.mkdtemp()
     interm_download_dir = tempfile.mkdtemp()

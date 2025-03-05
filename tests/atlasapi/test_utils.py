@@ -259,3 +259,58 @@ def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
         with pytest.raises(FileNotFoundError) as e:
             utils.conf_from_url(conf_url)
         assert "Last versions cache file not found." == str(e.value)
+
+
+@pytest.fixture()
+def example_mouse_metadata():
+    return {
+        "name": "example_mouse",
+        "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
+        "atlas_link": "http://www.brain-map.org",
+        "species": "Mus musculus",
+        "symmetric": True,
+        "resolution": [100.0, 100.0, 100.0],
+        "orientation": "asr",
+        "version": "1.2",
+        "shape": [132, 80, 114],
+        "trasform_to_bg": [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        "additional_references": [],
+    }
+
+
+@pytest.mark.parametrize(
+    ["name", "title"],
+    [
+        pytest.param(
+            "brainglobe",
+            "Brainglobe",
+            id="capitalisation of first letter",
+        ),
+        pytest.param(
+            "BrainGlobe",
+            "Brainglobe",
+            id="decapitalisation of everything but first charachter",
+        ),
+        pytest.param(
+            "___Brain_globe___",
+            "   brain globe   ",
+            id="underscores become spaces",
+        ),
+        pytest.param(
+            "",
+            "",
+            id="no name",
+        ),
+    ],
+)
+def test_rich_atlas_metadata_table_title(example_mouse_metadata, name, title):
+    """Tests atlas name conversion for rich panel."""
+    panel = utils._rich_atlas_metadata(
+        atlas_name=name, metadata=example_mouse_metadata
+    )
+    assert panel.renderable.title == title

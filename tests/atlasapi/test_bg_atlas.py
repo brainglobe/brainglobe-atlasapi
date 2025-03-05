@@ -1,12 +1,12 @@
 import shutil
 import tempfile
-import requests
 from unittest.mock import PropertyMock, patch
 
 import pytest
+import requests
 
-from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 def test_versions(atlas):
@@ -21,10 +21,14 @@ def test_local_full_name_none():
         atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
         assert atlas.local_version is None
 
+
 def test_remote_version_connection_error():
-    with patch.object(utils, "conf_from_url", side_effect=requests.ConnectionError):
+    with patch.object(
+        utils, "conf_from_url", side_effect=requests.ConnectionError
+    ):
         atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
         assert atlas.remote_version is None
+
 
 def test_local_search():
     brainglobe_dir = tempfile.mkdtemp()

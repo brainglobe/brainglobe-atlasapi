@@ -1,8 +1,8 @@
 import shutil
 import tempfile
+from unittest.mock import PropertyMock, patch
 
 import pytest
-from unittest.mock import patch, PropertyMock
 
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
@@ -10,11 +10,15 @@ from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 def test_versions(atlas):
     assert atlas.local_version == atlas.remote_version
 
+
 def test_local_full_name_none():
-    with patch.object(BrainGlobeAtlas, "local_full_name", new_callable=PropertyMock) as mock_local_full_name:
+    with patch.object(
+        BrainGlobeAtlas, "local_full_name", new_callable=PropertyMock
+    ) as mock_local_full_name:
         mock_local_full_name.return_value = None
         atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
         assert atlas.local_version is None
+
 
 def test_local_search():
     brainglobe_dir = tempfile.mkdtemp()

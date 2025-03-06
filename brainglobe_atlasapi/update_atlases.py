@@ -72,7 +72,7 @@ def install_atlas(atlas_name, fn_update=None):
     atlas_name : str
         Name of the atlas to update.
     fn_update : Callable, Optional
-        A callback funtion to update progres during download.
+        A callback function to update progress during download.
     """
 
     # Check input:

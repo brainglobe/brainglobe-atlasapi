@@ -53,10 +53,10 @@ def _rich_atlas_metadata(atlas_name, metadata):
     tb.add_row(
         "name:",
         Text.from_markup(
-            metadata["name"] + f' [{gray}](v{metadata["version"]})'
+            metadata["name"] + f" [{gray}](v{metadata['version']})"
         ),
     )
-    tb.add_row("species:", Text.from_markup(f'[i]{metadata["species"]}'))
+    tb.add_row("species:", Text.from_markup(f"[i]{metadata['species']}"))
     tb.add_row("citation:", Text.from_markup(f"{cit_name} [{gray}]{cit_link}"))
     tb.add_row("link:", Text.from_markup(metadata["atlas_link"]))
 
@@ -86,7 +86,7 @@ def atlas_repr_from_name(name):
 
     # For unspecified version:
     if version_str:
-        major_vers, minor_vers = version_str[2:].split(".")
+        major_vers, minor_vers = version_str[1:].split(".")
     else:
         major_vers, minor_vers = None, None
 

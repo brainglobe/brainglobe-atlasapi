@@ -24,7 +24,9 @@ def update_atlas(atlas_name, force=False, fn_update=None):
         A callback function to update progress during download.
     """
 
-    atlas = BrainGlobeAtlas(atlas_name=atlas_name, check_latest=False, fn_update=fn_update)
+    atlas = BrainGlobeAtlas(
+        atlas_name=atlas_name, check_latest=False, fn_update=fn_update
+    )
 
     # Check if we need to update
     if not force:

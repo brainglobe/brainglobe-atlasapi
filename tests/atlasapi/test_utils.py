@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 import requests
+import rich
 from requests import HTTPError
 
 from brainglobe_atlasapi import utils
@@ -263,6 +264,7 @@ def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
 
 @pytest.fixture()
 def example_mouse_metadata():
+    """Metadata of example_mouse_100um (atlas fixture."""
     return {
         "name": "example_mouse",
         "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
@@ -314,3 +316,12 @@ def test_rich_atlas_metadata_table_title(example_mouse_metadata, name, title):
         atlas_name=name, metadata=example_mouse_metadata
     )
     assert panel.renderable.title == title
+
+
+def test_rich_atlas_metadata_type(example_mouse_metadata):
+    """Tests right data type is created"""
+    panel = utils._rich_atlas_metadata(
+        atlas_name=example_mouse_metadata["name"],
+        metadata=example_mouse_metadata,
+    )
+    assert isinstance(panel, rich.panel)

@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 import requests
-import rich
+import rich.panel
 from requests import HTTPError
 
 from brainglobe_atlasapi import utils
@@ -324,4 +324,25 @@ def test_rich_atlas_metadata_type(example_mouse_metadata):
         atlas_name=example_mouse_metadata["name"],
         metadata=example_mouse_metadata,
     )
-    assert isinstance(panel, rich.panel)
+    assert isinstance(panel, rich.panel.Panel)
+
+
+@pytest.mark.parametrize(
+    ["name", "expected_repr"],
+    [
+        pytest.param(
+            "kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
+            {
+                "name": "kim_dev_mouse_e15-5_mri-adc",
+                "major_vers": "1",
+                "minor_vers": "3",
+                "resolution": "37.5",
+            },
+            id="kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
+        ),
+    ],
+)
+@pytest.mark.xfail  # TODO: remove after fixing suspected minor bug
+def test_atlas_repr_from_name(name, expected_repr):
+    """Test atlas name to dictionary conversion."""
+    assert utils.atlas_repr_from_name(name) == expected_repr

@@ -388,7 +388,13 @@ def test_retrieve_over_http_ConnectionError(tmp_path):
             )
 
 
-def test_retrieve_over_http_fn_update(tmp_path):
+@pytest.mark.parametrize(
+    "content_length, expected_last_call",
+    [pytest.param("6", (6, 6), id="6/6"), pytest.param(0, (6, 0), id="6/6")],
+)
+def test_retrieve_over_http_fn_update(
+    tmp_path, content_length, expected_last_call
+):
     """Test handling of fn_update when not None."""
     mock_fn_update: Callable[[int, int]] = mock.Mock()
 
@@ -399,13 +405,18 @@ def test_retrieve_over_http_fn_update(tmp_path):
             b"11",  # Second chunk of data (2 bytes)
             b"111",  # Third chunk of data (3 bytes)
         ]
-        mock_response.headers = {"content-length": "6"}  # 6 bytes
+        mock_response.headers = {"content-length": content_length}
         mock_request.return_value = mock_response
 
-        utils.retrieve_over_http(
-            url="elephants",
-            output_file_path=tmp_path / "elephant",
-            fn_update=mock_fn_update,
-        )
-    mock_fn_update.assert_called_with(6, 6)  # last called with these values
+        with mock.patch(
+            "brainglobe_atlasapi.utils.get_download_size",
+            side_effect=Exception if content_length == 0 else None,
+        ):
+            utils.retrieve_over_http(
+                url="elephants",
+                output_file_path=tmp_path / "elephant",
+                fn_update=mock_fn_update,
+            )
+
+    mock_fn_update.assert_called_with(*expected_last_call)
     assert mock_fn_update.call_count == 3

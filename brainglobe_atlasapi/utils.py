@@ -53,10 +53,10 @@ def _rich_atlas_metadata(atlas_name, metadata):
     tb.add_row(
         "name:",
         Text.from_markup(
-            metadata["name"] + f' [{gray}](v{metadata["version"]})'
+            metadata["name"] + f" [{gray}](v{metadata['version']})"
         ),
     )
-    tb.add_row("species:", Text.from_markup(f'[i]{metadata["species"]}'))
+    tb.add_row("species:", Text.from_markup(f"[i]{metadata['species']}"))
     tb.add_row("citation:", Text.from_markup(f"{cit_name} [{gray}]{cit_link}"))
     tb.add_row("link:", Text.from_markup(metadata["atlas_link"]))
 
@@ -225,7 +225,7 @@ def retrieve_over_http(
                         fn_update(completed, tot)
 
     except requests.exceptions.ConnectionError:
-        output_file_path.unlink()
+        output_file_path.unlink(missing_ok=True)
         raise requests.exceptions.ConnectionError(
             f"Could not download file from {url}"
         )

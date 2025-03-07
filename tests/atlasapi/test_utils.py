@@ -340,7 +340,7 @@ def name_repr():
     }
 
 
-@pytest.mark.xfail  # TODO: remove after fixing suspected minor bug
+@pytest.mark.xfail  # TODO: remove after merging PR #520
 def test_atlas_repr_from_name(name_repr):
     """Test atlas name to repr conversion."""
     assert utils.atlas_repr_from_name(name_repr["name"]) == name_repr["repr"]
@@ -349,3 +349,21 @@ def test_atlas_repr_from_name(name_repr):
 def test_atlas_name_from_repr(name_repr):
     """Test atlas repr to name conversion."""
     assert utils.atlas_name_from_repr(**name_repr["repr"]) == name_repr["name"]
+
+
+@pytest.mark.xfail  # TODO: remove after merging bug fix PR
+def test_retrieve_over_http_ConnectionError(atlas, tmp_path):
+    file_path = tmp_path / "atlas.tar.gz"
+    with mock.patch(
+        "requests.get",
+        side_effect=requests.exceptions.ConnectionError,
+    ):
+        with pytest.raises(
+            requests.exceptions.ConnectionError,
+            match=f"Could not download file from {atlas.remote_url}",
+        ):
+            utils.retrieve_over_http(
+                url=atlas.remote_url,
+                output_file_path=file_path,
+                fn_update=atlas.fn_update,
+            )

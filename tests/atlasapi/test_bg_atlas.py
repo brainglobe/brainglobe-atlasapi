@@ -39,6 +39,15 @@ def test_check_latest_version_offline():
         assert atlas.check_latest_version() is None
 
 
+def test_check_latest_version_local():
+    atlas = BrainGlobeAtlas("example_mouse_100um")
+    with patch.object(BrainGlobeAtlas, 'local_version', new_callable=PropertyMock) as mock_local, patch.object(BrainGlobeAtlas, 'remote_version', new_callable=PropertyMock) as mock_remote:
+        mock_local.return_value = (1, 0, 0)
+        mock_remote.return_value = (2, 0, 0)
+        result = atlas.check_latest_version(print_warning=False)
+        assert result is False
+
+
 def test_local_search():
     brainglobe_dir = tempfile.mkdtemp()
     interm_download_dir = tempfile.mkdtemp()

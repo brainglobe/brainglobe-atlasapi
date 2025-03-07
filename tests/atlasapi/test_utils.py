@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Callable
 from unittest import mock
 
 import pytest
@@ -372,18 +373,39 @@ def test_atlas_name_from_repr(name_repr):
 
 
 @pytest.mark.xfail  # TODO: remove after merging bug fix PR #521
-def test_retrieve_over_http_ConnectionError(atlas, tmp_path):
-    file_path = tmp_path / "atlas.tar.gz"
+def test_retrieve_over_http_ConnectionError(tmp_path):
     with mock.patch(
         "requests.get",
         side_effect=requests.exceptions.ConnectionError,
     ):
         with pytest.raises(
             requests.exceptions.ConnectionError,
-            match=f"Could not download file from {atlas.remote_url}",
+            match="Could not download file from elephants",
         ):
             utils.retrieve_over_http(
-                url=atlas.remote_url,
-                output_file_path=file_path,
-                fn_update=atlas.fn_update,
+                url="elephants",
+                output_file_path=tmp_path / "elephant",
             )
+
+
+def test_retrieve_over_http_fn_update(tmp_path):
+    """Test handling of fn_update when not None."""
+    mock_fn_update: Callable[[int, int]] = mock.Mock()
+
+    with mock.patch("requests.get", autospec=True) as mock_request:
+        mock_response = mock.Mock(spec=requests.Response)
+        mock_response.iter_content.return_value = [
+            b"1",  # First chunk of data (1 byte)
+            b"11",  # Second chunk of data (2 bytes)
+            b"111",  # Third chunk of data (3 bytes)
+        ]
+        mock_response.headers = {"content-length": "6"}  # 6 bytes
+        mock_request.return_value = mock_response
+
+        utils.retrieve_over_http(
+            url="elephants",
+            output_file_path=tmp_path / "elephant",
+            fn_update=mock_fn_update,
+        )
+    mock_fn_update.assert_called_with(6, 6)  # last called with these values
+    assert mock_fn_update.call_count == 3

@@ -327,22 +327,25 @@ def test_rich_atlas_metadata_type(example_mouse_metadata):
     assert isinstance(panel, rich.panel.Panel)
 
 
-@pytest.mark.parametrize(
-    ["name", "expected_repr"],
-    [
-        pytest.param(
-            "kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
-            {
-                "name": "kim_dev_mouse_e15-5_mri-adc",
-                "major_vers": "1",
-                "minor_vers": "3",
-                "resolution": "37.5",
-            },
-            id="kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
-        ),
-    ],
-)
+@pytest.fixture
+def name_repr():
+    return {
+        "name": "kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
+        "repr": {
+            "name": "kim_dev_mouse_e15-5_mri-adc",
+            "major_vers": "1",
+            "minor_vers": "3",
+            "resolution": "37.5",
+        },
+    }
+
+
 @pytest.mark.xfail  # TODO: remove after fixing suspected minor bug
-def test_atlas_repr_from_name(name, expected_repr):
-    """Test atlas name to dictionary conversion."""
-    assert utils.atlas_repr_from_name(name) == expected_repr
+def test_atlas_repr_from_name(name_repr):
+    """Test atlas name to repr conversion."""
+    assert utils.atlas_repr_from_name(name_repr["name"]) == name_repr["repr"]
+
+
+def test_atlas_name_from_repr(name_repr):
+    """Test atlas repr to name conversion."""
+    assert utils.atlas_name_from_repr(**name_repr["repr"]) == name_repr["name"]

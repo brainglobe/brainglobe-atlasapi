@@ -327,20 +327,40 @@ def test_rich_atlas_metadata_type(example_mouse_metadata):
     assert isinstance(panel, rich.panel.Panel)
 
 
-@pytest.fixture
-def name_repr():
-    return {
-        "name": "kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
-        "repr": {
-            "name": "kim_dev_mouse_e15-5_mri-adc",
-            "major_vers": "1",
-            "minor_vers": "3",
-            "resolution": "37.5",
-        },
-    }
+@pytest.fixture(
+    params=[
+        pytest.param(
+            {
+                "name": "kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
+                "repr": {
+                    "name": "kim_dev_mouse_e15-5_mri-adc",
+                    "major_vers": "1",
+                    "minor_vers": "3",
+                    "resolution": "37.5",
+                },
+            },
+            id="kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
+        ),
+        pytest.param(
+            {
+                "name": "axolotl_1um",
+                "repr": {
+                    "name": "axolotl",
+                    "major_vers": None,
+                    "minor_vers": None,
+                    "resolution": "1",
+                },
+            },
+            id="axolotl_1um",
+        ),
+    ]
+)
+def name_repr(request):
+    return request.param
 
 
-@pytest.mark.xfail  # TODO: remove after merging PR #520
+@pytest.mark.xfail  # TODO: "kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3"
+# is expected to XFAIL. Remove mark after merging bug fix PR #521
 def test_atlas_repr_from_name(name_repr):
     """Test atlas name to repr conversion."""
     assert utils.atlas_repr_from_name(name_repr["name"]) == name_repr["repr"]
@@ -351,7 +371,7 @@ def test_atlas_name_from_repr(name_repr):
     assert utils.atlas_name_from_repr(**name_repr["repr"]) == name_repr["name"]
 
 
-@pytest.mark.xfail  # TODO: remove after merging bug fix PR
+@pytest.mark.xfail  # TODO: remove after merging bug fix PR #521
 def test_retrieve_over_http_ConnectionError(atlas, tmp_path):
     file_path = tmp_path / "atlas.tar.gz"
     with mock.patch(

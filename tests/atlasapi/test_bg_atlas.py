@@ -41,7 +41,14 @@ def test_check_latest_version_offline():
 
 def test_check_latest_version_local():
     atlas = BrainGlobeAtlas("example_mouse_100um")
-    with patch.object(BrainGlobeAtlas, 'local_version', new_callable=PropertyMock) as mock_local, patch.object(BrainGlobeAtlas, 'remote_version', new_callable=PropertyMock) as mock_remote:
+    with (
+        patch.object(
+            BrainGlobeAtlas, "local_version", new_callable=PropertyMock
+        ) as mock_local,
+        patch.object(
+            BrainGlobeAtlas, "remote_version", new_callable=PropertyMock
+        ) as mock_remote,
+    ):
         mock_local.return_value = (1, 0, 0)
         mock_remote.return_value = (2, 0, 0)
         result = atlas.check_latest_version(print_warning=False)

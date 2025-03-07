@@ -420,3 +420,15 @@ def test_retrieve_over_http_fn_update(
 
     mock_fn_update.assert_called_with(*expected_last_call)
     assert mock_fn_update.call_count == 3
+
+
+def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
+    """Test creating a directory if it does not exist."""
+    mock_cache_path = tmp_path / "parent" / "file"
+    mocker.patch(
+        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
+        return_value=mock_cache_path,
+    )
+    assert not mock_cache_path.exists()
+    utils.conf_from_url(conf_url)
+    assert mock_cache_path.parent.exists()

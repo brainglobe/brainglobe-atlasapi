@@ -40,7 +40,14 @@ def test_check_latest_version_offline():
 
 
 def test_check_latest_version_local():
-    atlas = BrainGlobeAtlas("example_mouse_100um")
+    brainglobe_dir = tempfile.mkdtemp()
+    interm_download_dir = tempfile.mkdtemp()
+
+    atlas = BrainGlobeAtlas(
+        "example_mouse_100um",
+        brainglobe_dir=brainglobe_dir,
+        interm_download_dir=interm_download_dir,
+    )
     with (
         patch.object(
             BrainGlobeAtlas, "local_version", new_callable=PropertyMock

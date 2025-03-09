@@ -1,13 +1,75 @@
 import shutil
 import tempfile
+from unittest.mock import PropertyMock, patch
 
 import pytest
+import requests
 
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 def test_versions(atlas):
     assert atlas.local_version == atlas.remote_version
+
+
+def test_local_full_name_none():
+    with patch.object(
+        BrainGlobeAtlas, "local_full_name", new_callable=PropertyMock
+    ) as mock_local_full_name:
+        mock_local_full_name.return_value = None
+        atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
+        assert atlas.local_version is None
+
+
+def test_remote_version_connection_error():
+    with patch.object(
+        utils, "conf_from_url", side_effect=requests.ConnectionError
+    ):
+        atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
+        assert atlas.remote_version is None
+
+
+def test_check_latest_version_offline():
+    with patch.object(
+        BrainGlobeAtlas, "remote_version", new_callable=PropertyMock
+    ) as mock_remote_version:
+        mock_remote_version.return_value = None
+        atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
+        assert atlas.check_latest_version() is None
+
+
+def test_check_latest_version_local():
+    brainglobe_dir = tempfile.mkdtemp()
+    interm_download_dir = tempfile.mkdtemp()
+
+    atlas = BrainGlobeAtlas(
+        "example_mouse_100um",
+        brainglobe_dir=brainglobe_dir,
+        interm_download_dir=interm_download_dir,
+    )
+    with (
+        patch.object(
+            BrainGlobeAtlas, "local_version", new_callable=PropertyMock
+        ) as mock_local,
+        patch.object(
+            BrainGlobeAtlas, "remote_version", new_callable=PropertyMock
+        ) as mock_remote,
+    ):
+        mock_local.return_value = (1, 0, 0)
+        mock_remote.return_value = (2, 0, 0)
+        result = atlas.check_latest_version(print_warning=False)
+        assert result is False
+
+
+def test_repr():
+    atlas = BrainGlobeAtlas("example_mouse_100um")
+    name_split = atlas.atlas_name.split("_")
+    assert name_split == ["example", "mouse", "100um"]
+
+    pretty_name = "{} {} atlas (res. {})".format(*name_split)
+    assert pretty_name == "example mouse atlas (res. 100um)"
+    assert repr(atlas) == "example mouse atlas (res. 100um)"
 
 
 def test_local_search():

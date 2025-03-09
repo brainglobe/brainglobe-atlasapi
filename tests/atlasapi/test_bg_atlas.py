@@ -61,11 +61,12 @@ def test_check_latest_version_local():
         result = atlas.check_latest_version(print_warning=False)
         assert result is False
 
+
 def test_repr():
     atlas = BrainGlobeAtlas("example_mouse_100um")
     name_split = atlas.atlas_name.split("_")
     assert name_split == ["example", "mouse", "100um"]
-    
+
     pretty_name = "{} {} atlas (res. {})".format(*name_split)
     assert pretty_name == "example mouse atlas (res. 100um)"
     assert repr(atlas) == "example mouse atlas (res. 100um)"

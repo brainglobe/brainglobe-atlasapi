@@ -18,7 +18,7 @@ def test_local_full_name_none():
         BrainGlobeAtlas, "local_full_name", new_callable=PropertyMock
     ) as mock_local_full_name:
         mock_local_full_name.return_value = None
-        atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
+        atlas = object.__new__(BrainGlobeAtlas)
         assert atlas.local_version is None
 
 
@@ -26,7 +26,7 @@ def test_remote_version_connection_error():
     with patch.object(
         utils, "conf_from_url", side_effect=requests.ConnectionError
     ):
-        atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
+        atlas = object.__new__(BrainGlobeAtlas)
         assert atlas.remote_version is None
 
 
@@ -35,7 +35,7 @@ def test_check_latest_version_offline():
         BrainGlobeAtlas, "remote_version", new_callable=PropertyMock
     ) as mock_remote_version:
         mock_remote_version.return_value = None
-        atlas = object.__new__(BrainGlobeAtlas)  # Avoids calling __init__
+        atlas = object.__new__(BrainGlobeAtlas)
         assert atlas.check_latest_version() is None
 
 

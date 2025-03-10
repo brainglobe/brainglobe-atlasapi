@@ -52,6 +52,7 @@ def create_atlas(working_dir, resolution):
     utils.check_internet_connection()
     hierarchy_path = pooch.retrieve(
         HIERARCHY_FILE_URL,
+        path=download_dir_path,
         known_hash="023418e626bdefbd177d4bb8c08661bd63a95ccff47720e64bb7a71546935b77",
         progressbar=True,
     )
@@ -59,13 +60,22 @@ def create_atlas(working_dir, resolution):
     # import cuttlefish .nrrd file
     annotation_path = pooch.retrieve(
         ANNOTATION_URL,
+        path=download_dir_path,
         known_hash="768973251b179902ab48499093a4cc870cb6507c09ce46ff76b8203daf243f82",
+        progressbar=True,
+    )
+
+    # import cuttlefish .nii file
+    template_path = pooch.retrieve(
+        TEMPLATE_URL,
+        path=download_dir_path,
+        known_hash="195125305a11abe6786be1b32830a8aed1bc8f68948ad53fa84bf74efe7cbe9c",  # noqa E501
         progressbar=True,
     )
 
     # process brain annotation file. There are a total of 70 segments.
     print("Processing brain annotations:")
-    readdata, header = nrrd.read(annotation_path)
+    annotations, header = nrrd.read(annotation_path)
 
     # Extract annotation mapping information from nrrd headers,
     # to be applied to hierarchy file later.
@@ -233,18 +243,40 @@ def create_atlas(working_dir, resolution):
             hierarchy[index]["acronym"] = missing_acronyms[n]
             n = n + 1
 
+    for region in hierarchy:
+        if region["name"].endswith("(left)"):
+            right_region_name = region["name"].replace("(left)", "(right)")
+            right_region = [
+                region
+                for region in hierarchy
+                if region["name"] == right_region_name
+            ]
+            right_region = right_region[0] if right_region else None
+            assert (
+                right_region
+            ), f"No right region found for left region {region['name']}"
+            left_region_id = region["id"]
+            right_region_id = right_region["id"]
+            annotations[annotations == right_region_id] = left_region_id
+
+    symmetric_hierarchy = []
+    for region in hierarchy:
+        if region["name"].endswith("(right)"):
+            continue
+        elif region["name"].endswith("(left)"):
+            region["name"] = region["name"].replace("(left)", "").strip()
+            region["acronym"] = region["acronym"].replace("l", "").strip()
+        # hierarchy entries SB and IB not present in original annotations
+        # remove them for consistency
+        if region["acronym"] in ["SB", "IB"]:
+            continue
+        symmetric_hierarchy.append(region)
+
     # generate hierarchy tree
-    tree = get_structures_tree(hierarchy)
+    tree = get_structures_tree(symmetric_hierarchy)
     print(
         f"Number of brain regions: {tree.size()}, "
         f"max tree depth: {tree.depth()}"
-    )
-
-    # import cuttlefish .nii file
-    template_path = pooch.retrieve(
-        TEMPLATE_URL,
-        known_hash="195125305a11abe6786be1b32830a8aed1bc8f68948ad53fa84bf74efe7cbe9c",  # noqa E501
-        progressbar=True,
     )
 
     # process brain template MRI file
@@ -259,7 +291,7 @@ def create_atlas(working_dir, resolution):
 
     # generate binary mask for mesh creation
     # generate binary mask for mesh creation
-    labels = np.unique(readdata).astype(np.int_)
+    labels = np.unique(annotations).astype(np.int_)
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
@@ -291,7 +323,7 @@ def create_atlas(working_dir, resolution):
                 node,
                 tree,
                 labels,
-                readdata,
+                annotations,
                 ROOT_ID,
                 closing_n_iters,
                 decimate_fraction,
@@ -308,7 +340,7 @@ def create_atlas(working_dir, resolution):
     # create meshes_dict
     meshes_dict = dict()
     structures_with_mesh = []
-    for s in hierarchy:
+    for s in symmetric_hierarchy:
         # check if a mesh was created
         mesh_path = mesh_dir / f"{s['id']}.obj"
         if not mesh_path.exists():
@@ -337,8 +369,8 @@ def create_atlas(working_dir, resolution):
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=brain_template,
-        annotation_stack=readdata,
-        structures_list=hierarchy,
+        annotation_stack=annotations,
+        structures_list=symmetric_hierarchy,
         meshes_dict=meshes_dict,
         scale_meshes=True,
         working_dir=working_dir,

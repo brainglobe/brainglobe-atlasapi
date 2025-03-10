@@ -360,8 +360,6 @@ def name_repr(request):
     return request.param
 
 
-@pytest.mark.xfail  # TODO: "kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3"
-# is expected to XFAIL. Remove mark after merging bug fix PR #521
 def test_atlas_repr_from_name(name_repr):
     """Test atlas name to repr conversion."""
     assert utils.atlas_repr_from_name(name_repr["name"]) == name_repr["repr"]

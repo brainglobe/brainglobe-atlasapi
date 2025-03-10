@@ -29,46 +29,54 @@ def test_remote_version_connection_error():
         assert atlas.remote_version is None
 
 
-def test_check_latest_version_offline():
-    with patch.object(
-        BrainGlobeAtlas, "remote_version", new_callable=PropertyMock
-    ) as mock_remote_version:
-        mock_remote_version.return_value = None
-        atlas = object.__new__(BrainGlobeAtlas)
-        assert atlas.check_latest_version() is None
-
-
-def test_check_latest_version_local(tmpdir):
-    brainglobe_dir = tmpdir.mkdir("brainglobe")
-    interim_download_dir = tmpdir.mkdir("interim_download")
-
-    atlas = BrainGlobeAtlas(
-        "example_mouse_100um",
-        brainglobe_dir=brainglobe_dir,
-        interm_download_dir=interim_download_dir,
-    )
+@pytest.mark.parametrize(
+    "local_version, remote_version, expected",
+    [
+        pytest.param((1, 0), (2, 0), False, id="local < remote"),
+        pytest.param((1, 0), (1, 0), True, id="local = remote"),
+        pytest.param((1, 0), None, None, id="no remote version"),
+    ],
+)
+def test_check_latest_version_local(local_version, remote_version, expected):
+    """Test check_latest_version"""
     with (
         patch.object(
             BrainGlobeAtlas, "local_version", new_callable=PropertyMock
-        ) as mock_local,
+        ) as mock_local_version,
         patch.object(
             BrainGlobeAtlas, "remote_version", new_callable=PropertyMock
-        ) as mock_remote,
+        ) as mock_remote_version,
     ):
-        mock_local.return_value = (1, 0, 0)
-        mock_remote.return_value = (2, 0, 0)
-        result = atlas.check_latest_version(print_warning=False)
-        assert result is False
+        mock_local_version.return_value = local_version
+        mock_remote_version.return_value = remote_version
+        atlas = object.__new__(BrainGlobeAtlas)
+        assert atlas.check_latest_version() == expected
 
 
-def test_repr():
-    atlas = BrainGlobeAtlas("example_mouse_100um")
-    name_split = atlas.atlas_name.split("_")
-    assert name_split == ["example", "mouse", "100um"]
-
-    pretty_name = "{} {} atlas (res. {})".format(*name_split)
-    assert pretty_name == "example mouse atlas (res. 100um)"
-    assert repr(atlas) == "example mouse atlas (res. 100um)"
+@pytest.mark.parametrize(
+    "atlas_name, expected_repr",
+    [
+        pytest.param(
+            "nadkarni_mri_mouselemur_91um",
+            "nadkarni mri mouselemur atlas (res. 91um)",
+            id="nadkarni_mri_mouselemur_91um",
+        ),
+        pytest.param(
+            "example_mouse_100um",
+            "example mouse atlas (res. 100um)",
+            id="example_mouse_100um",
+        ),
+        pytest.param(
+            "axolotl_50um", "axolotl atlas (res. 50um)", id="axolotl_50um"
+        ),
+    ],
+)
+@pytest.mark.xfail  # TODO: remove once  PR #523 is merged
+def test_repr(atlas_name, expected_repr):
+    """Test BrainGlobeAtlas repr method"""
+    atlas = object.__new__(BrainGlobeAtlas)  # bypass init
+    atlas.atlas_name = atlas_name
+    assert repr(atlas) == expected_repr
 
 
 def test_local_search(tmpdir):

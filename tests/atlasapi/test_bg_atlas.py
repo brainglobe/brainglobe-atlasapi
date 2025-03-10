@@ -13,6 +13,7 @@ def test_versions(atlas):
 
 
 def test_local_full_name_none():
+    """Test local_version when local_full_name is None."""
     with patch.object(
         BrainGlobeAtlas, "local_full_name", new_callable=PropertyMock
     ) as mock_local_full_name:
@@ -22,6 +23,7 @@ def test_local_full_name_none():
 
 
 def test_remote_version_connection_error():
+    """Test handling a connection error when fetching the remote version."""
     with patch.object(
         utils, "conf_from_url", side_effect=requests.ConnectionError
     ):
@@ -73,7 +75,7 @@ def test_check_latest_version_local(local_version, remote_version, expected):
 )
 def test_repr(atlas_name, expected_repr):
     """Test BrainGlobeAtlas repr method"""
-    atlas = object.__new__(BrainGlobeAtlas)  # bypass init
+    atlas = object.__new__(BrainGlobeAtlas)
     atlas.atlas_name = atlas_name
     assert repr(atlas) == expected_repr
 

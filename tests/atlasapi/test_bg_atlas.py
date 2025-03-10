@@ -71,7 +71,6 @@ def test_check_latest_version_local(local_version, remote_version, expected):
         ),
     ],
 )
-@pytest.mark.xfail  # TODO: remove once  PR #523 is merged
 def test_repr(atlas_name, expected_repr):
     """Test BrainGlobeAtlas repr method"""
     atlas = object.__new__(BrainGlobeAtlas)  # bypass init

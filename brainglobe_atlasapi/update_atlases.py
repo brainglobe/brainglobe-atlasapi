@@ -9,7 +9,7 @@ from brainglobe_atlasapi.bg_atlas import (
 from brainglobe_atlasapi.list_atlases import get_downloaded_atlases
 
 
-def update_atlas(atlas_name, force=False):
+def update_atlas(atlas_name, force=False, fn_update=None):
     """Updates a brainglobe_atlasapi atlas from the latest
     available version online.
 
@@ -20,9 +20,13 @@ def update_atlas(atlas_name, force=False):
     force: bool
         If False it checks if the atlas is already at the latest version
         and doesn't update if that's the case.
+    fn_update : Callable, Optional
+        A callback function to update progress during download.
     """
 
-    atlas = BrainGlobeAtlas(atlas_name=atlas_name, check_latest=False)
+    atlas = BrainGlobeAtlas(
+        atlas_name=atlas_name, check_latest=False, fn_update=fn_update
+    )
 
     # Check if we need to update
     if not force:
@@ -59,7 +63,7 @@ def update_atlas(atlas_name, force=False):
     )
 
 
-def install_atlas(atlas_name):
+def install_atlas(atlas_name, fn_update=None):
     """Installs a BrainGlobe atlas from the latest
     available version online.
 
@@ -67,6 +71,8 @@ def install_atlas(atlas_name):
     ---------
     atlas_name : str
         Name of the atlas to update.
+    fn_update : Callable, Optional
+        A callback function to update progress during download.
     """
 
     # Check input:
@@ -83,4 +89,4 @@ def install_atlas(atlas_name):
         return
 
     # Istantiate to download:
-    BrainGlobeAtlas(atlas_name)
+    BrainGlobeAtlas(atlas_name, fn_update=fn_update)

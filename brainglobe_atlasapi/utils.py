@@ -225,7 +225,7 @@ def retrieve_over_http(
                         fn_update(completed, tot)
 
     except requests.exceptions.ConnectionError:
-        output_file_path.unlink()
+        output_file_path.unlink(missing_ok=True)
         raise requests.exceptions.ConnectionError(
             f"Could not download file from {url}"
         )

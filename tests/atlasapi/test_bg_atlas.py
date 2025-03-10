@@ -1,5 +1,4 @@
 import shutil
-import tempfile
 from unittest.mock import PropertyMock, patch
 
 import pytest
@@ -39,14 +38,14 @@ def test_check_latest_version_offline():
         assert atlas.check_latest_version() is None
 
 
-def test_check_latest_version_local():
-    brainglobe_dir = tempfile.mkdtemp()
-    interm_download_dir = tempfile.mkdtemp()
+def test_check_latest_version_local(tmpdir):
+    brainglobe_dir = tmpdir.mkdir("brainglobe")
+    interim_download_dir = tmpdir.mkdir("interim_download")
 
     atlas = BrainGlobeAtlas(
         "example_mouse_100um",
         brainglobe_dir=brainglobe_dir,
-        interm_download_dir=interm_download_dir,
+        interm_download_dir=interim_download_dir,
     )
     with (
         patch.object(
@@ -72,14 +71,14 @@ def test_repr():
     assert repr(atlas) == "example mouse atlas (res. 100um)"
 
 
-def test_local_search():
-    brainglobe_dir = tempfile.mkdtemp()
-    interm_download_dir = tempfile.mkdtemp()
+def test_local_search(tmpdir):
+    brainglobe_dir = tmpdir.mkdir("brainglobe")
+    interim_download_dir = tmpdir.mkdir("interim_download")
 
     atlas = BrainGlobeAtlas(
         "example_mouse_100um",
         brainglobe_dir=brainglobe_dir,
-        interm_download_dir=interm_download_dir,
+        interm_download_dir=interim_download_dir,
     )
 
     assert atlas.atlas_name in atlas.local_full_name
@@ -93,6 +92,3 @@ def test_local_search():
             "example_mouse_100um", brainglobe_dir=brainglobe_dir
         )
     assert "Multiple versions of atlas" in str(error)
-
-    shutil.rmtree(brainglobe_dir)
-    shutil.rmtree(interm_download_dir)

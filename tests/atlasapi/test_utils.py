@@ -370,7 +370,6 @@ def test_atlas_name_from_repr(name_repr):
     assert utils.atlas_name_from_repr(**name_repr["repr"]) == name_repr["name"]
 
 
-@pytest.mark.xfail  # TODO: remove after merging bug fix PR #521
 def test_retrieve_over_http_ConnectionError(tmp_path):
     with mock.patch(
         "requests.get",

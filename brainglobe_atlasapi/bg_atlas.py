@@ -238,7 +238,7 @@ class BrainGlobeAtlas(core.Atlas):
 
     def __str__(self):
         """
-        If the atlas metadat are to be printed
+        If the atlas metadata are to be printed
         with the built in print function instead of rich's, then
         print the rich panel as a string.
 

@@ -80,6 +80,15 @@ def test_repr(atlas_name, expected_repr):
     assert repr(atlas) == expected_repr
 
 
+def test_str(atlas, capsys):
+    """Test BrainGlobeAtlas str method"""
+    print(atlas)
+    captured = capsys.readouterr()
+    expected_doi = "https://doi.org/10.1016/j.cell.2020.04.007"
+    assert expected_doi in captured.out
+    assert captured.err == ""
+
+
 def test_local_search(tmpdir):
     brainglobe_dir = tmpdir.mkdir("brainglobe")
     interim_download_dir = tmpdir.mkdir("interim_download")

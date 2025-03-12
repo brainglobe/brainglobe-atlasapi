@@ -271,3 +271,39 @@ def test_upper_case_name_fails(atlas):
         match=r"cannot contain capitals.",
     ):
         validate_atlas_name(atlas)
+
+
+def test_invalid_characters_in_name_fails(atlas):
+    """Checks that an atlas with invalid characters in name fails"""
+    atlas.atlas_name = "invalid@name"
+    with pytest.raises(
+        AssertionError,
+        match=r"contains invalid characters.",
+    ):
+        validate_atlas_name(atlas)
+
+
+def test_missing_resolution_in_name_fails(atlas):
+    """Checks that an atlas name without resolution fails"""
+    atlas.atlas_name = "atlas_name_without_resolution"
+    with pytest.raises(
+        AssertionError,
+        match=r"must end with it's resolution",
+    ):
+        validate_atlas_name(atlas)
+
+
+def test_invalid_resolution_format_in_name_fails(atlas):
+    """Checks that an atlas name with invalid resolution format fails"""
+    atlas.atlas_name = "valid_name_with_invalid_resolution_100xum"
+    with pytest.raises(
+        AssertionError,
+        match=r"must end with it's resolution",
+    ):
+        validate_atlas_name(atlas)
+
+
+def test_valid_atlas_name_passes(atlas):
+    """Checks that a valid atlas name passes"""
+    atlas.atlas_name = "valid_name_100um"
+    assert validate_atlas_name(atlas)

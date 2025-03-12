@@ -249,18 +249,17 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
     allowed_chars = r"^[a-z0-9_.-]+$"
     res = name.split("_").pop()
 
-    assert (
-        name == name.lower()
-    ), f"Atlas name {atlas.atlas_name} cannot contain capitals."
+    assert name == name.lower(), f"Atlas name {name} cannot contain capitals."
 
     assert re.match(
         allowed_chars, name
     ), f"Atlas name {name} contains invalid characters."
 
     resolution_pattern = r"\d+(\.\d+)?(um|mm)$"
-    assert re.search(
-        resolution_pattern, res
-    ), "Atlas name must end with its resolution (e.g. 5um, 37.5um, 1mm)."
+    assert re.search(resolution_pattern, res), (
+        f"Atlas name {name} should end with a valid resolution "
+        "(e.g., 5um, 1.5mm)."
+    )
 
     return True
 

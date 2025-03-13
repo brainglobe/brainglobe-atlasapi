@@ -8,7 +8,7 @@ import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.config import get_brainglobe_dir
-from brainglobe_atlasapi.descriptors import REFERENCE_DTYPE
+from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
@@ -56,8 +56,7 @@ def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
     assert abs(mesh_coord - annotation_coord) <= diff_tolerance * pixel_size, (
         f"Mesh coordinate {mesh_coord} and "
         f"annotation coordinate {annotation_coord}",
-        f"differ by more than {diff_tolerance} "
-        f"times pixel size {pixel_size}",
+        f"differ by more than {diff_tolerance} times pixel size {pixel_size}",
     )
     return True
 
@@ -246,6 +245,21 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
     assert (
         atlas.atlas_name == atlas.atlas_name.lower()
     ), f"Atlas name {atlas.atlas_name} cannot contain capitals."
+    return True
+
+
+def validate_metadata(atlas: BrainGlobeAtlas):
+    """Validate atlas metadata.
+    Checks that the metadata of the given atlas has the correct format.
+    Specifically, it ensures that all required keys are present and that the
+    types of the values match the types specified in the METADATA_TEMPLATE.
+    """
+    for key, value in METADATA_TEMPLATE.items():
+        assert key in atlas.metadata, f"Missing key: {key}"
+        assert isinstance(atlas.metadata[key], type(value)), (
+            f"Key '{key}' should be of type {type(value).__name__}, "
+            f"but got {type(atlas.metadata[key]).__name__}."
+        )
     return True
 
 

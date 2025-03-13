@@ -16,6 +16,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_atlas_name,
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
+    validate_metadata,
     validate_reference_image_pixels,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
@@ -271,3 +272,12 @@ def test_upper_case_name_fails(atlas):
         match=r"cannot contain capitals.",
     ):
         validate_atlas_name(atlas)
+
+
+def test_validate_metadata(atlas):
+    assert validate_metadata(atlas) is True
+
+
+def test_validate_metadata_citation_one_string(atlas):
+    atlas
+    assert validate_metadata(atlas) is True

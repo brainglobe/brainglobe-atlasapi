@@ -255,7 +255,7 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
         allowed_chars, name
     ), f"Atlas name {name} contains invalid characters."
 
-    resolution_pattern = r"\d+(\.\d+)?(um|mm)$"
+    resolution_pattern = r"\d+(\.\d+)?(nm|um|mm)$"
     assert re.search(resolution_pattern, res), (
         f"Atlas name {name} should end with a valid resolution "
         "(e.g., 5um, 1.5mm)."

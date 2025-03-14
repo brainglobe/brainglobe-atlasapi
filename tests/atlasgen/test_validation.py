@@ -274,10 +274,36 @@ def test_upper_case_name_fails(atlas):
         validate_atlas_name(atlas)
 
 
-def test_validate_metadata(atlas):
-    assert validate_metadata(atlas) is True
-
-
-def test_validate_metadata_citation_one_string(atlas):
-    atlas
-    assert validate_metadata(atlas) is True
+@pytest.mark.parametrize(
+    ["metadata", "expected_output"],
+    [
+        pytest.param(
+            {
+                "key": "citation",
+                "value": "BrainGlobe et. al., 2025., https://doi.org",
+            },
+            True,
+            id="citation (multiple commas)",
+        ),
+        pytest.param(
+            {
+                "key": "resolution",
+                "value": [1, 1],
+            },
+            True,
+            id="2D resolution [1, 1]",
+        ),
+        pytest.param(
+            {
+                "key": "resolution",
+                "value": (1, 1),
+            },
+            False,
+            id="wrong resolution type (tuple)",
+        ),
+    ],
+)
+def test_validate_metadata(atlas, metadata, expected_output):
+    """Checks whether atlas metadata is validated correctly."""
+    atlas.metadata[metadata["key"]] = metadata["value"]
+    assert validate_metadata(atlas) is expected_output

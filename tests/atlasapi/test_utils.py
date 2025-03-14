@@ -337,7 +337,7 @@ def test_rich_atlas_metadata_type(example_mouse_metadata):
                     "name": "kim_dev_mouse_e15-5_mri-adc",
                     "major_vers": "1",
                     "minor_vers": "3",
-                    "resolution": "37.5",
+                    "resolution": "37.5um",
                 },
             },
             id="kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
@@ -349,25 +349,54 @@ def test_rich_atlas_metadata_type(example_mouse_metadata):
                     "name": "axolotl",
                     "major_vers": None,
                     "minor_vers": None,
-                    "resolution": "1",
+                    "resolution": "1um",
                 },
             },
             id="axolotl_1um",
         ),
+        pytest.param(
+            {
+                "name": "axolotl_1mm_v5.2",
+                "repr": {
+                    "name": "axolotl",
+                    "major_vers": "5",
+                    "minor_vers": "2",
+                    "resolution": "1mm",
+                },
+            },
+            id="axolotl_1mm_v5.2",
+        ),
+        pytest.param(
+            {
+                "name": "axolotl_1nm",
+                "repr": {
+                    "name": "axolotl",
+                    "major_vers": None,
+                    "minor_vers": None,
+                    "resolution": "1nm",
+                },
+            },
+            id="axolotl_1nm",
+        ),
     ]
 )
 def name_repr(request):
+    """Fixture with atlas name and representation pairs."""
     return request.param
 
 
 def test_atlas_repr_from_name(name_repr):
     """Test atlas name to repr conversion."""
-    assert utils.atlas_repr_from_name(name_repr["name"]) == name_repr["repr"]
+    name = name_repr["name"]
+    expected_repr = name_repr["repr"]
+    assert utils.atlas_repr_from_name(name) == expected_repr
 
 
 def test_atlas_name_from_repr(name_repr):
     """Test atlas repr to name conversion."""
-    assert utils.atlas_name_from_repr(**name_repr["repr"]) == name_repr["name"]
+    expected_name = name_repr["name"]
+    repr = name_repr["repr"]
+    assert utils.atlas_name_from_repr(**repr) == expected_name
 
 
 def test_retrieve_over_http_ConnectionError(tmp_path):

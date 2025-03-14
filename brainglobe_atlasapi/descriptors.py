@@ -6,6 +6,9 @@ remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
 # Major version of atlases used by current brainglobe-atlasapi release:
 ATLAS_MAJOR_V = 0
 
+# Supported resolutions:
+RESOLUTION = ["nm", "um", "mm"]
+
 # Entries and types from this template will be used to check atlas info
 # consistency. Please keep updated both this and the function when changing
 # the structure.

@@ -21,7 +21,7 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
-from brainglobe_atlasapi import config
+from brainglobe_atlasapi import config, descriptors
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -79,7 +79,11 @@ def atlas_repr_from_name(name):
     parts = name.split("_")
 
     # if atlas name with no version:
-    version_str = parts.pop() if not parts[-1].endswith("um") else None
+    version_str = (
+        parts.pop()
+        if not any(parts[-1].endswith(unit) for unit in descriptors.RESOLUTION)
+        else None
+    )
     resolution_str = parts.pop()
 
     atlas_name = "_".join(parts)
@@ -94,16 +98,16 @@ def atlas_repr_from_name(name):
         name=atlas_name,
         major_vers=major_vers,
         minor_vers=minor_vers,
-        resolution=resolution_str[:-2],
+        resolution=resolution_str,
     )
 
 
 def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
     """Generate atlas name given a description."""
     if major_vers is None and minor_vers is None:
-        return f"{name}_{resolution}um"
+        return f"{name}_{resolution}"
     else:
-        return f"{name}_{resolution}um_v{major_vers}.{minor_vers}"
+        return f"{name}_{resolution}_v{major_vers}.{minor_vers}"
 
 
 ### Web requests

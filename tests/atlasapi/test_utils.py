@@ -8,7 +8,9 @@ import requests
 import rich.panel
 from requests import HTTPError
 
-from brainglobe_atlasapi import utils
+from brainglobe_atlasapi import descriptors, utils
+
+METADATA = descriptors.METADATA_TEMPLATE
 
 test_url = "https://gin.g-node.org/BrainGlobe/atlases/raw/master/example_mouse_100um_v1.2.tar.gz"
 conf_url = (
@@ -263,29 +265,6 @@ def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
         assert "Last versions cache file not found." == str(e.value)
 
 
-@pytest.fixture()
-def example_mouse_metadata():
-    """Metadata of example_mouse_100um (atlas fixture."""
-    return {
-        "name": "example_mouse",
-        "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
-        "atlas_link": "http://www.brain-map.org",
-        "species": "Mus musculus",
-        "symmetric": True,
-        "resolution": [100.0, 100.0, 100.0],
-        "orientation": "asr",
-        "version": "1.2",
-        "shape": [132, 80, 114],
-        "trasform_to_bg": [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ],
-        "additional_references": [],
-    }
-
-
 @pytest.mark.parametrize(
     ["name", "title"],
     [
@@ -311,19 +290,17 @@ def example_mouse_metadata():
         ),
     ],
 )
-def test_rich_atlas_metadata_table_title(example_mouse_metadata, name, title):
+def test_rich_atlas_metadata_table_title(name, title):
     """Tests atlas name conversion for rich panel."""
-    panel = utils._rich_atlas_metadata(
-        atlas_name=name, metadata=example_mouse_metadata
-    )
+    panel = utils._rich_atlas_metadata(atlas_name=name, metadata=METADATA)
     assert panel.renderable.title == title
 
 
-def test_rich_atlas_metadata_type(example_mouse_metadata):
+def test_rich_atlas_metadata_type():
     """Tests right data type is created"""
     panel = utils._rich_atlas_metadata(
-        atlas_name=example_mouse_metadata["name"],
-        metadata=example_mouse_metadata,
+        atlas_name=METADATA["name"],
+        metadata=METADATA,
     )
     assert isinstance(panel, rich.panel.Panel)
 

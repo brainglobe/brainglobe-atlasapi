@@ -57,6 +57,7 @@ def _rich_atlas_metadata(atlas_name, metadata):
     )
     tb.add_row("species:", Text.from_markup(f"[i]{metadata['species']}"))
     tb.add_row("citation:", Text.from_markup(f"{metadata['citation']}"))
+    tb.add_row("link:", Text.from_markup(metadata["atlas_link"]))
     tb.add_row("")
     tb.add_row(
         "orientation:",

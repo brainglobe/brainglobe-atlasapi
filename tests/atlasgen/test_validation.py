@@ -1,4 +1,5 @@
 import os
+import re
 
 import numpy as np
 import pytest
@@ -263,11 +264,44 @@ def test_asymmetrical_annotation_fails(mocker, atlas):
         validate_annotation_symmetry(atlas)
 
 
-def test_upper_case_name_fails(atlas):
-    """Checks that an atlas with capital letters in name fails"""
-    atlas.atlas_name = atlas.atlas_name.upper()
-    with pytest.raises(
-        AssertionError,
-        match=r"cannot contain capitals.",
-    ):
-        validate_atlas_name(atlas)
+@pytest.mark.parametrize(
+    "atlas_name, should_pass, error_message",
+    [
+        pytest.param(
+            "CONTAINS_CAPITALS_1um",
+            False,
+            "cannot contain capitals.",
+            id="upper case",
+        ),
+        pytest.param(
+            "contains_inv@lid_character_1um",
+            False,
+            "contains invalid characters.",
+            id="invalid charachter (@)",
+        ),
+        pytest.param(
+            "10um_atlas_name_does_not_end_with_resolution",
+            False,
+            "should end with a valid resolution (e.g., 5um, 1.5mm).",
+            id="doesn't end with resolution",
+        ),
+        pytest.param(
+            "atlas_name_with_invalid_resolution_100m",
+            False,
+            "should end with a valid resolution (e.g., 5um, 1.5mm).",
+            id="invalid resolution (100m)",
+        ),
+        pytest.param("valid_name_100um", True, None, id="valid_name_100um"),
+        pytest.param("valid-name_1mm", True, None, id="valid-name_1mm"),
+    ],
+)
+def test_validate_atlas_name(atlas_name, should_pass, error_message):
+    """Checks various atlas name validation cases"""
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.atlas_name = atlas_name
+    if should_pass:
+        assert validate_atlas_name(atlas)
+    else:
+        error_message = f"Atlas name {atlas_name} " + error_message
+        with pytest.raises(AssertionError, match=re.escape(error_message)):
+            validate_atlas_name(atlas)

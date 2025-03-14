@@ -16,6 +16,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_atlas_name,
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
+    validate_metadata,
     validate_reference_image_pixels,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
@@ -271,3 +272,38 @@ def test_upper_case_name_fails(atlas):
         match=r"cannot contain capitals.",
     ):
         validate_atlas_name(atlas)
+
+
+@pytest.mark.parametrize(
+    ["metadata", "expected_output"],
+    [
+        pytest.param(
+            {
+                "key": "citation",
+                "value": "BrainGlobe et. al., 2025., https://doi.org",
+            },
+            True,
+            id="citation (multiple commas)",
+        ),
+        pytest.param(
+            {
+                "key": "resolution",
+                "value": [1, 1],
+            },
+            True,
+            id="2D resolution [1, 1]",
+        ),
+        pytest.param(
+            {
+                "key": "resolution",
+                "value": (1, 1),
+            },
+            False,
+            id="wrong resolution type (tuple)",
+        ),
+    ],
+)
+def test_validate_metadata(atlas, metadata, expected_output):
+    """Checks whether atlas metadata is validated correctly."""
+    atlas.metadata[metadata["key"]] = metadata["value"]
+    assert validate_metadata(atlas) is expected_output

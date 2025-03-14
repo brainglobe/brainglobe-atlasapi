@@ -31,7 +31,6 @@ def _rich_atlas_metadata(atlas_name, metadata):
     dimorange = "#b56510"
     gray = "#A9A9A9"
     mocassin = "#FFE4B5"
-    cit_name, cit_link = metadata["citation"].split(", ")
 
     # Create a rich table
     tb = Table(
@@ -57,9 +56,8 @@ def _rich_atlas_metadata(atlas_name, metadata):
         ),
     )
     tb.add_row("species:", Text.from_markup(f"[i]{metadata['species']}"))
-    tb.add_row("citation:", Text.from_markup(f"{cit_name} [{gray}]{cit_link}"))
+    tb.add_row("citation:", Text.from_markup(f"{metadata['citation']}"))
     tb.add_row("link:", Text.from_markup(metadata["atlas_link"]))
-
     tb.add_row("")
     tb.add_row(
         "orientation:",

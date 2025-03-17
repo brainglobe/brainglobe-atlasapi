@@ -36,6 +36,13 @@ def test_install_command():
     runner.invoke(cli.bg_cli, ["install", "-a", "example_mouse_100um"])
 
 
+def test_cli_list():
+    """Test list command."""
+    atlases_table = CliRunner().invoke(cli.bg_cli, ["list", "--show"])
+    assert atlases_table.exit_code == 0
+    assert "nadkarni_mri_mouselemur_91um" in atlases_table.output
+
+
 @pytest.mark.parametrize(
     ["command"], [pytest.param("install"), pytest.param("update")]
 )
@@ -60,6 +67,4 @@ def test_cli_incorrect_command():
         ValueError,
         match=f'Invalid command {command}. use "brainglobe -h for more info."',
     ):
-        CliRunner().invoke(
-            cli.bg_cli, [command, "-a", None], catch_exceptions=False
-        )
+        CliRunner().invoke(cli.bg_cli, [command], catch_exceptions=False)

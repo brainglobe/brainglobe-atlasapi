@@ -23,6 +23,7 @@ def test_config_cli():
 
 
 def test_update_command():
+    """Test update command."""
     update_atlas = CliRunner().invoke(
         cli.bg_cli, ["update", "-a", "example_mouse_100um", "-f"]
     )

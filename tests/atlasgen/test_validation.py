@@ -275,7 +275,7 @@ def test_upper_case_name_fails(atlas):
 
 
 @pytest.mark.parametrize(
-    ["metadata", "expected_output"],
+    ["metadata", "expected_output", "error_message"],
     [
         pytest.param(
             {
@@ -283,6 +283,7 @@ def test_upper_case_name_fails(atlas):
                 "value": "BrainGlobe et. al., 2025., https://doi.org",
             },
             True,
+            None,
             id="citation (multiple commas)",
         ),
         pytest.param(
@@ -291,6 +292,7 @@ def test_upper_case_name_fails(atlas):
                 "value": [1, 1],
             },
             True,
+            None,
             id="2D resolution [1, 1]",
         ),
         pytest.param(
@@ -298,12 +300,17 @@ def test_upper_case_name_fails(atlas):
                 "key": "resolution",
                 "value": (1, 1),
             },
-            False,
+            "AssertionError",
+            "resolution should be of type list, but got tuple.",
             id="wrong resolution type (tuple)",
         ),
     ],
 )
-def test_validate_metadata(atlas, metadata, expected_output):
+def test_validate_metadata(atlas, metadata, expected_output, error_message):
     """Checks whether atlas metadata is validated correctly."""
     atlas.metadata[metadata["key"]] = metadata["value"]
-    assert validate_metadata(atlas) is expected_output
+    if expected_output == "AssertionError":
+        with pytest.raises(AssertionError, match=error_message):
+            validate_metadata(atlas)
+    else:
+        assert validate_metadata(atlas) == expected_output

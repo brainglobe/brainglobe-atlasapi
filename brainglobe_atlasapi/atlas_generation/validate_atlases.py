@@ -257,7 +257,7 @@ def validate_metadata(atlas: BrainGlobeAtlas):
     for key, value in METADATA_TEMPLATE.items():
         assert key in atlas.metadata, f"Missing key: {key}"
         assert isinstance(atlas.metadata[key], type(value)), (
-            f"Key '{key}' should be of type {type(value).__name__}, "
+            f"{key} should be of type {type(value).__name__}, "
             f"but got {type(atlas.metadata[key]).__name__}."
         )
     return True

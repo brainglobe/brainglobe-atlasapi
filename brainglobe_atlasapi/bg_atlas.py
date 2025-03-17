@@ -228,11 +228,7 @@ class BrainGlobeAtlas(core.Atlas):
     def __repr__(self):
         """Fancy print providing atlas information."""
         name_split = self.atlas_name.split("_")
-        res = (
-            f" (res. {name_split.pop()})"
-            if name_split[-1].endswith("um")
-            else ""
-        )
+        res = f" (res. {name_split.pop()})"
         pretty_name = f"{' '.join(name_split)} atlas{res}"
         return pretty_name
 

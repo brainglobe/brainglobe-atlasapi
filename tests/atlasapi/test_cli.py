@@ -23,10 +23,11 @@ def test_config_cli():
 
 
 def test_update_command():
-    runner = CliRunner()
-
-    # Test printing of config file:
-    runner.invoke(cli.bg_cli, ["config", "-a", "example_mouse_100um", "-f"])
+    update_atlas = CliRunner().invoke(
+        cli.bg_cli, ["update", "-a", "example_mouse_100um", "-f"]
+    )
+    expected_output = "updating example_mouse_100um\nDownloading..."
+    assert expected_output in update_atlas.output
 
 
 def test_install_command():

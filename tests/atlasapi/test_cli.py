@@ -1,3 +1,4 @@
+import pytest
 from click.testing import CliRunner
 
 from brainglobe_atlasapi import cli, config
@@ -35,8 +36,13 @@ def test_install_command():
     runner.invoke(cli.bg_cli, ["install", "-a", "example_mouse_100um"])
 
 
-def test_list_command():
-    runner = CliRunner()
-
-    # Test printing of config file:
-    runner.invoke(cli.bg_cli, ["list", "s"])
+def test_install_command_value_error():
+    """Test whether install command without atlas name raises ValueError."""
+    with pytest.raises(
+        ValueError,
+        match='No atlas named passed with command "install". Use the "-a"\
+                                argument to pass an atlas name',
+    ):
+        CliRunner().invoke(
+            cli.bg_cli, ["install", "-a", None], catch_exceptions=False
+        )

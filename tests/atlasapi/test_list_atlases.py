@@ -59,6 +59,21 @@ def test_get_all_atlases_lastversions():
     assert "allen_mouse_25um" in last_versions
 
 
+def test_get_all_atlases_custom_atlases(mocker):
+    """Checks inclusion of available custom atlases."""
+    custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
+    config_custom_atlas = {"atlases": {"custom_atlas": "1.1"}}
+
+    with mocker.patch(
+        "brainglobe_atlasapi.utils.conf_from_file",
+        side_effect=lambda file_path: {
+            custom_path: config_custom_atlas,
+        }.get(file_path, FileNotFoundError),
+    ):
+        last_versions = get_all_atlases_lastversions()
+        assert last_versions["custom_atlas"] == "1.1"
+
+
 def test_get_all_atlases_lastversions_offline():
     cleanup_cache = False
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"

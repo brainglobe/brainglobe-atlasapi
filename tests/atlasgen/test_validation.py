@@ -17,6 +17,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_atlas_name,
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
+    validate_metadata,
     validate_reference_image_pixels,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
@@ -305,3 +306,45 @@ def test_validate_atlas_name(atlas_name, should_pass, error_message):
         error_message = f"Atlas name {atlas_name} " + error_message
         with pytest.raises(AssertionError, match=re.escape(error_message)):
             validate_atlas_name(atlas)
+
+
+@pytest.mark.parametrize(
+    ["metadata", "expected_output", "error_message"],
+    [
+        pytest.param(
+            {
+                "key": "citation",
+                "value": "BrainGlobe et. al., 2025., https://doi.org",
+            },
+            True,
+            None,
+            id="citation (multiple commas)",
+        ),
+        pytest.param(
+            {
+                "key": "resolution",
+                "value": [1, 1],
+            },
+            True,
+            None,
+            id="2D resolution [1, 1]",
+        ),
+        pytest.param(
+            {
+                "key": "resolution",
+                "value": (1, 1),
+            },
+            "AssertionError",
+            "resolution should be of type list, but got tuple.",
+            id="wrong resolution type (tuple)",
+        ),
+    ],
+)
+def test_validate_metadata(atlas, metadata, expected_output, error_message):
+    """Checks whether atlas metadata is validated correctly."""
+    atlas.metadata[metadata["key"]] = metadata["value"]
+    if expected_output == "AssertionError":
+        with pytest.raises(AssertionError, match=error_message):
+            validate_metadata(atlas)
+    else:
+        assert validate_metadata(atlas) == expected_output

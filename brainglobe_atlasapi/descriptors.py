@@ -14,14 +14,14 @@ RESOLUTION = ["nm", "um", "mm"]
 # the structure.
 # If the atlas is unpublished, specify "unpublished" in the citation.
 METADATA_TEMPLATE = {
-    "name": "name/author/institute_species_[optionalspecs]",
+    "name": "source_species_additional-info",
     "citation": "Someone et al 2020, https://doi.org/somedoi",
     "atlas_link": "http://www.example.com",
     "species": "Gen species",
     "symmetric": False,
-    "resolution": (1.0, 1.0, 1.0),
+    "resolution": [1.0, 1.0, 1.0],
     "orientation": "asr",
-    "shape": (100, 50, 100),
+    "shape": [100, 50, 100],
     "version": "0.0",
     "additional_references": [],
 }

@@ -36,13 +36,18 @@ def test_install_command():
     runner.invoke(cli.bg_cli, ["install", "-a", "example_mouse_100um"])
 
 
-def test_install_command_value_error():
-    """Test whether install command without atlas name raises ValueError."""
+@pytest.mark.parametrize(
+    ["command"], [pytest.param("install"), pytest.param("update")]
+)
+def test_atlas_name_is_none_value_error(command):
+    """Test whether command without atlas name raises ValueError."""
     with pytest.raises(
         ValueError,
-        match='No atlas named passed with command "install". Use the "-a"\
-                                argument to pass an atlas name',
+        match=(
+            f'No atlas named passed with command "{command}". Use the "-a"'
+            r"\s+argument to pass an atlas name"
+        ),
     ):
         CliRunner().invoke(
-            cli.bg_cli, ["install", "-a", None], catch_exceptions=False
+            cli.bg_cli, [command, "-a", None], catch_exceptions=False
         )

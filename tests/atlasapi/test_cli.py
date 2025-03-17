@@ -51,3 +51,15 @@ def test_atlas_name_is_none_value_error(command):
         CliRunner().invoke(
             cli.bg_cli, [command, "-a", None], catch_exceptions=False
         )
+
+
+def test_cli_incorrect_command():
+    """Test whether incorrect "flibble" command raises ValueError."""
+    command = "flibble"
+    with pytest.raises(
+        ValueError,
+        match=f'Invalid command {command}. use "brainglobe -h for more info."',
+    ):
+        CliRunner().invoke(
+            cli.bg_cli, [command, "-a", None], catch_exceptions=False
+        )

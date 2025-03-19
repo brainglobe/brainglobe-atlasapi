@@ -13,7 +13,7 @@ def test_initialization(atlas):
     assert atlas.metadata == {
         "name": "example_mouse",
         "citation": (
-            "Wang et al 2020, " "https://doi.org/10.1016/j.cell.2020.04.007"
+            "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
         ),
         "atlas_link": "http://www.brain-map.org",
         "species": "Mus musculus",
@@ -187,3 +187,31 @@ def test_even_hemisphere_size(atlas):
     assert atlas.hemispheres.shape == (132, 80, 114)
     assert (atlas.hemispheres[:, :, 56] == 2).all()
     assert (atlas.hemispheres[:, :, 57] == 1).all()
+
+
+def test_get_structure_mask(atlas):
+    """Test the get_structure_mask method.
+
+    Structures in atlas fixture:
+     root (997)
+       └── grey (8)
+             └── CH (567)
+
+    Because the structures (8; 567) are not present in the atlas annotation,
+    they are replaced with 7 and 566.
+    """
+    atlas.structures["grey"]["id"] = 7
+    atlas.structures["CH"]["id"] = 566
+    loc_ch = np.where(atlas.annotation == 566)
+
+    grey_structure_mask = atlas.get_structure_mask("grey")
+
+    assert (
+        atlas.annotation.shape == grey_structure_mask.shape
+    ), "Mask shape should match annotation shape"
+    assert np.all(
+        grey_structure_mask[loc_ch] == 7
+    ), "Substructure id (566; CH) should adopt parent structure id (7; grey)"
+    assert np.all(
+        (grey_structure_mask == 0) | (grey_structure_mask == 7)
+    ), "Values in grey_structure_mask should be either 0 or 7"

@@ -122,19 +122,33 @@ def check_internet_connection(
     raise_error : bool
         if false, warning but no error.
     """
+    urls_to_try = [url]
 
-    try:
-        _ = requests.get(url, timeout=timeout)
+    if url == "http://www.google.com/":
+        # fallback URLs that are globally accessible
+        fallback_urls = [
+            "https://pypi.org/",
+            "https://www.bing.com/",
+            "https://gitee.com/",
+            "http://perdu.com/",
+        ]
 
-        return True
-    except requests.ConnectionError as e:
-        if not raise_error:
-            print("No internet connection available.")
-        else:
-            raise ConnectionError(
-                "No internet connection, try again when you are "
-                "connected to the internet."
-            ) from e
+        urls_to_try.extend([u for u in fallback_urls if u != url])
+
+    for current_url in urls_to_try:
+        try:
+            _ = requests.get(current_url, timeout=timeout)
+            return True
+        except requests.ConnectionError:
+            continue
+
+    if not raise_error:
+        print("No internet connection available.")
+    else:
+        raise ConnectionError(
+            "No internet connection, try again when you are "
+            "connected to the internet."
+        )
 
     return False
 

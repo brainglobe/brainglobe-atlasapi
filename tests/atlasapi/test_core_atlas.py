@@ -192,13 +192,26 @@ def test_even_hemisphere_size(atlas):
 def test_get_structure_mask(atlas):
     """Test the get_structure_mask method.
 
-    Structures in atlas fixture:
-     root (997)
-       └── grey (8)
-             └── CH (567)
+    >>> atlas.structures
+    root (997)
+      └── grey (8)
+            └── CH (567)
 
-    Because the structures (8; 567) are not present in the atlas annotation,
-    they are replaced with 7 and 566.
+    The 'structures' "grey" and "CH" are present in the example atlas. Their
+    respective ids are 8 and 567. These labels are not present in the
+    annotation of the example atlas however. Because the labels 7 and 566
+    are present, we reassign the parent and substructure ids to match the
+    annotation for testing purposes.
+
+    Because the "CH" structure is a sub-structure of "grey" it should adopt
+    the parent structure id (7) in the mask where its label (566) is present
+    when get_structure_mask is applied.
+
+    After applying get_structure_mask only the parent structure id (7) should
+    remain in the mask for the regions corresponding to "CH" and "grey".
+
+    All labels belonging to structures that are outside of the parent structure
+    should be set to 0.
     """
     atlas.structures["grey"]["id"] = 7
     atlas.structures["CH"]["id"] = 566

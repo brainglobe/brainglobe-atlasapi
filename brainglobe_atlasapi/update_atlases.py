@@ -9,7 +9,7 @@ from brainglobe_atlasapi.bg_atlas import (
 from brainglobe_atlasapi.list_atlases import get_downloaded_atlases
 
 
-def update_atlas(atlas_name, force=False, fn_update=None):
+def update_atlas(atlas_name, fn_update=None, force=False):
     """Updates a brainglobe_atlasapi atlas from the latest
     available version online.
 

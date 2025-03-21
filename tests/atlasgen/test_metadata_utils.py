@@ -201,7 +201,8 @@ def test_create_structures_csv(structures, tmp_path):
 
     expected_colnames = "id,acronym,name,structure_id_path,parent_structure_id"
     expected_row1 = f"aon,anterior olfactory nucleus,/{root}/101/5/,101.0"
-    assert expected_colnames and expected_row1 in generated_structures_csv
+    assert expected_colnames in generated_structures_csv
+    assert expected_row1 in generated_structures_csv
 
 
 def test_create_readme(
@@ -227,8 +228,6 @@ def test_create_readme(
         "TREE --\nroot (999)\n└── o (101)\n    ├── aon (5)\n    └── on (1)\n"
     )
 
-    assert (
-        metadata
-        and expected_date
-        and expected_structure_tree in generated_readme
-    )
+    assert expected_date in generated_readme
+    assert expected_structure_tree in generated_readme
+    assert metadata["citation"] in generated_readme

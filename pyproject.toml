@@ -65,6 +65,8 @@ atlasgen = [
     "tqdm>=4.46.1",
     "vedo",
     "xmltodict",
+    "brainglobe-utils",
+    "pooch"
 ]
 
 [project.scripts]

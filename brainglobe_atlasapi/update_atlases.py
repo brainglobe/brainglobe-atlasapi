@@ -72,12 +72,14 @@ def install_atlas(atlas_name, fn_update=None):
     atlas_name : str
         Name of the atlas to update.
     fn_update : Callable, Optional
-        A callback funtion to update progres during download.
     """
 
     # Check input:
     if not isinstance(atlas_name, str):
-        raise ValueError(f"atlas name should be a string, not {atlas_name}")
+        raise TypeError(
+            f"Atlas name should be a string, not a "
+            f"{type(atlas_name).__name__}."
+        )
 
     # Check if already downloaded:
     available_atlases = get_downloaded_atlases()

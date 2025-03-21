@@ -21,7 +21,7 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
-from brainglobe_atlasapi import config
+from brainglobe_atlasapi import config, descriptors
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -31,7 +31,6 @@ def _rich_atlas_metadata(atlas_name, metadata):
     dimorange = "#b56510"
     gray = "#A9A9A9"
     mocassin = "#FFE4B5"
-    cit_name, cit_link = metadata["citation"].split(", ")
 
     # Create a rich table
     tb = Table(
@@ -53,13 +52,12 @@ def _rich_atlas_metadata(atlas_name, metadata):
     tb.add_row(
         "name:",
         Text.from_markup(
-            metadata["name"] + f' [{gray}](v{metadata["version"]})'
+            metadata["name"] + f" [{gray}](v{metadata['version']})"
         ),
     )
-    tb.add_row("species:", Text.from_markup(f'[i]{metadata["species"]}'))
-    tb.add_row("citation:", Text.from_markup(f"{cit_name} [{gray}]{cit_link}"))
+    tb.add_row("species:", Text.from_markup(f"[i]{metadata['species']}"))
+    tb.add_row("citation:", Text.from_markup(f"{metadata['citation']}"))
     tb.add_row("link:", Text.from_markup(metadata["atlas_link"]))
-
     tb.add_row("")
     tb.add_row(
         "orientation:",
@@ -79,14 +77,18 @@ def atlas_repr_from_name(name):
     parts = name.split("_")
 
     # if atlas name with no version:
-    version_str = parts.pop() if not parts[-1].endswith("um") else None
+    version_str = (
+        parts.pop()
+        if not any(parts[-1].endswith(unit) for unit in descriptors.RESOLUTION)
+        else None
+    )
     resolution_str = parts.pop()
 
     atlas_name = "_".join(parts)
 
     # For unspecified version:
     if version_str:
-        major_vers, minor_vers = version_str[2:].split(".")
+        major_vers, minor_vers = version_str[1:].split(".")
     else:
         major_vers, minor_vers = None, None
 
@@ -94,16 +96,16 @@ def atlas_repr_from_name(name):
         name=atlas_name,
         major_vers=major_vers,
         minor_vers=minor_vers,
-        resolution=resolution_str[:-2],
+        resolution=resolution_str,
     )
 
 
 def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
     """Generate atlas name given a description."""
     if major_vers is None and minor_vers is None:
-        return f"{name}_{resolution}um"
+        return f"{name}_{resolution}"
     else:
-        return f"{name}_{resolution}um_v{major_vers}.{minor_vers}"
+        return f"{name}_{resolution}_v{major_vers}.{minor_vers}"
 
 
 ### Web requests
@@ -120,19 +122,33 @@ def check_internet_connection(
     raise_error : bool
         if false, warning but no error.
     """
+    urls_to_try = [url]
 
-    try:
-        _ = requests.get(url, timeout=timeout)
+    if url == "http://www.google.com/":
+        # fallback URLs that are globally accessible
+        fallback_urls = [
+            "https://pypi.org/",
+            "https://www.bing.com/",
+            "https://gitee.com/",
+            "http://perdu.com/",
+        ]
 
-        return True
-    except requests.ConnectionError as e:
-        if not raise_error:
-            print("No internet connection available.")
-        else:
-            raise ConnectionError(
-                "No internet connection, try again when you are "
-                "connected to the internet."
-            ) from e
+        urls_to_try.extend([u for u in fallback_urls if u != url])
+
+    for current_url in urls_to_try:
+        try:
+            _ = requests.get(current_url, timeout=timeout)
+            return True
+        except requests.ConnectionError:
+            continue
+
+    if not raise_error:
+        print("No internet connection available.")
+    else:
+        raise ConnectionError(
+            "No internet connection, try again when you are "
+            "connected to the internet."
+        )
 
     return False
 
@@ -225,7 +241,7 @@ def retrieve_over_http(
                         fn_update(completed, tot)
 
     except requests.exceptions.ConnectionError:
-        output_file_path.unlink()
+        output_file_path.unlink(missing_ok=True)
         raise requests.exceptions.ConnectionError(
             f"Could not download file from {url}"
         )

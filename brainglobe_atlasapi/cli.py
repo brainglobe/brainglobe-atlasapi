@@ -41,7 +41,7 @@ def bg_cli(
         if atlas_name is None:
             raise ValueError(
                 'No atlas named passed with command "install". Use the "-a"\
-                                argument to pass an atls name'
+                                argument to pass an atlas name'
             )
         return install_atlas(atlas_name=atlas_name)
 
@@ -49,7 +49,7 @@ def bg_cli(
         if atlas_name is None:
             raise ValueError(
                 'No atlas named passed with command "update". Use the "-a"\
-                                argument to pass an atls name'
+                                argument to pass an atlas name'
             )
         return update_atlas(atlas_name, force=force)
 

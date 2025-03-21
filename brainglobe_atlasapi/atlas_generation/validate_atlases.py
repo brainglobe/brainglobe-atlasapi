@@ -2,13 +2,14 @@
 
 import json
 import os
+import re
 from pathlib import Path
 
 import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.config import get_brainglobe_dir
-from brainglobe_atlasapi.descriptors import REFERENCE_DTYPE
+from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
@@ -56,8 +57,7 @@ def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
     assert abs(mesh_coord - annotation_coord) <= diff_tolerance * pixel_size, (
         f"Mesh coordinate {mesh_coord} and "
         f"annotation coordinate {annotation_coord}",
-        f"differ by more than {diff_tolerance} "
-        f"times pixel size {pixel_size}",
+        f"differ by more than {diff_tolerance} times pixel size {pixel_size}",
     )
     return True
 
@@ -240,12 +240,42 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
 
 
 def validate_atlas_name(atlas: BrainGlobeAtlas):
+    """Validate atlas name.
+    - Can contain: lowercase letters, digits, underscores, hyphens, periods
+    - Ends with resolution (e.g., 5um, 37.5um, 1mm)
+    - Resolution: number + um (micrometers) or mm (millimeters)
     """
-    Ensures atlas names are all lowercase
+    name = atlas.atlas_name
+    allowed_chars = r"^[a-z0-9_.-]+$"
+    res = name.split("_").pop()
+
+    assert name == name.lower(), f"Atlas name {name} cannot contain capitals."
+
+    assert re.match(
+        allowed_chars, name
+    ), f"Atlas name {name} contains invalid characters."
+
+    resolution_pattern = r"\d+(\.\d+)?(nm|um|mm)$"
+    assert re.search(resolution_pattern, res), (
+        f"Atlas name {name} should end with a valid resolution "
+        "(e.g., 5um, 1.5mm)."
+    )
+
+    return True
+
+
+def validate_metadata(atlas: BrainGlobeAtlas):
+    """Validate atlas metadata.
+    Checks that the metadata of the given atlas has the correct format.
+    Specifically, it ensures that all required keys are present and that the
+    types of the values match the types specified in the METADATA_TEMPLATE.
     """
-    assert (
-        atlas.atlas_name == atlas.atlas_name.lower()
-    ), f"Atlas name {atlas.atlas_name} cannot contain capitals."
+    for key, value in METADATA_TEMPLATE.items():
+        assert key in atlas.metadata, f"Missing key: {key}"
+        assert isinstance(atlas.metadata[key], type(value)), (
+            f"{key} should be of type {type(value).__name__}, "
+            f"but got {type(atlas.metadata[key]).__name__}."
+        )
     return True
 
 

@@ -183,7 +183,7 @@ def test_create_metadata_files(
     )
 
     assert (tmp_path / "structures.csv").exists(), "structures.csv missing"
-    assert (tmp_path / "readme.txt").exists(), "readme.txt missing"
+    assert (tmp_path / "README.txt").exists(), "readme.txt missing"
 
 
 def test_create_structures_csv(structures, tmp_path):
@@ -219,7 +219,7 @@ def test_create_readme(
         structures=structures,
     )
 
-    with open(tmp_path / "readme.txt", "r") as readme:
+    with open(tmp_path / "README.txt", "r") as readme:
         generated_readme = readme.read()
 
     expected_date = datetime.today().strftime("%d/%m/%Y")

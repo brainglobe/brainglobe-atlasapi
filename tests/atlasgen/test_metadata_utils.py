@@ -1,81 +1,112 @@
-import brainglobe_space as bgs
 import numpy as np
-import pooch
-from brainglobe_utils.IO.image import load_nii
+import pytest
 
-import brainglobe_atlasapi.atlas_generation
-from brainglobe_atlasapi import descriptors, utils
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     generate_metadata_dict,
 )
 
 
-def test_generate_metadata_dict(tmp_path):
-    __version__ = "1"
+@pytest.fixture
+def metadata_input_template():
+    return {
+        "name": "author_species",
+        "citation": "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3",
+        "atlas_link": "https://zenodo.org/records/4595016",
+        "species": "Ambystoma mexicanum",
+        "symmetric": False,
+        "resolution": (40, 40, 40),
+        "orientation": "lpi",
+        "version": "1.1",
+        "shape": (172, 256, 154),
+        "transformation_mat": np.array(
+            [
+                [0.000e00, -1.000e00, 0.000e00, 1.024e04],
+                [0.000e00, 0.000e00, -1.000e00, 6.160e03],
+                [-1.000e00, 0.000e00, 0.000e00, 6.880e03],
+                [0.000e00, 0.000e00, 0.000e00, 1.000e00],
+            ]
+        ),
+        "additional_references": [],
+        "atlas_packager": "people who packaged the atlas",
+    }
 
-    atlas_name = "unam_axolotl"
-    species = "Ambystoma mexicanum"
-    atlas_link = "https://zenodo.org/records/4595016"
-    citation = (
-        "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3"
-    )
-    ORIENTATION = "lpi"
-    atlas_packager = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
-    additional_references = {}
-    resolution = 40, 40, 40  # Resolution tuple
-    # If no hemisphere file is given, assume the atlas is symmetric:
-    symmetric = False
-    atlas_path = tmp_path / "atlas_files"
-    atlas_path.mkdir(exist_ok=True)
-    # download atlas files
-    utils.check_internet_connection()
-    nii_file = "axolotl_template_40micra.nii.gz"
-    hash = "md5:66df0da5d7eed10ff59add32741d0bf2"
-    list_files = {nii_file: hash}
 
-    for filename, hash in list_files.items():
-        pooch.retrieve(
-            url=f"{atlas_link}/files/{filename}",
-            known_hash=hash,
-            path=atlas_path,
-            progressbar=True,
-            processor=pooch.Decompress(name=filename[:-3]),
-        )
-
-    reference_file = atlas_path / "axolotl_template_40micra.nii"
-
-    reference_image = load_nii(reference_file, as_array=True)
-    dmin = np.min(reference_image)
-    dmax = np.max(reference_image)
-    drange = dmax - dmin
-    dscale = (2**16 - 1) / drange
-    reference_image = (reference_image - dmin) * dscale
-    reference_image = reference_image.astype(np.uint16)
-    # Instantiate BGSpace obj, using original stack size in um as meshes
-    # are un um:
-    shape = reference_image.shape
-    volume_shape = tuple(res * s for res, s in zip(resolution, shape))
-    space_convention = bgs.AnatomicalSpace(ORIENTATION, shape=volume_shape)
-
-    transformation_mat = space_convention.transformation_matrix_to(
-        descriptors.ATLAS_ORIENTATION
-    )
-    ATLAS_VERSION = brainglobe_atlasapi.atlas_generation.__version__
-    atlas_minor_version = __version__
-
-    generate_metadata_dict(
-        name=atlas_name,
-        citation=citation,
-        atlas_link=atlas_link,
-        species=species,
-        symmetric=symmetric,
-        resolution=resolution,
-        orientation=ORIENTATION,
-        version=f"{ATLAS_VERSION}.{atlas_minor_version}",
-        shape=shape,
-        transformation_mat=transformation_mat,
-        additional_references=[k for k in additional_references.keys()],
-        atlas_packager=atlas_packager,
+def test_generate_metadata_dict(metadata_input_template):
+    """Test generate_metadata_dict using metadata_input_template."""
+    output = generate_metadata_dict(**metadata_input_template)
+    for key in metadata_input_template:
+        if key != "transformation_mat":
+            assert (
+                output[key] == metadata_input_template[key]
+            ), f"Field '{key}' has changed unexpectedly."
+    assert output["trasform_to_bg"] == tuple(
+        [tuple(m) for m in metadata_input_template["transformation_mat"]]
     )
 
-    pass
+
+@pytest.mark.parametrize(
+    ["metadata", "error"],
+    [
+        pytest.param(
+            {"name": "author1_author2_institute_species"},
+            None,
+            id="name=author1_author2_institute_species",
+        ),
+        pytest.param(
+            {"name": "authorspecies"},
+            AssertionError,
+            id="name=authorspecies (error)",
+        ),
+        pytest.param(
+            {"citation": "Axolotl et al., 2025"},
+            AssertionError,
+            id="citation without doi (error)",
+        ),
+        pytest.param(
+            {"citation": "unpublished"},
+            None,
+            id="citation=unpublished",
+        ),
+        pytest.param(
+            {"atlas_link": "invalid"},
+            None,  # TODO: Change to InvalidURL after atlas_link url testing
+            # is addressed in generate_metadata_dict
+            id="atlas_link=invalid",
+        ),
+        pytest.param(
+            {"symmetric": "True"},
+            AssertionError,
+            id="symmetric=string (error)",
+        ),
+        pytest.param(
+            {"symmetric": False},
+            None,
+            id="symmetric=bool (False)",
+        ),
+        pytest.param(
+            {"resolution": (40, 40)},
+            AssertionError,
+            id="2D resolution (error)",
+        ),
+        pytest.param(
+            {"shape": (172, 256)},
+            AssertionError,
+            id="len(shape)>3 (error)",
+        ),
+        pytest.param(
+            {"additional_references": "not a list"},
+            AssertionError,
+            id="additional_references is not a list but a string (error)",
+        ),
+    ],
+)
+def test_generate_metadata_dict_errors(
+    metadata, error, metadata_input_template
+):
+    """Test generate_metadata_dict error raising with modified metadata."""
+    metadata_input_template.update(metadata)
+    if error is not None:
+        with pytest.raises(error):
+            generate_metadata_dict(**metadata_input_template)
+    else:
+        generate_metadata_dict(**metadata_input_template)

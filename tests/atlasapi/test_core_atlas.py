@@ -13,7 +13,7 @@ def test_initialization(atlas):
     assert atlas.metadata == {
         "name": "example_mouse",
         "citation": (
-            "Wang et al 2020, " "https://doi.org/10.1016/j.cell.2020.04.007"
+            "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
         ),
         "atlas_link": "http://www.brain-map.org",
         "species": "Mus musculus",
@@ -187,3 +187,44 @@ def test_even_hemisphere_size(atlas):
     assert atlas.hemispheres.shape == (132, 80, 114)
     assert (atlas.hemispheres[:, :, 56] == 2).all()
     assert (atlas.hemispheres[:, :, 57] == 1).all()
+
+
+def test_get_structure_mask(atlas):
+    """Test the get_structure_mask method.
+
+    >>> atlas.structures
+    root (997)
+      └── grey (8)
+            └── CH (567)
+
+    The 'structures' "grey" and "CH" are present in the example atlas. Their
+    respective ids are 8 and 567. These labels are not present in the
+    annotation of the example atlas however. Because the labels 7 and 566
+    are present, we reassign the parent and substructure ids to match the
+    annotation for testing purposes.
+
+    Because the "CH" structure is a sub-structure of "grey" it should adopt
+    the parent structure id (7) in the mask where its label (566) is present
+    when get_structure_mask is applied.
+
+    After applying get_structure_mask only the parent structure id (7) should
+    remain in the mask for the regions corresponding to "CH" and "grey".
+
+    All labels belonging to structures that are outside of the parent structure
+    should be set to 0.
+    """
+    atlas.structures["grey"]["id"] = 7
+    atlas.structures["CH"]["id"] = 566
+    loc_ch = np.where(atlas.annotation == 566)
+
+    grey_structure_mask = atlas.get_structure_mask("grey")
+
+    assert (
+        atlas.annotation.shape == grey_structure_mask.shape
+    ), "Mask shape should match annotation shape"
+    assert np.all(
+        grey_structure_mask[loc_ch] == 7
+    ), "Substructure id (566; CH) should adopt parent structure id (7; grey)"
+    assert np.all(
+        (grey_structure_mask == 0) | (grey_structure_mask == 7)
+    ), "Values in grey_structure_mask should be either 0 or 7"

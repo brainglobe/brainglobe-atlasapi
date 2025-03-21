@@ -1,7 +1,12 @@
+import json
+from datetime import datetime
+
 import numpy as np
 import pytest
 
+from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
+    create_metadata_files,
     generate_metadata_dict,
 )
 
@@ -110,3 +115,88 @@ def test_generate_metadata_dict_errors(
             generate_metadata_dict(**metadata_input_template)
     else:
         generate_metadata_dict(**metadata_input_template)
+
+
+@pytest.fixture
+def structures():
+    structure101 = {
+        "id": 101,
+        "acronym": "o",
+        "name": "olfactory system",
+        "rgb_triplet": [255, 0, 0],
+        "structure_id_path": [999, 999, 101],
+    }
+    structure1 = {
+        "id": 1,
+        "acronym": "on",
+        "name": "olfactory nerve",
+        "rgb_triplet": [255, 0, 0],
+        "structure_id_path": [999, 101, 1],
+    }
+    structure5 = {
+        "id": 5,
+        "acronym": "aon",
+        "name": "anterior olfactory nucleus",
+        "rgb_triplet": [255, 0, 0],
+        "structure_id_path": [999, 101, 5],
+    }
+
+    root = {
+        "name": "root",
+        "acronym": "root",
+        "id": 999,
+        "rgb_triplet": [255, 255, 255],
+        "structure_id_path": [999],
+    }
+
+    return [structure101, structure1, structure5, root]
+
+
+def test_create_metadata_files(
+    structures,
+    metadata_input_template,
+    tmp_path,
+):
+    """Test create_metadata_files.
+
+    Tests whether readme and structures.csv are created and contain the
+    expected content.
+    """
+
+    metadata = generate_metadata_dict(**metadata_input_template)
+
+    # json is expected to be present in the dest_dir
+    with open(tmp_path / descriptors.STRUCTURES_FILENAME, "w") as f:
+        json.dump(structures, f)
+
+    create_metadata_files(
+        dest_dir=tmp_path,
+        metadata_dict=metadata,
+        structures=structures,
+        root_id=999,
+        additional_metadata={},
+    )
+
+    assert (tmp_path / "structures.csv").exists(), "structures.csv missing"
+    assert (tmp_path / "readme.txt").exists(), "readme.txt missing"
+
+    with open(tmp_path / "readme.txt", "r") as readme_file:
+        generated_readme = readme_file.read()
+
+    with open(tmp_path / "structures.csv", "r") as structures_file:
+        generated_structures_csv = structures_file.read()
+
+    expected_date = datetime.today().strftime("%d/%m/%Y")
+    expected_structure_tree = (
+        "TREE --\nroot (999)\n└── o (101)\n    ├── aon (5)\n    └── on (1)\n"
+    )
+
+    assert (
+        metadata
+        and expected_date
+        and expected_structure_tree in generated_readme
+    )
+
+    expected_colnames = "id,acronym,name,structure_id_path,parent_structure_id"
+    expected_row1 = "aon,anterior olfactory nucleus,/999/101/5/,101.0"
+    assert expected_colnames and expected_row1 in generated_structures_csv

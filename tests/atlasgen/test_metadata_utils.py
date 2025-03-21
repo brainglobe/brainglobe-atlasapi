@@ -7,6 +7,8 @@ import pytest
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     create_metadata_files,
+    create_readme,
+    create_structures_csv,
     generate_metadata_dict,
 )
 
@@ -152,16 +154,19 @@ def structures():
     return [structure101, structure1, structure5, root]
 
 
+def get_root_id(structures: list[dict]):
+    """Helper function to get root id from a list of structures."""
+    for s in structures:
+        if s["name"] == "root":
+            return s["id"]
+
+
 def test_create_metadata_files(
     structures,
     metadata_input_template,
     tmp_path,
 ):
-    """Test create_metadata_files.
-
-    Tests whether readme and structures.csv are created and contain the
-    expected content.
-    """
+    """Test create_metadata_files."""
 
     metadata = generate_metadata_dict(**metadata_input_template)
 
@@ -173,18 +178,49 @@ def test_create_metadata_files(
         dest_dir=tmp_path,
         metadata_dict=metadata,
         structures=structures,
-        root_id=999,
+        root_id=get_root_id(structures),
         additional_metadata={},
     )
 
     assert (tmp_path / "structures.csv").exists(), "structures.csv missing"
     assert (tmp_path / "readme.txt").exists(), "readme.txt missing"
 
-    with open(tmp_path / "readme.txt", "r") as readme_file:
-        generated_readme = readme_file.read()
 
+def test_create_structures_csv(structures, tmp_path):
+    """Test create_structures_csv."""
+
+    root = get_root_id(structures)
+
+    # json is expected to be present in the dest_dir
+    with open(tmp_path / descriptors.STRUCTURES_FILENAME, "w") as f:
+        json.dump(structures, f)
+
+    create_structures_csv(uncompr_atlas_path=tmp_path, root=root)
     with open(tmp_path / "structures.csv", "r") as structures_file:
         generated_structures_csv = structures_file.read()
+
+    expected_colnames = "id,acronym,name,structure_id_path,parent_structure_id"
+    expected_row1 = f"aon,anterior olfactory nucleus,/{root}/101/5/,101.0"
+    assert expected_colnames and expected_row1 in generated_structures_csv
+
+
+def test_create_readme(
+    structures,
+    metadata_input_template,
+    tmp_path,
+):
+    """Test create_readme."""
+
+    metadata = generate_metadata_dict(**metadata_input_template)
+
+    create_readme(
+        uncompr_atlas_path=tmp_path,
+        metadata_dict=metadata,
+        structures=structures,
+    )
+
+    with open(tmp_path / "readme.txt", "r") as readme:
+        generated_readme = readme.read()
 
     expected_date = datetime.today().strftime("%d/%m/%Y")
     expected_structure_tree = (
@@ -196,7 +232,3 @@ def test_create_metadata_files(
         and expected_date
         and expected_structure_tree in generated_readme
     )
-
-    expected_colnames = "id,acronym,name,structure_id_path,parent_structure_id"
-    expected_row1 = "aon,anterior olfactory nucleus,/999/101/5/,101.0"
-    assert expected_colnames and expected_row1 in generated_structures_csv

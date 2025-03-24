@@ -220,7 +220,7 @@ def test_create_readme(
         structures=structures,
     )
 
-    with open(tmp_path / "README.txt", "r") as readme:
+    with open(tmp_path / "README.txt", "r", encoding="utf-8") as readme:
         generated_readme = readme.read()
 
     expected_date = datetime.today().strftime("%d/%m/%Y")

@@ -75,13 +75,3 @@ def write_itk_labels(path: Path, labels):
                 f"{label['rgb_triplet'][2]} 1.00 1 1 "
                 f'"{label["name"] + " (" + label["acronym"] + ")"}"\n'
             )
-
-
-# TODO turn into test
-if __name__ == "__main__":
-    path = Path.home() / "Downloads" / "corrected_LabelMainBrainAreas_SW.txt"
-    labels = read_itk_labels(path)
-    [print(label) for label in labels]
-    write_itk_labels(
-        Path.home() / "Downloads" / "test-writing.txt", labels=labels
-    )

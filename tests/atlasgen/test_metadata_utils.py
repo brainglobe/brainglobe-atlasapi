@@ -3,6 +3,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+from requests.exceptions import InvalidURL
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
@@ -76,8 +77,7 @@ def test_generate_metadata_dict(metadata_input_template):
         ),
         pytest.param(
             {"atlas_link": "invalid"},
-            None,  # TODO: Change to InvalidURL after atlas_link url testing
-            # is addressed in generate_metadata_dict
+            InvalidURL,
             id="atlas_link=invalid",
         ),
         pytest.param(

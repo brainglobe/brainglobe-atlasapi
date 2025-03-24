@@ -4,6 +4,11 @@ from pathlib import Path
 
 
 def split_label_text(name: str) -> str:
+    """Split label text into name + acronym.
+
+    If the label text ends with ')', extract the acronym inside parentheses.
+    Otherwise, use the first letter as the acronym.
+    """
     if name.endswith(")"):
         name, acronym = name.split("(")
         name = name[:-1]  # ignore trailing space
@@ -14,6 +19,7 @@ def split_label_text(name: str) -> str:
 
 
 def read_itk_labels(path: Path) -> dict:
+    """Turns ITK label data from a file into a list of dictionaries."""
     labels = []
     with open(path) as labels_file:
         for line in labels_file:
@@ -57,6 +63,7 @@ ITK_CLEAR_LABEL = '0 0 0 0 0 0 0 "Clear Label"\n'
 
 
 def write_itk_labels(path: Path, labels):
+    """Writes ITK label data to a file."""
     with open(path, "w") as labels_file:
         labels_file.write(ITK_SNAP_HEADER)
         labels_file.write(ITK_CLEAR_LABEL)
@@ -66,7 +73,7 @@ def write_itk_labels(path: Path, labels):
                 f"{label['rgb_triplet'][0]} "
                 f"{label['rgb_triplet'][1]} "
                 f"{label['rgb_triplet'][2]} 1.00 1 1 "
-                f"\"{label['name'] + ' (' + label['acronym']+')'}\"\n"
+                f'"{label["name"] + " (" + label["acronym"] + ")"}"\n'
             )
 
 

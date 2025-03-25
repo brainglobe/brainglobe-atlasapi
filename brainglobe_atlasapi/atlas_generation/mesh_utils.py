@@ -31,7 +31,6 @@ from brainglobe_atlasapi.atlas_generation.volume_utils import (
 # ----------------- #
 
 
-# TODO: is this function being used?
 def region_mask_from_annotation(
     structure_id,
     annotation,

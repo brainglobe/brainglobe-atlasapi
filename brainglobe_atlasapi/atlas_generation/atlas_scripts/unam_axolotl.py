@@ -63,17 +63,19 @@ def apply_modal_filter(image, filter_size=3):
     )
     return filtered_image
 
+
 def clean_abbreviation(abbreviation):
     """
     Clean the abbreviation by removing numeric suffixes.
-    
+
     Parameters:
     abbreviation (str): The abbreviation string to clean.
-    
+
     Returns:
     str: The cleaned abbreviation with numbers removed.
     """
-    return ''.join([i for i in abbreviation if not i.isdigit()])
+    return "".join([i for i in abbreviation if not i.isdigit()])
+
 
 def create_atlas(working_dir, resolution):
 
@@ -270,18 +272,23 @@ def create_atlas(working_dir, resolution):
     # for s in hierarchy:
     #     if hemispheres_stack[annotation_image == s['id']].sum() == 0:
     #         print(f"Warning: Mesh not found for structure {s['name']} in one hemisphere!")
-    # new function : 
+    # new function :
     for s in hierarchy:
-        left_hemisphere = (hemispheres_stack[annotation_image == s['id']] == 1).any()
-        right_hemisphere = (hemispheres_stack[annotation_image == s['id']] == 2).any()
+        left_hemisphere = (
+            hemispheres_stack[annotation_image == s["id"]] == 1
+        ).any()
+        right_hemisphere = (
+            hemispheres_stack[annotation_image == s["id"]] == 2
+        ).any()
         if not left_hemisphere or not right_hemisphere:
             missing_hemisphere = []
             if not left_hemisphere:
                 missing_hemisphere.append("left")
             if not right_hemisphere:
                 missing_hemisphere.append("right")
-            print(f"Warning: Mesh not found for structure {s['name']} in the {', '.join(missing_hemisphere)} hemisphere(s)!")
-
+            print(
+                f"Warning: Mesh not found for structure {s['name']} in the {', '.join(missing_hemisphere)} hemisphere(s)!"
+            )
 
     # Measure duration of mesh creation
     start = time.time()
@@ -373,4 +380,4 @@ if __name__ == "__main__":
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     create_atlas(bg_root_dir, RESOLUTION)
-# 
+#

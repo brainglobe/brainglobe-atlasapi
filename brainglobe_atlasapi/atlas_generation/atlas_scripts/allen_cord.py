@@ -22,7 +22,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = True
+PARALLEL = False
 TEST = False
 
 ATLAS_NAME = "allen_cord"

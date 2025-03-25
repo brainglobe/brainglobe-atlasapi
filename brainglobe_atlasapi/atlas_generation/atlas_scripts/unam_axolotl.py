@@ -63,6 +63,17 @@ def apply_modal_filter(image, filter_size=3):
     )
     return filtered_image
 
+def clean_abbreviation(abbreviation):
+    """
+    Clean the abbreviation by removing numeric suffixes.
+    
+    Parameters:
+    abbreviation (str): The abbreviation string to clean.
+    
+    Returns:
+    str: The cleaned abbreviation with numbers removed.
+    """
+    return ''.join([i for i in abbreviation if not i.isdigit()])
 
 def create_atlas(working_dir, resolution):
 
@@ -119,6 +130,7 @@ def create_atlas(working_dir, resolution):
     # mask: put 1 where there is an annotation
     annotation_mask = np.zeros(annotation_image.shape)
     annotation_mask[annotation_image > 0] = 1
+    masked_reference_image = reference_image * annotation_mask
 
     # find the connected regions in the mask
     labeled_image = label(annotation_mask)
@@ -152,6 +164,7 @@ def create_atlas(working_dir, resolution):
                 row["rgb_triplet"] = [255, 0, 0]
                 row.pop("voxels")
                 row.pop("volume")
+                row["acronym"] = clean_abbreviation(row["acronym"])
 
                 if hemisphere[0] == "L":
                     # mark as left hemisphere and add to hierarchy
@@ -252,6 +265,23 @@ def create_atlas(working_dir, resolution):
     # pass a smoothed version of the annotations for meshing
     smoothed_annotations = annotation_image.copy()
     smoothed_annotations = apply_modal_filter(smoothed_annotations)
+    original_reference_image = reference_image.copy()
+    # Ensure meshes exist for both hemispheres
+    # for s in hierarchy:
+    #     if hemispheres_stack[annotation_image == s['id']].sum() == 0:
+    #         print(f"Warning: Mesh not found for structure {s['name']} in one hemisphere!")
+    # new function : 
+    for s in hierarchy:
+        left_hemisphere = (hemispheres_stack[annotation_image == s['id']] == 1).any()
+        right_hemisphere = (hemispheres_stack[annotation_image == s['id']] == 2).any()
+        if not left_hemisphere or not right_hemisphere:
+            missing_hemisphere = []
+            if not left_hemisphere:
+                missing_hemisphere.append("left")
+            if not right_hemisphere:
+                missing_hemisphere.append("right")
+            print(f"Warning: Mesh not found for structure {s['name']} in the {', '.join(missing_hemisphere)} hemisphere(s)!")
+
 
     # Measure duration of mesh creation
     start = time.time()
@@ -343,3 +373,4 @@ if __name__ == "__main__":
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
     create_atlas(bg_root_dir, RESOLUTION)
+# 

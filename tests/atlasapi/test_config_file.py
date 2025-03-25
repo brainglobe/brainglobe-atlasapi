@@ -63,7 +63,7 @@ def test_config_edit(tmp_path):
         (
             "some_dir",
             lambda tmpdir: Path(str(tmpdir.join("invalid/path"))),
-            lambda tmpdir: f"False{os.linesep}{str(tmpdir.join('invalid/path'))} is not a valid path. Path must be a valid path string, and its parent must exist!",
+            lambda tmpdir: f"False{os.linesep}{str(tmpdir.join('invalid/path'))} is not a valid path. Path must be a valid path string, and its parent must exist!",  # noqa: E501
         ),
     ],
 )

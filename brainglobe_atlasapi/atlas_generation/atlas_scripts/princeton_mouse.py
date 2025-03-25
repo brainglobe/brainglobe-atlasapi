@@ -1,7 +1,6 @@
 __version__ = "0"
 
 import json
-import multiprocessing as mp
 import os.path
 import time
 
@@ -21,7 +20,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-#disable parallel execution
+# disable parallel execution
 
 ATLAS_NAME = "princeton_mouse"
 SPECIES = "Mus musculus"
@@ -153,7 +152,7 @@ def create_atlas(working_dir, resolution):
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
-    
+
     for node in track(
         tree.nodes.values(),
         total=tree.size(),
@@ -172,7 +171,7 @@ def create_atlas(working_dir, resolution):
                 smooth,
             )
         )
-    
+
     print(
         "Finished mesh extraction in: ",
         round((time.time() - start) / 60, 2),

@@ -3,7 +3,6 @@ __atlas__ = "admba_3d_dev_mouse"
 
 import dataclasses
 import json
-import multiprocessing as mp
 import time
 from os import listdir, path
 from pathlib import Path
@@ -122,7 +121,7 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
-   
+
     for node in track(
         tree.nodes.values(),
         total=tree.size(),

@@ -1,7 +1,6 @@
 __version__ = "0"
 
 import json
-import multiprocessing as mp
 import time
 
 import numpy as np

@@ -1,7 +1,6 @@
 __version__ = "2"
 
 import json
-import multiprocessing as mp
 import time
 from pathlib import Path
 
@@ -20,7 +19,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-#REMOVED PARALLEL
+# REMOVED PARALLEL
 
 ATLAS_NAME = "whs_sd_rat"
 SPECIES = "Rattus norvegicus"

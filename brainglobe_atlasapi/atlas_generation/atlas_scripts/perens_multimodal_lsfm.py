@@ -1,4 +1,3 @@
-import multiprocessing as mp
 import os
 import time
 import urllib.request

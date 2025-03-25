@@ -1,7 +1,6 @@
 __version__ = "0"
 
 import json
-import multiprocessing as mp
 import time
 
 import numpy as np
@@ -31,7 +30,7 @@ CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
 ORIENTATION = "rpi"
 
 ### Settings
-  # disable parallel mesh extraction for easier debugging
+# disable parallel mesh extraction for easier debugging
 
 
 def prune_tree(tree):
@@ -217,7 +216,6 @@ def create_atlas(working_dir):
     start = time.time()
     annotated_volume = annotation
 
-    
     print("Starting mesh creation")
 
     for node in track(

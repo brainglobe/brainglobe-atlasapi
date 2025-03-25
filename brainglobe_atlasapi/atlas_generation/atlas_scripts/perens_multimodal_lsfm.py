@@ -1,4 +1,3 @@
-import multiprocessing as mp
 import os
 import time
 import urllib.request
@@ -20,7 +19,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 # The Perens atlas re-uses information from the Allen atlas, so it's useful to
 # have an instance of the Allen atlas around
 allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
-  # disable parallel mesh extraction for easier debugging
+# disable parallel mesh extraction for easier debugging
 
 HEADERS = {
     "User-Agent": (
@@ -237,7 +236,7 @@ def retrieve_or_construct_meshes():
 
     smooth = False
     start = time.time()
-    
+
     for node in track(
         tree.nodes.values(),
         total=tree.size(),

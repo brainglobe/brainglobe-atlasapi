@@ -21,7 +21,6 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
- # disable parallel mesh extraction for easier debugging
 
 ATLAS_NAME = "osten_mouse"
 SPECIES = "Mus musculus"

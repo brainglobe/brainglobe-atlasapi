@@ -24,7 +24,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = False
+# remove parallel executions
 
 
 def download_atlas_files(
@@ -122,49 +122,26 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
-    if PARALLEL:
-        pool = mp.Pool(mp.cpu_count() - 2)
-
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        root_id,
-                        closing_n_iters,
-                        decimate_fraction,
-                        smooth,
-                    )
-                    for node in tree.nodes.values()
-                ],
+   
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        # root_node = tree.nodes[root_id]
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,  # root_node
+                tree,
+                labels,
+                annotated_volume,
+                root_id,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
-        except mp.pool.MaybeEncodingError:
-            pass
-    else:
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-            # root_node = tree.nodes[root_id]
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,  # root_node
-                    tree,
-                    labels,
-                    annotated_volume,
-                    root_id,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+        )
 
     print(
         "Finished mesh extraction in: ",

@@ -6,6 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from brainglobe_atlasapi import bg_atlas, cli, config
+from brainglobe_atlasapi.config import cli_modify_config
 
 
 @pytest.fixture()
@@ -56,3 +57,35 @@ def test_config_edit(tmp_path):
 
     # Restore the original config value
     config.write_config_value("brainglobe_dir", original_bg_folder)
+
+
+@pytest.mark.parametrize(
+    "key, value_factory, expected_output",
+    [
+        (
+            "temporal_dir",
+            lambda tmpdir: tmpdir.mkdir("valid").join("path"),
+            "True",
+        ),
+        (
+            "temporal_dir",
+            lambda tmpdir: Path("/invalid/path"),
+            "False\n/invalid/path is not a valid path. "
+            "Path must be a valid path string, and its parent must exist!",
+        ),
+    ],
+)
+def test_cli_modify_config(
+    monkeypatch, key, value_factory, expected_output, capsys, tmpdir
+):
+    def mock_write_config_value(k, v):
+        pass  # Mock function to bypass actual writing
+
+    monkeypatch.setattr(
+        "brainglobe_atlasapi.config.write_config_value",
+        mock_write_config_value,
+    )
+    value = str(value_factory(tmpdir))
+    cli_modify_config(key=key, value=value, show=False)
+    captured = capsys.readouterr()
+    assert expected_output in captured.out

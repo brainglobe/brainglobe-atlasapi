@@ -81,7 +81,9 @@ def get_structure_terminal_nodes(structures, region):
     tree = get_structures_tree(structures)
 
     sub_region_ids = [
-        n.identifier for n in tree.subtree(region["id"]).leaves()
+        n.identifier
+        for n in tree.subtree(region["id"]).leaves()
+        if n.identifier is not region["id"]
     ]
 
     if not sub_region_ids:

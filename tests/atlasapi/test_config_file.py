@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -52,23 +53,22 @@ def test_config_edit(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "key, value_factory, expected_output",
+    "key, value_factory, expected_output_factory",
     [
         (
-            "temporal_dir",
+            "some_dir",
             lambda tmpdir: tmpdir.mkdir("valid").join("path"),
-            "True",
-        ),
+            lambda tmpdir: "True",
+        ),  # Creating a valid temp path
         (
-            "temporal_dir",
-            lambda tmpdir: Path("/invalid/path"),
-            "False\n/invalid/path is not a valid path. "
-            "Path must be a valid path string, and its parent must exist!",
+            "some_dir",
+            lambda tmpdir: Path(str(tmpdir.join("invalid/path"))),
+            lambda tmpdir: f"False{os.linesep}{str(tmpdir.join('invalid/path'))} is not a valid path. Path must be a valid path string, and its parent must exist!",
         ),
     ],
 )
 def test_cli_modify_config(
-    monkeypatch, key, value_factory, expected_output, capsys, tmpdir
+    monkeypatch, key, value_factory, expected_output_factory, capsys, tmpdir
 ):
     def mock_write_config_value(k, v):
         pass
@@ -78,6 +78,9 @@ def test_cli_modify_config(
         mock_write_config_value,
     )
     value = str(value_factory(tmpdir))
+    expected_output = expected_output_factory(tmpdir)
     cli_modify_config(key=key, value=value, show=False)
     captured = capsys.readouterr()
-    assert expected_output in captured.out
+    captured_output = captured.out.replace("\\", "/").strip()
+    expected_output = expected_output.replace("\\", "/").strip()
+    assert expected_output in captured_output

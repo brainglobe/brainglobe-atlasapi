@@ -2,7 +2,6 @@ __version__ = "1"
 
 import argparse
 import json
-import multiprocessing as mp
 import time
 
 import numpy as np
@@ -21,8 +20,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
- 
 
 ATLAS_NAME = "kim_mouse"
 SPECIES = "Mus musculus"
@@ -130,7 +127,7 @@ def create_atlas(working_dir, resolution):
     smooth = False  # smooth meshes after creation
 
     start = time.time()
-    
+
     for node in track(
         tree.nodes.values(),
         total=tree.size(),

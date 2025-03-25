@@ -1,7 +1,6 @@
 __version__ = "2"
 
 import json
-import multiprocessing as mp
 import time
 from pathlib import Path
 
@@ -20,7 +19,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
 
 ATLAS_GROUP_NAME = "kim_dev_mouse"  # multiple versions of the same atlas
 SPECIES = "Mus musculus"
@@ -191,7 +189,6 @@ def create_atlas(
 
         start = time.time()
 
-        
         for node in track(
             tree.nodes.values(),
             total=tree.size(),

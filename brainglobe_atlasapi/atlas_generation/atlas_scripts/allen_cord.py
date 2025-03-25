@@ -1,7 +1,6 @@
 __version__ = "1"
 
 import json
-import multiprocessing as mp
 import time
 from pathlib import Path
 from random import choices
@@ -21,7 +20,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
 
 TEST = False
 
@@ -127,7 +125,6 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
         )
         nodes = choices(nodes, k=10)
 
-    
     print(f"Creating {len(nodes)} meshes")
     for node in track(
         nodes,

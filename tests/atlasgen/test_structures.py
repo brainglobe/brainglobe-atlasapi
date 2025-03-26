@@ -134,9 +134,6 @@ def test_get_structure_terminal_nodes(
     assert terminal_nodes == expected_terminal_nodes
 
 
-# TODO: Remove xfail marker after fixing bug.
-# sub_region_ids are not supposed to include the parent_id
-@pytest.mark.xfail
 def test_get_structure_terminal_nodes_without_leaves(capsys, structures):
     """Test region without any terminal nodes (leaves)."""
     region = structures[1]

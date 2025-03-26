@@ -78,7 +78,7 @@ class BrainGlobeAtlas(core.Atlas):
 
             # If the default folder does not exist yet, make it:
             dir_path = Path(dir)
-            dir_path.mkdir(exist_ok=True)
+            dir_path.mkdir(parents=True, exist_ok=True)
             setattr(self, dirname, dir_path)
 
         # Look for this atlas in local brainglobe folder:

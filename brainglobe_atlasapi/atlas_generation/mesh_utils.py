@@ -1,3 +1,5 @@
+from scipy.ndimage import binary_closing, binary_fill_holes
+
 try:
     from vedo import Mesh, Volume, write
     from vedo.applications import Slicer3DPlotter
@@ -18,7 +20,6 @@ except ModuleNotFoundError:
 from pathlib import Path
 
 import numpy as np
-import scipy
 from loguru import logger
 
 from brainglobe_atlasapi.atlas_generation.volume_utils import (
@@ -121,7 +122,7 @@ def extract_mesh_from_mask(
             )
 
     # Check volume argument
-    if np.min(volume) > 0 or np.max(volume) < 1:
+    if not np.isin(volume, [0, 1]).all():
         raise ValueError(
             "Argument volume should be a binary mask with only "
             "0s and 1s when passing a np.ndarray"
@@ -129,10 +130,8 @@ def extract_mesh_from_mask(
 
     # Apply morphological transformations
     if closing_n_iters is not None:
-        volume = scipy.ndimage.morphology.binary_fill_holes(volume).astype(int)
-        volume = scipy.ndimage.morphology.binary_closing(
-            volume, iterations=closing_n_iters
-        ).astype(int)
+        volume = binary_fill_holes(volume).astype(int)
+        volume = binary_closing(volume, iterations=closing_n_iters).astype(int)
 
     if not use_marching_cubes:
         # Use faster algorithm

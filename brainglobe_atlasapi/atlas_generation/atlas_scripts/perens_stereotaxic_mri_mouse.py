@@ -1,4 +1,4 @@
-import os
+codimport os
 import time
 import urllib.request
 from pathlib import Path
@@ -19,7 +19,8 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 # The Perens atlas re-uses information from the Allen atlas, so it's useful to
 # have an instance of the Allen atlas around
 allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
-# disable parallel mesh extraction for easier debugging
+
+
 
 HEADERS = {
     "User-Agent": (

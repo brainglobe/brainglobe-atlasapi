@@ -174,8 +174,7 @@ def create_region_mesh(args):
     Automates the creation of a region's mesh. Given a volume of annotations
     and a structures tree, it takes the volume's region corresponding to the
     region of interest and all of it's children's labels and creates a mesh.
-    It takes a tuple of arguments to facilitaed parallel processing with
-    multiprocessing.pool.map
+    It takes a tuple of arguments to facilitate sequential  processing 
 
     Note, by default it avoids overwriting a structure's mesh if the
     .obj file exists already.

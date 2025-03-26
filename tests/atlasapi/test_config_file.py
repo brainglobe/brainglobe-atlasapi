@@ -82,5 +82,6 @@ def test_cli_modify_config(
     cli_modify_config(key=key, value=value, show=False)
     captured = capsys.readouterr()
     captured_output = captured.out.replace("\\", "/").strip()
+    expected_output = expected_output.replace("\r\n", "\n").strip()
     expected_output = expected_output.replace("\\", "/").strip()
     assert expected_output in captured_output

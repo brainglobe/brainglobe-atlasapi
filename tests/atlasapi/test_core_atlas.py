@@ -1,12 +1,13 @@
 import contextlib
 from io import StringIO
+from unittest.mock import mock_open, patch
 
 import numpy as np
 import pandas as pd
 import pytest
 import tifffile
 
-from brainglobe_atlasapi.core import AdditionalRefDict
+from brainglobe_atlasapi.core import AdditionalRefDict, Atlas
 
 
 def test_initialization(atlas):
@@ -228,3 +229,43 @@ def test_get_structure_mask(atlas):
     assert np.all(
         (grey_structure_mask == 0) | (grey_structure_mask == 7)
     ), "Values in grey_structure_mask should be either 0 or 7"
+
+
+@pytest.fixture
+def mock_atlas():
+    """Fixture to create a mocked Atlas object."""
+    with (
+        patch("brainglobe_atlasapi.utils.read_json") as mock_read_json,
+        patch("builtins.open", mock_open(read_data="{}")),
+        patch("pathlib.Path.exists", return_value=True),
+    ):
+        mock_read_json.side_effect = [
+            {"some_metadata": "value"},
+            [
+                {
+                    "id": 1,
+                    "acronym": "root",
+                    "name": "Root Structure",
+                    "parent": None,
+                },
+                {
+                    "id": 2,
+                    "acronym": "subregion",
+                    "name": "Subregion",
+                    "parent": 1,
+                },
+            ],
+        ]
+
+        atlas = Atlas("mock_path")
+        yield atlas
+
+
+def test_key_error_handling_for_additional_references(mock_atlas):
+    """Test that a warning is issued when 'additional_references' is missing in metadata."""  # noqa: E501
+    with patch("warnings.warn") as mock_warn:
+        mock_atlas.metadata = {"some_metadata": "value"}
+        mock_atlas.__init__("mock_path")
+        mock_warn.assert_called_once_with(
+            "This atlas seems to be outdated as no additional_references list is found in metadata!"  # noqa: E501
+        )

@@ -171,24 +171,41 @@ def extract_mesh_from_mask(
 
 def create_region_mesh(args):
     """
-    Automates the creation of a region's mesh. Given a volume of annotations
-    and a structures tree, it takes the volume's region corresponding to the
-    region of interest and all of it's children's labels and creates a mesh.
-    It takes a tuple of arguments to facilitate sequential  processing 
+    Automates the creation of a 3D mesh
+    for a specific region in an annotated volume.
+    Given a volume of annotations and a
+    hierarchical structure tree, it extracts
+    the region of interest
+    (specified by the provided node)
+    and all its children's labels
+    to generate a corresponding mesh.
+    The resulting mesh is saved as an .obj file in the
+    specified directory.
 
-    Note, by default it avoids overwriting a structure's mesh if the
+    By default, the code avoids
+    overwriting an existing mesh
+    if the .obj file already exists
+    in the output directory.
+    Note, by default it avoids
+    overwriting a structure's mesh if the
     .obj file exists already.
 
-    Parameters
-    ----------
-    meshes_dir_path: pathlib Path object with folder where meshes are saved
-    tree: treelib.Tree with hierarchical structures information
-    node: tree's node corresponding to the region who's mesh is being created
-    labels: list of unique label annotations in annotated volume,
-    (list(np.unique(annotated_volume)))
-    annotated_volume: 3d numpy array with annotaed volume
-    ROOT_ID: int,
-    id of root structure (mesh creation is a bit more refined for that)
+        Parameters
+        ----------
+        meshes_dir_path: pathlib Path object with
+        folder where meshes are saved
+        tree: treelib.Tree with
+        hierarchical structures information
+        node: tree's node corresponding to
+        the region who's mesh is being created
+        labels: list of unique
+        label annotations in annotated volume,
+        (list(np.unique(annotated_volume)))
+        annotated_volume: 3d numpy
+        array with annotaed volume
+        ROOT_ID: int,
+        id of root structure
+        (mesh creation is a bit more refined for that)
     """
     # Split arguments
     logger.debug(f"Creating mesh for region {args[1].identifier}")

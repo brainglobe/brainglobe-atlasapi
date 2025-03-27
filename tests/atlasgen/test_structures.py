@@ -4,7 +4,6 @@ from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
     get_structure_children,
     get_structure_terminal_nodes,
-    show_which_structures_have_mesh,
 )
 
 
@@ -208,11 +207,3 @@ def test_get_structure_terminal_nodes_without_leaves(capsys, structures):
     captured = capsys.readouterr()
     assert "doesnt seem to contain any other regions" in captured.out
     assert terminal_nodes is None
-
-
-# TODO: add a test with mesh = True for certain tree nodes.
-def test_show_which_structures_have_mesh(structures, tmp_path, capsys):
-    """Tests display of structures with mesh files."""
-    show_which_structures_have_mesh(structures=structures, meshes_dir=tmp_path)
-    captured = capsys.readouterr()
-    assert captured.out == "False\n└── False\n    ├── False\n    └── False\n\n"

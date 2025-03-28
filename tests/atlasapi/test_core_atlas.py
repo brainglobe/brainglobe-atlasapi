@@ -1,5 +1,6 @@
 import contextlib
 from io import StringIO
+from unittest.mock import mock_open, patch
 
 import numpy as np
 import pandas as pd
@@ -228,3 +229,57 @@ def test_get_structure_mask(atlas):
     assert np.all(
         (grey_structure_mask == 0) | (grey_structure_mask == 7)
     ), "Values in grey_structure_mask should be either 0 or 7"
+
+
+def test_key_error_for_additional_references(atlas):
+    """
+    Test that a warning is issued when the 'additional_references' key
+    is missing from the atlas metadata.
+
+    Parameters
+    ----------
+    atlas : Atlas
+        An instance of the Atlas class used for testing.
+
+    Raises
+    ------
+    AssertionError
+        If the expected warning is not triggered.
+    """
+    atlas.metadata.pop("additional_references")
+    mock_metadata = atlas.metadata
+    structures_list = atlas.structures_list
+    with (
+        patch(
+            "brainglobe_atlasapi.core.read_json",
+            side_effect=[
+                mock_metadata,
+                structures_list,
+            ],
+        ),
+        patch("warnings.warn") as mock_warn,
+    ):
+        atlas.__init__("example_mouse_100um")
+        mock_warn.assert_called_once_with(
+            "This atlas seems to be outdated as no additional_references list "
+            "is found in metadata!"
+        )
+
+
+def test_hemispheres_reads_tiff(asymmetric_atlas):
+    asymmetric_atlas.metadata["symmetric"] = False
+    mock_tiff_data = np.random.randint(
+        0, 3, size=asymmetric_atlas.shape, dtype=np.uint8
+    )
+    tiff_path = asymmetric_atlas.root_dir / "hemispheres.tiff"
+
+    with (
+        patch(
+            "brainglobe_atlasapi.utils.read_tiff", return_value=mock_tiff_data
+        ) as mock_read_tiff,
+        patch("pathlib.Path.is_file", return_value=True),
+        patch("builtins.open", mock_open(read_data=b"II*\x00" + b"\x00" * 8)),
+    ):
+        hemispheres = asymmetric_atlas.hemispheres
+        mock_read_tiff.assert_called_once_with(tiff_path)
+        np.testing.assert_array_equal(hemispheres, mock_tiff_data)

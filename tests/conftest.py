@@ -57,6 +57,13 @@ def atlas():
 
 
 @pytest.fixture()
+def asymmetric_atlas():
+    atlas = BrainGlobeAtlas("unam_axolotl_40um")
+    atlas.root_dir = Path("/tmp")
+    return atlas
+
+
+@pytest.fixture()
 def temp_path():
     path = Path(tempfile.mkdtemp())
     yield path

@@ -1,6 +1,6 @@
 import contextlib
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
@@ -264,3 +264,26 @@ def test_key_error_for_additional_references(atlas):
             "This atlas seems to be outdated as no additional_references list "
             "is found in metadata!"
         )
+
+
+def test_hemispheres_reads_tiff(atlas):
+    atlas.metadata["symmetric"] = False
+    assert atlas.hemispheres is None
+    mock_tiff_data = np.random.randint(0, 3, size=atlas.shape, dtype=np.uint8)
+
+    with (
+        patch(
+            "brainglobe_atlasapi.utils.read_tiff", return_value=mock_tiff_data
+        ) as mock_read_tiff,
+        patch(
+            "brainglobe_atlasapi.bg_atlas.BrainGlobeAtlas.root_dir",
+            new_callable=lambda: "/tmp",
+        ),
+        patch("os.path.exists", return_value=True),
+        patch("builtins.open", MagicMock()),
+    ):
+
+        hemispheres = atlas.hemispheres
+        mock_read_tiff.assert_called_once_with("/tmp/hemispheres.tiff")
+        np.testing.assert_array_equal(hemispheres, mock_tiff_data)
+        assert getattr(atlas, "_hemispheres", None) is not None

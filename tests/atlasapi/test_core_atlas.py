@@ -231,11 +231,21 @@ def test_get_structure_mask(atlas):
     ), "Values in grey_structure_mask should be either 0 or 7"
 
 
-# TODO: Add a docstring plus consider making this test more robust to handle
-# potential changes in the order of `read_json` calls or additional
-# `read_json` calls in the `__init__` method.
-def test_key_error_handling_for_additional_refer(atlas):
-    """"""
+def test_key_error_for_additional_references(atlas):
+    """
+    Test that a warning is issued when the 'additional_references' key
+    is missing from the atlas metadata.
+
+    Parameters
+    ----------
+    atlas : Atlas
+        An instance of the Atlas class used for testing.
+
+    Raises
+    ------
+    AssertionError
+        If the expected warning is not triggered.
+    """
     atlas.metadata.pop("additional_references")
     mock_metadata = atlas.metadata
     structures_list = atlas.structures_list

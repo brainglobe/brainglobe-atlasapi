@@ -1,7 +1,6 @@
 __version__ = "1"
 
 import json
-import multiprocessing as mp
 import time
 from pathlib import Path
 from random import choices
@@ -22,7 +21,6 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-PARALLEL = True
 TEST = False
 
 ATLAS_NAME = "allen_cord"
@@ -127,53 +125,25 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
         )
         nodes = choices(nodes, k=10)
 
-    if PARALLEL:
-        print(
-            f"Creating {tree.size()} meshes in parallel with "
-            f"{mp.cpu_count() - 2} CPU cores"
+    print(f"Creating {len(nodes)} meshes")
+    for node in track(
+        nodes,
+        total=len(nodes),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                root_id,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
+            )
         )
-        pool = mp.Pool(mp.cpu_count() - 2)
-
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        root_id,
-                        closing_n_iters,
-                        decimate_fraction,
-                        smooth,
-                    )
-                    for node in nodes
-                ],
-            )
-        except mp.pool.MaybeEncodingError:
-            pass
-    else:
-        print(f"Creating {len(nodes)} meshes")
-        for node in track(
-            nodes,
-            total=len(nodes),
-            description="Creating meshes",
-        ):
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    root_id,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
 
     print(
         "Finished mesh extraction in: ",

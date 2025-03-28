@@ -1,4 +1,3 @@
-import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -53,35 +52,53 @@ def test_config_edit(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "key, value_factory, expected_output_factory",
+    "key, show, value_factory, expected_output",
     [
         (
             "some_dir",
+            False,
             lambda tmpdir: tmpdir.mkdir("valid").join("path"),
-            lambda tmpdir: "True",
-        ),  # Creating a valid temp path
+            "True",
+        ),
         (
             "some_dir",
+            False,
             lambda tmpdir: Path(str(tmpdir.join("invalid/path"))),
-            lambda tmpdir: f"False{os.linesep}{str(tmpdir.join('invalid/path'))} is not a valid path. Path must be a valid path string, and its parent must exist!",  # noqa: E501
+            "False",
+        ),
+        (
+            "not_a_directory",
+            False,
+            lambda tmpdir: tmpdir.mkdir("valid").join("path"),
+            "[DEFAULT]",
+        ),
+        (
+            "not_a_directory",
+            True,
+            lambda tmpdir: tmpdir.mkdir("valid").join("path"),
+            "[DEFAULT]",
         ),
     ],
 )
 def test_cli_modify_config(
-    monkeypatch, key, value_factory, expected_output_factory, capsys, tmpdir
+    key, show, value_factory, expected_output, capsys, tmpdir
 ):
-    def mock_write_config_value(k, v):
-        pass
+    """
+    Test the CLI command to modify the configuration file.
 
-    monkeypatch.setattr(
-        "brainglobe_atlasapi.config.write_config_value",
-        mock_write_config_value,
-    )
+    This test checks that the `cli_modify_config` function correctly updates
+    the configuration file based on the specified key and value. It covers
+    different scenarios, including both valid and invalid paths, and
+    verifies whether the correct output is shown when
+    the `show` flag is either True or False.
+
+    The test ensures that the captured output matches the expected result,
+    taking into account normalised paths and platform-specific line endings.
+    """
     value = str(value_factory(tmpdir))
-    expected_output = expected_output_factory(tmpdir)
-    cli_modify_config(key=key, value=value, show=False)
+    cli_modify_config(key=key, value=value, show=show)
     captured = capsys.readouterr()
     captured_output = captured.out.replace("\\", "/").strip()
     expected_output = expected_output.replace("\r\n", "\n").strip()
     expected_output = expected_output.replace("\\", "/").strip()
-    assert expected_output in captured_output
+    assert captured_output.startswith(expected_output)

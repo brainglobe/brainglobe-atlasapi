@@ -1,6 +1,6 @@
 import contextlib
 from io import StringIO
-from unittest.mock import MagicMock, patch
+from unittest.mock import mock_open, patch
 
 import numpy as np
 import pandas as pd
@@ -266,24 +266,20 @@ def test_key_error_for_additional_references(atlas):
         )
 
 
-def test_hemispheres_reads_tiff(atlas):
-    atlas.metadata["symmetric"] = False
-    assert atlas.hemispheres is None
-    mock_tiff_data = np.random.randint(0, 3, size=atlas.shape, dtype=np.uint8)
+def test_hemispheres_reads_tiff(asymmetric_atlas):
+    asymmetric_atlas.metadata["symmetric"] = False
+    mock_tiff_data = np.random.randint(
+        0, 3, size=asymmetric_atlas.shape, dtype=np.uint8
+    )
+    tiff_path = asymmetric_atlas.root_dir / "hemispheres.tiff"
 
     with (
         patch(
             "brainglobe_atlasapi.utils.read_tiff", return_value=mock_tiff_data
         ) as mock_read_tiff,
-        patch(
-            "brainglobe_atlasapi.bg_atlas.BrainGlobeAtlas.root_dir",
-            new_callable=lambda: "/tmp",
-        ),
-        patch("os.path.exists", return_value=True),
-        patch("builtins.open", MagicMock()),
+        patch("pathlib.Path.is_file", return_value=True),
+        patch("builtins.open", mock_open(read_data=b"II*\x00" + b"\x00" * 8)),
     ):
-
-        hemispheres = atlas.hemispheres
-        mock_read_tiff.assert_called_once_with("/tmp/hemispheres.tiff")
+        hemispheres = asymmetric_atlas.hemispheres
+        mock_read_tiff.assert_called_once_with(tiff_path)
         np.testing.assert_array_equal(hemispheres, mock_tiff_data)
-        assert getattr(atlas, "_hemispheres", None) is not None

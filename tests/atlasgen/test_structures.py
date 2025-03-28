@@ -7,7 +7,6 @@ from brainglobe_atlasapi.atlas_generation.structures import (
 )
 
 
-@pytest.mark.xfail  # TODO: remove after fixing value type mismatch bug
 @pytest.mark.parametrize(
     "structure_transform, expected_error_message",
     [
@@ -39,14 +38,12 @@ def test_check_struct_consistency(
 @pytest.mark.parametrize(
     ["struct_index", "use_tree", "expected_children"],
     [
-        pytest.param(0, False, [101, 1, 5], id="o (101) parent"),
-        pytest.param(2, False, [5], id="aon (5) parent"),
-        pytest.param(3, False, [101, 1, 5, 999], id="root (999) parent"),
-        pytest.param(0, True, [101, 5, 1], id="o (101) parent (use_tree)"),
-        pytest.param(2, True, [5], id="aon (5) parent (use_tree)"),
-        pytest.param(
-            3, True, [999, 101, 5, 1], id="root (999) parent (use_tree)"
-        ),
+        pytest.param(0, False, [1, 5], id="o (101) parent"),
+        pytest.param(2, False, None, id="aon (5) parent"),
+        pytest.param(3, False, [101, 1, 5], id="root (999) parent"),
+        pytest.param(0, True, [5, 1], id="o (101) parent (use_tree)"),
+        pytest.param(2, True, None, id="aon (5) parent (use_tree)"),
+        pytest.param(3, True, [101, 5, 1], id="root (999) parent (use_tree)"),
     ],
 )
 def test_get_structure_children(

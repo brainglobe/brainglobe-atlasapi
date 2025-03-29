@@ -180,7 +180,6 @@ def create_region_mesh(args):
     to generate a corresponding mesh.
     The resulting mesh is saved as an .obj file in the
     specified directory.
-
     By default, the code avoids
     overwriting an existing mesh
     if the .obj file already exists
@@ -189,22 +188,16 @@ def create_region_mesh(args):
     overwriting a structure's mesh if the
     .obj file exists already.
 
-        Parameters
-        ----------
-        meshes_dir_path: pathlib Path object with
-        folder where meshes are saved
-        tree: treelib.Tree with
-        hierarchical structures information
-        node: tree's node corresponding to
-        the region who's mesh is being created
-        labels: list of unique
-        label annotations in annotated volume,
-        (list(np.unique(annotated_volume)))
-        annotated_volume: 3d numpy
-        array with annotaed volume
-        ROOT_ID: int,
-        id of root structure
-        (mesh creation is a bit more refined for that)
+    Parameters
+    ----------
+    meshes_dir_path: pathlib Path object with folder where meshes are saved
+    tree: treelib.Tree with hierarchical structures information
+    node: tree's node corresponding to the region who's mesh is being created
+    labels: list of unique label annotations in annotated volume,
+    (list(np.unique(annotated_volume)))
+    annotated_volume: 3d numpy array with annotaed volume
+    ROOT_ID: int,
+    id of root structure (mesh creation is a bit more refined for that)
     """
     # Split arguments
     logger.debug(f"Creating mesh for region {args[1].identifier}")

@@ -37,9 +37,12 @@ def wrapup_atlas_to_openminds(
         "structures": [],
     }
 
-    # Iterate over structures_list to build structures entry.
-    # I assume each structure is a dict with keys: 'id', 'name', 'acronym'
-    # and that meshes_dict maps structure IDs to file paths.
+    # Iterate over structures_list
+    # to build structures entry.
+    # I assume each structure is a dict
+    # with keys: 'id', 'name', 'acronym'
+    # and that meshes_dict maps
+    # structure IDs to file paths.
     for s in structures_list:
         struct_id = s.get("id")
         structure_entry = {
@@ -52,11 +55,15 @@ def wrapup_atlas_to_openminds(
                 else None
             ),
             "structureIdPath": s.get("structure_id_path", []),
-            # Additional fields like color or other properties could be added here.
+            # Additional fields like
+            # color or other properties
+            # could be added here.
         }
         openminds_atlas["structures"].append(structure_entry)
 
-    # Define output filename based on atlas name and version.
+    # Define output filename
+    # based on
+    # atlas name and version.
     output_filename = working_dir / f"{atlas_name}_v{version}_openminds.json"
 
     with open(output_filename, "w") as f:

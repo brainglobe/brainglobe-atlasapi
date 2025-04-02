@@ -52,7 +52,8 @@ def wrapup_atlas_to_openminds(
                 else None
             ),
             "structureIdPath": s.get("structure_id_path", []),
-            # Additional fields like color or other properties could be added here.
+            # Additional fields like color or other
+            #  properties could be added here.
         }
         openminds_atlas["structures"].append(structure_entry)
 

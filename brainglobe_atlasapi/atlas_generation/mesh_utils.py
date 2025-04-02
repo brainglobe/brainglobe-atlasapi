@@ -1,5 +1,3 @@
-from scipy.ndimage import binary_closing, binary_fill_holes
-
 try:
     from vedo import Mesh, Volume, write
     from vedo.applications import Slicer3DPlotter
@@ -20,6 +18,7 @@ except ModuleNotFoundError:
 from pathlib import Path
 
 import numpy as np
+import scipy
 from loguru import logger
 
 from brainglobe_atlasapi.atlas_generation.volume_utils import (
@@ -122,7 +121,7 @@ def extract_mesh_from_mask(
             )
 
     # Check volume argument
-    if not np.isin(volume, [0, 1]).all():
+    if np.min(volume) > 0 or np.max(volume) < 1:
         raise ValueError(
             "Argument volume should be a binary mask with only "
             "0s and 1s when passing a np.ndarray"
@@ -130,8 +129,10 @@ def extract_mesh_from_mask(
 
     # Apply morphological transformations
     if closing_n_iters is not None:
-        volume = binary_fill_holes(volume).astype(int)
-        volume = binary_closing(volume, iterations=closing_n_iters).astype(int)
+        volume = scipy.ndimage.morphology.binary_fill_holes(volume).astype(int)
+        volume = scipy.ndimage.morphology.binary_closing(
+            volume, iterations=closing_n_iters
+        ).astype(int)
 
     if not use_marching_cubes:
         # Use faster algorithm
@@ -170,22 +171,13 @@ def extract_mesh_from_mask(
 
 def create_region_mesh(args):
     """
-    Automates the creation of a 3D mesh
-    for a specific region in an annotated volume.
-    Given a volume of annotations and a
-    hierarchical structure tree, it extracts
-    the region of interest
-    (specified by the provided node)
-    and all its children's labels
-    to generate a corresponding mesh.
-    The resulting mesh is saved as an .obj file in the
-    specified directory.
-    By default, the code avoids
-    overwriting an existing mesh
-    if the .obj file already exists
-    in the output directory.
-    Note, by default it avoids
-    overwriting a structure's mesh if the
+    Automates the creation of a region's mesh. Given a volume of annotations
+    and a structures tree, it takes the volume's region corresponding to the
+    region of interest and all of it's children's labels and creates a mesh.
+    It takes a tuple of arguments to facilitaed parallel processing with
+    multiprocessing.pool.map
+
+    Note, by default it avoids overwriting a structure's mesh if the
     .obj file exists already.
 
     Parameters

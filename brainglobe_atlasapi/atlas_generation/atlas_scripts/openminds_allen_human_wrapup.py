@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+
 def wrapup_atlas_to_openminds(
     atlas_name,
     version,
@@ -35,7 +36,7 @@ def wrapup_atlas_to_openminds(
         "creationDate": datetime.utcnow().isoformat() + "Z",
         "structures": [],
     }
-    
+
     # Iterate over structures_list to build structures entry.
     # I assume each structure is a dict with keys: 'id', 'name', 'acronym'
     # and that meshes_dict maps structure IDs to file paths.
@@ -45,17 +46,21 @@ def wrapup_atlas_to_openminds(
             "identifier": f"{atlas_name.lower()}_structure_{struct_id}",
             "name": s.get("name"),
             "acronym": s.get("acronym"),
-            "meshFile": str(meshes_dict.get(struct_id)) if meshes_dict.get(struct_id) else None,
+            "meshFile": (
+                str(meshes_dict.get(struct_id))
+                if meshes_dict.get(struct_id)
+                else None
+            ),
             "structureIdPath": s.get("structure_id_path", []),
             # Additional fields like color or other properties could be added here.
         }
         openminds_atlas["structures"].append(structure_entry)
-    
+
     # Define output filename based on atlas name and version.
     output_filename = working_dir / f"{atlas_name}_v{version}_openminds.json"
-    
+
     with open(output_filename, "w") as f:
         json.dump(openminds_atlas, f, indent=4)
-    
+
     print(f"Atlas written to OpenMINDS SANDS format at: {output_filename}")
     return output_filename

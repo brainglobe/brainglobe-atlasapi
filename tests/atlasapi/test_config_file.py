@@ -83,22 +83,14 @@ def test_config_edit(tmp_path):
 def test_cli_modify_config(
     key, show, value_factory, expected_output, capsys, tmpdir
 ):
-    """
-    Test the CLI command to modify the configuration file.
+    """Test the cli_modify_config used by CLI "config" command.
 
-    This test checks that the `cli_modify_config` function correctly updates
-    the configuration file based on the specified key and value. It covers
-    different scenarios, including both valid and invalid paths, and
-    verifies whether the correct output is shown when
-    the `show` flag is either True or False.
-
-    The test ensures that the captured output matches the expected result,
-    taking into account normalised paths and platform-specific line endings.
+    Checks that the `cli_modify_config` handles valid / invalid paths
+    correctly and behaviour is as expected when show is set to True and
+    ensures that the start of the captured output (printed out by
+    _print_config) is as expected.
     """
     value = str(value_factory(tmpdir))
     cli_modify_config(key=key, value=value, show=show)
     captured = capsys.readouterr()
-    captured_output = captured.out.replace("\\", "/").strip()
-    expected_output = expected_output.replace("\r\n", "\n").strip()
-    expected_output = expected_output.replace("\\", "/").strip()
-    assert captured_output.startswith(expected_output)
+    assert captured.out.startswith(expected_output)

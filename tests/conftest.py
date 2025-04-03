@@ -58,9 +58,7 @@ def atlas():
 
 @pytest.fixture()
 def asymmetric_atlas():
-    atlas = BrainGlobeAtlas("unam_axolotl_40um")
-    atlas.root_dir = Path("/tmp")
-    return atlas
+    return BrainGlobeAtlas("unam_axolotl_40um")
 
 
 @pytest.fixture()

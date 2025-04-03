@@ -3,6 +3,7 @@ import shutil
 import tarfile
 from pathlib import Path
 
+import brainglobe_space as bgs
 import meshio as mio
 import tifffile
 
@@ -116,16 +117,14 @@ def wrapup_atlas_from_data(
         Additional metadata to write to metadata.json
     """
 
-    # Assert Input Orientation
-    assert (
-        orientation == descriptors.ATLAS_ORIENTATION
-    ), f"Please ensure the atlas data is '{descriptors.ATLAS_ORIENTATION}'"
-
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
 
-    # Determine atlas properties from input data (assumed "asr")
-    shape = reference_stack.shape
+    # Instantiate BGSpace obj, using original stack size in um as meshes
+    # are un um:
+    original_shape = reference_stack.shape
+    volume_shape = tuple(res * s for res, s in zip(resolution, original_shape))
+    space_convention = bgs.AnatomicalSpace(orientation, shape=volume_shape)
 
     # Check consistency of structures .json file:
     check_struct_consistency(structures_list)
@@ -157,11 +156,18 @@ def wrapup_atlas_from_data(
         if isinstance(stack, str) or isinstance(stack, Path):
             stack = tifffile.imread(stack)
 
+        # Reorient stacks if required:
+        stack = space_convention.map_stack_to(
+            descriptors.ATLAS_ORIENTATION, stack, copy=False
+        )
         shape = stack.shape
 
         saving_function(stack, dest_dir)
 
     for k, stack in additional_references.items():
+        stack = space_convention.map_stack_to(
+            descriptors.ATLAS_ORIENTATION, stack, copy=False
+        )
         save_secondary_reference(stack, k, output_dir=dest_dir)
 
     # Reorient vertices of the mesh.
@@ -188,8 +194,17 @@ def wrapup_atlas_from_data(
                 )
                 mesh.points *= original_resolution
 
+        # Reorient points:
+        mesh.points = space_convention.map_points_to(
+            descriptors.ATLAS_ORIENTATION, mesh.points
+        )
+
         # Save in meshes dir:
         mio.write(mesh_dest_dir / f"{mesh_id}.obj", mesh)
+
+    transformation_mat = space_convention.transformation_matrix_to(
+        descriptors.ATLAS_ORIENTATION
+    )
 
     # save regions list json:
     with open(dest_dir / descriptors.STRUCTURES_FILENAME, "w") as f:
@@ -206,6 +221,7 @@ def wrapup_atlas_from_data(
         orientation=descriptors.ATLAS_ORIENTATION,
         version=f"{ATLAS_VERSION}.{atlas_minor_version}",
         shape=shape,
+        transformation_mat=transformation_mat,
         additional_references=[k for k in additional_references.keys()],
         atlas_packager=atlas_packager,
     )

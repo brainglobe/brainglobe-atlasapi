@@ -1,5 +1,6 @@
 import contextlib
 from io import StringIO
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -228,3 +229,43 @@ def test_get_structure_mask(atlas):
     assert np.all(
         (grey_structure_mask == 0) | (grey_structure_mask == 7)
     ), "Values in grey_structure_mask should be either 0 or 7"
+
+
+def test_key_error_for_additional_references(atlas):
+    """Test warning if metadata lacks 'additional_references'."""
+    atlas.metadata.pop("additional_references")
+    mock_metadata = atlas.metadata
+    structures_list = atlas.structures_list
+    with (
+        patch(
+            "brainglobe_atlasapi.core.read_json",
+            side_effect=[
+                mock_metadata,
+                structures_list,
+            ],
+        ),
+        patch("warnings.warn") as mock_warn,
+    ):
+        atlas.__init__("example_mouse_100um")
+        mock_warn.assert_called_once_with(
+            "This atlas seems to be outdated as no additional_references list "
+            "is found in metadata!"
+        )
+
+
+@pytest.mark.parametrize(
+    "atlas_fixture",
+    [
+        pytest.param("asymmetric_atlas", id="asymmetric"),
+        pytest.param("atlas", id="symmetric"),
+    ],
+)
+def test_hemispheres_reads_tiff(atlas_fixture, request):
+    """Test that TIFF is read for asymmetric atlas hemispheres."""
+    atlas = request.getfixturevalue(atlas_fixture)
+    with patch("brainglobe_atlasapi.core.read_tiff") as mock_read_tiff:
+        _ = atlas.hemispheres
+        if atlas.metadata["symmetric"]:
+            mock_read_tiff.assert_not_called()
+        elif atlas.metadata["symmetric"] is False:
+            mock_read_tiff.assert_called_once()

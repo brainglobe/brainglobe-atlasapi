@@ -25,10 +25,8 @@ def generate_metadata_dict(
     species,
     symmetric,
     resolution,
-    orientation,
     version,
     shape,
-    transformation_mat,
     additional_references,
     atlas_packager,
 ):
@@ -67,10 +65,8 @@ def generate_metadata_dict(
         species=species,
         symmetric=symmetric,
         resolution=resolution,
-        orientation=orientation,
         version=version,
         shape=shape,
-        trasform_to_bg=tuple([tuple(m) for m in transformation_mat]),
         additional_references=additional_references,
         atlas_packager=atlas_packager,
     )

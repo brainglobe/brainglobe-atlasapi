@@ -1,7 +1,6 @@
 __version__ = "0"
 
 import json
-import multiprocessing as mp
 import time
 
 import numpy as np
@@ -11,6 +10,7 @@ import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
 from brainglobe_utils.IO.image import load_nii
+from openminds_allen_human_wrapup import wrapup_atlas_to_openminds
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -18,7 +18,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
@@ -31,7 +30,6 @@ CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
 ORIENTATION = "rpi"
 
 ### Settings
-PARALLEL = False  # disable parallel mesh extraction for easier debugging
 
 
 def prune_tree(tree):
@@ -217,59 +215,32 @@ def create_atlas(working_dir):
     start = time.time()
     annotated_volume = annotation
 
-    if PARALLEL:
-        print("Starting mesh creation in parallel")
+    print("Starting mesh creation")
 
-        pool = mp.Pool(mp.cpu_count() - 2)
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
 
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        ROOT_ID,
-                        closing_n_iters,
-                        decimate_fraction,
-                        smooth,
-                    )
-                    for node in tree.nodes.values()
-                ],
+        if node.tag == "root":
+            annotated_volume[annotated_volume > 0] = node.identifier
+        else:
+            annotated_volume = annotated_volume
+
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
-        except mp.pool.MaybeEncodingError:
-            # error with returning results from pool.map but we don't care
-            pass
-    else:
-        print("Starting mesh creation")
-
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-
-            if node.tag == "root":
-                annotated_volume[annotated_volume > 0] = node.identifier
-            else:
-                annotated_volume = annotated_volume
-
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+        )
 
     print(
         "Finished mesh extraction in: ",
@@ -306,27 +277,41 @@ def create_atlas(working_dir):
 
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
-    output_filename = wrapup_atlas_from_data(
+    # output_filename = wrapup_atlas_from_data(
+    #     atlas_name=ATLAS_NAME,
+    #     atlas_minor_version=VERSION,
+    #     citation=CITATION,
+    #     atlas_link=ATLAS_LINK,
+    #     species=SPECIES,
+    #     resolution=(RES_UM,) * 3,
+    #     orientation=ORIENTATION,
+    #     root_id=ROOT_ID,
+    #     reference_stack=anatomy,
+    #     annotation_stack=annotated_volume,
+    #     structures_list=structures_with_mesh,
+    #     meshes_dict=meshes_dict,
+    #     working_dir=working_dir,
+    #     hemispheres_stack=None,
+    #     cleanup_files=False,
+    #     compress=True,
+    #     scale_meshes=True,
+    # )
+    openminds_output = wrapup_atlas_to_openminds(
         atlas_name=ATLAS_NAME,
-        atlas_minor_version=VERSION,
+        version=VERSION,
+        species=SPECIES,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
-        species=SPECIES,
-        resolution=(RES_UM,) * 3,
         orientation=ORIENTATION,
+        resolution=(RES_UM,) * 3,
         root_id=ROOT_ID,
-        reference_stack=anatomy,
-        annotation_stack=annotated_volume,
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=working_dir,
-        hemispheres_stack=None,
-        cleanup_files=False,
-        compress=True,
-        scale_meshes=True,
     )
 
-    return output_filename
+    # return output_filename
+    return openminds_output
 
 
 if __name__ == "__main__":

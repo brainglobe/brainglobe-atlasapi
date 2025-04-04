@@ -117,3 +117,15 @@ def test_extract_largest_mesh_from_mask(extract_largest, mesh_from_mask):
             mesh.area(),
             expected_mesh_largest_false.area(),
         )
+
+
+@pytest.mark.parametrize("zeros_ones", [0, 1])
+def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
+    """Test `extract_mesh_from_mask` with masks of only zeros or ones."""
+    volume = np.full((100, 100, 100), zeros_ones, dtype=int)
+    mesh_from_mask.update({"volume": volume})
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+    if zeros_ones == 0:
+        assert np.isclose(mesh.area(), 0)
+    else:
+        assert mesh.area() > 0

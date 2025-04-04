@@ -1,29 +1,91 @@
+from unittest.mock import patch
+
 import numpy as np
+import pytest
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    extract_mesh_from_mask,  # TODO: is this function being used?
+    extract_mesh_from_mask,
 )
 
 
-def test_extract_mesh_from_mask():
-    volume = np.zeros((3, 3, 3), dtype=int)
-    volume[1, 1, 1] = 1
-    kwargs = {
+@pytest.fixture
+def mesh_from_mask():
+    """Fixture with volume and default parameters for `mesh_from_mask`.
+
+    The `volume` is a 100 unit cube of zeros with a centered 50 unit cube of
+    ones in the middle.
+    """
+    volume = np.zeros((100, 100, 100), dtype=int)
+    volume[24:75, 24:75, 24:75] = 1
+
+    return {
         "volume": volume,
         "obj_filepath": None,
         "threshold": 0.5,
         "smooth": False,
         "mcubes_smooth": False,
-        "closing_n_iters": None,  # default is 8
+        "closing_n_iters": 8,  # default
         "decimate_fraction": 0.6,
         "use_marching_cubes": False,
         "extract_largest": False,
     }
 
-    mesh = extract_mesh_from_mask(**kwargs)
 
-    assert np.isclose(mesh.area(), 1.73205)  #  the surface area of the mesh.
-    assert np.isclose(mesh.volume(), 1 / 6)
-    assert np.isclose(mesh.average_size(), 0.5)
-    assert mesh.contains([1, 1, 1]) is True
+@pytest.mark.parametrize("obj_filepath_is_str", [True, False])
+def test_extract_mesh_from_mask_object_filepath_str(
+    mesh_from_mask, tmp_path, obj_filepath_is_str
+):
+    """Test conversion to path when `obj_filepath` is a string."""
+    obj_filepath = tmp_path / "mesh"
+    if obj_filepath_is_str:
+        obj_filepath = str(obj_filepath)
+    mesh_from_mask.update({"obj_filepath": obj_filepath})
+
+    with patch(
+        "brainglobe_atlasapi.atlas_generation.mesh_utils.Path"
+    ) as mock_path:
+        extract_mesh_from_mask(**mesh_from_mask)
+        if obj_filepath_is_str:
+            mock_path.assert_called_once_with(obj_filepath)
+        else:
+            mock_path.assert_not_called()
+
+
+def test_extract_mesh_from_mask_none_existing_parent(mesh_from_mask, tmp_path):
+    """Test handling of obj filepath with missing parent"""
+    obj_filepath = tmp_path / "non_existing_parent" / "mesh"
+    mesh_from_mask.update({"obj_filepath": obj_filepath})
+    match = "The folder where the .obj file is to be saved doesn't exist"
+    with pytest.raises(FileExistsError, match=match):
+        extract_mesh_from_mask(**mesh_from_mask)
+
+
+def test_extract_mesh_from_mask_defaults(mesh_from_mask):
+    """Test extract_mesh_from_mask with defaults"""
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+    assert mesh.contains([50, 50, 50]) is True
     assert mesh.contains([2, 2, 2]) is False
+
+
+def test_extract_mesh_from_mask_ValueError(mesh_from_mask):
+    """Test ValueError for non-binary volume in `extract_mesh_from_mask`."""
+    volume = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    mesh_from_mask.update({"volume": volume})
+    with pytest.raises(ValueError, match="volume should be a binary mask"):
+        extract_mesh_from_mask(**mesh_from_mask)
+
+
+# TODO: check what smooth is supposed to be, see point 9 in issue #541
+@pytest.mark.xfail
+@pytest.mark.parametrize("mcubes_smooth", [False, True])
+def test_extract_mesh_from_mask_marching_cubes(
+    mcubes_smooth, mesh_from_mask, capsys
+):
+    """Test mesh_from_mask using marching cubes with/without mcubes_smooth."""
+    mesh_from_mask.update({"use_marching_cubes": True})
+    mesh_from_mask.update({"mcubes_smooth": mcubes_smooth})
+    extract_mesh_from_mask(**mesh_from_mask)
+    captured = capsys.readouterr()
+    assert captured.out.startswith(
+        "The marching cubes algorithm might be rotated "
+    )

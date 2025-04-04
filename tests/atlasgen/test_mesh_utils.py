@@ -89,3 +89,31 @@ def test_extract_mesh_from_mask_marching_cubes(
     assert captured.out.startswith(
         "The marching cubes algorithm might be rotated "
     )
+
+
+# TODO: check what is expected when extract_largest=True
+@pytest.mark.xfail
+@pytest.mark.parametrize("extract_largest", [False, True])
+def test_extract_largest_mesh_from_mask(extract_largest, mesh_from_mask):
+    """Test extract_mesh_from_mask extract_largest (True/False)."""
+
+    expected_mesh_largest_true = extract_mesh_from_mask(**mesh_from_mask)
+
+    volume = np.zeros((100, 100, 100), dtype=int)
+    volume[24:75, 24:75, 24:75] = 1  # Large region
+    volume[4:10, 4:10, 4:10] = 1  # Small region
+
+    mesh_from_mask.update({"volume": volume})
+    expected_mesh_largest_false = extract_mesh_from_mask(**mesh_from_mask)
+
+    # parametrize extract_largest to False / True
+    mesh_from_mask.update({"extract_largest": extract_largest})
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+
+    if extract_largest is True:
+        assert np.isclose(mesh.area(), expected_mesh_largest_true.area())
+    else:
+        assert np.isclose(
+            mesh.area(),
+            expected_mesh_largest_false.area(),
+        )

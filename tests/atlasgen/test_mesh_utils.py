@@ -1,11 +1,47 @@
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    extract_mesh_from_mask,
+    create_region_mesh,
+    extract_mesh_from_mask,  # TODO: can be removed (not used)
 )
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+
+def test_create_region_mesh(structures, tmp_path):
+    # dummy args based on axolotl
+    meshes_dir_path = tmp_path
+    tree = get_structures_tree(structures)
+    node = tree.nodes[5]
+    smoothed_annotations = np.load(
+        Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
+    )
+    labels = np.unique(smoothed_annotations).astype(np.int_)
+    root_id = 999
+    closing_n_iters = 10
+    decimate_fraction = 0.6
+    smooth = True
+
+    create_region_mesh(
+        [
+            meshes_dir_path,
+            node,
+            tree,
+            labels,
+            smoothed_annotations,
+            root_id,
+            closing_n_iters,
+            decimate_fraction,
+            smooth,
+        ]
+    )
+
+    mesh_files = list(meshes_dir_path.iterdir())
+    assert len(mesh_files) == 1
+    assert mesh_files[0].suffix == ".obj"
 
 
 @pytest.fixture

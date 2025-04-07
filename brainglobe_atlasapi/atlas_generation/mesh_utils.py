@@ -144,8 +144,8 @@ def extract_mesh_from_mask(
         )
         # Apply marching cubes and save to .obj
         if mcubes_smooth:
-            smooth = mcubes.smooth(volume)
-            vertices, triangles = mcubes.marching_cubes(smooth, 0)
+            smooth_array = mcubes.smooth(volume)
+            vertices, triangles = mcubes.marching_cubes(smooth_array, 0)
         else:
             vertices, triangles = mcubes.marching_cubes(volume, 0.5)
 

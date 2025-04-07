@@ -154,7 +154,7 @@ def extract_mesh_from_mask(
 
     # Cleanup and save
     if extract_largest:
-        mesh = mesh.extractLargestRegion()
+        mesh = mesh.extract_largest_region()
 
     # decimate
     mesh.decimate_pro(decimate_fraction)

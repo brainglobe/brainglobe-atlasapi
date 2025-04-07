@@ -95,8 +95,25 @@ def test_extract_mesh_from_mask_marching_cubes(
 @pytest.mark.xfail
 @pytest.mark.parametrize("extract_largest", [False, True])
 def test_extract_largest_mesh_from_mask(extract_largest, mesh_from_mask):
-    """Test extract_mesh_from_mask extract_largest (True/False)."""
+    """Test `extract_largest` during mesh from mask extraction.
 
+    Tests mesh volume when extract_largest parameter set to True / False.
+
+    `expected_mesh_largest_true` is created using the volume mask from the
+    `mesh_from_mask` fixture, which contains one large region.
+
+    `expected_mesh_largest_false` is created using a volume mask containing
+    the original large region and an additional smaller region (with default
+    extract_largest = False)
+
+    `mesh` is created using the volume mask with both regions, setting
+    extract_largest to True / False.
+
+    The assertions check that the mesh area matches the expected values based
+    on the `extract_largest` parameter.
+    """
+
+    # using the origingal volume containing only the large region
     expected_mesh_largest_true = extract_mesh_from_mask(**mesh_from_mask)
 
     volume = np.zeros((100, 100, 100), dtype=int)
@@ -121,7 +138,7 @@ def test_extract_largest_mesh_from_mask(extract_largest, mesh_from_mask):
 
 @pytest.mark.parametrize("zeros_ones", [0, 1])
 def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
-    """Test `extract_mesh_from_mask` with masks of only zeros or ones."""
+    """Test mesh extraction from masks containing only zeros or only ones."""
     volume = np.full((100, 100, 100), zeros_ones, dtype=int)
     mesh_from_mask.update({"volume": volume})
     mesh = extract_mesh_from_mask(**mesh_from_mask)

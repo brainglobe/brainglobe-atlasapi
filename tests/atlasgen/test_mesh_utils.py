@@ -6,16 +6,18 @@ import pytest
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     create_region_mesh,
-    extract_mesh_from_mask,  # TODO: can be removed (not used)
+    extract_mesh_from_mask,
 )
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
-def test_create_region_mesh(structures, tmp_path):
-    # dummy args based on axolotl
+@pytest.fixture
+def region_mesh_args(structures, tmp_path, request):
+    """Fixture for create_region_mesh args."""
+    label_id = getattr(request, "set_label_id", 5)
     meshes_dir_path = tmp_path
     tree = get_structures_tree(structures)
-    node = tree.nodes[5]
+    node = tree.nodes[label_id]
     smoothed_annotations = np.load(
         Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
     )
@@ -24,22 +26,45 @@ def test_create_region_mesh(structures, tmp_path):
     closing_n_iters = 10
     decimate_fraction = 0.6
     smooth = True
-
-    create_region_mesh(
-        [
-            meshes_dir_path,
-            node,
-            tree,
-            labels,
-            smoothed_annotations,
-            root_id,
-            closing_n_iters,
-            decimate_fraction,
-            smooth,
-        ]
+    return (
+        meshes_dir_path,  # 0
+        node,  # 1
+        tree,  # 2
+        labels,  # 3
+        smoothed_annotations,  # 4
+        root_id,  # 5
+        closing_n_iters,  # 6
+        decimate_fraction,  # 7
+        smooth,  # 8
     )
 
-    mesh_files = list(meshes_dir_path.iterdir())
+
+def test_create_region_mesh_no_match(region_mesh_args, capsys):
+    """Test whether create_region_mesh handles no matching labels."""
+    labels = region_mesh_args[3]
+    labels[labels == 5] = 123
+    create_region_mesh(region_mesh_args)
+    captured = capsys.readouterr()
+    mesh_files = list(region_mesh_args[0].iterdir())
+    assert "No labels found for" in captured.out
+    assert len(mesh_files) == 0
+
+
+def test_create_region_mesh(region_mesh_args):
+    """Test region mesh creation."""
+    create_region_mesh(region_mesh_args)
+    mesh_files = list(region_mesh_args[0].iterdir())
+    assert len(mesh_files) == 1
+    assert mesh_files[0].suffix == ".obj"
+
+
+@pytest.mark.parametrize("label_id", [5, 999])
+# TODO: add better testing for when label_id == root_id
+def test_create_region_mesh_with_label_id(region_mesh_args, label_id, request):
+    """Test region mesh creation with specific label_id."""
+    request.set_label_id = label_id
+    create_region_mesh(region_mesh_args)
+    mesh_files = list(region_mesh_args[0].iterdir())
     assert len(mesh_files) == 1
     assert mesh_files[0].suffix == ".obj"
 

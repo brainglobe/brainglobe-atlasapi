@@ -13,8 +13,11 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 @pytest.fixture
 def region_mesh_args(structures, tmp_path, request):
-    """Fixture for create_region_mesh args."""
-    label_id = getattr(request, "set_label_id", 5)
+    """Fixture for creating arguments for `create_region_mesh`.
+
+    `label_id` can be passed using indirect parametrization.
+    """
+    label_id = request.param
     meshes_dir_path = tmp_path
     tree = get_structures_tree(structures)
     node = tree.nodes[label_id]
@@ -39,30 +42,48 @@ def region_mesh_args(structures, tmp_path, request):
     )
 
 
-def test_create_region_mesh_no_match(region_mesh_args, capsys):
-    """Test whether create_region_mesh handles no matching labels."""
-    labels = region_mesh_args[3]
-    labels[labels == 5] = 123
+@pytest.mark.parametrize(
+    "region_mesh_args, test_case, expected_captured_out",
+    [
+        pytest.param(5, "empty_mask", "Empty mask for", id="empty mask"),
+        pytest.param(5, "no_match", "No labels found for", id="no label"),
+    ],
+    indirect=["region_mesh_args"],
+)
+def test_create_region_mesh_fail(
+    region_mesh_args, capsys, test_case, expected_captured_out
+):
+    """Test create_region_mesh handling of label mismatch / empty mask.
+
+    The test expects no mesh_files to be created and checks whether the right
+    message is printed.
+    """
+
+    if test_case == "empty_mask":
+        smoothed_annotations = region_mesh_args[4]
+        smoothed_annotations[:] = 0
+
+    elif test_case == "no_match":
+        labels = region_mesh_args[3]
+        labels[labels == 5] = 123
+
     create_region_mesh(region_mesh_args)
-    captured = capsys.readouterr()
+    captured_out = capsys.readouterr().out
     mesh_files = list(region_mesh_args[0].iterdir())
-    assert "No labels found for" in captured.out
     assert len(mesh_files) == 0
+    assert expected_captured_out in captured_out
 
 
+@pytest.mark.parametrize(
+    "region_mesh_args",
+    [
+        pytest.param(5),
+        pytest.param(999, id="root_id (999)"),
+    ],
+    indirect=True,
+)
 def test_create_region_mesh(region_mesh_args):
-    """Test region mesh creation."""
-    create_region_mesh(region_mesh_args)
-    mesh_files = list(region_mesh_args[0].iterdir())
-    assert len(mesh_files) == 1
-    assert mesh_files[0].suffix == ".obj"
-
-
-@pytest.mark.parametrize("label_id", [5, 999])
-# TODO: add better testing for when label_id == root_id
-def test_create_region_mesh_with_label_id(region_mesh_args, label_id, request):
     """Test region mesh creation with specific label_id."""
-    request.set_label_id = label_id
     create_region_mesh(region_mesh_args)
     mesh_files = list(region_mesh_args[0].iterdir())
     assert len(mesh_files) == 1

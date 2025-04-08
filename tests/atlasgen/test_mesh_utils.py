@@ -5,10 +5,23 @@ import numpy as np
 import pytest
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    Region,
     create_region_mesh,
     extract_mesh_from_mask,
 )
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+
+@pytest.mark.parametrize("label", [True, False, "True"])
+def test_region_has_label(label):
+    """Test if label is added correctly as class instance variable.
+
+    Label is added without explicitly assinging it to has_label
+    (which would be `Region(has_label=label)`), as this reflects what
+    happens during the atlas generation.
+    """
+    region = Region(label)
+    assert region.has_label == label
 
 
 @pytest.fixture

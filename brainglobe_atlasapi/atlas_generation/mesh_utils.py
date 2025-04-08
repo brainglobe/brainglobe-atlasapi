@@ -2,7 +2,6 @@ from scipy.ndimage import binary_closing, binary_fill_holes
 
 try:
     from vedo import Mesh, Volume, write
-    from vedo.applications import Slicer3DPlotter
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
@@ -222,27 +221,3 @@ class Region(object):
 
     def __init__(self, has_label):
         self.has_label = has_label
-
-
-# ------------------- #
-#   MESH INSPECTION   #
-# ------------------- #
-def compare_mesh_and_volume(mesh, volume):
-    """
-    Creates and interactive vedo
-    visualisation to look at a reference volume
-    and a mesh at the same time. Can be used to
-    assess the quality of the mesh extraction.
-
-    Parameters:
-    -----------
-
-    mesh: vedo Mesh
-    volume: np.array or vtkvedoplotter Volume
-    """
-    if isinstance(volume, np.ndarray):
-        volume = Volume(volume)
-
-    vp = Slicer3DPlotter(volume, bg2="white", showHisto=False)
-    vp.add(mesh.alpha(0.5))
-    vp.show()

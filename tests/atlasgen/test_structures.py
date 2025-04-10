@@ -65,7 +65,6 @@ def test_get_structure_children(
     assert children == expected_children
 
 
-@pytest.mark.xfail  # TODO: remove after get_structure_children bug fix
 @pytest.mark.parametrize(
     ["use_tree"],
     [

@@ -154,7 +154,7 @@ To make things as consistent as possible, in `brainglobe-atlasapi` the 0 of the 
 To deal with transformations between your data space and `brainglobe-atlasapi`, you might find the [brainglobe-space](https://github.com/brainglobe/brainglobe-space) package helpful.
 
 ## Seeking help or contributing
-We are always happy to help users of our tools, and welcome any contributions. If you would like to get in contact with us for any reason, please see the [contact page of our website](https://brainglobe.info/contact.html).
+We are always happy to help users of our tools, and welcome any contributions. If you would like to get in contact with us for any reason, please see the [contact page of our website](https://brainglobe.info/contact.html). To contribute to `brainglobe-atlasapi`, please see the [BrainGlobe developer's guide](https://brainglobe.info/community/developers).
 
 ## Citation
 

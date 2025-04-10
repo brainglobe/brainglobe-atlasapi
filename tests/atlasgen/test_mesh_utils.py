@@ -170,8 +170,6 @@ def test_extract_mesh_from_mask_ValueError(mesh_from_mask):
         extract_mesh_from_mask(**mesh_from_mask)
 
 
-# TODO: check what smooth is supposed to be, see point 9 in issue #541
-@pytest.mark.xfail
 @pytest.mark.parametrize("mcubes_smooth", [False, True])
 def test_extract_mesh_from_mask_marching_cubes(
     mcubes_smooth, mesh_from_mask, capsys
@@ -186,8 +184,6 @@ def test_extract_mesh_from_mask_marching_cubes(
     )
 
 
-# TODO: check what is expected when extract_largest=True
-@pytest.mark.xfail
 @pytest.mark.parametrize("extract_largest", [False, True])
 def test_extract_largest_mesh_from_mask(extract_largest, mesh_from_mask):
     """Test `extract_largest` during mesh from mask extraction.

@@ -220,4 +220,5 @@ class Region(object):
     """
 
     def __init__(self, has_label):
-        self.has_label = has_label
+      self.has_label = has_label
+      

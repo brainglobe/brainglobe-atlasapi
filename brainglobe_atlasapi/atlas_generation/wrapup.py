@@ -141,6 +141,7 @@ def wrapup_atlas_from_data(
 
     stack_list = [reference_stack, annotation_stack]
     saving_fun_list = [save_reference, save_annotation]
+    TARGET_ORIENTATION = descriptors.ATLAS_ORIENTATION
 
     # If the atlas is not symmetric, we are also providing an hemisphere stack:
     if not symmetric:
@@ -158,7 +159,7 @@ def wrapup_atlas_from_data(
 
         # Reorient stacks if required:
         stack = space_convention.map_stack_to(
-            descriptors.ATLAS_ORIENTATION, stack, copy=False
+            TARGET_ORIENTATION, stack, copy=True  # use copy=True for safety
         )
         shape = stack.shape
 
@@ -166,7 +167,7 @@ def wrapup_atlas_from_data(
 
     for k, stack in additional_references.items():
         stack = space_convention.map_stack_to(
-            descriptors.ATLAS_ORIENTATION, stack, copy=False
+            TARGET_ORIENTATION, stack, copy=True  # use copy=True for safety
         )
         save_secondary_reference(stack, k, output_dir=dest_dir)
 
@@ -196,7 +197,7 @@ def wrapup_atlas_from_data(
 
         # Reorient points:
         mesh.points = space_convention.map_points_to(
-            descriptors.ATLAS_ORIENTATION, mesh.points
+            TARGET_ORIENTATION, mesh.points
         )
 
         # Save in meshes dir:
@@ -206,6 +207,10 @@ def wrapup_atlas_from_data(
     with open(dest_dir / descriptors.STRUCTURES_FILENAME, "w") as f:
         json.dump(structures_list, f)
 
+    final_resolution = space_convention.map_resolution(
+        TARGET_ORIENTATION, resolution
+    )
+
     # Finalize metadata dictionary:
     metadata_dict = generate_metadata_dict(
         name=atlas_name,
@@ -213,7 +218,8 @@ def wrapup_atlas_from_data(
         atlas_link=atlas_link,
         species=species,
         symmetric=symmetric,
-        resolution=resolution,
+        resolution=final_resolution,  # Pass resolution mapped to ASR
+        orientation=TARGET_ORIENTATION,  # Pass the target orientation "asr"
         version=f"{ATLAS_VERSION}.{atlas_minor_version}",
         shape=shape,
         additional_references=[k for k in additional_references.keys()],

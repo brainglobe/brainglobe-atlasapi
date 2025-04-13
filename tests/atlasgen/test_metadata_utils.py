@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 
-import numpy as np
 import pytest
 from requests.exceptions import InvalidURL
 
@@ -22,18 +21,11 @@ def metadata_input_template():
         "atlas_link": "https://zenodo.org/records/4595016",
         "species": "Ambystoma mexicanum",
         "symmetric": False,
-        "resolution": (40, 40, 40),
-        "orientation": "lpi",
+        "resolution": [40, 40, 40],  # Keep as list/tuple input type
+        # orientation is be "asr", wrapup.py will pass "asr" after reorienting
+        "orientation": "asr",
         "version": "1.1",
-        "shape": (172, 256, 154),
-        "transformation_mat": np.array(
-            [
-                [0.000e00, -1.000e00, 0.000e00, 1.024e04],
-                [0.000e00, 0.000e00, -1.000e00, 6.160e03],
-                [-1.000e00, 0.000e00, 0.000e00, 6.880e03],
-                [0.000e00, 0.000e00, 0.000e00, 1.000e00],
-            ]
-        ),
+        "shape": [172, 256, 154],  # Keep as list/tuple input type
         "additional_references": [],
         "atlas_packager": "people who packaged the atlas",
     }

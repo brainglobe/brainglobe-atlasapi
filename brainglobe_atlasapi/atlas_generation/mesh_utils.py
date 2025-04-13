@@ -1,6 +1,7 @@
+from scipy.ndimage import binary_closing, binary_fill_holes
+
 try:
     from vedo import Mesh, Volume, write
-    from vedo.applications import Slicer3DPlotter
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
@@ -18,7 +19,6 @@ except ModuleNotFoundError:
 from pathlib import Path
 
 import numpy as np
-import scipy
 from loguru import logger
 
 from brainglobe_atlasapi.atlas_generation.volume_utils import (
@@ -28,37 +28,6 @@ from brainglobe_atlasapi.atlas_generation.volume_utils import (
 # ----------------- #
 #   MESH CREATION   #
 # ----------------- #
-
-
-def region_mask_from_annotation(
-    structure_id,
-    annotation,
-    structures_list,
-):
-    """Generate mask for a structure from an annotation file
-    and a list of structures.
-
-    Parameters
-    ----------
-    structure_id : int
-        id of the structure
-    annotation : np.array
-        annotation stack for the atlas
-    structures_list : list
-        list of structure dictionaries
-
-    Returns
-    -------
-
-    """
-
-    mask_stack = np.zeros(annotation.shape, np.uint8)
-
-    for curr_structure in structures_list:
-        if structure_id in curr_structure["structure_id_path"]:
-            mask_stack[annotation == curr_structure["id"]] = 1
-
-    return mask_stack
 
 
 def extract_mesh_from_mask(
@@ -121,7 +90,7 @@ def extract_mesh_from_mask(
             )
 
     # Check volume argument
-    if np.min(volume) > 0 or np.max(volume) < 1:
+    if not np.isin(volume, [0, 1]).all():
         raise ValueError(
             "Argument volume should be a binary mask with only "
             "0s and 1s when passing a np.ndarray"
@@ -129,10 +98,8 @@ def extract_mesh_from_mask(
 
     # Apply morphological transformations
     if closing_n_iters is not None:
-        volume = scipy.ndimage.morphology.binary_fill_holes(volume).astype(int)
-        volume = scipy.ndimage.morphology.binary_closing(
-            volume, iterations=closing_n_iters
-        ).astype(int)
+        volume = binary_fill_holes(volume).astype(int)
+        volume = binary_closing(volume, iterations=closing_n_iters).astype(int)
 
     if not use_marching_cubes:
         # Use faster algorithm
@@ -145,8 +112,8 @@ def extract_mesh_from_mask(
         )
         # Apply marching cubes and save to .obj
         if mcubes_smooth:
-            smooth = mcubes.smooth(volume)
-            vertices, triangles = mcubes.marching_cubes(smooth, 0)
+            smooth_array = mcubes.smooth(volume)
+            vertices, triangles = mcubes.marching_cubes(smooth_array, 0)
         else:
             vertices, triangles = mcubes.marching_cubes(volume, 0.5)
 
@@ -155,7 +122,7 @@ def extract_mesh_from_mask(
 
     # Cleanup and save
     if extract_largest:
-        mesh = mesh.extractLargestRegion()
+        mesh = mesh.extract_largest_region()
 
     # decimate
     mesh.decimate_pro(decimate_fraction)
@@ -254,27 +221,3 @@ class Region(object):
 
     def __init__(self, has_label):
         self.has_label = has_label
-
-
-# ------------------- #
-#   MESH INSPECTION   #
-# ------------------- #
-def compare_mesh_and_volume(mesh, volume):
-    """
-    Creates and interactive vedo
-    visualisation to look at a reference volume
-    and a mesh at the same time. Can be used to
-    assess the quality of the mesh extraction.
-
-    Parameters:
-    -----------
-
-    mesh: vedo Mesh
-    volume: np.array or vtkvedoplotter Volume
-    """
-    if isinstance(volume, np.ndarray):
-        volume = Volume(volume)
-
-    vp = Slicer3DPlotter(volume, bg2="white", showHisto=False)
-    vp.add(mesh.alpha(0.5))
-    vp.show()

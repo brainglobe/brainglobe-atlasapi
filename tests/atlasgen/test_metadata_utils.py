@@ -33,15 +33,40 @@ def metadata_input_template():
 
 def test_generate_metadata_dict(metadata_input_template):
     """Test generate_metadata_dict using metadata_input_template."""
-    output = generate_metadata_dict(**metadata_input_template)
-    for key in metadata_input_template:
-        if key != "transformation_mat":
+    input_data = metadata_input_template.copy()
+    output = generate_metadata_dict(**input_data)
+
+    assert isinstance(output, dict)
+
+    for key in input_data:  # Iterate through keys expected based on input
+        # Assert key presence
+        assert key in output, f"Expected key '{key}' missing in output"
+
+        # Assert value correctness, handling type conversions
+        if key == "resolution":
+            # Check if the output tuple matches the input list/tuple elements
+            assert output[key] == tuple(
+                input_data[key]
+            ), f"'{key}' value mismatch or type mismatch (expected tuple)"
+        elif key == "shape":
+            # Check if the output tuple matches the input list/tuple elements
+            assert output[key] == tuple(
+                input_data[key]
+            ), f"'{key}' value mismatch or type mismatch (expected tuple)"
+        elif key == "orientation":
+            # Ensure the output orientation is the standard 'asr'
             assert (
-                output[key] == metadata_input_template[key]
-            ), f"Field '{key}' has changed unexpectedly."
-    assert output["trasform_to_bg"] == tuple(
-        [tuple(m) for m in metadata_input_template["transformation_mat"]]
-    )
+                output[key] == "asr"
+            ), f"'{key}' value mismatch (expected 'asr')"
+        else:
+            # Direct comparison for other keys (name, citation, species, etc.)
+            assert output[key] == input_data[key], f"'{key}' value mismatch"
+
+    expected_keys = set(input_data.keys())
+    output_keys = set(output.keys())
+    assert (
+        output_keys == expected_keys
+    ), f"Output keys {output_keys} do not match expected keys {expected_keys}"
 
 
 @pytest.mark.parametrize(

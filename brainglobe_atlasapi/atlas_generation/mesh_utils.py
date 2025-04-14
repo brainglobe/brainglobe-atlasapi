@@ -20,10 +20,12 @@ from pathlib import Path
 
 import numpy as np
 from loguru import logger
+from rich.progress import track
 
 from brainglobe_atlasapi.atlas_generation.volume_utils import (
     create_masked_array,
 )
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 # ----------------- #
 #   MESH CREATION   #
@@ -210,6 +212,96 @@ def create_region_mesh(args):
                     closing_n_iters=closing_n_iters,
                     decimate_fraction=decimate_fraction,
                 )
+
+
+def construct_meshes_from_annotation(
+    download_path,
+    volume,
+    structures_list,
+    root_id,
+    closing_n_iters=2,
+    decimate_fraction=0,
+    smooth=False,
+):
+    """
+    Retrieve or construct atlas region meshes for a given annotation volume.
+
+    If an atlas is packaged with mesh files, reuse those. Otherwise, construct
+    the meshes using the existing volume and structure tree. Returns a
+    dictionary mapping structure IDs to their corresponding .obj mesh files.
+
+    Parameters
+    ----------
+    download_path : Path
+        Path to the directory where new mesh files will be saved.
+    volume : np.ndarray
+        3D annotation volume.
+    structures_list : list
+        List of structure dictionaries containing id information.
+    root_id : int
+        Identifier for the root structure.
+    smooth: bool
+        if True the surface mesh is smoothed
+    closing_n_iters: int
+        number of iterations of closing morphological operation.
+        set to None to avoid applying morphological operations
+    decimate_fraction: float  in range [0, 1].
+        What fraction of the original number of vertices is to be kept.
+        EG .5 means that 50% of the vertices are kept,
+        the others are removed.
+    Returns
+    -------
+    dict
+        Dictionary of structure IDs and paths to their .obj mesh files.
+    """
+    meshes_dir_path = download_path / "meshes"
+    meshes_dir_path.mkdir(exist_ok=True)
+
+    tree = get_structures_tree(structures_list)
+    labels = np.unique(volume).astype(np.int32)
+
+    for key, node in tree.nodes.items():
+        node.data = Region(key in labels)
+
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                volume,
+                root_id,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
+            )
+        )
+    meshes_dict = {}
+    structures_with_mesh = []
+    for s in structures_list:
+        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        if not mesh_path.exists():
+            print(f"No mesh file exists for: {s}, ignoring it")
+            continue
+        if mesh_path.stat().st_size < 512:
+            print(f"obj file for {s} is too small, ignoring it.")
+            continue
+
+        structures_with_mesh.append(s)
+        meshes_dict[s["id"]] = mesh_path
+
+    print(
+        (
+            f"In the end, {len(structures_with_mesh)}",
+            "structures with mesh are kept",
+        )
+    )
+    return meshes_dict
 
 
 class Region(object):

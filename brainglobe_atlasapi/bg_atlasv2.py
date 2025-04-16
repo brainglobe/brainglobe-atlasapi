@@ -22,22 +22,9 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         """
         if self._local_full_name is None:
             pattern = f"{self.atlas_name}_v*.json"
-            candidate_dirs = list(self.brainglobe_dir.glob(pattern))
+            self._local_full_name = self._get_local_full_name(pattern)
 
-            # If multiple folders exist, raise error:
-            if len(candidate_dirs) > 1:
-                raise FileExistsError(
-                    f"Multiple versions of atlas {self.atlas_name} in "
-                    f"{self.brainglobe_dir}"
-                )
-            # If no one exist, return None:
-            elif len(candidate_dirs) == 0:
-                return
-            # Else, return actual name:
-            else:
-                return candidate_dirs[0].name
-        else:
-            return self._local_full_name
+        return self._local_full_name
 
     @property
     def local_version(self):

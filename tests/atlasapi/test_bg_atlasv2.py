@@ -31,12 +31,10 @@ def test_bg_atlasv2_init(v1_atlas, v2_atlas):
     assert v2_atlas.interm_download_dir == MOCK_V2_DIRECTORY
 
 
-@pytest.mark.xfail
 def test_local_version(v1_atlas, v2_atlas):
     assert v2_atlas.local_version == v1_atlas.local_version
 
 
-@pytest.mark.xfail
 def test_remote_version(v1_atlas, v2_atlas):
     assert v2_atlas.remote_version == v1_atlas.remote_version
 
@@ -45,22 +43,20 @@ def test_local_full_name(v1_atlas, v2_atlas):
     assert v2_atlas.local_full_name == "allen_mouse_25um_v1.2.json"
 
 
-# @pytest.mark.xfail
-# def test_remote_url(v1_atlas, v2_atlas):
-#     assert v2_atlas.remote_url == v1_atlas.remote_url
-
-
-# @pytest.mark.xfail
-# def test_check_latest_version(v1_atlas, v2_atlas):
-#     assert v2_atlas.check_latest_version() == v1_atlas.check_latest_version()
-
-
 @pytest.mark.xfail
+def test_remote_url(v1_atlas, v2_atlas):
+    # remote URL for v2 not implemented yet
+    assert v2_atlas.remote_url == v1_atlas.remote_url
+
+
+def test_check_latest_version(v1_atlas, v2_atlas):
+    assert v2_atlas.check_latest_version() == v1_atlas.check_latest_version()
+
+
 def test_repr(v1_atlas, v2_atlas):
     assert repr(v2_atlas) == repr(v1_atlas)
 
 
-@pytest.mark.xfail
 def test_str(v1_atlas, v2_atlas):
     assert str(v2_atlas) == str(v1_atlas)
 

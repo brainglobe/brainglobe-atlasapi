@@ -1,7 +1,6 @@
 import warnings
 from collections import UserDict
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -31,23 +30,26 @@ class Atlas:
     left_hemisphere_value = 1
     right_hemisphere_value = 2
 
-    def __init__(self, path, metadata_name: Optional[str] = None):
-        self.root_dir = Path(path)
-
+    def __init__(self, path):
+        atlas_path = Path(path)
         # v1
-        if metadata_name is None:
+        if atlas_path.is_dir():
+            self.root_dir = atlas_path
             self.metadata = read_json(self.root_dir / METADATA_FILENAME)
-            # Load structures list:
             structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
             meshes_dir = MESHES_DIRNAME
         # v2
-        else:
-            self.metadata = read_json(self.root_dir / metadata_name)
+        elif atlas_path.suffix == ".json":
+            self.root_dir = atlas_path.parent
+            self.metadata = read_json(atlas_path)
             structures_path = self.metadata["annotation_images"][0]
             structures_list = read_json(
-                self.root_dir / structures_path / STRUCTURES_FILENAME
+                self.root_dir
+                / "annotations"
+                / structures_path
+                / STRUCTURES_FILENAME
             )
-            meshes_dir = self.metadata["meshes"][0]
+            meshes_dir = "meshes/" + self.metadata["meshes"][0]
 
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list

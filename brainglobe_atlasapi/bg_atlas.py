@@ -60,7 +60,6 @@ class BrainGlobeAtlas(core.Atlas):
         check_latest=True,
         config_dir=None,
         fn_update=None,
-        v2=False,
     ):
         self.atlas_name = atlas_name
         self.fn_update = fn_update

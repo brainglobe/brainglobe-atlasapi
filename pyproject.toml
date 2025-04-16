@@ -29,6 +29,7 @@ dependencies = [
     "rich >= 9.0.0",
     "tifffile",
     "treelib",
+    "zarr >= 3.0",
 ]
 dynamic = ["version"]
 

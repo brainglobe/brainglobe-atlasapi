@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -49,6 +50,32 @@ def mock_brainglobe_user_folders(monkeypatch):
             }
         }
         monkeypatch.setattr(config, "TEMPLATE_CONF_DICT", mock_default_dirs)
+
+
+@pytest.fixture(autouse=True)
+def setup_preexisting_local_atlases():
+    """Automatically setup all tests to have three downloaded atlases
+    in the test user data."""
+    preexisting_atlases = [
+        ("example_mouse_100um", "v1.2"),
+        ("allen_mouse_100um", "v1.2"),
+    ]
+    for atlas_name, version in preexisting_atlases:
+        if not Path.exists(
+            Path.home() / f".brainglobe/{atlas_name}_{version}"
+        ):
+            _ = BrainGlobeAtlas(atlas_name)
+
+    # mock an additional reference for the example mouse
+    atlas_path = Path.home() / ".brainglobe" / "example_mouse_100um_v1.2"
+    metadata_path = atlas_path / "metadata.json"
+    if metadata_path.exists():
+        with open(metadata_path, "r") as f:
+            metadata = f.read()
+            metadata_dict = json.loads(metadata)
+            metadata_dict["additional_references"] = ["reference"]
+            with open(metadata_path, "w") as f:
+                json.dump(metadata_dict, f, indent=4)
 
 
 @pytest.fixture()

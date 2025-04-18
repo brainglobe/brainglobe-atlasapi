@@ -10,7 +10,6 @@ import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
 from brainglobe_utils.IO.image import load_nii
-from openminds_allen_human_wrapup import wrapup_atlas_to_openminds
 from rich.progress import track
 
 from brainglobe_atlasapi import utils
@@ -18,6 +17,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
 )
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
@@ -277,41 +277,27 @@ def create_atlas(working_dir):
 
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
-    # output_filename = wrapup_atlas_from_data(
-    #     atlas_name=ATLAS_NAME,
-    #     atlas_minor_version=VERSION,
-    #     citation=CITATION,
-    #     atlas_link=ATLAS_LINK,
-    #     species=SPECIES,
-    #     resolution=(RES_UM,) * 3,
-    #     orientation=ORIENTATION,
-    #     root_id=ROOT_ID,
-    #     reference_stack=anatomy,
-    #     annotation_stack=annotated_volume,
-    #     structures_list=structures_with_mesh,
-    #     meshes_dict=meshes_dict,
-    #     working_dir=working_dir,
-    #     hemispheres_stack=None,
-    #     cleanup_files=False,
-    #     compress=True,
-    #     scale_meshes=True,
-    # )
-    openminds_output = wrapup_atlas_to_openminds(
+    output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
-        version=VERSION,
-        species=SPECIES,
+        atlas_minor_version=VERSION,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
-        orientation=ORIENTATION,
+        species=SPECIES,
         resolution=(RES_UM,) * 3,
+        orientation=ORIENTATION,
         root_id=ROOT_ID,
+        reference_stack=anatomy,
+        annotation_stack=annotated_volume,
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=working_dir,
+        hemispheres_stack=None,
+        cleanup_files=False,
+        compress=True,
+        scale_meshes=True,
     )
 
-    # return output_filename
-    return openminds_output
+    return output_filename
 
 
 if __name__ == "__main__":

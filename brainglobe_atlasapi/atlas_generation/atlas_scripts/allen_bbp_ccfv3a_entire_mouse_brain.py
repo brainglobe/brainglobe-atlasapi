@@ -171,12 +171,12 @@ def retrieve_or_construct_meshes(download_path, annotated_volume, structures):
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / NAME
     bg_root_dir.mkdir(exist_ok=True)
-    download_resources(
-        download_dir_path=bg_root_dir,
-        atlas_name=NAME,
-        atlas_file_url=ATLAS_LINK,
-    )
-    for resolution in [25, 10]:
+    # download_resources(
+    #     download_dir_path=bg_root_dir,
+    #     atlas_name=NAME,
+    #     atlas_file_url=ATLAS_LINK,
+    # )
+    for resolution in [10]:
         reference_volume, annotated_volume = retrieve_reference_and_annotation(
             bg_root_dir, resolution=resolution
         )
@@ -185,11 +185,10 @@ if __name__ == "__main__":
         )
 
         hemispheres_stack = retrieve_hemisphere_map()
-        if resolution == 25:
-            structures = retrieve_structure_information(bg_root_dir)
-            meshes_dict = retrieve_or_construct_meshes(
-                bg_root_dir, annotated_volume, structures
-            )
+        structures = retrieve_structure_information(bg_root_dir)
+        meshes_dict = retrieve_or_construct_meshes(
+            bg_root_dir, annotated_volume, structures
+        )
         reference_volume = (reference_volume * 65535).astype(np.uint16)
         output_filename = wrapup_atlas_from_data(
             atlas_name=NAME,

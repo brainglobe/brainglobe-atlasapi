@@ -1,6 +1,7 @@
 import tarfile
 from pathlib import Path
 from typing import Union
+from warnings import deprecated
 
 import zarr
 
@@ -23,6 +24,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         **kwargs,
     ):
         self._local_full_name = None
+        self._template = None
         super().__init__(atlas_name, **kwargs)
 
     @property
@@ -58,26 +60,31 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         return tuple(int(version) for version in version_str.split("."))
 
     @property
-    def reference(self):
-        if self._reference is None:
-            reference_path = (
+    def template(self):
+        if self._template is None:
+            template_path = (
                 self.root_dir
                 / "templates"
                 / self.metadata["reference_images"][0]
                 / f"{int(self.resolution[0])}um"
             )
-            if not reference_path.exists():
+            if not template_path.exists():
                 remote_url = self._remote_url_base.format(
                     f"{self.metadata['reference_images'][0]}/{int(self.resolution[0])}um.tar.gz"
                 )
-                self.download_tar_file(remote_url, reference_path)
+                self.download_tar_file(remote_url, template_path)
 
-            reference_array = zarr.open_array(
-                reference_path, mode="r", zarr_format=3
+            template_array = zarr.open_array(
+                template_path, mode="r", zarr_format=3
             )
-            self._reference = reference_array[:]
+            self._template = template_array[:]
 
-        return self._reference
+        return self._template
+
+    @property
+    @deprecated("Use the 'template' property instead.")
+    def reference(self):
+        return self.template
 
     @property
     def annotation(self):

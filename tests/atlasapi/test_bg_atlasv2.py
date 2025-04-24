@@ -55,7 +55,7 @@ def test_str(v1_atlas, v2_atlas):
 
 
 def test_reference(v1_atlas, v2_atlas):
-    assert np.array_equal(v2_atlas.reference, v1_atlas.reference)
+    assert np.array_equal(v2_atlas.template, v1_atlas.reference)
 
 
 def test_annotation(v1_atlas, v2_atlas):

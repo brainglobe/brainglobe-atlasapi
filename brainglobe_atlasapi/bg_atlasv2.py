@@ -1,9 +1,9 @@
 import tarfile
 from pathlib import Path
 from typing import Union
-from warnings import deprecated
 
 import zarr
+from typing_extensions import deprecated
 
 from brainglobe_atlasapi import BrainGlobeAtlas, descriptors, utils
 from brainglobe_atlasapi.descriptors import STRUCTURES_FILENAME

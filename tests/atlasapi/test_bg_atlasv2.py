@@ -1,12 +1,8 @@
-from pathlib import Path
-
 import numpy as np
 import pytest
 
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.bg_atlasv2 import BrainGlobeAtlasV2
-
-MOCK_V2_DIRECTORY = Path.home() / ".brainglobe-tests" / ".brainglobe_v2"
 
 
 @pytest.fixture(scope="module")
@@ -18,8 +14,6 @@ def v1_atlas():
 def v2_atlas():
     return BrainGlobeAtlasV2(
         "allen_mouse_100um",
-        brainglobe_dir=MOCK_V2_DIRECTORY,
-        interm_download_dir=MOCK_V2_DIRECTORY,
         check_latest=False,
     )
 
@@ -27,8 +21,8 @@ def v2_atlas():
 def test_bg_atlasv2_init(v1_atlas, v2_atlas):
     assert isinstance(v2_atlas, BrainGlobeAtlasV2)
     assert v2_atlas.atlas_name == v1_atlas.atlas_name
-    assert v2_atlas.brainglobe_dir == MOCK_V2_DIRECTORY
-    assert v2_atlas.interm_download_dir == MOCK_V2_DIRECTORY
+    assert v2_atlas.brainglobe_dir == v1_atlas.brainglobe_dir
+    assert v2_atlas.interm_download_dir == v1_atlas.interm_download_dir
 
 
 def test_local_version(v1_atlas, v2_atlas):
@@ -40,12 +34,12 @@ def test_remote_version(v1_atlas, v2_atlas):
 
 
 def test_local_full_name(v1_atlas, v2_atlas):
-    assert v2_atlas.local_full_name == "allen_mouse_100um_v1.2.json"
+    assert v2_atlas.local_full_name == "atlases/allen_mouse_100um_v1.2.json"
 
 
-@pytest.mark.xfail(reason="Remote version not implemented yet")
 def test_remote_url(v1_atlas, v2_atlas):
-    assert v2_atlas.remote_url == v1_atlas.remote_url
+    remote_url = "https://gin.g-node.org/brainglobe/atlases-v2/raw/master/allen_mouse_100um_v1.2.json"
+    assert v2_atlas.remote_url == remote_url
 
 
 def test_check_latest_version(v1_atlas, v2_atlas):
@@ -134,12 +128,10 @@ def test_mesh_from_structure(v1_atlas, v2_atlas):
     assert len(v2_mesh.points) == len(v1_mesh.points)
 
 
-@pytest.mark.xfail(reason="Meshes are stored in different locations")
-def test_meshfile_from_structure(v1_atlas, v2_atlas):
+def test_meshfile_from_structure(v2_atlas):
     structure = "root"
-    assert v2_atlas.meshfile_from_structure(
-        structure
-    ) == v1_atlas.meshfile_from_structure(structure)
+    root_mesh_filename = v2_atlas.structures[997]["mesh_filename"]
+    assert v2_atlas.meshfile_from_structure(structure) == root_mesh_filename
 
 
 def test_root_mesh(v1_atlas, v2_atlas):
@@ -149,9 +141,9 @@ def test_root_mesh(v1_atlas, v2_atlas):
     assert len(v2_mesh.points) == len(v1_mesh.points)
 
 
-@pytest.mark.xfail(reason="Meshes are stored in different locations")
-def test_root_meshfile(v1_atlas, v2_atlas):
-    assert v2_atlas.root_meshfile() == v1_atlas.root_meshfile()
+def test_root_meshfile(v2_atlas):
+    root_mesh_filename = v2_atlas.structures[997]["mesh_filename"]
+    assert v2_atlas.root_meshfile() == root_mesh_filename
 
 
 def test_get_structure_ancestors(v1_atlas, v2_atlas):

@@ -159,7 +159,7 @@ def wrapup_atlas_from_data(
 
         # Reorient stacks if required:
         stack = space_convention.map_stack_to(
-            TARGET_ORIENTATION, stack, copy=True  # use copy=True for safety
+            TARGET_ORIENTATION, stack, copy=False
         )
         shape = stack.shape
 
@@ -167,7 +167,7 @@ def wrapup_atlas_from_data(
 
     for k, stack in additional_references.items():
         stack = space_convention.map_stack_to(
-            TARGET_ORIENTATION, stack, copy=True  # use copy=True for safety
+            TARGET_ORIENTATION, stack, copy=False
         )
         save_secondary_reference(stack, k, output_dir=dest_dir)
 

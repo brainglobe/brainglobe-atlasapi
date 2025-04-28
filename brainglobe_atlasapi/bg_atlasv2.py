@@ -62,6 +62,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
     @property
     def template(self):
         if self._template is None:
+            print("Downloading template image...")
             template_path = (
                 self.root_dir
                 / "templates"
@@ -89,6 +90,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
     @property
     def annotation(self):
         if self._annotation is None:
+            print("Downloading annotation image...")
             annotation_path = (
                 self.root_dir
                 / "annotations"
@@ -249,6 +251,8 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         # Check if the mesh is cached
         if not mesh_path.exists():
             # If not cached, download it
+            structure_name = self.structures[mesh_id]["acronym"]
+            print(f"Downloading mesh for {structure_name}...")
             remote_path = self._remote_url_base.format(
                 f"{self.metadata['meshes'][0]}/{mesh_id}.obj"
             )

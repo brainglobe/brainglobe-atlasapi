@@ -172,12 +172,10 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
             destination_path.parent / "meshes" / self.metadata["meshes"][0]
         )
 
-        if not annotations_dir.exists():
-            annotations_dir.mkdir(parents=True, exist_ok=True)
-        if not template_dir.exists():
-            template_dir.mkdir(parents=True, exist_ok=True)
-        if not meshes_dir.exists():
-            meshes_dir.mkdir(parents=True, exist_ok=True)
+        # Create the directories if they don't exist
+        annotations_dir.mkdir(parents=True, exist_ok=True)
+        template_dir.mkdir(parents=True, exist_ok=True)
+        meshes_dir.mkdir(parents=True, exist_ok=True)
 
         structures_path = (
             destination_path.parent

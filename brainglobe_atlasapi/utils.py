@@ -8,6 +8,7 @@ from typing import Callable, Optional
 
 import requests
 import tifffile
+from pooch import retrieve
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.progress import (
@@ -245,6 +246,42 @@ def retrieve_over_http(
         raise requests.exceptions.ConnectionError(
             f"Could not download file from {url}"
         )
+
+
+def retrieve_over_http_pooch(
+    url: str,
+    output_file_path: Path,
+    fn_update: Optional[Callable[[int, int], None]] = None,
+    progress_bar: bool = True,
+) -> None:
+    """
+    Download file from the remote location using pooch. Progress bar shown
+    by default. fn_update is not implemented for pooch, and will throw a
+    warning.
+
+    Parameters
+    ----------
+    url : str
+        Remote URL.
+    output_file_path : Path
+        Full path for download location (including file name)
+    fn_update : Callable[[int, int], None]
+        Handler function to update during download. Takes completed and
+        total bytes. Not implemented for pooch, will throw a warning.
+        Default is None.
+    progress_bar : bool
+        If True, show default pooch progress bar. Default is True.
+    """
+    if fn_update is not None:
+        print("Warning: fn_update is not implemented for pooch.")
+
+    retrieve(
+        url=url,
+        known_hash=None,
+        fname=output_file_path.name,
+        path=output_file_path.parent,
+        progressbar=progress_bar,
+    )
 
 
 def get_download_size(url: str) -> int:

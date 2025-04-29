@@ -1,11 +1,11 @@
-import tarfile
 from pathlib import Path
 from typing import Union
 
 import zarr
+from pooch import Untar, create
 from typing_extensions import deprecated
 
-from brainglobe_atlasapi import BrainGlobeAtlas, descriptors, utils
+from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
 from brainglobe_atlasapi.descriptors import STRUCTURES_FILENAME
 from brainglobe_atlasapi.utils import (
     check_gin_status,
@@ -25,7 +25,15 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
     ):
         self._local_full_name = None
         self._template = None
+        self.pooch = None
         super().__init__(atlas_name, **kwargs)
+
+        if self.pooch is None:
+            self.pooch = create(
+                path=self.root_dir,
+                base_url=self._remote_url_base.format(""),
+                retry_if_failed=5,
+            )
 
     @property
     def local_full_name(self):
@@ -34,10 +42,9 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         """
         if self._local_full_name is None:
             # Create the v2 atlases directory if it doesn't exist
-            if not (self.brainglobe_dir / "atlases").exists():
-                (self.brainglobe_dir / "atlases").mkdir(
-                    parents=True, exist_ok=True
-                )
+            (self.brainglobe_dir / "atlases").mkdir(
+                parents=True, exist_ok=True
+            )
 
             pattern = f"atlases/{self.atlas_name}_v*.json"
             self._local_full_name = self._get_local_full_name(pattern)
@@ -62,7 +69,6 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
     @property
     def template(self):
         if self._template is None:
-            print("Downloading template image...")
             template_path = (
                 self.root_dir
                 / "templates"
@@ -70,15 +76,23 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
                 / f"{int(self.resolution[0])}um"
             )
             if not template_path.exists():
-                remote_url = self._remote_url_base.format(
-                    f"{self.metadata['reference_images'][0]}/{int(self.resolution[0])}um.tar.gz"
+                print("Downloading template image...")
+                remote_name = (
+                    f"templates/{self.metadata['reference_images'][0]}/"
+                    f"{int(self.resolution[0])}um.tar.gz"
                 )
-                self.download_tar_file(remote_url, template_path)
+                self.pooch.registry[remote_name] = None
+                self.pooch.fetch(
+                    remote_name,
+                    progressbar=True,
+                    processor=Untar(extract_dir="./"),
+                )
+                template_path.with_suffix(".tar.gz").unlink()
 
             template_array = zarr.open_array(
                 template_path, mode="r", zarr_format=3
             )
-            self._template = template_array[:]
+            self._template = template_array[...]
 
         return self._template
 
@@ -90,7 +104,6 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
     @property
     def annotation(self):
         if self._annotation is None:
-            print("Downloading annotation image...")
             annotation_path = (
                 self.root_dir
                 / "annotations"
@@ -98,35 +111,25 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
                 / f"{int(self.resolution[0])}um"
             )
             if not annotation_path.exists():
-                remote_url = self._remote_url_base.format(
-                    f"{self.metadata['annotation_images'][0]}/{int(self.resolution[0])}um.tar.gz"
+                print("Downloading annotation image...")
+                remote_name = (
+                    f"annotations/{self.metadata['annotation_images'][0]}/"
+                    f"{int(self.resolution[0])}um.tar.gz"
                 )
-                self.download_tar_file(remote_url, annotation_path)
+                self.pooch.registry[remote_name] = None
+                self.pooch.fetch(
+                    remote_name,
+                    progressbar=True,
+                    processor=Untar(extract_dir="./"),
+                )
+                annotation_path.with_suffix(".tar.gz").unlink()
 
             annotation_array = zarr.open_array(
                 annotation_path, mode="r", zarr_format=3
             )
-            self._annotation = annotation_array[:]
+            self._annotation = annotation_array[...]
 
         return self._annotation
-
-    def download_tar_file(self, url: str, local_path: Path):
-        """Download and extract a file from a URL."""
-        # Implement the download and extraction logic here
-        destination_path = (
-            self.interm_download_dir / local_path.with_suffix(".tar.gz").name
-        )
-
-        utils.retrieve_over_http(url, destination_path, self.fn_update)
-        # Create the directory if it doesn't exist
-        local_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Uncompress the downloaded file
-        tar = tarfile.open(destination_path)
-        tar.extractall(path=local_path.parent)
-        tar.close()
-
-        destination_path.unlink()
 
     @property
     def remote_url(self):
@@ -153,10 +156,17 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         # Get path to folder where data will be saved
         destination_path = self.brainglobe_dir / "atlases" / name
 
-        # Try to download atlas data
-        utils.retrieve_over_http(
-            self.remote_url, destination_path, self.fn_update
+        # Instantiate the pooch object
+        self.pooch = create(
+            path=self.brainglobe_dir / "atlases",
+            base_url=self._remote_url_base.format(""),
+            retry_if_failed=5,
         )
+
+        # Try to download atlas data
+        print("Downloading atlas metadata...")
+        self.pooch.registry[name] = None
+        self.pooch.fetch(name, progressbar=True)
 
         # Check if component directories exist, if not create them
         self.metadata = read_json(destination_path)
@@ -185,20 +195,20 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
             / annotations_dir
             / STRUCTURES_FILENAME
         )
-        structures_csv = STRUCTURES_FILENAME.split(".")[0] + ".csv"
+        structures_csv_name = STRUCTURES_FILENAME.split(".")[0] + ".csv"
         if not structures_path.exists():
-            remote_url = self._remote_url_base.format(
-                f"{annotations_dir.name}/{STRUCTURES_FILENAME}"
+            structures_json = (
+                f"annotations/{annotations_dir.name}/{STRUCTURES_FILENAME}"
             )
-            utils.retrieve_over_http(remote_url, structures_path)
+            self.pooch.registry[structures_json] = None
+            self.pooch.fetch(structures_json, progressbar=True)
 
         if not structures_path.with_suffix(".csv").exists():
-            remote_url = self._remote_url_base.format(
-                f"{annotations_dir.name}/{structures_csv}"
+            structures_csv = (
+                f"annotations/{annotations_dir.name}/{structures_csv_name}"
             )
-            utils.retrieve_over_http(
-                remote_url, structures_path.with_suffix(".csv")
-            )
+            self.pooch.registry[structures_csv] = None
+            self.pooch.fetch(structures_csv, progressbar=True)
 
     def _get_from_structure(self, structure, key):
         """
@@ -253,9 +263,9 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
             # If not cached, download it
             structure_name = self.structures[mesh_id]["acronym"]
             print(f"Downloading mesh for {structure_name}...")
-            remote_path = self._remote_url_base.format(
-                f"{self.metadata['meshes'][0]}/{mesh_id}.obj"
-            )
-            utils.retrieve_over_http(remote_path, mesh_path)
+            file_name = f"meshes/{self.metadata['meshes'][0]}/{mesh_id}.obj"
+            # Hacky way to not need a registry and avoid printing file hashes
+            self.pooch.registry[file_name] = None
+            self.pooch.fetch(file_name, progressbar=True)
 
         return

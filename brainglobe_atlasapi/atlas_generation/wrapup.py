@@ -141,7 +141,6 @@ def wrapup_atlas_from_data(
 
     stack_list = [reference_stack, annotation_stack]
     saving_fun_list = [save_reference, save_annotation]
-    TARGET_ORIENTATION = descriptors.ATLAS_ORIENTATION
 
     # If the atlas is not symmetric, we are also providing an hemisphere stack:
     if not symmetric:
@@ -159,7 +158,7 @@ def wrapup_atlas_from_data(
 
         # Reorient stacks if required:
         stack = space_convention.map_stack_to(
-            TARGET_ORIENTATION, stack, copy=False
+            descriptors.ATLAS_ORIENTATION, stack, copy=False
         )
         shape = stack.shape
 
@@ -167,7 +166,7 @@ def wrapup_atlas_from_data(
 
     for k, stack in additional_references.items():
         stack = space_convention.map_stack_to(
-            TARGET_ORIENTATION, stack, copy=False
+            descriptors.ATLAS_ORIENTATION, stack, copy=False
         )
         save_secondary_reference(stack, k, output_dir=dest_dir)
 
@@ -197,7 +196,7 @@ def wrapup_atlas_from_data(
 
         # Reorient points:
         mesh.points = space_convention.map_points_to(
-            TARGET_ORIENTATION, mesh.points
+            descriptors.ATLAS_ORIENTATION, mesh.points
         )
 
         # Save in meshes dir:
@@ -208,7 +207,7 @@ def wrapup_atlas_from_data(
         json.dump(structures_list, f)
 
     final_resolution = space_convention.map_resolution(
-        TARGET_ORIENTATION, resolution
+        descriptors.ATLAS_ORIENTATION, resolution
     )
 
     # Finalize metadata dictionary:
@@ -219,7 +218,7 @@ def wrapup_atlas_from_data(
         species=species,
         symmetric=symmetric,
         resolution=final_resolution,  # Pass resolution mapped to ASR
-        orientation=TARGET_ORIENTATION,  # Pass the target orientation "asr"
+        orientation=descriptors.ATLAS_ORIENTATION,  # Pass orientation "asr"
         version=f"{ATLAS_VERSION}.{atlas_minor_version}",
         shape=shape,
         additional_references=[k for k in additional_references.keys()],

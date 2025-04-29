@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from brainglobe_space import AnatomicalSpace
+from brainglobe_utils.IO.yaml import open_yaml
 
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_FILENAME,
@@ -39,9 +40,9 @@ class Atlas:
             structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
             meshes_dir = MESHES_DIRNAME
         # v2
-        elif atlas_path.suffix == ".json":
+        elif atlas_path.suffix == ".yaml":
             self.root_dir = atlas_path.parent
-            self.metadata = read_json(atlas_path)
+            self.metadata = open_yaml(atlas_path)
             structures_path = self.metadata["annotation_images"][0]
             structures_list = read_json(
                 self.root_dir

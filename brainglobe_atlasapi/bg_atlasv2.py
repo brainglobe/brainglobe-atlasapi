@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union
 
 import zarr
+from brainglobe_utils.IO.yaml import open_yaml
 from pooch import Untar, create
 from typing_extensions import deprecated
 
@@ -10,7 +11,6 @@ from brainglobe_atlasapi.descriptors import STRUCTURES_FILENAME
 from brainglobe_atlasapi.utils import (
     check_gin_status,
     check_internet_connection,
-    read_json,
 )
 
 
@@ -46,7 +46,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
                 parents=True, exist_ok=True
             )
 
-            pattern = f"atlases/{self.atlas_name}_v*.json"
+            pattern = f"atlases/{self.atlas_name}_v*.yaml"
             self._local_full_name = self._get_local_full_name(pattern)
             # Prepend the atlases directory to the local full name
             if self._local_full_name is not None:
@@ -136,7 +136,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         if self.remote_version is not None:
             name = (
                 f"{self.atlas_name}_v{self.remote_version[0]}."
-                f"{self.remote_version[1]}.json"
+                f"{self.remote_version[1]}.yaml"
             )
 
             return self._remote_url_base.format(name)
@@ -150,7 +150,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
 
         name = (
             f"{self.atlas_name}_v{remote_version[0]}."
-            f"{remote_version[1]}.json"
+            f"{remote_version[1]}.yaml"
         )
 
         # Get path to folder where data will be saved
@@ -169,7 +169,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         self.pooch.fetch(name, progressbar=True)
 
         # Check if component directories exist, if not create them
-        self.metadata = read_json(destination_path)
+        self.metadata = open_yaml(destination_path)
         annotations_dir = (
             destination_path.parent
             / "annotations"

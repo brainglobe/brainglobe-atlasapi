@@ -67,9 +67,6 @@ jobs:
           secret-codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       - name: Notify slack on scheduled failure
         if: failure() && github.event_name == 'schedule'
         uses: ravsamhq/notify-slack-action@v2

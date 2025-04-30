@@ -126,5 +126,8 @@ python =
 extras =
     dev
     atlasgen
+passenv =
+    CI
+    GITHUB_ACTIONS
 commands = pytest -v --color=yes --cov=brainglobe_atlasapi --cov-report=xml
 """

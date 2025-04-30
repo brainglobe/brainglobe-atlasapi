@@ -54,7 +54,7 @@ jobs:
           path: | # ensure we don't cache any interrupted atlas download and extraction, if e.g. we cancel the workflow manually
             ~/.brainglobe
             !~/.brainglobe/atlas.tar.gz
-          key: fresh-cache-${{ runner.os }}
+          key: fresh-cache-${{ runner.os }}-1
 #          key: brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
 #          restore-keys: |
 #              brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}

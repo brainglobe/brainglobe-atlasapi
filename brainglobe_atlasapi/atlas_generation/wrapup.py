@@ -202,13 +202,13 @@ def wrapup_atlas_from_data(
         # Save in meshes dir:
         mio.write(mesh_dest_dir / f"{mesh_id}.obj", mesh)
 
-    transformation_mat = space_convention.transformation_matrix_to(
-        descriptors.ATLAS_ORIENTATION
-    )
-
     # save regions list json:
     with open(dest_dir / descriptors.STRUCTURES_FILENAME, "w") as f:
         json.dump(structures_list, f)
+
+    final_resolution = space_convention.map_resolution(
+        descriptors.ATLAS_ORIENTATION, resolution
+    )
 
     # Finalize metadata dictionary:
     metadata_dict = generate_metadata_dict(
@@ -217,11 +217,10 @@ def wrapup_atlas_from_data(
         atlas_link=atlas_link,
         species=species,
         symmetric=symmetric,
-        resolution=resolution,
-        orientation=descriptors.ATLAS_ORIENTATION,
+        resolution=final_resolution,  # Pass resolution mapped to ASR
+        orientation=descriptors.ATLAS_ORIENTATION,  # Pass orientation "asr"
         version=f"{ATLAS_VERSION}.{atlas_minor_version}",
         shape=shape,
-        transformation_mat=transformation_mat,
         additional_references=[k for k in additional_references.keys()],
         atlas_packager=atlas_packager,
     )

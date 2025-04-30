@@ -8,6 +8,7 @@ from brainglobe_space import AnatomicalSpace
 
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_FILENAME,
+    ATLAS_ORIENTATION,
     HEMISPHERES_FILENAME,
     MESHES_DIRNAME,
     METADATA_FILENAME,
@@ -49,7 +50,7 @@ class Atlas:
 
         # Instantiate SpaceConvention object describing the current atlas:
         self.space = AnatomicalSpace(
-            origin=self.orientation,
+            origin=ATLAS_ORIENTATION,
             shape=self.shape,
             resolution=self.resolution,
         )
@@ -80,7 +81,7 @@ class Atlas:
     @property
     def orientation(self):
         """Make orientation more accessible from class."""
-        return self.metadata["orientation"]
+        return ATLAS_ORIENTATION
 
     @property
     def shape(self):

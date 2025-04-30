@@ -61,14 +61,14 @@ jobs:
 #              brainglobe-${{ runner.os }}-
 #              brainglobe
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       - uses: neuroinformatics-unit/actions/test@v2
         with:
           python-version: ${{ matrix.python-version }}
           secret-codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       - name: Notify slack on scheduled failure
         if: failure() && github.event_name == 'schedule'

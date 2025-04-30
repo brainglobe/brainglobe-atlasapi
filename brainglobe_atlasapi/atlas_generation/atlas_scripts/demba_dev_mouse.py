@@ -26,6 +26,7 @@ class AtlasMetadata:
     orientation: str
     root_id: int
 
+
 # Define the atlas metadata
 METADATA = AtlasMetadata(
     version=0,
@@ -34,20 +35,22 @@ METADATA = AtlasMetadata(
     atlas_link="https://doi.org/10.25493/V3AH-HK7",
     species="Mus musculus",
     orientation="rsa",
-    root_id=997
+    root_id=997,
 )
 
 data_file_url = (
-        "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/"
-        "buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_segmentations",
-        "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/"
-        "buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_volumes",
-    )
-resolution_to_modalities={
+    "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/"
+    "buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_segmentations",
+    "https://data.kg.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/"
+    "buckets/d-8f1f65bb-44cb-4312-afd4-10f623f929b8?prefix=interpolated_volumes",
+)
+resolution_to_modalities = {
     25: ["mri", "lsfm"],
     10: ["allen_stpt"],
     20: ["stpt"],
 }
+
+
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
 
     utils.check_internet_connection()

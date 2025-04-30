@@ -44,7 +44,9 @@ minor_version = 0
 
 # make sure we have the latest packaged version in .brainglobe
 # by replacing it with the working_dir version if needed
-atlas_name_with_version = f"{atlas_name}_{age}_{modality}_{resolution}um_v1.{minor_version}"
+atlas_name_with_version = (
+    f"{atlas_name}_{age}_{modality}_{resolution}um_v1.{minor_version}"
+)
 source_dir = working_dir / atlas_name / atlas_name_with_version
 destination_dir = brainglobe_dir / atlas_name_with_version
 if destination_dir.exists() and destination_dir.is_dir():
@@ -89,9 +91,7 @@ else:
 
 viewer = Viewer()
 viewer.dims.ndisplay = 3
-napari_atlas = NapariAtlasRepresentation(
-    atlas, viewer
-)
+napari_atlas = NapariAtlasRepresentation(atlas, viewer)
 napari_atlas.add_structure_to_viewer("root")
 napari_atlas.add_to_viewer()
 

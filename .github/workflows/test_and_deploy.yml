@@ -40,12 +40,12 @@ jobs:
       matrix:
         # Run all supported Python versions on linux
         os: [ubuntu-latest]
-        python-version: ["3.11", "3.12", "3.13"]
-        include:
-          - os: macos-latest
-            python-version: "3.13"
-          - os: windows-latest
-            python-version: "3.13"
+        python-version: ["3.13"]
+#        include:
+#          - os: macos-latest
+#            python-version: "3.13"
+#          - os: windows-latest
+#            python-version: "3.13"
 
     steps:
       - name: Cache atlases
@@ -54,11 +54,12 @@ jobs:
           path: | # ensure we don't cache any interrupted atlas download and extraction, if e.g. we cancel the workflow manually
             ~/.brainglobe
             !~/.brainglobe/atlas.tar.gz
-          key: brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
-          restore-keys: |
-              brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
-              brainglobe-${{ runner.os }}-
-              brainglobe
+          key: fresh-cache-${{ runner.os }}
+#          key: brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+#          restore-keys: |
+#              brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
+#              brainglobe-${{ runner.os }}-
+#              brainglobe
 
       - uses: neuroinformatics-unit/actions/test@v2
         with:

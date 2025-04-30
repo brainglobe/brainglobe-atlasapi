@@ -258,6 +258,7 @@ def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
         "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
         return_value=temp_path,
     )
+    mocker.patch("brainglobe_atlasapi.utils.sleep")
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_request.side_effect = requests.ConnectionError()
         with pytest.raises(FileNotFoundError) as e:

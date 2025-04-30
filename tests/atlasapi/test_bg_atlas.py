@@ -4,7 +4,7 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import requests
 
-from brainglobe_atlasapi import utils
+from brainglobe_atlasapi import config, utils
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
@@ -90,12 +90,19 @@ def test_str(atlas, capsys):
 
 
 def test_local_search(tmpdir):
-    brainglobe_dir = tmpdir.mkdir("brainglobe")
+    atlas_file_name = "example_mouse_100um_v1.2"
+    brainglobe_dir = config.get_brainglobe_dir()
+    temp_brainglobe_dir = tmpdir.mkdir("brainglobe")
+    shutil.copytree(
+        brainglobe_dir / atlas_file_name,
+        temp_brainglobe_dir / atlas_file_name,
+        dirs_exist_ok=True,
+    )
     interim_download_dir = tmpdir.mkdir("interim_download")
 
     atlas = BrainGlobeAtlas(
         "example_mouse_100um",
-        brainglobe_dir=brainglobe_dir,
+        brainglobe_dir=temp_brainglobe_dir,
         interm_download_dir=interim_download_dir,
     )
 
@@ -107,6 +114,6 @@ def test_local_search(tmpdir):
 
     with pytest.raises(FileExistsError) as error:
         _ = BrainGlobeAtlas(
-            "example_mouse_100um", brainglobe_dir=brainglobe_dir
+            "example_mouse_100um", brainglobe_dir=temp_brainglobe_dir
         )
     assert "Multiple versions of atlas" in str(error)

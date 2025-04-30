@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 
-import numpy as np
 import pytest
 from requests.exceptions import InvalidURL
 
@@ -22,18 +21,11 @@ def metadata_input_template():
         "atlas_link": "https://zenodo.org/records/4595016",
         "species": "Ambystoma mexicanum",
         "symmetric": False,
-        "resolution": (40, 40, 40),
-        "orientation": "lpi",
+        "resolution": [40, 40, 40],  # Keep as list/tuple input type
+        # orientation is be "asr", wrapup.py will pass "asr" after reorienting
+        "orientation": "asr",
         "version": "1.1",
-        "shape": (172, 256, 154),
-        "transformation_mat": np.array(
-            [
-                [0.000e00, -1.000e00, 0.000e00, 1.024e04],
-                [0.000e00, 0.000e00, -1.000e00, 6.160e03],
-                [-1.000e00, 0.000e00, 0.000e00, 6.880e03],
-                [0.000e00, 0.000e00, 0.000e00, 1.000e00],
-            ]
-        ),
+        "shape": [172, 256, 154],  # Keep as list/tuple input type
         "additional_references": [],
         "atlas_packager": "people who packaged the atlas",
     }
@@ -41,15 +33,40 @@ def metadata_input_template():
 
 def test_generate_metadata_dict(metadata_input_template):
     """Test generate_metadata_dict using metadata_input_template."""
-    output = generate_metadata_dict(**metadata_input_template)
-    for key in metadata_input_template:
-        if key != "transformation_mat":
+    input_data = metadata_input_template.copy()
+    output = generate_metadata_dict(**input_data)
+
+    assert isinstance(output, dict)
+
+    for key in input_data:  # Iterate through keys expected based on input
+        # Assert key presence
+        assert key in output, f"Expected key '{key}' missing in output"
+
+        # Assert value correctness, handling type conversions
+        if key == "resolution":
+            # Check if the output tuple matches the input list/tuple elements
+            assert output[key] == tuple(
+                input_data[key]
+            ), f"'{key}' value mismatch or type mismatch (expected tuple)"
+        elif key == "shape":
+            # Check if the output tuple matches the input list/tuple elements
+            assert output[key] == tuple(
+                input_data[key]
+            ), f"'{key}' value mismatch or type mismatch (expected tuple)"
+        elif key == "orientation":
+            # Ensure the output orientation is the standard 'asr'
             assert (
-                output[key] == metadata_input_template[key]
-            ), f"Field '{key}' has changed unexpectedly."
-    assert output["trasform_to_bg"] == tuple(
-        [tuple(m) for m in metadata_input_template["transformation_mat"]]
-    )
+                output[key] == "asr"
+            ), f"'{key}' value mismatch (expected 'asr')"
+        else:
+            # Direct comparison for other keys (name, citation, species, etc.)
+            assert output[key] == input_data[key], f"'{key}' value mismatch"
+
+    expected_keys = set(input_data.keys())
+    output_keys = set(output.keys())
+    assert (
+        output_keys == expected_keys
+    ), f"Output keys {output_keys} do not match expected keys {expected_keys}"
 
 
 @pytest.mark.parametrize(

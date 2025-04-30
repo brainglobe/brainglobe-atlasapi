@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from brainglobe_space import AnatomicalSpace
+from brainglobe_utils.IO.yaml import open_yaml
 
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_FILENAME,
@@ -31,18 +32,33 @@ class Atlas:
     right_hemisphere_value = 2
 
     def __init__(self, path):
-        self.root_dir = Path(path)
-        self.metadata = read_json(self.root_dir / METADATA_FILENAME)
+        atlas_path = Path(path)
+        # v1
+        if atlas_path.is_dir():
+            self.root_dir = atlas_path
+            self.metadata = read_json(self.root_dir / METADATA_FILENAME)
+            structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
+            meshes_dir = MESHES_DIRNAME
+        # v2
+        elif atlas_path.suffix == ".yaml":
+            self.root_dir = atlas_path.parent
+            self.metadata = open_yaml(atlas_path)
+            structures_path = self.metadata["annotation_images"][0]
+            structures_list = read_json(
+                self.root_dir
+                / "annotations"
+                / structures_path
+                / STRUCTURES_FILENAME
+            )
+            meshes_dir = "meshes/" + self.metadata["meshes"][0]
 
-        # Load structures list:
-        structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list
 
         # Add entry for file paths:
         for struct in structures_list:
             struct["mesh_filename"] = (
-                self.root_dir / MESHES_DIRNAME / "{}.obj".format(struct["id"])
+                self.root_dir / meshes_dir / "{}.obj".format(struct["id"])
             )
 
         self.structures = StructuresDict(structures_list)

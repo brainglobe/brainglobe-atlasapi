@@ -24,11 +24,14 @@ dependencies = [
     "meshio",
     "numpy",
     "pandas",
+    "pooch",
     "pyarrow",
     "requests",
     "rich >= 9.0.0",
     "tifffile",
     "treelib",
+    "tqdm",
+    "zarr >= 3.0",
 ]
 dynamic = ["version"]
 
@@ -66,7 +69,6 @@ atlasgen = [
     "vedo",
     "xmltodict",
     "brainglobe-utils",
-    "pooch"
 ]
 
 [project.scripts]

@@ -51,6 +51,21 @@ def mock_brainglobe_user_folders(monkeypatch):
         monkeypatch.setattr(config, "TEMPLATE_CONF_DICT", mock_default_dirs)
 
 
+@pytest.fixture(autouse=True)
+def setup_preexisting_local_atlases():
+    """Automatically setup all tests to have two downloaded atlases
+    in the test user data."""
+    preexisting_atlases = [
+        ("example_mouse_100um", "v1.2"),
+        ("allen_mouse_100um", "v1.2"),
+    ]
+    for atlas_name, version in preexisting_atlases:
+        if not Path.exists(
+            Path.home() / f".brainglobe/{atlas_name}_{version}"
+        ):
+            _ = BrainGlobeAtlas(atlas_name)
+
+
 @pytest.fixture()
 def atlas():
     return BrainGlobeAtlas("example_mouse_100um")

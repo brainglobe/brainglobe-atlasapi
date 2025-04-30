@@ -136,6 +136,10 @@ class BrainGlobeAtlas(core.Atlas):
         using name and not version number. If none is found, return None.
         """
         pattern = f"{self.atlas_name}_v*"
+
+        return self._get_local_full_name(pattern)
+
+    def _get_local_full_name(self, pattern: str) -> Optional[str]:
         candidate_dirs = list(self.brainglobe_dir.glob(pattern))
 
         # If multiple folders exist, raise error:
@@ -146,7 +150,7 @@ class BrainGlobeAtlas(core.Atlas):
             )
         # If no one exist, return None:
         elif len(candidate_dirs) == 0:
-            return
+            return None
         # Else, return actual name:
         else:
             return candidate_dirs[0].name

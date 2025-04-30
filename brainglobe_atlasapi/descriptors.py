@@ -2,6 +2,9 @@ import numpy as np
 
 # Base url of the gin repository:
 remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
+remote_url_base_v2 = (
+    "https://gin.g-node.org/brainglobe/atlases-v2/raw/master/{}"
+)
 
 # Major version of atlases used by current brainglobe-atlasapi release:
 ATLAS_MAJOR_V = 0

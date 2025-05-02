@@ -2,10 +2,12 @@ import json
 import shutil
 import tarfile
 from pathlib import Path
+
 import brainglobe_space as bgs
 import meshio as mio
 import numpy as np
 import tifffile
+
 import brainglobe_atlasapi.atlas_generation
 from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (

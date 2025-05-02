@@ -1,7 +1,8 @@
 import json
+import shutil
 import zipfile
 from pathlib import Path
-import shutil
+
 import nrrd
 import numpy as np
 import requests
@@ -213,6 +214,6 @@ if __name__ == "__main__":
             additional_references=additional_references,
             additional_metadata={"atlas_packager": ATLAS_PACKAGER},
         )
-        # its important we clear the mesh folder between loops in 
+        # its important we clear the mesh folder between loops in
         # case one resolution creates more regions than the other
-        shutil.rmtree(bg_root_dir / 'meshes')
+        shutil.rmtree(bg_root_dir / "meshes")

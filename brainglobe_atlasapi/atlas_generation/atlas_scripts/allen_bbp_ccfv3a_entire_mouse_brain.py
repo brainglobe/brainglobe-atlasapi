@@ -176,7 +176,7 @@ if __name__ == "__main__":
         atlas_name=NAME,
         atlas_file_url=ATLAS_LINK,
     )
-    for resolution in [25,10]:
+    for resolution in [25, 10]:
         reference_volume, annotated_volume = retrieve_reference_and_annotation(
             bg_root_dir, resolution=resolution
         )
@@ -195,7 +195,7 @@ if __name__ == "__main__":
             atlas_minor_version=VERSION,
             citation=CITATION,
             atlas_link=ATLAS_LINK,
-            species=SPECIES, 
+            species=SPECIES,
             resolution=(resolution,) * 3,
             orientation=ORIENTATION,
             root_id=ROOT_ID,
@@ -210,4 +210,3 @@ if __name__ == "__main__":
             scale_meshes=True,
             additional_references=additional_references,
         )
-

@@ -2,10 +2,12 @@ import json
 import shutil
 import tarfile
 from pathlib import Path
+
 import brainglobe_space as bgs
 import meshio as mio
 import numpy as np
 import tifffile
+
 import brainglobe_atlasapi.atlas_generation
 from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
@@ -31,6 +33,7 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 # structure:
 ATLAS_VERSION = brainglobe_atlasapi.atlas_generation.__version__
 
+
 def filter_structures_not_present_in_annotation(structures, annotation):
     """
     Filter out structures that are not present in the annotation volume,
@@ -46,7 +49,8 @@ def filter_structures_not_present_in_annotation(structures, annotation):
     present_ids = set(np.unique(annotation))
     # Create a structure tree for easy parent-child relationship traversal
     tree = get_structures_tree(structures)
-        # Function to check if a structure or any of its descendants are present
+
+    # Function to check if a structure or any of its descendants are present
     def is_present(structure_id):
         if structure_id in present_ids:
             return True
@@ -61,6 +65,7 @@ def filter_structures_not_present_in_annotation(structures, annotation):
         print("Removed structure:", r["name"], "(ID:", r["id"], ")")
 
     return [s for s in structures if is_present(s["id"])]
+
 
 def wrapup_atlas_from_data(
     atlas_name,

@@ -19,10 +19,9 @@ NAME = "allen_bbp_ccfv3a_entire_mouse_brain"
 CITATION = "https://doi.org/10.1101/2024.11.06.622212"
 ATLAS_LINK = "https://zenodo.org/api/records/14034334/files-archive"
 SPECIES = "Mus musculus"
-ORIENTATION = "spr"
+ORIENTATION = "asr"
 ROOT_ID = 997
-RESOLUTION = 25
-
+ATLAS_PACKAGER = 'Harry Carey'
 
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
     """
@@ -67,6 +66,8 @@ def retrieve_reference_and_annotation(download_path, resolution):
     """
     reference_path = download_path / f"arav3a_bbp_nisslCOR_{resolution}.nrrd"
     reference, header = nrrd.read(reference_path)
+    reference = reference * 65535
+    reference = reference.astype(np.uint16)
     annotation, header = nrrd.read(
         download_path / f"annotv3a_bbp_{resolution}.nrrd"
     )
@@ -176,7 +177,7 @@ if __name__ == "__main__":
         atlas_name=NAME,
         atlas_file_url=ATLAS_LINK,
     )
-    for resolution in [25, 10]:
+    for resolution in [10, 25]:
         reference_volume, annotated_volume = retrieve_reference_and_annotation(
             bg_root_dir, resolution=resolution
         )
@@ -209,4 +210,6 @@ if __name__ == "__main__":
             compress=True,
             scale_meshes=True,
             additional_references=additional_references,
+            additional_metadata={"atlas_packager": ATLAS_PACKAGER},
+
         )

@@ -21,7 +21,8 @@ ATLAS_LINK = "https://zenodo.org/api/records/14034334/files-archive"
 SPECIES = "Mus musculus"
 ORIENTATION = "asr"
 ROOT_ID = 997
-ATLAS_PACKAGER = 'Harry Carey'
+ATLAS_PACKAGER = "Harry Carey"
+
 
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
     """
@@ -211,7 +212,6 @@ if __name__ == "__main__":
             scale_meshes=True,
             additional_references=additional_references,
             additional_metadata={"atlas_packager": ATLAS_PACKAGER},
-
         )
         # its important we clear the mesh folder between loops in 
         # case one resolution creates more regions than the other

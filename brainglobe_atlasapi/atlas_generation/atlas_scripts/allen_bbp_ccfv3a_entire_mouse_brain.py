@@ -1,7 +1,7 @@
 import json
 import zipfile
 from pathlib import Path
-
+import shutil
 import nrrd
 import numpy as np
 import requests
@@ -177,7 +177,7 @@ if __name__ == "__main__":
         atlas_name=NAME,
         atlas_file_url=ATLAS_LINK,
     )
-    for resolution in [10, 25]:
+    for resolution in [25, 10]:
         reference_volume, annotated_volume = retrieve_reference_and_annotation(
             bg_root_dir, resolution=resolution
         )
@@ -213,3 +213,6 @@ if __name__ == "__main__":
             additional_metadata={"atlas_packager": ATLAS_PACKAGER},
 
         )
+        # its important we clear the mesh folder between loops in 
+        # case one resolution creates more regions than the other
+        shutil.rmtree(bg_root_dir / 'meshes')

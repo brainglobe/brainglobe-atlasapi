@@ -90,11 +90,12 @@ def retrieve_reference_and_annotation(download_path, resolution):
 def retrieve_additional_references(download_path, resolution):
     """
     This returns the single animal nissl and converts it
-    to 16 bit unsigned int which bg requires. 
+    to 16 bit unsigned int which bg requires.
     """
 
-
-    additional_reference_path = download_path / f"arav3a_bbp_nisslCOR_{resolution}.nrrd"
+    additional_reference_path = (
+        download_path / f"arav3a_bbp_nisslCOR_{resolution}.nrrd"
+    )
     reference, header = nrrd.read(additional_reference_path)
     reference = reference * 65535
     reference = reference.astype(np.uint16)

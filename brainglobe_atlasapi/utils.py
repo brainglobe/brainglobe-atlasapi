@@ -1,3 +1,5 @@
+"""Provide utility functions for the atlas API."""
+
 import configparser
 import json
 import logging
@@ -248,7 +250,7 @@ def retrieve_over_http(
 
 
 def get_download_size(url: str) -> int:
-    """Get file size based on the MB value on the "src" page of each atlas
+    """Get file size based on the MB value on the "src" page of each atlas.
 
     Parameters
     ----------
@@ -309,6 +311,7 @@ def get_download_size(url: str) -> int:
 
 def conf_from_url(url) -> configparser.ConfigParser:
     """Read conf file from a URL. And cache a copy in the brainglobe dir.
+
     Parameters
     ----------
     url : str
@@ -361,6 +364,7 @@ def conf_from_url(url) -> configparser.ConfigParser:
 
 def conf_from_file(file_path: Path) -> configparser.ConfigParser:
     """Read conf file from a local file path.
+
     Parameters
     ----------
     file_path : Path

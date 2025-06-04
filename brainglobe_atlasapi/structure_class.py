@@ -1,3 +1,8 @@
+"""
+Provide a class for representing hierarchical structures,
+such as brain regions in an atlas.
+"""
+
 import warnings
 from collections import UserDict
 
@@ -12,6 +17,19 @@ class Structure(UserDict):
     """
 
     def __getitem__(self, item):
+        """
+        Retrieve an item from the structure's data.
+
+        If the item is 'mesh' and the mesh data is currently None, it attempts
+        to load the mesh from the 'mesh_filename' if available.
+
+        Args:
+            item (str): The key of the item to retrieve.
+
+        Returns
+        -------
+            The value associated with the given item.
+        """
         if item == "mesh" and self.data[item] is None:
             if self.data["mesh_filename"] is None:
                 warnings.warn(
@@ -58,11 +76,20 @@ class StructuresDict(UserDict):
 
         Parameters
         ----------
-        item :
+        item : str or int
+            If str, the corresponding value is returned.
+            If int, the class itself is returned if `item` is 0,
+            otherwise an error is raised as only one class is stored.
 
         Returns
         -------
+        str or Structure
+            Depending on the type of `item`.
 
+        Raises
+        ------
+        ValueError
+            If `item` is an integer different than 0.
         """
         try:
             item = int(item)
@@ -72,5 +99,7 @@ class StructuresDict(UserDict):
         return self.data[int(item)]
 
     def __repr__(self):
-        """String representation of the class, print all regions names"""
+        """Return string representation of the class,
+        showing all region names.
+        """
         return self.tree.show(stdout=False)

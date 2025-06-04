@@ -1,3 +1,5 @@
+"""Command-line interface for brainglobe_atlasapi."""
+
 import click
 
 from brainglobe_atlasapi.config import cli_modify_config
@@ -33,7 +35,6 @@ def bg_cli(
     install
     force: bool, used with `update`. If True it forces the update
     """
-
     if command == "list":  # list atlases
         return show_atlases(show_local_path=show)
 

@@ -1,15 +1,24 @@
+"""Handle structure information for atlas generation."""
+
 from brainglobe_atlasapi.descriptors import STRUCTURE_TEMPLATE as STEMPLATE
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def check_struct_consistency(structures):
-    """Ensures internal consistency of the structures list
+    """Ensure internal consistency of the structures list.
+
     Parameters
     ----------
     structures
 
     Returns
     -------
+    None
+
+    Raises
+    ------
+    ValueError: If any structure dictionary is missing required keys, or if
+        the `rgb_triplet` is not a list/tuple of length 3.
 
     """
     assert isinstance(structures, list)
@@ -78,9 +87,8 @@ def get_structure_terminal_nodes(structures, region):
     and a structure from the list, this function returns
     the structures in the list that are children of
     the given structure (region) that are leafs of the
-    struture tree
+    struture tree.
     """
-
     tree = get_structures_tree(structures)
 
     sub_region_ids = [

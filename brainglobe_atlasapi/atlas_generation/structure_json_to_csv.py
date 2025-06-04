@@ -1,3 +1,5 @@
+"""Convert structure JSON files to CSV format."""
+
 from pathlib import Path
 
 import pandas as pd
@@ -6,7 +8,8 @@ import pandas as pd
 def structure_id_path_to_string(structure_id_path):
     """
     Given a path (as a list of structure ids) to a specific structure,
-    return as a string of "/" separated structure ids
+    return as a string of "/" separated structure ids.
+
     Parameters
     ----------
     structure_id_path : list
@@ -18,7 +21,6 @@ def structure_id_path_to_string(structure_id_path):
         "/" separated string of structure ids
 
     """
-
     path_string = "/"
     for element in structure_id_path:
         path_string = path_string + str(element) + "/"
@@ -28,7 +30,7 @@ def structure_id_path_to_string(structure_id_path):
 def get_parent_id(structure_id_path, root=997):
     """
     Given a path (as a list of structure ids) to a specific structure,
-    return the id of the parent structure
+    return the id of the parent structure.
 
     Parameters
     ----------
@@ -43,7 +45,6 @@ def get_parent_id(structure_id_path, root=997):
     int or None :
         id of the parent structure (or None if no parent)
     """
-
     if structure_id_path == [root]:
         return None
     else:
@@ -54,7 +55,7 @@ def convert_structure_json_to_csv(
     structure_json_path, destination_path=None, root=997
 ):
     """
-    Converts an atlas structure json dictionary to csv. For cellfinder
+    Convert an atlas structure json dictionary to csv. For cellfinder
     compatibility and ease of browsing.
 
     Parameters
@@ -65,7 +66,6 @@ def convert_structure_json_to_csv(
         Where to save the resulting csv file. Defaults to the same directory
         as the json file.
     """
-
     structure_json_path = Path(structure_json_path)
 
     df = pd.read_json(structure_json_path)

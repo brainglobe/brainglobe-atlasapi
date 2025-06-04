@@ -1,3 +1,5 @@
+"""Tools to finalise the atlas creation process."""
+
 import json
 import shutil
 import tarfile
@@ -116,7 +118,6 @@ def wrapup_atlas_from_data(
         (Default value = empty dict).
         Additional metadata to write to metadata.json
     """
-
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
 

@@ -27,7 +27,8 @@ from brainglobe_atlasapi.core import AdditionalRefDict
 @pytest.fixture
 def atlas():
     """A fixture providing a small atlas for testing.
-    Tests assume this atlas is valid"""
+    Tests assume this atlas is valid
+    """
     return BrainGlobeAtlas("kim_dev_mouse_e11-5_mri-adc_31.5um")
 
 
@@ -197,7 +198,6 @@ def test_catch_missing_structures(atlas_with_missing_structure):
     Currently no atlas fails the validation function this way so the
     [] is always empty --> this test function should always raise an error
     """
-
     with pytest.raises(
         AssertionError,
         match=r"Structures with IDs \[.*?\] have a mesh file, "
@@ -210,7 +210,8 @@ def test_atlas_image_dimensions_match_negative(
     atlas_with_bad_reference_tiff_content,
 ):
     """Checks that an atlas with different annotation and reference
-    dimensions is flagged by the validation."""
+    dimensions is flagged by the validation.
+    """
     with pytest.raises(
         AssertionError,
         match=r"Annotation and reference image have different dimensions.*",
@@ -222,7 +223,8 @@ def test_atlas_additional_reference_same(
     atlas_with_reference_matching_additional_reference,
 ):
     """Checks that an atlas with a rduplicate additional reference
-    fails the validation for this case."""
+    fails the validation for this case.
+    """
     with pytest.raises(
         AssertionError,
         match=r"Additional reference is not different to main reference.",

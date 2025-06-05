@@ -200,7 +200,8 @@ def test_conf_from_url_gin_200(temp_path, mocker):
 
 def test_conf_from_url_wrong_status_with_cache(temp_path, mocker):
     """Connected to the internet, but GIN is down (404),
-    so we revert to local cache of atlas versions"""
+    so we revert to local cache of atlas versions
+    """
     mock_response = mock.patch("requests.Response", autospec=True)
     mock_response.status_code = 404
 
@@ -229,7 +230,8 @@ def test_conf_from_url_wrong_status_with_cache(temp_path, mocker):
 
 def test_conf_from_url_no_connection_with_cache(temp_path, mocker):
     """Not connected to the internet,
-    but we can revert to local cache of atlas versions"""
+    but we can revert to local cache of atlas versions
+    """
     with open(temp_path / "last_versions.conf", "w") as f:
         f.write(
             "[atlases]\n"
@@ -253,7 +255,8 @@ def test_conf_from_url_no_connection_with_cache(temp_path, mocker):
 
 def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
     """Not connected to the internet
-    and we have no local cache of atlas version"""
+    and we have no local cache of atlas version
+    """
     mocker.patch(
         "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
         return_value=temp_path,

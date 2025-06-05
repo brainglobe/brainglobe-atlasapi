@@ -496,7 +496,6 @@ def preprocess_annotations():
     So this preprocessing function must be run before retrieving
     the reference and annotation
     """
-
     label_list = []
     for region, url in ANNOTATION_URLS.items():
         label_path = (
@@ -561,7 +560,8 @@ def retrieve_reference_and_annotation():
     """
     Retrieve the desired reference and annotation as two numpy arrays.
 
-    Returns:
+    Returns
+    -------
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
@@ -636,7 +636,8 @@ def retrieve_hemisphere_map():
 
     If your atlas is symmetrical, ignore this function.
 
-    Returns:
+    Returns
+    -------
         numpy.array or None: A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
@@ -661,10 +662,10 @@ def retrieve_structure_information():
     | 567| Cerebrum          | CH      | [997, 8, 567]     | [176, 240, 255] |
     ╰────┴───────────────────┴─────────┴───────────────────┴─────────────────╯
 
-    Returns:
+    Returns
+    -------
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
-
     hierarchical_labels = pd.DataFrame(
         {
             "id": [ROOT_ID, 1001, 1002, 1003, 1004, 1005],

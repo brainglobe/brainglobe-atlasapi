@@ -71,7 +71,6 @@ def test_create_region_mesh_fail(
     The test expects no mesh_files to be created and checks whether the right
     message is printed.
     """
-
     if test_case == "empty_mask":
         smoothed_annotations = region_mesh_args[4]
         smoothed_annotations[:] = 0
@@ -203,7 +202,6 @@ def test_extract_largest_mesh_from_mask(extract_largest, mesh_from_mask):
     The assertions check that the mesh area matches the expected values based
     on the `extract_largest` parameter.
     """
-
     # using the origingal volume containing only the large region
     expected_mesh_largest_true = extract_mesh_from_mask(**mesh_from_mask)
 

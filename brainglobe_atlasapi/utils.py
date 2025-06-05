@@ -167,7 +167,7 @@ def check_gin_status(timeout=5, raise_error=True):
         _ = requests.get(url, timeout=timeout)
 
         return True
-    except requests.ConnectionError as e:
+    except (requests.ConnectionError, requests.exceptions.Timeout) as e:
         error_message = "GIN server is down."
         if not raise_error:
             print(error_message)

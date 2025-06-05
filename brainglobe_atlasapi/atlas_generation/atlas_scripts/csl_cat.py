@@ -31,7 +31,7 @@ ATLAS_PACKAGER = "Henry Crosswell"
 
 def pooch_init(temp_download_dir, base_url):
     """
-    initiate a pooch object to be used to fetch files in the future,
+    Initiate a pooch object to be used to fetch files in the future,
     using the hashes saved to the hashes folder.
 
     """
@@ -53,10 +53,10 @@ def download_resources(working_dir):
     Uses Pooch to download the nifti images, labels and annotations
     for the atlas, using the pooch hashes from the hash folder.
 
-    Returns:
+    Returns
+    -------
         List : list of all downloaded local filepaths
     """
-
     check_internet_connection()
 
     # Setup download folder
@@ -80,7 +80,8 @@ def download_nifti_files(temp_download_dir):
     Takes pre-assigned file names and uses pooch to download
     the files, writing the file_path to a list.
 
-    Returns:
+    Returns
+    -------
         file_paths :
             a list of downloaded file paths containing [filename, filepath]
     """
@@ -108,11 +109,11 @@ def download_mesh_files(file_paths, temp_download_dir):
     then downloads the mesh files using the associated hash.
     Appends this to the nifti file path list
 
-    Returns:
+    Returns
+    -------
         nifti_file_paths :
             List containing nifti and mesh file paths [filename, filepath]
     """
-
     vtk_file_url = (
         "https://github.com/CerebralSystemsLab/CATLAS/raw/"
         + "refs/heads/main/SlicerFiles/CorticalAtlasModel_A/"
@@ -138,12 +139,12 @@ def retrieve_template_and_annotations(file_path_list):
     Template_volume is an MRI image of brain
     annotation_volume is a segmentation - each label has a unique ID
 
-    Returns:
+    Returns
+    -------
         tuple: A tuple containing two numpy arrays.
         The first array is a template volume rescale to uint16 range,
         and the second array is a reference volume.
     """
-
     template_volume = load_nii(file_path_list[0], as_array=True)
     annotation_volume = load_nii(file_path_list[1], as_array=True)
 
@@ -171,7 +172,6 @@ def add_rgb_col_and_heirarchy(labels_df):
     """
     Re-formats df columns, from individual r,g,b,a into the desired [r,g,b].
     """
-
     rgb_list = []
     structure_list = []
     for _, row in labels_df.iterrows():
@@ -205,10 +205,10 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
     | 567 | Cerebrum         | CH      | [997, 8]          | [176, 240, 255] |
     ╰─────┴──────────────────┴─────────┴───────────────────┴─────────────────╯
 
-    Returns:
+    Returns
+    -------
         list of dicts: A list containing a dict of the atlas information.
     """
-
     label_df_col = ["id", "acronym", "r", "g", "b", "alpha"]
     full_name_df_col = ["acronym", "name"]
     combined_df_col = [
@@ -256,7 +256,8 @@ def create_mask_for_root(template_volume, mesh_save_folder):
     Create a smooth mask from the template for the whole brain,
     meshes and saves it .obj file within mesh_save_folder
 
-    Returns:
+    Returns
+    -------
         None
     """
     root_mask = (template_volume >= 8000).astype(np.uint8)
@@ -279,7 +280,8 @@ def extract_mesh_from_vtk(working_dir):
     extracts the data as a vedo.mesh and saves as .obj
     to be readable by other functions
 
-    Returns:
+    Returns
+    -------
         dict: Key is obj id - value is obj file path
     """
     mesh_dict = {}

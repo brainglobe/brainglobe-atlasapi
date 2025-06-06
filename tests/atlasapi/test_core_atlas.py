@@ -55,6 +55,14 @@ def test_additional_ref_dict(temp_path):
         assert add_ref_dict["3"] is None
 
 
+def test_addition_ref_dict_keys_only(temp_path):
+    """Test that AdditionalRefDict can be initialized with keys only."""
+    fake_data = ["1", "2"]
+    add_ref_dict = AdditionalRefDict(fake_data, temp_path)
+
+    assert list(add_ref_dict) == fake_data
+
+
 @pytest.mark.parametrize(
     "stack_name, val",
     [

@@ -1,7 +1,10 @@
 """
-Automatic creation of
-    . structures.csv
-    . README.txt
+Utility functions for generating metadata and README files for
+BrainGlobe atlases.
+
+This module provides tools to create and manage the metadata dictionaries
+and README files associated with brain atlases packaged within the
+BrainGlobe ecosystem.
 """
 
 import json
@@ -31,6 +34,40 @@ def generate_metadata_dict(
     additional_references,
     atlas_packager,
 ):
+    """
+    Generate a dictionary containing metadata for a BrainGlobe atlas.
+
+    Parameters
+    ----------
+    name : str
+        The name of the atlas.
+    citation : str
+        The citation for the atlas.
+    atlas_link : str
+        A URL link to the atlas source or related publication.
+    species : str
+        The species the atlas belongs to (e.g., "mouse", "rat").
+    symmetric : bool
+        True if the atlas is symmetric, False otherwise.
+    resolution : int or float or tuple of int/float
+        The resolution of the atlas in micrometers per voxel.
+        Can be a single value or a tuple for anisotropic resolutions.
+    orientation : str
+        The orientation of the atlas (e.g., "RAS", "LPS").
+    version : str
+        The version of the atlas.
+    shape : tuple of int
+        The shape (dimensions) of the atlas volume (e.g., (x, y, z)).
+    additional_references : list of str
+        A list of additional reference links or citations.
+    atlas_packager : str
+        The name of the person or entity packaging the atlas.
+
+    Returns
+    -------
+    dict
+        A dictionary containing all the metadata.
+    """
     # Name should be author_species
     assert len(name.split("_")) >= 2
 
@@ -75,6 +112,25 @@ def generate_metadata_dict(
 
 
 def create_readme(uncompr_atlas_path, metadata_dict, structures):
+    """
+    Create a README.txt file for the atlas in the specified path.
+
+    This function generates a comprehensive README file containing atlas
+    metadata and structure information, typically used for documenting a
+    BrainGlobe atlas.
+
+    Parameters
+    ----------
+    uncompr_atlas_path : pathlib.Path
+        The path to the uncompressed atlas directory where the README will
+        be saved.
+    metadata_dict : dict
+        A dictionary containing the atlas's metadata (e.g., name, citation,
+        species).
+    structures : list of dict
+        A list of dictionaries, where each dictionary represents a structure
+        with its ID, name, and other relevant properties.
+    """
     readmepath = str(uncompr_atlas_path / "README.txt")
 
     # First write the structure tree
@@ -107,7 +163,7 @@ def create_readme(uncompr_atlas_path, metadata_dict, structures):
 
 def create_structures_csv(uncompr_atlas_path, root):
     """
-    Converts an atlas structure json dictionary to csv. For cellfinder
+    Convert an atlas structure json dictionary to csv. For cellfinder
     compatibility and ease of browsing.
 
     Parameters
@@ -124,9 +180,7 @@ def create_metadata_files(
     dest_dir, metadata_dict, structures, root_id, additional_metadata={}
 ):
     """
-    Automatic creation of
-        . structures.csv
-        . README.txt
+    Automatic creation of `structures.csv` and `README.txt`
     from an atlas files. All Files are saved in the uncompressed atlas folder
     awaiting compression and upload to GIN.
 

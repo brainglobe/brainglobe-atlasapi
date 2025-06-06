@@ -20,14 +20,17 @@ class Structure(UserDict):
         """
         Retrieve an item from the structure's data.
 
-        If the item is 'mesh' and the mesh data is currently None, it attempts
-        to load the mesh from the 'mesh_filename' if available.
+        If the item is `mesh` and the mesh data is currently None, it attempts
+        to load the mesh from the `mesh_filename` if available.
 
-        Args:
-            item (str): The key of the item to retrieve.
+        Parameters
+        ----------
+        item : str
+            The key of the item to retrieve.
 
         Returns
         -------
+        any
             The value associated with the given item.
         """
         if item == "mesh" and self.data[item] is None:

@@ -7,13 +7,17 @@ def child_ids(structure, structure_list):
     """
     Return a list of IDs of the children of a given structure.
 
-    Args:
-        structure (dict): The structure to find the children of.
-        structure_list (list): A list of structures to search within.
+    Parameters
+    ----------
+    structure : dict
+        The structure to find the children of.
+    structure_list : list
+        A list of structures to search within.
 
-    Return
-    ------
-        list: A list of child IDs.
+    Returns
+    -------
+    list
+        A list of child IDs.
     """
     return [
         s["id"]
@@ -25,7 +29,7 @@ def child_ids(structure, structure_list):
 
 def get_structures_tree(structures_list):
     """
-    Create a 'tree' graph with the hierarchical organisation of all
+    Create a `tree` graph with the hierarchical organisation of all
     structures.
     """
 

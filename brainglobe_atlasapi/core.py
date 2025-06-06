@@ -358,14 +358,14 @@ class AdditionalRefDict(UserDict):
             self.data[ref_name] = None
 
     def __getitem__(self, ref_name):
-        if self.data[ref_name] is None:
-            if ref_name not in self.references_list:
-                warnings.warn(
-                    f"No reference named {ref_name} "
-                    f"(available: {self.references_list})"
-                )
-                return None
+        if ref_name not in self.references_list:
+            warnings.warn(
+                f"No reference named {ref_name} "
+                f"(available: {self.references_list})"
+            )
+            return None
 
+        if self.data[ref_name] is None:
             self.data[ref_name] = read_tiff(
                 self.data_path / f"{ref_name}.tiff"
             )

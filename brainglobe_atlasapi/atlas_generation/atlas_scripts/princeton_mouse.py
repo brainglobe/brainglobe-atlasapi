@@ -1,7 +1,6 @@
 __version__ = "0"
 
 import json
-import multiprocessing as mp
 import os.path
 import time
 
@@ -20,8 +19,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
-PARALLEL = False
 
 ATLAS_NAME = "princeton_mouse"
 SPECIES = "Mus musculus"
@@ -153,48 +150,25 @@ def create_atlas(working_dir, resolution):
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
     start = time.time()
-    if PARALLEL:
-        pool = mp.Pool(mp.cpu_count() - 2)
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        ROOT_ID,
-                        closing_n_iters,
-                        decimate_fraction,
-                        smooth,
-                    )
-                    for node in tree.nodes.values()
-                ],
+
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
-        except mp.pool.MaybeEncodingError:
-            # Error with returning results from pool.map, but we don't care
-            pass
-    else:
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+        )
     print(
         "Finished mesh extraction in: ",
         round((time.time() - start) / 60, 2),

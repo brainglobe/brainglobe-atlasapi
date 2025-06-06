@@ -5,6 +5,7 @@ from pathlib import Path
 
 import brainglobe_space as bgs
 import meshio as mio
+import numpy as np
 import tifffile
 
 import brainglobe_atlasapi.atlas_generation
@@ -25,11 +26,45 @@ from brainglobe_atlasapi.atlas_generation.structures import (
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     get_all_validation_functions,
 )
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas
 # structure:
 ATLAS_VERSION = brainglobe_atlasapi.atlas_generation.__version__
+
+
+def filter_structures_not_present_in_annotation(structures, annotation):
+    """
+    Filter out structures that are not present in the annotation volume,
+    or whose children are not present. Also prints removed structures.
+
+    Args:
+        structures (list of dict): List containing structure information
+        annotation (np.ndarray): Annotation volume
+
+    Returns:
+        list of dict: Filtered list of structure dictionaries
+    """
+    present_ids = set(np.unique(annotation))
+    # Create a structure tree for easy parent-child relationship traversal
+    tree = get_structures_tree(structures)
+
+    # Function to check if a structure or any of its descendants are present
+    def is_present(structure_id):
+        if structure_id in present_ids:
+            return True
+        # Recursively check all descendants
+        for child_node in tree.children(structure_id):
+            if is_present(child_node.identifier):
+                return True
+        return False
+
+    removed = [s for s in structures if not is_present(s["id"])]
+    for r in removed:
+        print("Removed structure:", r["name"], "(ID:", r["id"], ")")
+
+    return [s for s in structures if is_present(s["id"])]
 
 
 def wrapup_atlas_from_data(
@@ -119,6 +154,11 @@ def wrapup_atlas_from_data(
 
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
+    if isinstance(annotation_stack, str) or isinstance(annotation_stack, Path):
+        annotation_stack = tifffile.imread(annotation_stack)
+    structures_list = filter_structures_not_present_in_annotation(
+        structures_list, annotation_stack
+    )
 
     # Instantiate BGSpace obj, using original stack size in um as meshes
     # are un um:
@@ -202,13 +242,13 @@ def wrapup_atlas_from_data(
         # Save in meshes dir:
         mio.write(mesh_dest_dir / f"{mesh_id}.obj", mesh)
 
-    transformation_mat = space_convention.transformation_matrix_to(
-        descriptors.ATLAS_ORIENTATION
-    )
-
     # save regions list json:
     with open(dest_dir / descriptors.STRUCTURES_FILENAME, "w") as f:
         json.dump(structures_list, f)
+
+    final_resolution = space_convention.map_resolution(
+        descriptors.ATLAS_ORIENTATION, resolution
+    )
 
     # Finalize metadata dictionary:
     metadata_dict = generate_metadata_dict(
@@ -217,11 +257,10 @@ def wrapup_atlas_from_data(
         atlas_link=atlas_link,
         species=species,
         symmetric=symmetric,
-        resolution=resolution,
-        orientation=descriptors.ATLAS_ORIENTATION,
+        resolution=final_resolution,  # Pass resolution mapped to ASR
+        orientation=descriptors.ATLAS_ORIENTATION,  # Pass orientation "asr"
         version=f"{ATLAS_VERSION}.{atlas_minor_version}",
         shape=shape,
-        transformation_mat=transformation_mat,
         additional_references=[k for k in additional_references.keys()],
         atlas_packager=atlas_packager,
     )

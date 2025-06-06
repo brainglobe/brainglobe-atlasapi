@@ -354,8 +354,11 @@ class AdditionalRefDict(UserDict):
 
         super().__init__(*args, **kwargs)
 
+        for ref_name in self.references_list:
+            self.data[ref_name] = None
+
     def __getitem__(self, ref_name):
-        if ref_name not in self.keys():
+        if self.data[ref_name] is None:
             if ref_name not in self.references_list:
                 warnings.warn(
                     f"No reference named {ref_name} "

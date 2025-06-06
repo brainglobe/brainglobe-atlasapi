@@ -415,6 +415,22 @@ class AdditionalRefDict(UserDict):
         ------
             KeyError: If the ref_name is not found.
         """
+        """
+        Retrieve an item from the dictionary using the ref_name as key.
+        If the ref_name is not in the keys, it checks if it's in the
+        references list and raises a KeyError if not found.
+
+        Args:
+            ref_name (str): The reference name to retrieve.
+
+        Returns
+        -------
+            The value associated with the ref_name.
+
+        Raises
+        ------
+            KeyError: If the ref_name is not found.
+        """
         if ref_name not in self.references_list:
             warnings.warn(
                 f"No reference named {ref_name} "

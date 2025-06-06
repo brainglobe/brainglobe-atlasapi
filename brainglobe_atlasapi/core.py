@@ -399,33 +399,24 @@ class AdditionalRefDict(UserDict):
             self.data[ref_name] = None
 
     def __getitem__(self, ref_name):
-        """
-        Retrieve an item from the dictionary using the ref_name as key.
-        If the ref_name is not in the keys, it checks if it's in the
-        references list and raises a KeyError if not found.
+        """Retrieve an item from the dictionary using the reference name
+        as key.
 
-        Args:
-            ref_name (str): The reference name to retrieve.
+        If the reference image data for `ref_name` has not been loaded yet,
+        it will be read from the disk and cached. If `ref_name` is not
+        one of the predefined additional references, a warning is issued
+        and None is returned.
 
-        Returns
-        -------
-            The value associated with the ref_name.
-
-        Raises
-        ------
-            KeyError: If the ref_name is not found.
-        """
-        """
-        Retrieve an item from the dictionary using the ref_name as key.
-        If the ref_name is not in the keys, it checks if it's in the
-        references list and raises a KeyError if not found.
-
-        Args:
-            ref_name (str): The reference name to retrieve.
+        Parameters
+        ----------
+        ref_name : str
+            The name of the reference image to retrieve (e.g., "aba").
 
         Returns
         -------
-            The value associated with the ref_name.
+        np.ndarray or None
+            The image data associated with the reference name, or None if the
+            reference name is not found in the list of available references.
 
         Raises
         ------

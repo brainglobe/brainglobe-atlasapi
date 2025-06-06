@@ -250,6 +250,7 @@ def construct_meshes_from_annotation(
         What fraction of the original number of vertices is to be kept.
         EG .5 means that 50% of the vertices are kept,
         the others are removed.
+
     Returns
     -------
     dict

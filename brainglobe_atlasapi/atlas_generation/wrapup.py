@@ -45,7 +45,8 @@ def filter_structures_not_present_in_annotation(structures, annotation):
         structures (list of dict): List containing structure information
         annotation (np.ndarray): Annotation volume
 
-    Returns:
+    Returns
+    -------
         list of dict: Filtered list of structure dictionaries
     """
     present_ids = set(np.unique(annotation))

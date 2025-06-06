@@ -92,7 +92,6 @@ def retrieve_additional_references(download_path, resolution):
     This returns the single animal nissl and converts it
     to 16 bit unsigned int which bg requires.
     """
-
     additional_reference_path = (
         download_path / f"arav3a_bbp_nisslCOR_{resolution}.nrrd"
     )

@@ -49,7 +49,7 @@ def test_additional_ref_dict(temp_path):
     add_ref_dict = AdditionalRefDict(fake_data.keys(), temp_path)
 
     for k, stack in add_ref_dict.items():
-        assert add_ref_dict[k] == stack
+        assert np.all(add_ref_dict[k] == stack)
 
     with pytest.warns(UserWarning, match="No reference named 3"):
         assert add_ref_dict["3"] is None

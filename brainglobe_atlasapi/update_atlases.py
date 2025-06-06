@@ -15,7 +15,7 @@ def update_atlas(atlas_name, force=False, fn_update=None):
     """Update a brainglobe_atlasapi atlas from the latest
     available version online.
 
-    Arguments:
+    Parameters
     ----------
     atlas_name: str
         Name of the atlas to update.
@@ -68,8 +68,8 @@ def install_atlas(atlas_name, fn_update=None):
     """Installs a BrainGlobe atlas from the latest
     available version online.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     atlas_name : str
         Name of the atlas to update.
     fn_update : Callable, Optional

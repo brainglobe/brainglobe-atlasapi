@@ -258,13 +258,18 @@ class Atlas:
         """
         Retrieve the mesh associated with a given structure.
 
-        Args:
-            structure (str): The name or id of the structure.
+        Parameters
+        ----------
+        structure : int or str
+            The ID or acronym of the structure for which to retrieve the mesh.
+            If a list of IDs/acronyms is passed, a list of meshes will
+            be returned.
 
         Returns
         -------
-            The mesh data associated with the structure.
-
+        trimesh.Trimesh or list of trimesh.Trimesh
+            The mesh data (e.g., a trimesh object) associated with the
+            structure(s).
         """
         return self._get_from_structure(structure, "mesh")
 
@@ -272,12 +277,17 @@ class Atlas:
         """
         Retrieve the path to the mesh file associated with a given structure.
 
-        Args:
-            structure (str): The name or id of the structure.
+        Parameters
+        ----------
+        structure : int or str
+            The ID or acronym of the structure for which to retrieve the mesh
+            file path. If a list of IDs/acronyms is passed, a list of paths
+            will be returned.
 
         Returns
         -------
-            str: The path to the mesh file for the structure.
+        Path or list of Path
+            The path(s) to the mesh file(s) for the structure(s).
         """
         return self._get_from_structure(structure, "mesh_filename")
 

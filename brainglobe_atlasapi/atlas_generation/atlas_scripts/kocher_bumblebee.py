@@ -7,9 +7,10 @@ import pandas as pd
 import pooch
 import tifffile
 import vtk
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from vedo import Mesh, write
 from vtk.util import numpy_support
+
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 ### Metadata ###
 

@@ -711,7 +711,7 @@ if __name__ == "__main__":
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
-        scale_meshes=True,
+        scale_meshes=False,
         atlas_packager=ATLAS_PACKAGER,
         additional_references=additional_references,
     )

@@ -44,11 +44,11 @@ ROOT_ID = 0
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
-# (.64µm x .64µm x 2.542µm)
+
+# TODO: Figure out what's up here... 
+# (.64µm x .64µm x 2.542µm) for confocal but it only seems to work right if I just set it to 1
 RESOLUTION = (
-    0.686,
-    0.686,
-    2.542,
+    1,1,1
 )
 ATLAS_PACKAGER = "Scott Wolf"
 
@@ -621,8 +621,6 @@ def extract_meshes_from_vtk(
     root_mesh.triangulate()
     root_mesh.decimate_pro(0.6)
     root_mesh.smooth()
-    # scale
-    # root_mesh.scale(1/100.0)  # Scale down by factor of 100
 
     root_obj_path = mesh_save_folder / f"{ROOT_ID}.obj"
     mesh_dict[str(ROOT_ID)] = str(root_obj_path)

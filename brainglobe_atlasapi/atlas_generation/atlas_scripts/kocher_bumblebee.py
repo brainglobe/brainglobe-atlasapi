@@ -46,7 +46,8 @@ ROOT_ID = 0
 # parameter for non isotropic datasets or datasets with multiple resolutions.
 
 # TODO: Figure out what's up here...
-# (.64µm x .64µm x 2.542µm) for confocal but it only seems to work right if I just set it to 1
+# (.64µm x .64µm x 2.542µm) for confocal
+# but it only seems to work right if I just set it to 1
 RESOLUTION = (1, 1, 1)
 ATLAS_PACKAGER = "Scott Wolf"
 

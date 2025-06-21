@@ -77,7 +77,8 @@ def retrieve_reference_and_annotation():
     annotation), we additionally mirror the right annotation hemisphere to
     overwrite the original left annotation hemisphere.
 
-    Returns:
+    Returns
+    -------
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
@@ -116,7 +117,8 @@ def retrieve_hemisphere_map():
     by taking half the annotation along the LR axis, so we
     don't need to store it.
 
-    Returns:
+    Returns
+    -------
         numpy.array or None: A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
@@ -144,7 +146,8 @@ def retrieve_structure_information():
     | 567| Cerebrum          | CH      | [997, 8, 567]     | [176, 240, 255] |
     ╰────┴───────────────────┴─────────┴───────────────────┴─────────────────╯
 
-    Returns:
+    Returns
+    -------
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
     col_names = ["IDX", "R", "G", "B", "A", "VIS", "MSH", "LABEL"]

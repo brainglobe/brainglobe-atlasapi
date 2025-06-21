@@ -1,3 +1,5 @@
+"""Tools to finalise the atlas creation process."""
+
 import json
 import shutil
 import tarfile
@@ -36,15 +38,26 @@ ATLAS_VERSION = brainglobe_atlasapi.atlas_generation.__version__
 
 def filter_structures_not_present_in_annotation(structures, annotation):
     """
-    Filter out structures that are not present in the annotation volume,
-    or whose children are not present. Also prints removed structures.
+    Filter out structures not present in the annotation volume.
 
-    Args:
-        structures (list of dict): List containing structure information
-        annotation (np.ndarray): Annotation volume
+    This function removes structures from the provided list that are
+    not found in the annotation volume, or whose children are also
+    not present. It also prints the names and IDs of the removed structures.
 
-    Returns:
-        list of dict: Filtered list of structure dictionaries
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries, where each dictionary contains information
+        about a brain structure (e.g., ID, name, parent information).
+    annotation : np.ndarray
+        The annotation volume (3D NumPy array) where each voxel contains
+        a structure ID.
+
+    Returns
+    -------
+    list of dict
+        A new list containing only the structure dictionaries that are
+        present in the annotation volume or have descendants present.
     """
     present_ids = set(np.unique(annotation))
     # Create a structure tree for easy parent-child relationship traversal
@@ -151,7 +164,6 @@ def wrapup_atlas_from_data(
         (Default value = empty dict).
         Additional metadata to write to metadata.json
     """
-
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
     if isinstance(annotation_stack, str) or isinstance(annotation_stack, Path):

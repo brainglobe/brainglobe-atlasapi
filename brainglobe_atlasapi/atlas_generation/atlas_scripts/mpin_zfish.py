@@ -71,7 +71,6 @@ def collect_all_inplace(
 
 
     """
-
     # Append clean dictionary with brainglobe standard info:
     traversing_list.append(
         {

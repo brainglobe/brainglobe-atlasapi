@@ -253,7 +253,7 @@ def wrapup_atlas_from_data(
         atlas_link=atlas_link,
         species=species,
         symmetric=symmetric,
-        resolution=resolution, # We expect input to be asr
+        resolution=resolution,  # We expect input to be asr
         orientation=descriptors.ATLAS_ORIENTATION,  # Pass orientation "asr"
         version=f"{ATLAS_VERSION}.{atlas_minor_version}",
         shape=shape,

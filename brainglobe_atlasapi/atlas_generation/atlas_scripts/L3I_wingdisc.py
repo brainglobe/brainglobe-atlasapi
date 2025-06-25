@@ -1,12 +1,15 @@
 from pathlib import Path
 
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.atlas_generation.annotation_utils import (read_itk_labels, write_itk_labels)
-from brainglobe_atlasapi.atlas_generation.mesh_utils import construct_meshes_from_annotation
-from brainglobe_utils.IO.image import load_nii
-import pooch
-
 import pandas as pd
+from brainglobe_utils.IO.image import load_nii
+
+from brainglobe_atlasapi.atlas_generation.annotation_utils import (
+    read_itk_labels,
+)
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
@@ -27,7 +30,7 @@ ATLAS_NAME = "L3I_wingdisc"
 CITATION = None
 
 # The scientific name of the species, ie; Rattus norvegicus
-SPECIES = 'Drosophila melanogaster'
+SPECIES = "Drosophila melanogaster"
 
 # The URL for the data files
 ATLAS_LINK = None
@@ -44,8 +47,9 @@ ROOT_ID = 997
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
 RESOLUTION = 2
-#Need review
+# Need review
 gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
+
 
 def download_resources():
     """
@@ -53,15 +57,17 @@ def download_resources():
 
     If possible, please use the Pooch library to retrieve any resources.
     """
-    '''
+    """
     resources_path = pooch.retrieve(
         gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
     )
-    '''
-    resources_path = Path('D:/UCL/Postgraduate_programme/templates/Version3')
+    """
+    resources_path = Path("D:/UCL/Postgraduate_programme/templates/Version3")
     return resources_path
 
+
 resources_path = download_resources()
+
 
 def retrieve_reference_and_annotation():
     """
@@ -73,18 +79,27 @@ def retrieve_reference_and_annotation():
     """
     print("loading reference and annotation volume")
     # Need review
-    '''
+    """
     annotation_volume_path = Path(resources_path[0])
     reference_volume_path = Path(resources_path[2])
 
     annotation = load_nii(annotation_volume_path, as_array=True)
     reference = load_nii(reference_volume_path, as_array=True)
-    '''
-    annotation_volume_path = Path(resources_path/'pouch_peripodial_hinge_notum.nii.gz')
-    assert annotation_volume_path.exists(), "Annotation volume path does not exist."
+    """
+    annotation_volume_path = Path(
+        resources_path / "pouch_peripodial_hinge_notum.nii.gz"
+    )
+    assert (
+        annotation_volume_path.exists()
+    ), "Annotation volume path does not exist."
 
-    reference_volume_path = Path(resources_path/'template_wingdisc-CSLM-brightness-corrected-trimean.nii.gz')
-    assert reference_volume_path.exists(), "Reference volume path does not exist."
+    reference_volume_path = Path(
+        resources_path
+        / "template_wingdisc-CSLM-brightness-corrected-trimean.nii.gz"
+    )
+    assert (
+        reference_volume_path.exists()
+    ), "Reference volume path does not exist."
 
     annotation = load_nii(annotation_volume_path, as_array=True)
     reference = load_nii(reference_volume_path, as_array=True)
@@ -129,29 +144,37 @@ def retrieve_structure_information():
     Returns:
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
-    label_path = resources_path/'wingdisc_annotation.txt'
+    label_path = resources_path / "wingdisc_annotation.txt"
 
-    itk_labels = pd.DataFrame(read_itk_labels(label_path,2))
-    atlas_info = pd.DataFrame(columns=['id', 'name', 'acronym', 'rgb_triplet'])
+    itk_labels = pd.DataFrame(read_itk_labels(label_path, 2))
+    atlas_info = pd.DataFrame(columns=["id", "name", "acronym", "rgb_triplet"])
     for index, row in itk_labels.iterrows():
         atlas_info.loc[len(atlas_info)] = {
-            'id': row['id'],
-            'name': row['name'],
-            'acronym': row['acronym'],
-            'rgb_triplet': list(row['rgb_triplet'])
+            "id": row["id"],
+            "name": row["name"],
+            "acronym": row["acronym"],
+            "rgb_triplet": list(row["rgb_triplet"]),
         }
-    root_info = pd.DataFrame({'id': 997, 'name': ['root'],
-                              'acronym': ['root'], 'rgb_triplet': [[255, 255, 255]]})
+    root_info = pd.DataFrame(
+        {
+            "id": 997,
+            "name": ["root"],
+            "acronym": ["root"],
+            "rgb_triplet": [[255, 255, 255]],
+        }
+    )
     atlas_info = pd.concat([root_info, atlas_info], ignore_index=True)
     atlas_info["structure_id_path"] = atlas_info["id"].apply(
         lambda row: [997, row] if row != 997 else [997]
     )
-    atlas_info = atlas_info[["id", "name", "acronym", "structure_id_path", "rgb_triplet"]]
-    atlas_info = atlas_info.to_dict('records')
+    atlas_info = atlas_info[
+        ["id", "name", "acronym", "structure_id_path", "rgb_triplet"]
+    ]
+    atlas_info = atlas_info.to_dict("records")
     return atlas_info
 
 
-def retrieve_or_construct_meshes(annotated_volume,ROOT_ID):
+def retrieve_or_construct_meshes(annotated_volume, ROOT_ID):
     """
     This function should return a dictionary of ids and corresponding paths to
     mesh files. Some atlases are packaged with mesh files, in these cases we
@@ -159,7 +182,7 @@ def retrieve_or_construct_meshes(annotated_volume,ROOT_ID):
     In other cases we need to construct the meshes ourselves. For this we have
     helper functions to achieve this.
     """
-    download_path = resources_path/"wingdisc_meshes"
+    download_path = resources_path / "wingdisc_meshes"
     download_path.mkdir(exist_ok=True, parents=True)
     structures = retrieve_structure_information()
     meshes_dict = construct_meshes_from_annotation(
@@ -181,7 +204,7 @@ def retrieve_additional_references():
 ### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-    bg_root_dir.mkdir(exist_ok=True,parents=True)
+    bg_root_dir.mkdir(exist_ok=True, parents=True)
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
     additional_references = retrieve_additional_references()

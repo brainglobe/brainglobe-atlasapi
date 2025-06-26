@@ -1,3 +1,5 @@
+"""Module containing property descriptors for the atlas API."""
+
 import numpy as np
 
 # Base url of the gin repository:

@@ -1,17 +1,20 @@
-import numpy as np
-
-from brainglobe_atlasapi.atlas_generation.atlas_scripts.pre_packaging.blackcap.combine_blackcap_magneto_and_anatomical_annotations import (
-    apply_modal_filter)
-from brainglobe_utils.IO.image import load_nii
 from pathlib import Path
+
+import numpy as np
 from brainglobe_template_builder.io import (
     save_as_asr_nii,
 )
+from brainglobe_utils.IO.image import load_nii
 from skimage.filters.rank import modal
 from skimage.morphology import square
-resources_path = Path('D:/UCL/Postgraduate_programme/templates/Version3')
-annotation_path = resources_path / 'pouch_peripodial_hinge_notum_refined.nii.gz'
-filtered_path = resources_path / 'pouch_peripodial_hinge_notum_refined_filtered.nii.gz'
+
+resources_path = Path("D:/UCL/Postgraduate_programme/templates/Version3")
+annotation_path = (
+    resources_path / "pouch_peripodial_hinge_notum_refined.nii.gz"
+)
+filtered_path = (
+    resources_path / "pouch_peripodial_hinge_notum_refined_filtered.nii.gz"
+)
 target_isotropic_resolution = 2
 if __name__ == "__main__":
     # Load the annotation image
@@ -23,17 +26,25 @@ if __name__ == "__main__":
     for i in range(annotation_image.shape[0]):
         # Apply the modal filter to each slice of the annotation image
         filtered_stack = modal(annotation_image[i], footprint=footprint)
-        #filtered_stack = apply_modal_filter(annotation_image[i], size=3)
+        # filtered_stack = apply_modal_filter(annotation_image[i], size=3)
         print(annotation_image[i].max())
         filtered_annotation_image[i] = filtered_stack
         print(filtered_stack.max())
 
     # Save the filtered annotation image
     vox_sizes = [
-                    target_isotropic_resolution,
-                ] * 3
+        target_isotropic_resolution,
+    ] * 3
     save_as_asr_nii(filtered_annotation_image, vox_sizes, filtered_path)
     print("Original volume shape:", annotation_image.shape)
     print("Filtered volume shape:", filtered_annotation_image.shape)
-    print("Original slice 0 min/max:", annotation_image.min(), annotation_image.max())
-    print("Filtered slice 0 min/max:", filtered_annotation_image.min(), filtered_annotation_image.max())
+    print(
+        "Original slice 0 min/max:",
+        annotation_image.min(),
+        annotation_image.max(),
+    )
+    print(
+        "Filtered slice 0 min/max:",
+        filtered_annotation_image.min(),
+        filtered_annotation_image.max(),
+    )

@@ -47,7 +47,8 @@ ROOT_ID = 0
 # parameter for non isotropic datasets or datasets with multiple resolutions.
 
 # (2.542µm, 1.2407µm x 1.2407µm ) for confocal 1.207 is from tiff metadata
-# (Resolution = (805898, 1000000) = 0.805898 pixel/µm -> 1/0.805898 = 1.2407 µm/pixel)
+# (Resolution = (805898, 1000000) = 0.805898 pixel/µm ->
+# 1/0.805898 = 1.2407 µm/pixel)
 # ASR orientation (depth, height, width)
 RESOLUTION = (2.542, 1.2407, 1.2407)
 ATLAS_PACKAGER = "Scott Wolf"

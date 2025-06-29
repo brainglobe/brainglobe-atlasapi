@@ -27,7 +27,7 @@ dependencies = [
     "pyarrow",
     "requests",
     "rich >= 9.0.0",
-    "tifffile",
+    "tifffile>=2018.11.6",
     "treelib",
 ]
 dynamic = ["version"]

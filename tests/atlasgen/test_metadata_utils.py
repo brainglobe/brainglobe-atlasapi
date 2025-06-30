@@ -184,7 +184,6 @@ def test_create_metadata_files(
     tmp_path,
 ):
     """Test create_metadata_files."""
-
     metadata = generate_metadata_dict(**metadata_input_template)
 
     # json is expected to be present in the dest_dir
@@ -205,7 +204,6 @@ def test_create_metadata_files(
 
 def test_create_structures_csv(structures, tmp_path):
     """Test create_structures_csv."""
-
     root = get_root_id(structures)
 
     # json is expected to be present in the dest_dir
@@ -228,7 +226,6 @@ def test_create_readme(
     tmp_path,
 ):
     """Test create_readme."""
-
     metadata = generate_metadata_dict(**metadata_input_template)
 
     create_readme(

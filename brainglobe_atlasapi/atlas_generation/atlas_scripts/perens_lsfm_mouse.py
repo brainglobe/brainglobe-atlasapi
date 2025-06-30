@@ -42,11 +42,11 @@ def get_id_from_acronym(df, acronym):
             atlas table file [see atlas.load_table()]
         acronym (string or list of strings): brain region acronym(s)
 
-    Returns:
+    Returns
+    -------
         ID (int or list of ints):
             brain region ID(s) corresponding to input acronym(s)
     """
-
     # create as list if necessary
     if not isinstance(acronym, list):
         acronym = [acronym]
@@ -74,11 +74,11 @@ def get_acronym_from_id(df, ID):
         df (pandas dataframe): atlas table dataframe [see atlas.load_table()]
         ID (int or list of int): brain region ID(s)
 
-    Returns:
+    Returns
+    -------
         acronym (string or list of strings):
         brain region acronym(s) corresponding to input ID(s)
     """
-
     # create as list if necessary
     if not isinstance(ID, list):
         ID = [ID]
@@ -116,10 +116,10 @@ def get_all_parents(df, key):
         df (pandas dataframe) : atlas table dataframe [see atlas.load_table()]
         key (int/string)      : atlas region ID/acronym
 
-    Returns:
+    Returns
+    -------
         parents (list) : brain region acronym corresponding to input ID
     """
-
     if isinstance(key, str):  # if input is acronym convert to ID
         list_parent_ids = tree_traverse_child2parent(
             df, get_id_from_acronym(df, key), []

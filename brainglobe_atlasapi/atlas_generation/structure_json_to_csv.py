@@ -68,7 +68,7 @@ def convert_structure_json_to_csv(
 
     structure_json_path = Path(structure_json_path)
 
-    df = pd.read_json(structure_json_path)
+    df = pd.read_json(structure_json_path, encoding="utf-8")
     df = df.drop(columns=["rgb_triplet"])
     df["parent_structure_id"] = df["structure_id_path"].apply(
         get_parent_id, root=root
@@ -81,4 +81,4 @@ def convert_structure_json_to_csv(
     if destination_path is None:
         destination_path = structure_json_path.with_suffix(".csv")
 
-    df.to_csv(destination_path, index=False)
+    df.to_csv(destination_path, index=False, encoding="utf-8")

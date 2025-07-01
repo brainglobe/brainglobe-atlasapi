@@ -59,7 +59,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         """If atlas is local, return actual version of the downloaded files;
         Else, return none.
         """
-        version_str = self.metadata["atlas_version"]
+        version_str = self.metadata["version"]
 
         if version_str is None:
             return None

@@ -131,7 +131,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
     def remote_url(self):
         if self.remote_version is not None:
             name = (
-                f"{self.atlas_name}_v{self.remote_version[0]}."
+                f"{self.atlas_name}_v{self.remote_version[0]}_"
                 f"{self.remote_version[1]}.yaml"
             )
 
@@ -145,7 +145,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         remote_version = self.remote_version
 
         name = (
-            f"{self.atlas_name}_v{remote_version[0]}."
+            f"{self.atlas_name}_v{remote_version[0]}_"
             f"{remote_version[1]}.yaml"
         )
 

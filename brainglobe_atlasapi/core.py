@@ -43,7 +43,7 @@ class Atlas:
         elif atlas_path.suffix == ".yaml":
             self.root_dir = atlas_path.parent
             self.metadata = open_yaml(atlas_path)
-            structures_path = self.metadata["annotation_images"][0]
+            structures_path = self.metadata["annotation_names"][0]
             structures_list = read_json(
                 self.root_dir
                 / "annotations"

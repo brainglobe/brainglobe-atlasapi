@@ -34,11 +34,11 @@ def test_remote_version(v1_atlas, v2_atlas):
 
 
 def test_local_full_name(v1_atlas, v2_atlas):
-    assert v2_atlas.local_full_name == "atlases/allen_mouse_100um_v1.2.yaml"
+    assert v2_atlas.local_full_name == "atlases/allen_mouse_100um_v1_2.yaml"
 
 
 def test_remote_url(v1_atlas, v2_atlas):
-    remote_url = "https://gin.g-node.org/brainglobe/atlases-v2/raw/master/allen_mouse_100um_v1.2.yaml"
+    remote_url = "https://gin.g-node.org/brainglobe/atlases-v2/raw/master/allen_mouse_100um_v1_2.yaml"
     assert v2_atlas.remote_url == remote_url
 
 

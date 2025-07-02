@@ -27,7 +27,7 @@ __version__ = 0
 ATLAS_NAME = "L3I_wingdisc"
 
 # DOI of the most relevant citable document
-CITATION = None
+CITATION = 'unpublished'
 
 # The scientific name of the species, ie; Rattus norvegicus
 SPECIES = "Drosophila melanogaster"
@@ -87,7 +87,7 @@ def retrieve_reference_and_annotation():
     reference = load_nii(reference_volume_path, as_array=True)
     """
     annotation_volume_path = Path(
-        resources_path / "pouch_peripodial_hinge_notum.nii.gz"
+        resources_path / "pouch_peripodial_hinge_notum_refined_filtered_filtered_filtered.nii.gz"
     )
     assert (
         annotation_volume_path.exists()

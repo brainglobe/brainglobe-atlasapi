@@ -33,7 +33,7 @@ STRUCTURE_TEMPLATE = {
     "id": 997,
     "name": "root",
     "structure_id_path": [997],
-    "rgb_triplet": [255, 255, 255],
+    "rgb_triplet": (255, 255, 255),
 }
 
 

@@ -1,4 +1,5 @@
 import argparse
+import multiprocessing as mp
 import time
 from pathlib import Path
 
@@ -6,7 +7,6 @@ import numpy as np
 import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
-from rich.progress import track
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -165,18 +165,15 @@ def create_meshes(
     # Mesh creation
     closing_n_iters = 2
     smooth = True  # smooth meshes after creation
+    subvolume = True  # Memory efficient mesh creation using subvolumes
+
     start = time.time()
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        # list(tree.nodes.values())[:5],
-        # total=5,
-        description="Creating meshes",
-    ):
-        output_file = output_path / f"{node.identifier}.obj"
-        if output_file.exists():
-            continue
-        create_region_mesh(
+
+    pool = mp.Pool(mp.cpu_count() - 2)
+
+    pool.map(
+        create_region_mesh,
+        [
             (
                 output_path,
                 node,
@@ -187,8 +184,34 @@ def create_meshes(
                 closing_n_iters,
                 decimate_fraction,
                 smooth,
+                subvolume,  # subvolume=True to create meshes for subvolumes
             )
-        )
+            for node in tree.nodes.values()
+        ],
+    )
+    # for node in track(
+    #     tree.nodes.values(),
+    #     total=tree.size(),
+    #     # list(tree.nodes.values())[:5],
+    #     # total=5,
+    #     description="Creating meshes",
+    # ):
+    #     output_file = output_path / f"{node.identifier}.obj"
+    #     if output_file.exists():
+    #         continue
+    #     create_region_mesh(
+    #         (
+    #             output_path,
+    #             node,
+    #             tree,
+    #             labels,
+    #             annotation_volume,
+    #             root_id,
+    #             closing_n_iters,
+    #             decimate_fraction,
+    #             smooth,
+    #         )
+    #     )
 
     print(
         "Finished mesh extraction in: ",

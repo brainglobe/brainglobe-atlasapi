@@ -3,7 +3,7 @@
 from pathlib import Path
 
 
-def split_label_text(name: str, acryonym_letter=1) -> str:
+def split_label_text(name: str) -> str:
     """Split label text into name + acronym.
 
     If the label text ends with ')', extract the acronym inside parentheses.
@@ -14,11 +14,11 @@ def split_label_text(name: str, acryonym_letter=1) -> str:
         name = name[:-1]  # ignore trailing space
         acronym = acronym[:-1]  # ignore trailing )
     else:
-        acronym = name[:acryonym_letter].upper()
+        acronym = name[0]
     return name, acronym
 
 
-def read_itk_labels(path: Path, acryonym_letter=1) -> dict:
+def read_itk_labels(path: Path) -> dict:
     """Turns ITK label data from a file into a list of dictionaries."""
     labels = []
     with open(path) as labels_file:
@@ -31,9 +31,7 @@ def read_itk_labels(path: Path, acryonym_letter=1) -> dict:
                     raw_values[7] = raw_values[7][:-1]
                 label_text = raw_values[7][1:-1]
                 if label_text != "Clear Label":
-                    name, acronym = split_label_text(
-                        label_text, acryonym_letter
-                    )
+                    name, acronym = split_label_text(label_text)
                     labels.append(
                         {
                             "id": id,

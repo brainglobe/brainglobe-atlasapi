@@ -19,6 +19,7 @@ except ModuleNotFoundError:
 from pathlib import Path
 
 import numpy as np
+import zarr
 from loguru import logger
 from rich.progress import track
 
@@ -193,6 +194,71 @@ def create_region_mesh(args):
     else:
         # Create mask and extract mesh
         mask = create_masked_array(annotated_volume, ids)
+
+        if not np.max(mask):
+            print(f"Empty mask for {node.tag}")
+        else:
+            if node.identifier == ROOT_ID:
+                extract_mesh_from_mask(
+                    mask,
+                    obj_filepath=savepath,
+                    smooth=smooth,
+                    decimate_fraction=decimate_fraction,
+                )
+            else:
+                extract_mesh_from_mask(
+                    mask,
+                    obj_filepath=savepath,
+                    smooth=smooth,
+                    closing_n_iters=closing_n_iters,
+                    decimate_fraction=decimate_fraction,
+                )
+
+
+def create_region_mesh_parallel(
+    args: tuple,
+):
+    logger.debug(f"Creating mask for region {args[1].identifier}")
+    meshes_dir_path = args[0]
+    node = args[1]
+    tree = args[2]
+    labels = args[3]
+    annotated_volume_path = args[4]
+    meshes_mask_path = args[5]
+    ROOT_ID = args[6]
+    closing_n_iters = args[7]
+    decimate_fraction = args[8]
+    smooth = args[9]
+
+    # Get labels for region and it's children
+    stree = tree.subtree(node.identifier)
+    ids = list(stree.nodes.keys())
+
+    # Keep only labels that are in the annotation volume
+    matched_labels = [i for i in ids if i in labels]
+    savepath = meshes_dir_path / f"{node.identifier}.obj"
+
+    if (
+        not matched_labels
+    ):  # it fails if the region and all of it's children are not in annotation
+        print(f"No labels found for {node.tag}")
+        return
+    else:
+        # Create mask and extract mesh
+        volume = zarr.open(annotated_volume_path, mode="r")
+        mask_group = zarr.open_group(meshes_mask_path, mode="a")
+        mask = mask_group.zeros(
+            name=str(node.identifier), shape=volume.shape, dtype=np.uint8
+        )
+
+        if not isinstance(ids, list) and not np.all(np.isin(ids, volume)):
+            print(f"Label {ids} is not in the array, returning empty mask")
+            return
+
+        if not isinstance(ids, list):
+            mask[volume == ids] = 1
+        else:
+            mask[np.isin(volume, ids)] = 1
 
         if not np.max(mask):
             print(f"Empty mask for {node.tag}")

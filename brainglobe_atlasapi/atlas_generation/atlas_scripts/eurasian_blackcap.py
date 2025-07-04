@@ -2,14 +2,15 @@ __version__ = "2"
 
 import csv
 import glob as glob
+import multiprocessing as mp
 import os
 import time
 from pathlib import Path
 
 import numpy as np
 import pooch
+import zarr
 from brainglobe_utils.IO.image import load_nii
-from rich.progress import track
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
     read_itk_labels,
@@ -38,9 +39,9 @@ def create_atlas(working_dir, resolution):
         gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
     )
 
-    hierarchy_path = atlas_path[0]  # "combined_structures.csv"
+    hierarchy_path = atlas_path[1]  # "combined_structures.csv"
     reference_file = atlas_path[
-        1
+        0
     ]  # "reference_res-25_hemi-right_IMAGE.nii.gz"
     structures_file = atlas_path[2]  # "labels051224.txt"
     annotations_file = atlas_path[3]  # "annotations_051224.nii.gz"
@@ -74,7 +75,7 @@ def create_atlas(working_dir, resolution):
             "name": "Pallium",
             "acronym": "P",
             "structure_id_path": [999, 1],
-            "rgb_triplet": [0, 200, 100],
+            "rgb_triplet": (0, 200, 100),
         }
     )
     structure_data_list.append(
@@ -83,7 +84,7 @@ def create_atlas(working_dir, resolution):
             "name": "root",
             "acronym": "root",
             "structure_id_path": [999],
-            "rgb_triplet": [255, 255, 255],
+            "rgb_triplet": (255, 255, 255),
         }
     )
 
@@ -137,15 +138,23 @@ def create_atlas(working_dir, resolution):
     closing_n_iters = 1
     decimate_fraction = 0.6  # higher = more triangles
     smooth = False
+    subvolume = True  # Memory efficient mesh creation using subvolumes
+    ann_store = zarr.DirectoryStore(working_dir / "temp_annotations.zarr")
+    zarr.create_array(
+        ann_store,
+        data=annotated_volume,
+        shape=annotated_volume.shape,
+        dtype=annotated_volume.dtype,
+    )
+    ann_store.close()
 
     start = time.time()
 
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
-        create_region_mesh(
+    pool = mp.Pool(mp.cpu_count() - 2)
+
+    pool.map(
+        create_region_mesh,
+        [
             (
                 meshes_dir_path,
                 node,
@@ -156,8 +165,11 @@ def create_atlas(working_dir, resolution):
                 closing_n_iters,
                 decimate_fraction,
                 smooth,
+                subvolume,  # subvolume=True to create meshes for subvolumes
             )
-        )
+            for node in tree.nodes.values()
+        ],
+    )
 
     print(
         "Finished mesh extraction in : ",

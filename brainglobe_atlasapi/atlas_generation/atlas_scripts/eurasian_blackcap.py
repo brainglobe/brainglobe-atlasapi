@@ -4,11 +4,11 @@ import csv
 import glob as glob
 import multiprocessing as mp
 import os
+import shutil
 import time
 from pathlib import Path
 
 import numpy as np
-import pooch
 import zarr
 from brainglobe_utils.IO.image import load_nii
 
@@ -17,7 +17,7 @@ from brainglobe_atlasapi.atlas_generation.annotation_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh,
+    create_region_mesh_parallel,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
@@ -34,17 +34,28 @@ def create_atlas(working_dir, resolution):
     ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
     ADDITIONAL_METADATA = {}
 
-    gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
-    atlas_path = pooch.retrieve(
-        gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
-    )
+    # gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
+    # atlas_path = pooch.retrieve(
+    #     gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
+    # )
 
-    hierarchy_path = atlas_path[1]  # "combined_structures.csv"
-    reference_file = atlas_path[
-        0
-    ]  # "reference_res-25_hemi-right_IMAGE.nii.gz"
-    structures_file = atlas_path[2]  # "labels051224.txt"
-    annotations_file = atlas_path[3]  # "annotations_051224.nii.gz"
+    # "combined_structures.csv"
+    hierarchy_path = (
+        "/Users/igortatarnikov/blackcap_materials/combined_structures.csv"
+    )
+    # "reference_res-25_hemi-right_IMAGE.nii.gz"
+    reference_file = (
+        "/Users/igortatarnikov/blackcap_materials/"
+        "reference_res-25_hemi-right_IMAGE.nii.gz"
+    )
+    # "labels051224.txt"
+    structures_file = (
+        "/Users/igortatarnikov/blackcap_materials/labels051224.txt"
+    )
+    # "annotations_051224.nii.gz"
+    annotations_file = (
+        "/Users/igortatarnikov/blackcap_materials/annotations_051224_Sw.nii.gz"
+    )
     meshes_dir_path = Path.home() / "blackcap-meshes"
 
     try:
@@ -139,28 +150,37 @@ def create_atlas(working_dir, resolution):
     decimate_fraction = 0.6  # higher = more triangles
     smooth = False
     subvolume = True  # Memory efficient mesh creation using subvolumes
-    ann_store = zarr.DirectoryStore(working_dir / "temp_annotations.zarr")
+    ann_path = working_dir / "temp_annotations.zarr"
+    if ann_path.exists():
+        shutil.rmtree(ann_path)
+
+    ann_store = zarr.storage.LocalStore(ann_path)
     zarr.create_array(
         ann_store,
         data=annotated_volume,
-        shape=annotated_volume.shape,
-        dtype=annotated_volume.dtype,
     )
     ann_store.close()
+    mesh_mask_path = working_dir / "temp_meshes_mask.zarr"
+    if mesh_mask_path.exists():
+        shutil.rmtree(mesh_mask_path)
+    meshes_mask_store = zarr.storage.LocalStore(mesh_mask_path)
+    zarr.create_group(meshes_mask_store)
+    meshes_mask_store.close()
 
     start = time.time()
 
     pool = mp.Pool(mp.cpu_count() - 2)
 
     pool.map(
-        create_region_mesh,
+        create_region_mesh_parallel,
         [
             (
                 meshes_dir_path,
                 node,
                 tree,
                 labels,
-                annotated_volume,
+                working_dir / "temp_annotations.zarr",
+                working_dir / "temp_meshes_mask.zarr",
                 ROOT_ID,
                 closing_n_iters,
                 decimate_fraction,
@@ -170,6 +190,11 @@ def create_atlas(working_dir, resolution):
             for node in tree.nodes.values()
         ],
     )
+
+    pool.close()
+
+    # shutil.rmtree(mesh_mask_path)
+    # shutil.rmtree(ann_path)
 
     print(
         "Finished mesh extraction in : ",

@@ -136,7 +136,9 @@ def create_metadata_files(
     :param additional_metadata: Dict to add to atlas metadata
     """
     # write metadata dict:
-    with open(dest_dir / descriptors.METADATA_FILENAME, "w", encoding="utf-8") as f:
+    with open(
+        dest_dir / descriptors.METADATA_FILENAME, "w", encoding="utf-8"
+    ) as f:
         # only save additional metadata to json, don't include in readme
         json.dump({**metadata_dict, **additional_metadata}, f)
 

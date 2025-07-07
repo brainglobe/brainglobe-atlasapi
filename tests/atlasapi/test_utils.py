@@ -329,7 +329,7 @@ def test_rich_atlas_metadata_type():
                     "major_vers": None,
                     "minor_vers": None,
                     "resolution": "1",
-                    "unit": "um"
+                    "unit": "um",
                 },
             },
             id="axolotl_1um",
@@ -355,7 +355,7 @@ def test_rich_atlas_metadata_type():
                     "major_vers": None,
                     "minor_vers": None,
                     "resolution": "1",
-                    "unit": "nm"
+                    "unit": "nm",
                 },
             },
             id="axolotl_1nm",

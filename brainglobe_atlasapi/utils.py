@@ -123,7 +123,7 @@ def atlas_name_from_repr(
 ):
     """Generate atlas name given a description."""
     if major_vers is None and minor_vers is None:
-        return f"{name}_{resolution}"
+        return f"{name}_{resolution}{unit}"
     else:
         return f"{name}_{resolution}{unit}_v{major_vers}.{minor_vers}"
 

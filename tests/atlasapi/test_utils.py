@@ -328,7 +328,7 @@ def test_rich_atlas_metadata_type():
                     "name": "axolotl",
                     "major_vers": None,
                     "minor_vers": None,
-                    "resolution": "1um",
+                    "resolution": 1,
                 },
             },
             id="axolotl_1um",
@@ -353,7 +353,8 @@ def test_rich_atlas_metadata_type():
                     "name": "axolotl",
                     "major_vers": None,
                     "minor_vers": None,
-                    "resolution": "1nm",
+                    "resolution": 1,
+                    "unit": "nm"
                 },
             },
             id="axolotl_1nm",

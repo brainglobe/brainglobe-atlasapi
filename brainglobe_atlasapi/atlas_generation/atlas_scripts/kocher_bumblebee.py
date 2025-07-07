@@ -526,7 +526,7 @@ def _process_mesh(mesh: Mesh) -> Mesh:
         Processed mesh
     """
     mesh.triangulate()
-    mesh.decimate_pro(0.06, preserve_boundary=False)
+    mesh.decimate_pro(0.06, preserve_boundaries=False)
     mesh.smooth()
     return mesh
 

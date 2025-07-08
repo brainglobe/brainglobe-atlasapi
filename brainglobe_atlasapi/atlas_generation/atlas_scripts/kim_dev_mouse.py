@@ -1,17 +1,19 @@
 import argparse
 import multiprocessing as mp
+import shutil
 import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pooch
+import zarr
 from brainglobe_utils.IO.image import load_nii
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh,
+    create_region_mesh_parallel,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -89,7 +91,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     # see: https://github.com/fatiando/pooch/issues/457
     annotations_path = next(p for p in fetched_paths if p.endswith(members[0]))
     reference_path = next(p for p in fetched_paths if p.endswith(members[1]))
-    annotations = load_nii(annotations_path, as_array=True)
+    annotations = load_nii(annotations_path, as_array=True).astype(np.uint32)
     reference = load_nii(reference_path, as_array=True)
     dmin = np.min(reference)
     dmax = np.max(reference)
@@ -166,20 +168,47 @@ def create_meshes(
     closing_n_iters = 2
     smooth = True  # smooth meshes after creation
     subvolume = True  # Memory efficient mesh creation using subvolumes
+    compressor = zarr.codecs.BloscCodec(
+        cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.bitshuffle
+    )
+
+    # ann_path = output_path.parent / "temp_ann.npy"
+    # if not ann_path.exists():
+    #     np.save(ann_path, annotation_volume)
+
+    ann_path = output_path.parent / "temp_annotations.zarr"
+    if ann_path.exists():
+        shutil.rmtree(ann_path)
+
+    ann_store = zarr.storage.LocalStore(ann_path)
+    zarr.create_array(
+        ann_store,
+        data=annotation_volume,
+        compressors=compressor,
+    )
+    ann_store.close()
+    # mesh_mask_path = output_path.parent / "temp_meshes_mask.zarr"
+    # if mesh_mask_path.exists():
+    #     shutil.rmtree(mesh_mask_path)
+    # meshes_mask_store = zarr.storage.LocalStore(mesh_mask_path)
+    # zarr.create_group(meshes_mask_store)
+    # meshes_mask_store.close()
 
     start = time.time()
 
     pool = mp.Pool(mp.cpu_count() - 2)
+    # pool = mp.Pool(8)
 
     pool.map(
-        create_region_mesh,
+        create_region_mesh_parallel,
         [
             (
                 output_path,
                 node,
                 tree,
                 labels,
-                annotation_volume,
+                ann_path,
+                annotation_volume.shape,
                 root_id,
                 closing_n_iters,
                 decimate_fraction,
@@ -351,7 +380,8 @@ if __name__ == "__main__":
     import sys
 
     params = vars(arg_parser.parse_args())
-    timepoints = params["timepoints"]
+    # timepoints = params["timepoints"]
+    timepoints = ("P56",)
     modality = params["modality"]
     decimate_fraction = params["decimate_fraction"]
     cached_modality = params["cached_meshes"]

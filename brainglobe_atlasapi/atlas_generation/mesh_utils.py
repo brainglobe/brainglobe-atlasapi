@@ -92,22 +92,24 @@ def extract_mesh_from_mask(
                 + f"\n      {str(obj_filepath)}"
             )
 
-    # Check volume argument
-    if not np.isin(volume, [0, 1]).all():
-        raise ValueError(
-            "Argument volume should be a binary mask with only "
-            "0s and 1s when passing a np.ndarray"
-        )
+    # # Check volume argument
+    # if not np.isin(volume, [0, 1]).all():
+    #     raise ValueError(
+    #         "Argument volume should be a binary mask with only "
+    #         "0s and 1s when passing a np.ndarray"
+    #     )
 
     # Apply morphological transformations
     if closing_n_iters is not None:
-        volume = binary_fill_holes(volume).astype(int)
-        volume = binary_closing(volume, iterations=closing_n_iters).astype(int)
+        volume = binary_fill_holes(volume).astype(np.uint8)
+        volume = binary_closing(volume, iterations=closing_n_iters).astype(
+            np.uint8
+        )
 
     if not use_marching_cubes:
         # Use faster algorithm
         volume = Volume(volume)
-        mesh = volume.clone().isosurface(value=threshold).cap()
+        mesh = volume.isosurface(value=threshold).cap()
     else:
         print(
             "The marching cubes algorithm might be rotated "
@@ -224,7 +226,7 @@ def create_region_mesh_parallel(
     tree = args[2]
     labels = args[3]
     annotated_volume_path = args[4]
-    meshes_mask_path = args[5]
+    # volume_shape = args[5]
     ROOT_ID = args[6]
     closing_n_iters = args[7]
     decimate_fraction = args[8]
@@ -246,22 +248,21 @@ def create_region_mesh_parallel(
     else:
         # Create mask and extract mesh
         volume = zarr.open(annotated_volume_path, mode="r")
-        mask_group = zarr.open_group(meshes_mask_path, mode="a")
-        mask = mask_group.zeros(
-            name=str(node.identifier), shape=volume.shape, dtype=np.uint8
-        )
+        # mask_group = zarr.open_group(meshes_mask_path, mode="a")
+        # # mask = mask_group.zeros(
+        # #     name=str(node.identifier), shape=volume.shape, dtype=np.uint8
+        # # )
+        # volume = np.memmap(
+        # annotated_volume_path, dtype=np.uint32, shape=volume_shape, mode="r"
+        # )
 
-        if not isinstance(ids, list) and not np.all(np.isin(ids, volume)):
-            print(f"Label {ids} is not in the array, returning empty mask")
-            return
-
-        if not isinstance(ids, list):
-            mask[volume == ids] = 1
+        if not isinstance(matched_labels, list):
+            mask = volume == matched_labels
         else:
-            mask[np.isin(volume, ids)] = 1
+            mask = np.isin(volume, matched_labels)
 
-        if not np.max(mask):
-            print(f"Empty mask for {node.tag}")
+        if np.sum(mask) == 0:
+            print(f"Label {ids} is not in the array, returning empty mask")
         else:
             if node.identifier == ROOT_ID:
                 extract_mesh_from_mask(

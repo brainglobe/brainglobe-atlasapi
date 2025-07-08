@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+import pooch
 import zarr
 from brainglobe_utils.IO.image import load_nii
 
@@ -34,28 +35,19 @@ def create_atlas(working_dir, resolution):
     ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
     ADDITIONAL_METADATA = {}
 
-    # gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
-    # atlas_path = pooch.retrieve(
-    #     gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
-    # )
+    gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
+    atlas_path = pooch.retrieve(
+        gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
+    )
 
     # "combined_structures.csv"
-    hierarchy_path = (
-        "/Users/igortatarnikov/blackcap_materials/combined_structures.csv"
-    )
+    hierarchy_path = atlas_path[1]
     # "reference_res-25_hemi-right_IMAGE.nii.gz"
-    reference_file = (
-        "/Users/igortatarnikov/blackcap_materials/"
-        "reference_res-25_hemi-right_IMAGE.nii.gz"
-    )
+    reference_file = atlas_path[0]
     # "labels051224.txt"
-    structures_file = (
-        "/Users/igortatarnikov/blackcap_materials/labels051224.txt"
-    )
+    structures_file = atlas_path[2]
     # "annotations_051224.nii.gz"
-    annotations_file = (
-        "/Users/igortatarnikov/blackcap_materials/annotations_051224_Sw.nii.gz"
-    )
+    annotations_file = atlas_path[3]
     meshes_dir_path = Path.home() / "blackcap-meshes"
 
     try:

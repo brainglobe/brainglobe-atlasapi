@@ -88,7 +88,8 @@ def retrieve_reference_and_annotation():
     """
     annotation_volume_path = Path(
         resources_path
-        / "pouch_peripodial_hinge_notum_refined_filtered_filtered_filtered.nii.gz"
+        / "pouch_peripodial_hinge_notum_refined_"
+          "filtered_filtered_filtered.nii.gz"
     )
     assert (
         annotation_volume_path.exists()

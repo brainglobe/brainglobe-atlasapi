@@ -3,7 +3,7 @@
 from pathlib import Path
 
 
-def split_label_text(name: str, acryonym_letter=1) -> str:
+def split_label_text(name: str, acronym_length=1) -> str:
     """Split label text into name + acronym.
 
     If the label text ends with ')', extract the acronym inside parentheses.

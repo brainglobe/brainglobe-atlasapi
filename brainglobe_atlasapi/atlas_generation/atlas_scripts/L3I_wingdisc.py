@@ -87,9 +87,8 @@ def retrieve_reference_and_annotation():
     reference = load_nii(reference_volume_path, as_array=True)
     """
     annotation_volume_path = Path(
-        resources_path
-        / "pouch_peripodial_hinge_notum_refined_"
-          "filtered_filtered_filtered.nii.gz"
+        resources_path / "pouch_peripodial_hinge_notum_refined_"
+        "filtered_filtered_filtered.nii.gz"
     )
     assert (
         annotation_volume_path.exists()

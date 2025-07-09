@@ -14,7 +14,7 @@ def split_label_text(name: str, acronym_length=1) -> str:
         name = name[:-1]  # ignore trailing space
         acronym = acronym[:-1]  # ignore trailing )
     else:
-        acronym = name[:acryonym_letter].upper()
+        acronym = name[:acryonym_letter].capitalize()
     return name, acronym
 
 

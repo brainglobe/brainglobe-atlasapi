@@ -13,11 +13,14 @@ from brainglobe_utils.IO.image import load_nii
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh_parallel,
+    create_region_mesh_consumer,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.structure_tree_util import (
+    get_structures_tree,
+    postorder_tree,
+)
 
 ATLAS_NAME = "kim_dev_mouse"
 SPECIES = "Mus musculus"
@@ -167,14 +170,10 @@ def create_meshes(
     # Mesh creation
     closing_n_iters = 2
     smooth = True  # smooth meshes after creation
-    subvolume = True  # Memory efficient mesh creation using subvolumes
+    # subvolume = True  # Memory efficient mesh creation using subvolumes
     compressor = zarr.codecs.BloscCodec(
         cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.bitshuffle
     )
-
-    # ann_path = output_path.parent / "temp_ann.npy"
-    # if not ann_path.exists():
-    #     np.save(ann_path, annotation_volume)
 
     ann_path = output_path.parent / "temp_annotations.zarr"
     if ann_path.exists():
@@ -187,37 +186,46 @@ def create_meshes(
         compressors=compressor,
     )
     ann_store.close()
-    # mesh_mask_path = output_path.parent / "temp_meshes_mask.zarr"
-    # if mesh_mask_path.exists():
-    #     shutil.rmtree(mesh_mask_path)
-    # meshes_mask_store = zarr.storage.LocalStore(mesh_mask_path)
-    # zarr.create_group(meshes_mask_store)
-    # meshes_mask_store.close()
+    mesh_mask_path = output_path.parent / "temp_meshes_mask.zarr"
+    if mesh_mask_path.exists():
+        shutil.rmtree(mesh_mask_path)
+    meshes_mask_store = zarr.storage.LocalStore(mesh_mask_path)
+    zarr.create_group(meshes_mask_store)
+    meshes_mask_store.close()
 
     start = time.time()
 
-    pool = mp.Pool(mp.cpu_count() - 2)
-    # pool = mp.Pool(8)
-
-    pool.map(
-        create_region_mesh_parallel,
-        [
-            (
-                output_path,
-                node,
-                tree,
-                labels,
-                ann_path,
-                annotation_volume.shape,
-                root_id,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-                subvolume,  # subvolume=True to create meshes for subvolumes
-            )
-            for node in tree.nodes.values()
-        ],
+    work_queue = mp.Queue()
+    num_threads = mp.cpu_count() - 2
+    consumer_args = (
+        work_queue,
+        meshes_dir_path,
+        tree,
+        labels,
+        ann_path,
+        mesh_mask_path,
+        ROOT_ID,
+        closing_n_iters,
+        decimate_fraction,
+        smooth,
     )
+    pool = [
+        mp.Process(target=create_region_mesh_consumer, args=consumer_args)
+        for _ in range(num_threads)
+    ]
+
+    for p in pool:
+        p.start()
+
+    for node in postorder_tree(tree):
+        work_queue.put(node)
+
+    for _ in pool:
+        work_queue.put(None)
+
+    for p in pool:
+        p.join()
+
     # for node in track(
     #     tree.nodes.values(),
     #     total=tree.size(),
@@ -381,7 +389,7 @@ if __name__ == "__main__":
 
     params = vars(arg_parser.parse_args())
     # timepoints = params["timepoints"]
-    timepoints = ("P56",)
+    timepoints = ("P04",)
     modality = params["modality"]
     decimate_fraction = params["decimate_fraction"]
     cached_modality = params["cached_meshes"]

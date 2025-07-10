@@ -1,3 +1,5 @@
+from time import sleep
+
 from scipy.ndimage import binary_closing, binary_fill_holes
 
 try:
@@ -18,15 +20,14 @@ except ModuleNotFoundError:
 
 from pathlib import Path
 
+import dask.array as da
 import numpy as np
 import zarr
 from loguru import logger
-from rich.progress import track
 
 from brainglobe_atlasapi.atlas_generation.volume_utils import (
     create_masked_array,
 )
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 # ----------------- #
 #   MESH CREATION   #
@@ -281,94 +282,72 @@ def create_region_mesh_parallel(
                 )
 
 
-def construct_meshes_from_annotation(
-    download_path,
-    volume,
-    structures_list,
-    root_id,
-    closing_n_iters=2,
-    decimate_fraction=0,
-    smooth=False,
+def create_region_mesh_consumer(
+    queue,
+    meshes_dir_path,
+    tree,
+    labels,
+    annotated_volume_path,
+    mesh_mask_path,
+    ROOT_ID,
+    closing_n_iters,
+    decimate_fraction,
+    smooth,
 ):
-    """
-    Retrieve or construct atlas region meshes for a given annotation volume.
+    volume = da.from_zarr(annotated_volume_path)
+    mesh_group = zarr.open_group(mesh_mask_path, mode="a")
 
-    If an atlas is packaged with mesh files, reuse those. Otherwise, construct
-    the meshes using the existing volume and structure tree. Returns a
-    dictionary mapping structure IDs to their corresponding .obj mesh files.
+    while True:
+        node_id = queue.get()
+        if node_id is None:
+            break
 
-    Parameters
-    ----------
-    download_path : Path
-        Path to the directory where new mesh files will be saved.
-    volume : np.ndarray
-        3D annotation volume.
-    structures_list : list
-        List of structure dictionaries containing id information.
-    root_id : int
-        Identifier for the root structure.
-    smooth: bool
-        if True the surface mesh is smoothed
-    closing_n_iters: int
-        number of iterations of closing morphological operation.
-        set to None to avoid applying morphological operations
-    decimate_fraction: float  in range [0, 1].
-        What fraction of the original number of vertices is to be kept.
-        EG .5 means that 50% of the vertices are kept,
-        the others are removed.
-    Returns
-    -------
-    dict
-        Dictionary of structure IDs and paths to their .obj mesh files.
-    """
-    meshes_dir_path = download_path / "meshes"
-    meshes_dir_path.mkdir(exist_ok=True)
+        logger.info(f"Creating mesh for region {node_id}")
+        # Get labels for region and its children
+        stree = tree.subtree(node_id)
+        ids = list(stree.nodes.keys())
 
-    tree = get_structures_tree(structures_list)
-    labels = np.unique(volume).astype(np.int32)
+        # Keep only labels that are in the annotation volume
+        matched_labels = [i for i in ids if i in labels]
+        savepath = meshes_dir_path / f"{node_id}.obj"
 
-    for key, node in tree.nodes.items():
-        node.data = Region(key in labels)
+        if (
+            not matched_labels
+        ):  # it fails if the region and all its children are not in annotation
+            print(f"No labels found for {node_id}")
+        else:
+            mask = volume == node_id
 
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
-        create_region_mesh(
-            (
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                volume,
-                root_id,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            )
-        )
-    meshes_dict = {}
-    structures_with_mesh = []
-    for s in structures_list:
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
-        if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it")
-            continue
-        if mesh_path.stat().st_size < 512:
-            print(f"obj file for {s} is too small, ignoring it.")
-            continue
+            for ids in matched_labels[1:]:  # skip the parent of subtree
+                while True:
+                    try:
+                        temp_mask = da.from_zarr(mesh_group[str(ids)])
+                        mask = da.logical_or(mask, temp_mask)
+                        break
+                    except KeyError:
+                        sleep(5)
+                        print(f"Waiting on mask for {ids} to be created...")
 
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
-
-    print(
-        (
-            f"In the end, {len(structures_with_mesh)}",
-            "structures with mesh are kept",
-        )
-    )
-    return meshes_dict
+            da.to_zarr(mask, url=mesh_mask_path, component=str(node_id))
+            mask = mask.compute()
+            if np.sum(mask) == 0:
+                print(f"Label {ids} is not in the array, returning empty mask")
+            else:
+                if node_id == ROOT_ID:
+                    extract_mesh_from_mask(
+                        mask,
+                        obj_filepath=savepath,
+                        smooth=smooth,
+                        decimate_fraction=decimate_fraction,
+                    )
+                else:
+                    extract_mesh_from_mask(
+                        mask,
+                        obj_filepath=savepath,
+                        smooth=smooth,
+                        closing_n_iters=closing_n_iters,
+                        decimate_fraction=decimate_fraction,
+                    )
 
 
 class Region(object):

@@ -18,10 +18,13 @@ from brainglobe_atlasapi.atlas_generation.annotation_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh_parallel,
+    create_region_mesh_consumer,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.structure_tree_util import (
+    get_structures_tree,
+    postorder_tree,
+)
 
 
 def create_atlas(working_dir, resolution):
@@ -69,6 +72,7 @@ def create_atlas(working_dir, resolution):
     for structure in structure_data_list:
         structure_id = structure["id"]
         structure["structure_id_path"] = structure_to_parent_map[structure_id]
+        structure["rgb_triplet"] = list(structure["rgb_triplet"])
 
     # append root and pallium structures, which don't have their own voxels
     # and are therefore not in itk file
@@ -78,7 +82,7 @@ def create_atlas(working_dir, resolution):
             "name": "Pallium",
             "acronym": "P",
             "structure_id_path": [999, 1],
-            "rgb_triplet": (0, 200, 100),
+            "rgb_triplet": [0, 200, 100],
         }
     )
     structure_data_list.append(
@@ -87,7 +91,7 @@ def create_atlas(working_dir, resolution):
             "name": "root",
             "acronym": "root",
             "structure_id_path": [999],
-            "rgb_triplet": (255, 255, 255),
+            "rgb_triplet": [255, 255, 255],
         }
     )
 
@@ -141,7 +145,6 @@ def create_atlas(working_dir, resolution):
     closing_n_iters = 1
     decimate_fraction = 0.6  # higher = more triangles
     smooth = False
-    subvolume = True  # Memory efficient mesh creation using subvolumes
     ann_path = working_dir / "temp_annotations.zarr"
     if ann_path.exists():
         shutil.rmtree(ann_path)
@@ -161,32 +164,36 @@ def create_atlas(working_dir, resolution):
 
     start = time.time()
 
-    pool = mp.Pool(mp.cpu_count() - 2)
-
-    pool.map(
-        create_region_mesh_parallel,
-        [
-            (
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                working_dir / "temp_annotations.zarr",
-                working_dir / "temp_meshes_mask.zarr",
-                ROOT_ID,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-                subvolume,  # subvolume=True to create meshes for subvolumes
-            )
-            for node in tree.nodes.values()
-        ],
+    work_queue = mp.Queue()
+    num_threads = mp.cpu_count() - 2
+    consumer_args = (
+        work_queue,
+        meshes_dir_path,
+        tree,
+        labels,
+        ann_path,
+        mesh_mask_path,
+        ROOT_ID,
+        closing_n_iters,
+        decimate_fraction,
+        smooth,
     )
+    pool = [
+        mp.Process(target=create_region_mesh_consumer, args=consumer_args)
+        for _ in range(num_threads)
+    ]
 
-    pool.close()
+    for p in pool:
+        p.start()
 
-    # shutil.rmtree(mesh_mask_path)
-    # shutil.rmtree(ann_path)
+    for node in postorder_tree(tree):
+        work_queue.put(node)
+
+    for _ in pool:
+        work_queue.put(None)
+
+    for p in pool:
+        p.join()
 
     print(
         "Finished mesh extraction in : ",

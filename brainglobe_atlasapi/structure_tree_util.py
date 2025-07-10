@@ -1,3 +1,5 @@
+from typing import Optional
+
 from treelib import Tree
 
 # TODO evaluate whether we want this as a method in StructureDict
@@ -57,3 +59,18 @@ def get_structures_tree(structures_list):
         )
 
     return tree
+
+
+def postorder_tree(tree: Tree, node_id: Optional[int] = None):
+    """
+    Yields node identifiers in a post-order depth first traversal of the tree.
+    """
+    if node_id is None:
+        node_id = tree.root
+
+    def _postorder(node_id):
+        for child in tree.children(node_id):
+            yield from _postorder(child.identifier)
+        yield node_id
+
+    yield from _postorder(node_id)

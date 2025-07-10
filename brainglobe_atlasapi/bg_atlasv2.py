@@ -3,7 +3,7 @@ from typing import Union
 
 import zarr
 from brainglobe_utils.IO.yaml import open_yaml
-from pooch import Untar, create
+from pooch import create
 from typing_extensions import deprecated
 
 from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
@@ -72,27 +72,25 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
             template_path = (
                 self.root_dir
                 / "templates"
-                / self.metadata["reference_images"][0]
-                / f"{int(self.resolution[0])}um"
+                / self.metadata["template_names"][0]
+                / f"{int(self.resolution[0])}um.zarr.zip"
             )
             if not template_path.exists():
                 print("Downloading template image...")
                 remote_name = (
-                    f"templates/{self.metadata['reference_images'][0]}/"
-                    f"{int(self.resolution[0])}um.tar.gz"
+                    f"templates/{self.metadata['template_names'][0]}/"
+                    f"{int(self.resolution[0])}um.zarr.zip"
                 )
                 self.pooch.registry[remote_name] = None
                 self.pooch.fetch(
                     remote_name,
                     progressbar=True,
-                    processor=Untar(extract_dir="./"),
                 )
-                template_path.with_suffix(".tar.gz").unlink()
 
-            template_array = zarr.open_array(
-                template_path, mode="r", zarr_format=3
-            )
+            store = zarr.storage.ZipStore(template_path, mode="r")
+            template_array = zarr.open_array(store, mode="r", zarr_format=3)
             self._template = template_array[...]
+            store.close()
 
         return self._template
 
@@ -107,27 +105,25 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
             annotation_path = (
                 self.root_dir
                 / "annotations"
-                / self.metadata["annotation_images"][0]
-                / f"{int(self.resolution[0])}um"
+                / self.metadata["annotation_names"][0]
+                / f"{int(self.resolution[0])}um.zarr.zip"
             )
             if not annotation_path.exists():
                 print("Downloading annotation image...")
                 remote_name = (
-                    f"annotations/{self.metadata['annotation_images'][0]}/"
-                    f"{int(self.resolution[0])}um.tar.gz"
+                    f"annotations/{self.metadata['annotation_names'][0]}/"
+                    f"{int(self.resolution[0])}um.zarr.zip"
                 )
                 self.pooch.registry[remote_name] = None
                 self.pooch.fetch(
                     remote_name,
                     progressbar=True,
-                    processor=Untar(extract_dir="./"),
                 )
-                annotation_path.with_suffix(".tar.gz").unlink()
 
-            annotation_array = zarr.open_array(
-                annotation_path, mode="r", zarr_format=3
-            )
+            store = zarr.storage.ZipStore(annotation_path, mode="r")
+            annotation_array = zarr.open_array(store, mode="r", zarr_format=3)
             self._annotation = annotation_array[...]
+            store.close()
 
         return self._annotation
 
@@ -135,7 +131,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
     def remote_url(self):
         if self.remote_version is not None:
             name = (
-                f"{self.atlas_name}_v{self.remote_version[0]}."
+                f"{self.atlas_name}_v{self.remote_version[0]}_"
                 f"{self.remote_version[1]}.yaml"
             )
 
@@ -149,7 +145,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         remote_version = self.remote_version
 
         name = (
-            f"{self.atlas_name}_v{remote_version[0]}."
+            f"{self.atlas_name}_v{remote_version[0]}_"
             f"{remote_version[1]}.yaml"
         )
 
@@ -173,12 +169,12 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         annotations_dir = (
             destination_path.parent
             / "annotations"
-            / self.metadata["annotation_images"][0]
+            / self.metadata["annotation_names"][0]
         )
         template_dir = (
             destination_path.parent
             / "templates"
-            / self.metadata["reference_images"][0]
+            / self.metadata["template_names"][0]
         )
         meshes_dir = (
             destination_path.parent / "meshes" / self.metadata["meshes"][0]

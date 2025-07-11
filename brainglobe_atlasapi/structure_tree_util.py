@@ -1,3 +1,4 @@
+from collections import deque
 from typing import Optional
 
 from treelib import Tree
@@ -74,3 +75,35 @@ def postorder_tree(tree: Tree, node_id: Optional[int] = None):
         yield node_id
 
     yield from _postorder(node_id)
+
+
+def postorder_tree_iterative(tree: Tree):
+    """
+    Yields node identifiers in a post-order depth first traversal of the tree.
+    """
+
+    class StackFrame:
+        def __init__(self, identifier, progress=0):
+            self.identifier = identifier
+            self.progress = progress
+
+    node_id = tree.root
+
+    root_frame = StackFrame(node_id)
+    stack = deque([root_frame])
+
+    while len(stack) > 0:
+        current_frame = stack.pop()
+
+        if current_frame.progress == 0:
+            # First time visiting this node, push it back with
+            # progress incremented
+            current_frame.progress += 1
+            stack.append(current_frame)
+
+            # Push all children onto the stack
+            for child in tree.children(current_frame.identifier):
+                stack.append(StackFrame(child.identifier))
+        else:
+            # Second time visiting this node, yield it
+            yield current_frame.identifier

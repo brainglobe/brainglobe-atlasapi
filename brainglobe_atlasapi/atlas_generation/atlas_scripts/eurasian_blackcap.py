@@ -23,7 +23,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
-    postorder_tree,
+    postorder_tree_iterative,
 )
 
 
@@ -186,7 +186,7 @@ def create_atlas(working_dir, resolution):
     for p in pool:
         p.start()
 
-    for node in postorder_tree(tree):
+    for node in postorder_tree_iterative(tree):
         work_queue.put(node)
 
     for _ in pool:

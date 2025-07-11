@@ -1,3 +1,5 @@
+from time import sleep
+
 from scipy.ndimage import binary_closing, binary_fill_holes
 
 try:
@@ -293,7 +295,7 @@ def create_region_mesh_consumer(
     smooth,
 ):
     volume = da.from_zarr(annotated_volume_path)
-    # mesh_group = zarr.open_group(mesh_mask_path, mode="a")
+    mesh_group = zarr.open_group(mesh_mask_path, mode="a")
 
     while True:
         node_id = queue.get()
@@ -301,12 +303,12 @@ def create_region_mesh_consumer(
             break
 
         logger.info(f"Creating mesh for region {node_id}")
-        # Get labels for region and its children
-        stree = tree.subtree(node_id)
-        ids = list(stree.nodes.keys())
+        # Only get the children of the node
+        # Twhey should include the masks of their descendants
+        ids = [node.identifier for node in tree.children(node_id)]
 
         # Keep only labels that are in the annotation volume
-        matched_labels = [i for i in ids if i in labels]
+        matched_labels = [node_id] + [i for i in ids if i in labels]
         savepath = meshes_dir_path / f"{node_id}.obj"
 
         if (
@@ -314,20 +316,19 @@ def create_region_mesh_consumer(
         ):  # it fails if the region and all its children are not in annotation
             print(f"No labels found for {node_id}")
         else:
-            mask = da.isin(volume, matched_labels)
-            # mask = volume == node_id
-            #
-            # for ids in matched_labels[1:]:  # skip the parent of subtree
-            #     while True:
-            #         try:
-            #             temp_mask = da.from_zarr(mesh_group[str(ids)])
-            #             mask = da.logical_or(mask, temp_mask)
-            #             break
-            #         except KeyError:
-            #             sleep(2)
-            #             print(f"Waiting on mask for {ids} to be created...")
+            # mask = da.isin(volume, matched_labels)
+            mask = volume == node_id
 
-            # da.to_zarr(mask, url=mesh_mask_path, component=str(node_id))
+            for curr_id in ids:
+                while True:
+                    try:
+                        temp_mask = da.from_zarr(mesh_group[str(curr_id)])
+                        mask = da.logical_or(mask, temp_mask)
+                        break
+                    except KeyError:
+                        sleep(1)
+
+            da.to_zarr(mask, url=mesh_mask_path, component=str(node_id))
 
             if da.sum(mask) == 0:
                 print(f"Label {ids} is not in the array, returning empty mask")

@@ -19,7 +19,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
-    postorder_tree,
+    postorder_tree_iterative,
 )
 
 ATLAS_NAME = "kim_dev_mouse"
@@ -217,7 +217,7 @@ def create_meshes(
     for p in pool:
         p.start()
 
-    for node in postorder_tree(tree):
+    for node in postorder_tree_iterative(tree):
         work_queue.put(node)
 
     for _ in pool:
@@ -265,7 +265,7 @@ def create_mesh_dict(structures, meshes_dir_path):
         # Check if a mesh was created
         mesh_path = meshes_dir_path / f'{s["id"]}.obj'
         if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it")
+            # print(f"No mesh file exists for: {s}, ignoring it")
             continue
         else:
             # Check that the mesh actually exists (i.e. not empty)
@@ -389,7 +389,7 @@ if __name__ == "__main__":
 
     params = vars(arg_parser.parse_args())
     # timepoints = params["timepoints"]
-    timepoints = ("P04",)
+    timepoints = ("E15.5",)
     modality = params["modality"]
     decimate_fraction = params["decimate_fraction"]
     cached_modality = params["cached_meshes"]

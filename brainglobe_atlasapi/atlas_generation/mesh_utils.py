@@ -1,5 +1,3 @@
-from time import sleep
-
 from scipy.ndimage import binary_closing, binary_fill_holes
 
 try:
@@ -295,7 +293,7 @@ def create_region_mesh_consumer(
     smooth,
 ):
     volume = da.from_zarr(annotated_volume_path)
-    mesh_group = zarr.open_group(mesh_mask_path, mode="a")
+    # mesh_group = zarr.open_group(mesh_mask_path, mode="a")
 
     while True:
         node_id = queue.get()
@@ -316,21 +314,22 @@ def create_region_mesh_consumer(
         ):  # it fails if the region and all its children are not in annotation
             print(f"No labels found for {node_id}")
         else:
-            mask = volume == node_id
+            mask = da.isin(volume, matched_labels)
+            # mask = volume == node_id
+            #
+            # for ids in matched_labels[1:]:  # skip the parent of subtree
+            #     while True:
+            #         try:
+            #             temp_mask = da.from_zarr(mesh_group[str(ids)])
+            #             mask = da.logical_or(mask, temp_mask)
+            #             break
+            #         except KeyError:
+            #             sleep(2)
+            #             print(f"Waiting on mask for {ids} to be created...")
 
-            for ids in matched_labels[1:]:  # skip the parent of subtree
-                while True:
-                    try:
-                        temp_mask = da.from_zarr(mesh_group[str(ids)])
-                        mask = da.logical_or(mask, temp_mask)
-                        break
-                    except KeyError:
-                        sleep(5)
-                        print(f"Waiting on mask for {ids} to be created...")
+            # da.to_zarr(mask, url=mesh_mask_path, component=str(node_id))
 
-            da.to_zarr(mask, url=mesh_mask_path, component=str(node_id))
-            mask = mask.compute()
-            if np.sum(mask) == 0:
+            if da.sum(mask) == 0:
                 print(f"Label {ids} is not in the array, returning empty mask")
             else:
                 if node_id == ROOT_ID:

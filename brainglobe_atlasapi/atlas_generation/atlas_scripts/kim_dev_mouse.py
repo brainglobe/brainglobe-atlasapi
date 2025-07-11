@@ -196,7 +196,7 @@ def create_meshes(
     start = time.time()
 
     work_queue = mp.Queue()
-    num_threads = mp.cpu_count() - 2
+    num_threads = mp.cpu_count() - 20
     consumer_args = (
         work_queue,
         meshes_dir_path,

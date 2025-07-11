@@ -1,5 +1,3 @@
-from time import sleep
-
 from scipy.ndimage import binary_closing, binary_fill_holes
 
 try:
@@ -295,7 +293,6 @@ def create_region_mesh_consumer(
     smooth,
 ):
     volume = da.from_zarr(annotated_volume_path)
-    mesh_group = zarr.open_group(mesh_mask_path, mode="a")
 
     while True:
         node_id = queue.get()
@@ -306,10 +303,6 @@ def create_region_mesh_consumer(
         stree = tree.subtree(node_id)
         id_check = list(stree.nodes.keys())
 
-        # Only get the children of the node
-        # They should include the masks of their descendants
-        ids = [node_id] + [node.identifier for node in tree.children(node_id)]
-
         # Keep only labels that are in the annotation volume
         matched_labels = [i for i in id_check if i in labels]
         savepath = meshes_dir_path / f"{node_id}.obj"
@@ -317,35 +310,16 @@ def create_region_mesh_consumer(
         if (
             not matched_labels
         ):  # it fails if the region and all its children are not in annotation
-            print(f"No labels found for {ids}")
-            da.to_zarr(
-                da.zeros(volume.shape, dtype=np.uint8),
-                url=mesh_mask_path,
-                component=str(node_id),
-            )
+            print(f"No labels found for {node_id}")
         else:
-            mask = volume == node_id
-
-            for curr_id in ids:
-                if curr_id == node_id:
-                    continue
-                while True:
-                    try:
-                        temp_mask = da.from_zarr(mesh_group[str(curr_id)])
-                        mask = da.logical_or(mask, temp_mask)
-                        break
-                    except KeyError:
-                        sleep(1)
+            mask = da.isin(volume, matched_labels)
 
             if da.sum(mask) == 0:
-                print(f"Label {ids} is not in the array, returning empty mask")
-                da.to_zarr(
-                    da.zeros(mask.shape, dtype=np.uint8),
-                    url=mesh_mask_path,
-                    component=str(node_id),
+                print(
+                    f"Label {node_id} is not in the array, "
+                    f"returning empty mask"
                 )
             else:
-                da.to_zarr(mask, url=mesh_mask_path, component=str(node_id))
                 if node_id == ROOT_ID:
                     extract_mesh_from_mask(
                         mask,

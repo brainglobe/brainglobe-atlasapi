@@ -96,7 +96,8 @@ def test_get_structure_children_incomplete_region(
     """Error should be raised when region data is incomplete.
 
     Error if 'id' or 'structure_id_path' is missing but not when other keys
-    (e.g. 'name') are missing."""
+    (e.g. 'name') are missing.
+    """
     region = structures[0].copy()
     region.pop(dropped_key)
     if error is not None:

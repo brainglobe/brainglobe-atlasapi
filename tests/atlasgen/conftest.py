@@ -8,7 +8,8 @@ from brainglobe_atlasapi import BrainGlobeAtlas
 @pytest.fixture(autouse=True)
 def setup_preexisting_local_atlases():
     """Automatically setup all tests to have three downloaded atlases
-    in the test user data."""
+    in the test user data.
+    """
     preexisting_atlases = [
         ("example_mouse_100um", "v1.2"),
         ("allen_mouse_100um", "v1.2"),

@@ -36,7 +36,8 @@ def retrieve_reference_and_annotation():
     Retrieve the Allen Mouse atlas reference and annotation as two numpy arrays
     using the allen_sdk.
 
-    Returns:
+    Returns
+    -------
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotated volume.
     """
@@ -83,7 +84,8 @@ def retrieve_hemisphere_map():
     The Allen atlas is symmetrical, so we can just return `None` in this
     function.
 
-        Returns:
+    Returns
+    -------
             numpy.array or None: A numpy array representing the hemisphere map,
             or None if the atlas is symmetrical.
     """
@@ -94,7 +96,8 @@ def retrieve_structure_information():
     """
     Retrieve the structures tree and meshes for the Allen mouse brain atlas.
 
-    Returns:
+    Returns
+    -------
         pandas.DataFrame: A DataFrame containing the atlas information.
     """
     download_dir_path = BG_ROOT_DIR / "downloading_path"

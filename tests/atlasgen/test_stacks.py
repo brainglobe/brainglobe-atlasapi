@@ -11,7 +11,7 @@ from brainglobe_atlasapi.atlas_generation.stacks import write_stack
 @pytest.fixture
 def image_unit16():
     """Fixture providing a dummy image stack."""
-    image_uint16 = np.random.randint(0, 65535, (10, 10, 10), dtype=np.uint16)
+    image_unit16 = np.random.randint(0, 65535, (10, 10, 10), dtype=np.uint16)
     yield image_unit16
 
 

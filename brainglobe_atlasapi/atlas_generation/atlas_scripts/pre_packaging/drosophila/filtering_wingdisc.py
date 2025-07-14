@@ -26,7 +26,6 @@ if __name__ == "__main__":
     for i in range(annotation_image.shape[0]):
         # Apply the modal filter to each slice of the annotation image
         filtered_stack = modal(annotation_image[i], footprint=footprint)
-        # filtered_stack = apply_modal_filter(annotation_image[i], size=3)
         print(annotation_image[i].max())
         filtered_annotation_image[i] = filtered_stack
         print(filtered_stack.max())
@@ -36,15 +35,3 @@ if __name__ == "__main__":
         target_isotropic_resolution,
     ] * 3
     save_as_asr_nii(filtered_annotation_image, vox_sizes, filtered_path)
-    print("Original volume shape:", annotation_image.shape)
-    print("Filtered volume shape:", filtered_annotation_image.shape)
-    print(
-        "Original slice 0 min/max:",
-        annotation_image.min(),
-        annotation_image.max(),
-    )
-    print(
-        "Filtered slice 0 min/max:",
-        filtered_annotation_image.min(),
-        filtered_annotation_image.max(),
-    )

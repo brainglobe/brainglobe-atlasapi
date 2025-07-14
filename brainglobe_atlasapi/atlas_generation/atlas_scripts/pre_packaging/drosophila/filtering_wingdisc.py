@@ -1,4 +1,6 @@
-"""A one-off script to run a modal filter on some annotations from ITK snap inbetween manual improvement iterations."""
+"""A one-off script to run a modal filter on some 
+annotations from ITK snap inbetween manual 
+improvement iterations."""
 
 from pathlib import Path
 

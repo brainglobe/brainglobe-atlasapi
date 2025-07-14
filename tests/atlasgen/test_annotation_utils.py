@@ -50,7 +50,8 @@ def test_split_label_text(
 ):
     """Test splitting label text into name and acronym.
 
-    If there's no acronym, the name's first letter is used as acronym as default, but you can choose the number of letters you want.
+    If there's no acronym, the name's first letter is used as acronym as default,
+    but you can choose the number of letters you want.
     """
     if acronym_length is None:
         name, acronym = split_label_text(input_name)

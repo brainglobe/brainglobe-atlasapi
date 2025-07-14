@@ -7,7 +7,8 @@ def split_label_text(name: str, acronym_length=1) -> str:
     """Split label text into name + acronym.
 
     If the label text ends with ')', extract the acronym inside parentheses.
-    Otherwise, you can specify  how many first letters you would like to use as acryonym
+    Otherwise, you can specify  how many first letters
+    you would like to use as acronym
     """
     if name.endswith(")"):
         name, acronym = name.split("(")

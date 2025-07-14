@@ -5,7 +5,8 @@ import numpy as np
 import pytest
 import tifffile
 
-from brainglobe_atlasapi.atlas_generation.stacks import write_stack
+from brainglobe_atlasapi.atlas_generation.stacks import (
+    write_stack)
 
 
 @pytest.fixture

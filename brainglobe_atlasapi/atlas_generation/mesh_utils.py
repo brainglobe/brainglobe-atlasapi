@@ -1,3 +1,5 @@
+"""Utility functions for working with meshes."""
+
 from scipy.ndimage import binary_closing, binary_fill_holes
 
 try:
@@ -44,10 +46,9 @@ def extract_mesh_from_mask(
     extract_largest=False,
 ):
     """
-    Returns a vedo mesh actor with just the outer surface of a
+    Return a vedo mesh actor with just the outer surface of a
     binary mask volume. It's faster though less accurate than
-    extract_mesh_from_mask
-
+    extract_mesh_from_mask.
 
     Parameters
     ----------
@@ -140,11 +141,11 @@ def extract_mesh_from_mask(
 
 def create_region_mesh(args):
     """
-    Automates the creation of a region's mesh. Given a volume of annotations
+    Automate the creation of a region's mesh. Given a volume of annotations
     and a structures tree, it takes the volume's region corresponding to the
     region of interest and all of it's children's labels and creates a mesh.
     It takes a tuple of arguments to facilitaed parallel processing with
-    multiprocessing.pool.map
+    multiprocessing.pool.map.
 
     Note, by default it avoids overwriting a structure's mesh if the
     .obj file exists already.
@@ -249,6 +250,7 @@ def construct_meshes_from_annotation(
         What fraction of the original number of vertices is to be kept.
         EG .5 means that 50% of the vertices are kept,
         the others are removed.
+
     Returns
     -------
     dict
@@ -308,7 +310,7 @@ class Region(object):
     """
     Class used to add metadata to treelib.Tree during atlas creation.
     Using this means that you can then filter tree nodes depending on
-    whether or not they have a mesh/label
+    whether or not they have a mesh/label.
     """
 
     def __init__(self, has_label):

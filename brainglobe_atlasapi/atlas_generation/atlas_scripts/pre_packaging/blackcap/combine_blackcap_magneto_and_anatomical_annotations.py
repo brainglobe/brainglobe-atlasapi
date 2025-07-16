@@ -1,5 +1,6 @@
 """One-off script to reproduce how we combined
-the second version of the annotations provided by the bird anatomists"""
+the second version of the annotations provided by the bird anatomists
+"""
 
 from pathlib import Path
 
@@ -24,11 +25,13 @@ def apply_modal_filter(image, filter_size=3):
     """
     Apply a modal filter to the image, ignoring zero neighbors.
 
-    Parameters:
+    Parameters
+    ----------
         image (ndarray): Input image as a 2D NumPy array.
         filter_size (int): Size of the filtering window (must be odd).
 
-    Returns:
+    Returns
+    -------
         ndarray: Filtered image.
     """
     # Apply the modal filter using a sliding window

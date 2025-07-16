@@ -121,7 +121,8 @@ def create_atlas(working_dir, resolution):
         substring (str): The substring to search for in the value associated
         with the key.
 
-        Returns:
+        Returns
+        -------
         list: A list of dictionaries that contain the key with a value
         containing the substring.
         """

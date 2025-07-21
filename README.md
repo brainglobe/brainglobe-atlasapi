@@ -17,7 +17,7 @@
 [![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/documentation/brainglobe-atlasapi/index.html)
 [![Twitter](https://img.shields.io/twitter/follow/brain_globe?style=social)](https://twitter.com/brain_globe)
 
-The brainglobe atlas API (brainglobe-atlasapi) provides a common interface for programmers to download and process brain atlas data from multiple sources.
+The BrainGlobe Atlas API (`brainglobe-atlasapi`) provides a common interface for programmers to download and process brain atlas data from multiple sources.
 
 ## Atlases available
 
@@ -36,7 +36,7 @@ A number of atlases are in development, but those available currently are:
 | [3D Edge-Aware Refined Atlases Derived from the Allen Developing Mouse Brain Atlases](https://doi.org/10.7554/eLife.61408) | 16, 16.75, and 25 micron | E13, E15, E18, P4, P14, P28 & P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#d-edge-aware-refined-atlases-derived-from-the-allen-developing-mouse-brain-atlases) |
 | [Princeton Mouse Brain Atlas](https://brainmaps.princeton.edu/2020/09/princeton-mouse-brain-atlas-links) | 20 micron | >P56 (older animals included) | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#princeton-mouse-brain-atlas) |
 | [Kim Lab Developmental CCF v1.0](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20, 31.5, 34, 37.5, 40, and 50 micron | E11.5, E13.5, E15.5, E18.5, P04, P14, P56 | LSFM and MRI (adc, dwi, fa, T2) | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kim-lab-developmental-ccf-v1-0) |
-| [Kim Lab Developmental CCF v001](https://data.mendeley.com/datasets/2svx788ddf/1) | 10 micron | P56  | STP, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2) | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kim-lab-developmental-ccf-v0-0-1-p56) |
+| [Kim Lab Developmental CCF v001](https://data.mendeley.com/datasets/2svx788ddf/1) | 10 micron | P56  | STP, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2) | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kim-lab-developmental-ccf-v001-p56) |
 | [Blind Mexican Cavefish Brain Atlas](https://doi.org/10.7554/eLife.80777) | 2 micron | 6 days post fertilisation | IHC | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#blind-mexican-cavefish-brain-atlas) |
 | [BlueBrain Barrel Cortex Atlas](https://doi.org/10.1162/imag_a_00209) | 10 and 25 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#bluebrain-barrel-cortex-atlas) |
 | [UNAM Axolotl Brain Atlas](https://doi.org/10.1038/s41598-021-89357-3) | 40 micron | ~ 3 months post hatching | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#unam-axolotl-brain-atlas) |
@@ -44,11 +44,15 @@ A number of atlases are in development, but those available currently are:
 | [Gubra's stereotaxic MRI mouse brain atlas](https://doi.org/10.1007/s12021-023-09623-9) | 25 micron | 10-week-old  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#gubras-mri-mouse-brain-atlas) |
 | [MRI mouse lemur brain atlas](https://doi.org/10.1016/j.dib.2018.10.067) | 91 micron | 15–58 months  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#mri-mouse-lemur-brain-atlas) |
 | [Australian Mouse Brain Atlas](https://doi.org/10.1016/j.ymeth.2015.01.005) | 15 micron | 12 week old | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#australian-mouse-brain-atlas) |
+| [Cat brain atlas](https://doi.org/10.1002/cne.24271) | 500 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#cat-brain-atlas) |
+| [Eurasian blackcap atlas](https://doi.org/10.1101/2025.03.04.641293) | 25 micron| Adult | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#eurasian-blackcap-atlas)                                                            |
+| [BlueBrain CCFv3 Augmented](https://doi.org/10.1162/imag_a_00565) | 10 and 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#ccfv3-augmented-mouse-atlas) |
+| [Kocher Bumblebee Brain Atlas](https://doi.org/10.1016/j.cub.2022.04.066) | (2.542, 1.2407, 1.2407) micron | Adult Worker | Confocal | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kocher-bumblebee-brain-atlas) |
 | [DeMBA Developmental Mouse Brain Atlas](https://doi.org/10.1101/2024.06.14.598876) | 10, 20, and 25 micron | every day from P04 to P56  | MRI, STPT, ALLEN_STPT, LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#demba-developmental-mouse-brain-atlas) |
 
 ## Installation
 
-brainglobe-atlasapi can be installed from PyPI with:
+`brainglobe-atlasapi` can be installed from PyPI with:
 
 ```bash
 pip install brainglobe-atlasapi
@@ -153,7 +157,7 @@ To make things as consistent as possible, in `brainglobe-atlasapi` the 0 of the 
 To deal with transformations between your data space and `brainglobe-atlasapi`, you might find the [brainglobe-space](https://github.com/brainglobe/brainglobe-space) package helpful.
 
 ## Seeking help or contributing
-We are always happy to help users of our tools, and welcome any contributions. If you would like to get in contact with us for any reason, please see the [contact page of our website](https://brainglobe.info/contact.html).
+We are always happy to help users of our tools, and welcome any contributions. If you would like to get in contact with us for any reason, please see the [contact page of our website](https://brainglobe.info/contact.html). To contribute to `brainglobe-atlasapi`, please see the [BrainGlobe developer's guide](https://brainglobe.info/community/developers).
 
 ## Citation
 

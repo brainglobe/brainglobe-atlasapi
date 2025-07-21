@@ -24,6 +24,8 @@ SPECIES = "Drosophila melanogaster"
 # The URL for the data files
 ATLAS_LINK = None
 
+__version__ = 0
+
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
 ORIENTATION = "ras"
@@ -76,8 +78,9 @@ def retrieve_reference_and_annotation():
     reference = load_nii(reference_volume_path, as_array=True)
     """
     annotation_volume_path = Path(
-        resources_path / "pouch_peripodial_hinge_notum_refined_"
-        "filtered_filtered_filtered.nii.gz"
+        resources_path
+        / "pouch_peripodial_hinge_notum_refined_"
+          "filtered_filtered_filtered.nii.gz"
     )
     assert (
         annotation_volume_path.exists()

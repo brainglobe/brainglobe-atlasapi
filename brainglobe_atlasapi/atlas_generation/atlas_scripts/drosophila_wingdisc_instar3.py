@@ -28,7 +28,7 @@ __version__ = 0
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "ras"
+ORIENTATION = "las"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not

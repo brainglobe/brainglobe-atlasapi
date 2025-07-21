@@ -1,4 +1,5 @@
 import os
+import re
 
 import numpy as np
 import pytest
@@ -16,6 +17,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_atlas_name,
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
+    validate_metadata,
     validate_reference_image_pixels,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
@@ -263,11 +265,86 @@ def test_asymmetrical_annotation_fails(mocker, atlas):
         validate_annotation_symmetry(atlas)
 
 
-def test_upper_case_name_fails(atlas):
-    """Checks that an atlas with capital letters in name fails"""
-    atlas.atlas_name = atlas.atlas_name.upper()
-    with pytest.raises(
-        AssertionError,
-        match=r"cannot contain capitals.",
-    ):
-        validate_atlas_name(atlas)
+@pytest.mark.parametrize(
+    "atlas_name, should_pass, error_message",
+    [
+        pytest.param(
+            "CONTAINS_CAPITALS_1um",
+            False,
+            "cannot contain capitals.",
+            id="upper case",
+        ),
+        pytest.param(
+            "contains_inv@lid_character_1um",
+            False,
+            "contains invalid characters.",
+            id="invalid charachter (@)",
+        ),
+        pytest.param(
+            "10um_atlas_name_does_not_end_with_resolution",
+            False,
+            "should end with a valid resolution (e.g., 5um, 1.5mm).",
+            id="doesn't end with resolution",
+        ),
+        pytest.param(
+            "atlas_name_with_invalid_resolution_100m",
+            False,
+            "should end with a valid resolution (e.g., 5um, 1.5mm).",
+            id="invalid resolution (100m)",
+        ),
+        pytest.param("valid_name_100um", True, None, id="valid_name_100um"),
+        pytest.param("valid-name_1mm", True, None, id="valid-name_1mm"),
+    ],
+)
+def test_validate_atlas_name(atlas_name, should_pass, error_message):
+    """Checks various atlas name validation cases"""
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.atlas_name = atlas_name
+    if should_pass:
+        assert validate_atlas_name(atlas)
+    else:
+        error_message = f"Atlas name {atlas_name} " + error_message
+        with pytest.raises(AssertionError, match=re.escape(error_message)):
+            validate_atlas_name(atlas)
+
+
+@pytest.mark.parametrize(
+    ["metadata", "expected_output", "error_message"],
+    [
+        pytest.param(
+            {
+                "key": "citation",
+                "value": "BrainGlobe et. al., 2025., https://doi.org",
+            },
+            True,
+            None,
+            id="citation (multiple commas)",
+        ),
+        pytest.param(
+            {
+                "key": "resolution",
+                "value": [1, 1],
+            },
+            True,
+            None,
+            id="2D resolution [1, 1]",
+        ),
+        pytest.param(
+            {
+                "key": "resolution",
+                "value": (1, 1),
+            },
+            "AssertionError",
+            "resolution should be of type list, but got tuple.",
+            id="wrong resolution type (tuple)",
+        ),
+    ],
+)
+def test_validate_metadata(atlas, metadata, expected_output, error_message):
+    """Checks whether atlas metadata is validated correctly."""
+    atlas.metadata[metadata["key"]] = metadata["value"]
+    if expected_output == "AssertionError":
+        with pytest.raises(AssertionError, match=error_message):
+            validate_metadata(atlas)
+    else:
+        assert validate_metadata(atlas) == expected_output

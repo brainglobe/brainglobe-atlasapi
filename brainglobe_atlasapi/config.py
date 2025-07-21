@@ -121,8 +121,10 @@ def get_brainglobe_dir():
 
 
 def cli_modify_config(key=0, value=0, show=False):
-    # Ensure that we choose valid paths for default directory. The path does
-    # not have to exist yet, but the parent must be valid:
+    """Ensure that we choose valid paths for default directory.
+    The path does not have to exist yet, but the parent must be valid.
+
+    """
     if not show:
         if key[-3:] == "dir":
             path = Path(value)

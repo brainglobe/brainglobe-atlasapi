@@ -78,7 +78,7 @@ class BrainGlobeAtlas(core.Atlas):
 
             # If the default folder does not exist yet, make it:
             dir_path = Path(dir)
-            dir_path.mkdir(exist_ok=True)
+            dir_path.mkdir(parents=True, exist_ok=True)
             setattr(self, dirname, dir_path)
 
         # Look for this atlas in local brainglobe folder:
@@ -228,12 +228,13 @@ class BrainGlobeAtlas(core.Atlas):
     def __repr__(self):
         """Fancy print providing atlas information."""
         name_split = self.atlas_name.split("_")
-        pretty_name = "{} {} atlas (res. {})".format(*name_split)
+        res = f" (res. {name_split.pop()})"
+        pretty_name = f"{' '.join(name_split)} atlas{res}"
         return pretty_name
 
     def __str__(self):
         """
-        If the atlas metadat are to be printed
+        If the atlas metadata are to be printed
         with the built in print function instead of rich's, then
         print the rich panel as a string.
 

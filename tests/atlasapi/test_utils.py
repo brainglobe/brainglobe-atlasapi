@@ -1,12 +1,16 @@
 import os
 import sys
+from typing import Callable
 from unittest import mock
 
 import pytest
 import requests
+import rich.panel
 from requests import HTTPError
 
-from brainglobe_atlasapi import utils
+from brainglobe_atlasapi import descriptors, utils
+
+METADATA = descriptors.METADATA_TEMPLATE
 
 test_url = "https://gin.g-node.org/BrainGlobe/atlases/raw/master/example_mouse_100um_v1.2.tar.gz"
 conf_url = (
@@ -254,8 +258,185 @@ def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
         "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
         return_value=temp_path,
     )
+    mocker.patch("brainglobe_atlasapi.utils.sleep")
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_request.side_effect = requests.ConnectionError()
         with pytest.raises(FileNotFoundError) as e:
             utils.conf_from_url(conf_url)
         assert "Last versions cache file not found." == str(e.value)
+
+
+@pytest.mark.parametrize(
+    ["name", "title"],
+    [
+        pytest.param(
+            "brainglobe",
+            "Brainglobe",
+            id="capitalisation of first letter",
+        ),
+        pytest.param(
+            "BrainGlobe",
+            "Brainglobe",
+            id="decapitalisation of everything but first charachter",
+        ),
+        pytest.param(
+            "___Brain_globe___",
+            "   brain globe   ",
+            id="underscores become spaces",
+        ),
+        pytest.param(
+            "",
+            "",
+            id="no name",
+        ),
+    ],
+)
+def test_rich_atlas_metadata_table_title(name, title):
+    """Tests atlas name conversion for rich panel."""
+    panel = utils._rich_atlas_metadata(atlas_name=name, metadata=METADATA)
+    assert panel.renderable.title == title
+
+
+def test_rich_atlas_metadata_type():
+    """Tests right data type is created"""
+    panel = utils._rich_atlas_metadata(
+        atlas_name=METADATA["name"],
+        metadata=METADATA,
+    )
+    assert isinstance(panel, rich.panel.Panel)
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(
+            {
+                "name": "kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
+                "repr": {
+                    "name": "kim_dev_mouse_e15-5_mri-adc",
+                    "major_vers": "1",
+                    "minor_vers": "3",
+                    "resolution": "37.5",
+                    "unit": "um",
+                },
+            },
+            id="kim_dev_mouse_e15-5_mri-adc_37.5um_v1.3",
+        ),
+        pytest.param(
+            {
+                "name": "axolotl_1um",
+                "repr": {
+                    "name": "axolotl",
+                    "major_vers": None,
+                    "minor_vers": None,
+                    "resolution": "1",
+                    "unit": "um",
+                },
+            },
+            id="axolotl_1um",
+        ),
+        pytest.param(
+            {
+                "name": "axolotl_1mm_v5.2",
+                "repr": {
+                    "name": "axolotl",
+                    "major_vers": "5",
+                    "minor_vers": "2",
+                    "resolution": "1",
+                    "unit": "mm",
+                },
+            },
+            id="axolotl_1mm_v5.2",
+        ),
+        pytest.param(
+            {
+                "name": "axolotl_1nm",
+                "repr": {
+                    "name": "axolotl",
+                    "major_vers": None,
+                    "minor_vers": None,
+                    "resolution": "1",
+                    "unit": "nm",
+                },
+            },
+            id="axolotl_1nm",
+        ),
+    ]
+)
+def name_repr(request):
+    """Fixture with atlas name and representation pairs."""
+    return request.param
+
+
+def test_atlas_repr_from_name(name_repr):
+    """Test atlas name to repr conversion."""
+    name = name_repr["name"]
+    expected_repr = name_repr["repr"]
+    assert utils.atlas_repr_from_name(name) == expected_repr
+
+
+def test_atlas_name_from_repr(name_repr):
+    """Test atlas repr to name conversion."""
+    expected_name = name_repr["name"]
+    repr = name_repr["repr"]
+    assert utils.atlas_name_from_repr(**repr) == expected_name
+
+
+def test_retrieve_over_http_ConnectionError(tmp_path):
+    with mock.patch(
+        "requests.get",
+        side_effect=requests.exceptions.ConnectionError,
+    ):
+        with pytest.raises(
+            requests.exceptions.ConnectionError,
+            match="Could not download file from elephants",
+        ):
+            utils.retrieve_over_http(
+                url="elephants",
+                output_file_path=tmp_path / "elephant",
+            )
+
+
+@pytest.mark.parametrize(
+    "content_length, expected_last_call",
+    [pytest.param("6", (6, 6), id="6/6"), pytest.param(0, (6, 0), id="6/6")],
+)
+def test_retrieve_over_http_fn_update(
+    tmp_path, content_length, expected_last_call
+):
+    """Test handling of fn_update when not None."""
+    mock_fn_update: Callable[[int, int]] = mock.Mock()
+
+    with mock.patch("requests.get", autospec=True) as mock_request:
+        mock_response = mock.Mock(spec=requests.Response)
+        mock_response.iter_content.return_value = [
+            b"1",  # First chunk of data (1 byte)
+            b"11",  # Second chunk of data (2 bytes)
+            b"111",  # Third chunk of data (3 bytes)
+        ]
+        mock_response.headers = {"content-length": content_length}
+        mock_request.return_value = mock_response
+
+        with mock.patch(
+            "brainglobe_atlasapi.utils.get_download_size",
+            side_effect=Exception if content_length == 0 else None,
+        ):
+            utils.retrieve_over_http(
+                url="elephants",
+                output_file_path=tmp_path / "elephant",
+                fn_update=mock_fn_update,
+            )
+
+    mock_fn_update.assert_called_with(*expected_last_call)
+    assert mock_fn_update.call_count == 3
+
+
+def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
+    """Test creating a directory if it does not exist."""
+    mock_cache_path = tmp_path / "parent" / "file"
+    mocker.patch(
+        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
+        return_value=mock_cache_path,
+    )
+    assert not mock_cache_path.exists()
+    utils.conf_from_url(conf_url)
+    assert mock_cache_path.parent.exists()

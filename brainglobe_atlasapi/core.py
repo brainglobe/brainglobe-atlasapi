@@ -8,6 +8,7 @@ from brainglobe_space import AnatomicalSpace
 
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_FILENAME,
+    ATLAS_ORIENTATION,
     HEMISPHERES_FILENAME,
     MESHES_DIRNAME,
     METADATA_FILENAME,
@@ -49,7 +50,7 @@ class Atlas:
 
         # Instantiate SpaceConvention object describing the current atlas:
         self.space = AnatomicalSpace(
-            origin=self.orientation,
+            origin=ATLAS_ORIENTATION,
             shape=self.shape,
             resolution=self.resolution,
         )
@@ -80,7 +81,7 @@ class Atlas:
     @property
     def orientation(self):
         """Make orientation more accessible from class."""
-        return self.metadata["orientation"]
+        return ATLAS_ORIENTATION
 
     @property
     def shape(self):
@@ -354,15 +355,18 @@ class AdditionalRefDict(UserDict):
 
         super().__init__(*args, **kwargs)
 
-    def __getitem__(self, ref_name):
-        if ref_name not in self.keys():
-            if ref_name not in self.references_list:
-                warnings.warn(
-                    f"No reference named {ref_name} "
-                    f"(available: {self.references_list})"
-                )
-                return None
+        for ref_name in self.references_list:
+            self.data[ref_name] = None
 
+    def __getitem__(self, ref_name):
+        if ref_name not in self.references_list:
+            warnings.warn(
+                f"No reference named {ref_name} "
+                f"(available: {self.references_list})"
+            )
+            return None
+
+        if self.data[ref_name] is None:
             self.data[ref_name] = read_tiff(
                 self.data_path / f"{ref_name}.tiff"
             )

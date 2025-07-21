@@ -1,6 +1,7 @@
+from scipy.ndimage import binary_closing, binary_fill_holes
+
 try:
-    from vedo import Mesh, Volume, load, show, write
-    from vedo.applications import Browser, Slicer3DPlotter
+    from vedo import Mesh, Volume, write
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
@@ -18,47 +19,17 @@ except ModuleNotFoundError:
 from pathlib import Path
 
 import numpy as np
-import scipy
 from loguru import logger
+from rich.progress import track
 
 from brainglobe_atlasapi.atlas_generation.volume_utils import (
     create_masked_array,
 )
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 # ----------------- #
 #   MESH CREATION   #
 # ----------------- #
-
-
-def region_mask_from_annotation(
-    structure_id,
-    annotation,
-    structures_list,
-):
-    """Generate mask for a structure from an annotation file
-    and a list of structures.
-
-    Parameters
-    ----------
-    structure_id : int
-        id of the structure
-    annotation : np.array
-        annotation stack for the atlas
-    structures_list : list
-        list of structure dictionaries
-
-    Returns
-    -------
-
-    """
-
-    mask_stack = np.zeros(annotation.shape, np.uint8)
-
-    for curr_structure in structures_list:
-        if structure_id in curr_structure["structure_id_path"]:
-            mask_stack[annotation == curr_structure["id"]] = 1
-
-    return mask_stack
 
 
 def extract_mesh_from_mask(
@@ -121,7 +92,7 @@ def extract_mesh_from_mask(
             )
 
     # Check volume argument
-    if np.min(volume) > 0 or np.max(volume) < 1:
+    if not np.isin(volume, [0, 1]).all():
         raise ValueError(
             "Argument volume should be a binary mask with only "
             "0s and 1s when passing a np.ndarray"
@@ -129,10 +100,8 @@ def extract_mesh_from_mask(
 
     # Apply morphological transformations
     if closing_n_iters is not None:
-        volume = scipy.ndimage.morphology.binary_fill_holes(volume).astype(int)
-        volume = scipy.ndimage.morphology.binary_closing(
-            volume, iterations=closing_n_iters
-        ).astype(int)
+        volume = binary_fill_holes(volume).astype(int)
+        volume = binary_closing(volume, iterations=closing_n_iters).astype(int)
 
     if not use_marching_cubes:
         # Use faster algorithm
@@ -145,8 +114,8 @@ def extract_mesh_from_mask(
         )
         # Apply marching cubes and save to .obj
         if mcubes_smooth:
-            smooth = mcubes.smooth(volume)
-            vertices, triangles = mcubes.marching_cubes(smooth, 0)
+            smooth_array = mcubes.smooth(volume)
+            vertices, triangles = mcubes.marching_cubes(smooth_array, 0)
         else:
             vertices, triangles = mcubes.marching_cubes(volume, 0.5)
 
@@ -155,7 +124,7 @@ def extract_mesh_from_mask(
 
     # Cleanup and save
     if extract_largest:
-        mesh = mesh.extractLargestRegion()
+        mesh = mesh.extract_largest_region()
 
     # decimate
     mesh.decimate_pro(decimate_fraction)
@@ -245,6 +214,96 @@ def create_region_mesh(args):
                 )
 
 
+def construct_meshes_from_annotation(
+    download_path,
+    volume,
+    structures_list,
+    root_id,
+    closing_n_iters=2,
+    decimate_fraction=0,
+    smooth=False,
+):
+    """
+    Retrieve or construct atlas region meshes for a given annotation volume.
+
+    If an atlas is packaged with mesh files, reuse those. Otherwise, construct
+    the meshes using the existing volume and structure tree. Returns a
+    dictionary mapping structure IDs to their corresponding .obj mesh files.
+
+    Parameters
+    ----------
+    download_path : Path
+        Path to the directory where new mesh files will be saved.
+    volume : np.ndarray
+        3D annotation volume.
+    structures_list : list
+        List of structure dictionaries containing id information.
+    root_id : int
+        Identifier for the root structure.
+    smooth: bool
+        if True the surface mesh is smoothed
+    closing_n_iters: int
+        number of iterations of closing morphological operation.
+        set to None to avoid applying morphological operations
+    decimate_fraction: float  in range [0, 1].
+        What fraction of the original number of vertices is to be kept.
+        EG .5 means that 50% of the vertices are kept,
+        the others are removed.
+    Returns
+    -------
+    dict
+        Dictionary of structure IDs and paths to their .obj mesh files.
+    """
+    meshes_dir_path = download_path / "meshes"
+    meshes_dir_path.mkdir(exist_ok=True)
+
+    tree = get_structures_tree(structures_list)
+    labels = np.unique(volume).astype(np.int32)
+
+    for key, node in tree.nodes.items():
+        node.data = Region(key in labels)
+
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                volume,
+                root_id,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
+            )
+        )
+    meshes_dict = {}
+    structures_with_mesh = []
+    for s in structures_list:
+        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        if not mesh_path.exists():
+            print(f"No mesh file exists for: {s}, ignoring it")
+            continue
+        if mesh_path.stat().st_size < 512:
+            print(f"obj file for {s} is too small, ignoring it.")
+            continue
+
+        structures_with_mesh.append(s)
+        meshes_dict[s["id"]] = mesh_path
+
+    print(
+        (
+            f"In the end, {len(structures_with_mesh)}",
+            "structures with mesh are kept",
+        )
+    )
+    return meshes_dict
+
+
 class Region(object):
     """
     Class used to add metadata to treelib.Tree during atlas creation.
@@ -254,58 +313,3 @@ class Region(object):
 
     def __init__(self, has_label):
         self.has_label = has_label
-
-
-# ------------------- #
-#   MESH INSPECTION   #
-# ------------------- #
-def compare_mesh_and_volume(mesh, volume):
-    """
-    Creates and interactive vedo
-    visualisation to look at a reference volume
-    and a mesh at the same time. Can be used to
-    assess the quality of the mesh extraction.
-
-    Parameters:
-    -----------
-
-    mesh: vedo Mesh
-    volume: np.array or vtkvedoplotter Volume
-    """
-    if isinstance(volume, np.ndarray):
-        volume = Volume(volume)
-
-    vp = Slicer3DPlotter(volume, bg2="white", showHisto=False)
-    vp.add(mesh.alpha(0.5))
-    vp.show()
-
-
-def inspect_meshes_folder(folder):
-    """
-    Used to create an interactive vedo visualisation
-    to scroll through all .obj files saved in a folder
-
-    Parameters
-    ----------
-    folder: str or Path object
-        path to folder with .obj files
-    """
-
-    if isinstance(folder, str):
-        folder = Path(folder)
-
-    if not folder.exists():
-        raise FileNotFoundError("The folder passed doesnt exist")
-
-    mesh_files = folder.glob("*.obj")
-
-    Browser([load(str(mf)).c("w").lw(0.25).lc("k") for mf in mesh_files])
-    logger.debug("visualization ready")
-    show()
-
-
-if __name__ == "__main__":
-    folder = (
-        r"C:\Users\Federico\.brainglobe\temp\allen_human_500um_v0.1\meshes"
-    )
-    inspect_meshes_folder(folder)

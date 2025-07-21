@@ -1,4 +1,5 @@
 import contextlib
+import warnings
 from io import StringIO
 
 import numpy as np
@@ -6,6 +7,7 @@ import pandas as pd
 import pytest
 import tifffile
 
+from brainglobe_atlasapi import core
 from brainglobe_atlasapi.core import AdditionalRefDict
 
 
@@ -13,7 +15,7 @@ def test_initialization(atlas):
     assert atlas.metadata == {
         "name": "example_mouse",
         "citation": (
-            "Wang et al 2020, " "https://doi.org/10.1016/j.cell.2020.04.007"
+            "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
         ),
         "atlas_link": "http://www.brain-map.org",
         "species": "Mus musculus",
@@ -47,10 +49,18 @@ def test_additional_ref_dict(temp_path):
     add_ref_dict = AdditionalRefDict(fake_data.keys(), temp_path)
 
     for k, stack in add_ref_dict.items():
-        assert add_ref_dict[k] == stack
+        assert np.all(add_ref_dict[k] == stack)
 
     with pytest.warns(UserWarning, match="No reference named 3"):
         assert add_ref_dict["3"] is None
+
+
+def test_addition_ref_dict_keys_only(temp_path):
+    """Test that AdditionalRefDict can be initialized with keys only."""
+    fake_data = ["1", "2"]
+    add_ref_dict = AdditionalRefDict(fake_data, temp_path)
+
+    assert list(add_ref_dict) == fake_data
 
 
 @pytest.mark.parametrize(
@@ -187,3 +197,82 @@ def test_even_hemisphere_size(atlas):
     assert atlas.hemispheres.shape == (132, 80, 114)
     assert (atlas.hemispheres[:, :, 56] == 2).all()
     assert (atlas.hemispheres[:, :, 57] == 1).all()
+
+
+def test_get_structure_mask(atlas):
+    """Test the get_structure_mask method.
+
+    >>> atlas.structures
+    root (997)
+      └── grey (8)
+            └── CH (567)
+
+    The 'structures' "grey" and "CH" are present in the example atlas. Their
+    respective ids are 8 and 567. These labels are not present in the
+    annotation of the example atlas however. Because the labels 7 and 566
+    are present, we reassign the parent and substructure ids to match the
+    annotation for testing purposes.
+
+    Because the "CH" structure is a sub-structure of "grey" it should adopt
+    the parent structure id (7) in the mask where its label (566) is present
+    when get_structure_mask is applied.
+
+    After applying get_structure_mask only the parent structure id (7) should
+    remain in the mask for the regions corresponding to "CH" and "grey".
+
+    All labels belonging to structures that are outside of the parent structure
+    should be set to 0.
+    """
+    atlas.structures["grey"]["id"] = 7
+    atlas.structures["CH"]["id"] = 566
+    loc_ch = np.where(atlas.annotation == 566)
+
+    grey_structure_mask = atlas.get_structure_mask("grey")
+
+    assert (
+        atlas.annotation.shape == grey_structure_mask.shape
+    ), "Mask shape should match annotation shape"
+    assert np.all(
+        grey_structure_mask[loc_ch] == 7
+    ), "Substructure id (566; CH) should adopt parent structure id (7; grey)"
+    assert np.all(
+        (grey_structure_mask == 0) | (grey_structure_mask == 7)
+    ), "Values in grey_structure_mask should be either 0 or 7"
+
+
+def test_key_error_for_additional_references(atlas, mocker):
+    """Test warning if metadata lacks 'additional_references'."""
+    atlas.metadata.pop("additional_references")
+    mock_metadata = atlas.metadata
+    structures_list = atlas.structures_list
+    mocker.patch(
+        "brainglobe_atlasapi.core.read_json",
+        side_effect=[
+            mock_metadata,
+            structures_list,
+        ],
+    )
+    mocker.patch("warnings.warn")
+    atlas.__init__("example_mouse_100um")
+    warnings.warn.assert_called_once_with(
+        "This atlas seems to be outdated as no additional_references list "
+        "is found in metadata!"
+    )
+
+
+@pytest.mark.parametrize(
+    "atlas_fixture",
+    [
+        pytest.param("asymmetric_atlas", id="asymmetric"),
+        pytest.param("atlas", id="symmetric"),
+    ],
+)
+def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
+    """Test that TIFF is read for asymmetric atlas hemispheres."""
+    atlas = request.getfixturevalue(atlas_fixture)
+    mocker.patch("brainglobe_atlasapi.core.read_tiff")
+    _ = atlas.hemispheres
+    if atlas.metadata["symmetric"]:
+        core.read_tiff.assert_not_called()
+    elif atlas.metadata["symmetric"] is False:
+        core.read_tiff.assert_called_once()

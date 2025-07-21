@@ -19,9 +19,9 @@ def check_struct_consistency(structures):
     for struct in structures:
         try:
             assert struct.keys() == STEMPLATE.keys()
-            assert [
+            assert all(
                 isinstance(v, type(STEMPLATE[k])) for k, v in struct.items()
-            ]
+            )
         except AssertionError:
             raise AssertionError(
                 f"Inconsistencies found for structure {struct}"
@@ -55,15 +55,18 @@ def get_structure_children(structures, region, use_tree=False):
         sub_region_ids = []
         for subregion in structures:
             if region["id"] in subregion["structure_id_path"]:
-                sub_region_ids.append(subregion["id"])
+                if subregion["id"] is not region["id"]:
+                    sub_region_ids.append(subregion["id"])
     else:
         tree = get_structures_tree(structures)
         sub_region_ids = [
-            n.identifier for k, n in tree.subtree(region["id"]).nodes.items()
+            n.identifier
+            for k, n in tree.subtree(region["id"]).nodes.items()
+            if n.identifier is not region["id"]
         ]
 
     if sub_region_ids == []:
-        print(f'{region["acronym"]} doesnt seem to contain any other regions')
+        print(f"{region['acronym']} doesnt seem to contain any other regions")
         return None
     else:
         return sub_region_ids
@@ -81,36 +84,13 @@ def get_structure_terminal_nodes(structures, region):
     tree = get_structures_tree(structures)
 
     sub_region_ids = [
-        n.identifier for n in tree.subtree(region["id"]).leaves()
+        n.identifier
+        for n in tree.subtree(region["id"]).leaves()
+        if n.identifier is not region["id"]
     ]
 
     if not sub_region_ids:
-        print(f'{region["acronym"]} doesnt seem to contain any other regions')
+        print(f"{region['acronym']} doesnt seem to contain any other regions")
         return None
     else:
         return sub_region_ids
-
-
-# Used by show_which_structures_have_mesh
-class Region(object):
-    def __init__(self, has_mesh):
-        self.has_mesh = has_mesh
-
-
-def show_which_structures_have_mesh(structures, meshes_dir):
-    """
-    It prints out a tree visualisation with
-    True for the regions that a mesh and false for the others
-
-    """
-    tree = get_structures_tree(structures)
-
-    for idx, node in tree.nodes.items():
-        savepath = meshes_dir / f"{idx}.obj"
-        if savepath.exists():
-            has_mesh = True
-        else:
-            has_mesh = False
-        node.data = Region(has_mesh)
-
-    tree.show(data_property="has_mesh")

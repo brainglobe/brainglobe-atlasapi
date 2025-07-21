@@ -2,28 +2,32 @@
 
 import json
 import os
+import re
 from pathlib import Path
 
 import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.config import get_brainglobe_dir
-from brainglobe_atlasapi.descriptors import REFERENCE_DTYPE
+from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
-    get_local_atlas_version,
 )
 from brainglobe_atlasapi.update_atlases import update_atlas
 
 
 def validate_atlas_files(atlas: BrainGlobeAtlas):
-    """Checks if basic files exist in the atlas folder"""
+    """
+    Checks if basic files exist in the atlas folder
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
+    """
+
+    atlas_path = atlas.root_dir
+
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
     expected_files = [
         "annotation.tiff",
@@ -53,8 +57,7 @@ def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
     assert abs(mesh_coord - annotation_coord) <= diff_tolerance * pixel_size, (
         f"Mesh coordinate {mesh_coord} and "
         f"annotation coordinate {annotation_coord}",
-        f"differ by more than {diff_tolerance} "
-        f"times pixel size {pixel_size}",
+        f"differ by more than {diff_tolerance} times pixel size {pixel_size}",
     )
     return True
 
@@ -104,12 +107,12 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
 
 def open_for_visual_check(atlas: BrainGlobeAtlas):
     # implement visual checks later
-    pass
+    return True
 
 
 def validate_checksum(atlas: BrainGlobeAtlas):
     # implement later
-    pass
+    return True
 
 
 def validate_image_dimensions(atlas: BrainGlobeAtlas):
@@ -147,14 +150,16 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
 def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     """
     Checks if all the structures in the atlas have a corresponding mesh file
+
+    custom_atlas_path is used when the function is called as part of
+    the wrapup function in the atlas packaging script. The expected
+    input is working_dir
     """
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    atlas_path = atlas.root_dir
+
     obj_path = Path(atlas_path / "meshes")
 
     ids_from_mesh_files = [
@@ -184,10 +189,8 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
 
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
-    atlas_path = (
-        Path(get_brainglobe_dir())
-        / f"{atlas.atlas_name}_v{get_local_atlas_version(atlas.atlas_name)}"
-    )
+    atlas_path = atlas.root_dir
+
     obj_path = Path(atlas_path / "meshes")
 
     ids_from_mesh_files = [
@@ -237,12 +240,42 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
 
 
 def validate_atlas_name(atlas: BrainGlobeAtlas):
+    """Validate atlas name.
+    - Can contain: lowercase letters, digits, underscores, hyphens, periods
+    - Ends with resolution (e.g., 5um, 37.5um, 1mm)
+    - Resolution: number + um (micrometers) or mm (millimeters)
     """
-    Ensures atlas names are all lowercase
+    name = atlas.atlas_name
+    allowed_chars = r"^[a-z0-9_.-]+$"
+    res = name.split("_").pop()
+
+    assert name == name.lower(), f"Atlas name {name} cannot contain capitals."
+
+    assert re.match(
+        allowed_chars, name
+    ), f"Atlas name {name} contains invalid characters."
+
+    resolution_pattern = r"\d+(\.\d+)?(nm|um|mm)$"
+    assert re.search(resolution_pattern, res), (
+        f"Atlas name {name} should end with a valid resolution "
+        "(e.g., 5um, 1.5mm)."
+    )
+
+    return True
+
+
+def validate_metadata(atlas: BrainGlobeAtlas):
+    """Validate atlas metadata.
+    Checks that the metadata of the given atlas has the correct format.
+    Specifically, it ensures that all required keys are present and that the
+    types of the values match the types specified in the METADATA_TEMPLATE.
     """
-    assert (
-        atlas.atlas_name == atlas.atlas_name.lower()
-    ), f"Atlas name {atlas.atlas_name} cannot contain capitals."
+    for key, value in METADATA_TEMPLATE.items():
+        assert key in atlas.metadata, f"Missing key: {key}"
+        assert isinstance(atlas.metadata[key], type(value)), (
+            f"{key} should be of type {type(value).__name__}, "
+            f"but got {type(atlas.metadata[key]).__name__}."
+        )
     return True
 
 
@@ -252,6 +285,8 @@ def get_all_validation_functions():
     return [
         validate_atlas_files,
         validate_mesh_matches_image_extents,
+        open_for_visual_check,
+        validate_checksum,
         validate_image_dimensions,
         validate_additional_references,
         catch_missing_mesh_files,
@@ -298,6 +333,9 @@ if __name__ == "__main__":
         validate_additional_references,
         catch_missing_mesh_files,
         catch_missing_structures,
+        validate_reference_image_pixels,
+        validate_annotation_symmetry,
+        validate_atlas_name,
     ]
 
     valid_atlases = []

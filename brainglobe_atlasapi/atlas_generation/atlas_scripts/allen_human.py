@@ -1,7 +1,6 @@
 __version__ = "0"
 
 import json
-import multiprocessing as mp
 import time
 
 import numpy as np
@@ -17,7 +16,6 @@ from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
-    inspect_meshes_folder,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -32,8 +30,6 @@ CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
 ORIENTATION = "rpi"
 
 ### Settings
-PARALLEL = False  # disable parallel mesh extraction for easier debugging
-TEST = False
 
 
 def prune_tree(tree):
@@ -219,69 +215,38 @@ def create_atlas(working_dir):
     start = time.time()
     annotated_volume = annotation
 
-    if PARALLEL:
-        print("Starting mesh creation in parallel")
+    print("Starting mesh creation")
 
-        pool = mp.Pool(mp.cpu_count() - 2)
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
 
-        try:
-            pool.map(
-                create_region_mesh,
-                [
-                    (
-                        meshes_dir_path,
-                        node,
-                        tree,
-                        labels,
-                        annotated_volume,
-                        ROOT_ID,
-                        closing_n_iters,
-                        decimate_fraction,
-                        smooth,
-                    )
-                    for node in tree.nodes.values()
-                ],
+        if node.tag == "root":
+            annotated_volume[annotated_volume > 0] = node.identifier
+        else:
+            annotated_volume = annotated_volume
+
+        create_region_mesh(
+            (
+                meshes_dir_path,
+                node,
+                tree,
+                labels,
+                annotated_volume,
+                ROOT_ID,
+                closing_n_iters,
+                decimate_fraction,
+                smooth,
             )
-        except mp.pool.MaybeEncodingError:
-            # error with returning results from pool.map but we don't care
-            pass
-    else:
-        print("Starting mesh creation")
-
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-
-            if node.tag == "root":
-                annotated_volume[annotated_volume > 0] = node.identifier
-            else:
-                annotated_volume = annotated_volume
-
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+        )
 
     print(
         "Finished mesh extraction in: ",
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-
-    if TEST:
-        # create visualization of the various meshes
-        inspect_meshes_folder(meshes_dir_path)
 
     # Create meshes dict
     meshes_dict = dict()

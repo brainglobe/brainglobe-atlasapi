@@ -1,7 +1,12 @@
 from unittest import mock
 
+import pytest
+from rich.console import Console
+from rich.table import Table
+
 from brainglobe_atlasapi import config
 from brainglobe_atlasapi.list_atlases import (
+    add_atlas_to_row,
     get_all_atlases_lastversions,
     get_atlases_lastversions,
     get_downloaded_atlases,
@@ -57,6 +62,21 @@ def test_get_all_atlases_lastversions():
     assert "example_mouse_100um" in last_versions
     assert "osten_mouse_50um" in last_versions
     assert "allen_mouse_25um" in last_versions
+
+
+def test_get_all_atlases_custom_atlases(mocker):
+    """Checks inclusion of available custom atlases."""
+    custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
+    mock_custom_atlas = {"atlases": {"mock_custom_atlas": "1.1"}}
+
+    with mocker.patch(
+        "brainglobe_atlasapi.utils.conf_from_file",
+        side_effect=lambda file_path: {
+            custom_path: mock_custom_atlas,
+        }.get(file_path, FileNotFoundError),
+    ):
+        last_versions = get_all_atlases_lastversions()
+        assert last_versions["mock_custom_atlas"] == "1.1"
 
 
 def test_get_all_atlases_lastversions_offline():
@@ -117,3 +137,37 @@ def test_get_all_atlases_lastversions_gin_down():
 
     if cleanup_cache:
         cache_path.unlink()
+
+
+@pytest.mark.parametrize(
+    ["version", "expected_print"],
+    [
+        pytest.param(
+            {
+                "version": "1",
+                "latest_version": "2",
+            },
+            "│ awesome_name │ ✔ │ x │ 1 │ 2 │",
+            id="version != latest_version",
+        ),
+        pytest.param(
+            {
+                "version": "1",
+                "latest_version": "1",
+            },
+            "│ awesome_name │ ✔ │ ✔ │ 1 │ 1 │",
+            id="version == latest_version",
+        ),
+    ],
+)
+def test_add_atlas_to_row(version, expected_print, capsys):
+    """Tests correct print when versions match/mismatch"""
+    info = {
+        "downloaded": True,
+        "version": version["version"],
+        "latest_version": version["latest_version"],
+    }
+    table = add_atlas_to_row(atlas="awesome_name", info=info, table=Table())
+    Console().print(table)
+    captured = capsys.readouterr()
+    assert expected_print in captured.out

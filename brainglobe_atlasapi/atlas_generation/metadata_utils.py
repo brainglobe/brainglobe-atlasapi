@@ -8,7 +8,8 @@ import json
 import re
 from datetime import datetime
 
-from requests.exceptions import ConnectionError, InvalidURL, MissingSchema
+import requests
+from requests.exceptions import InvalidURL, MissingSchema
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.structure_json_to_csv import (
@@ -27,7 +28,6 @@ def generate_metadata_dict(
     orientation,
     version,
     shape,
-    transformation_mat,
     additional_references,
     atlas_packager,
 ):
@@ -43,11 +43,10 @@ def generate_metadata_dict(
 
         # Test url:
         try:
-            pass
-            # _ = requests.get(atlas_link)
-        except (MissingSchema, InvalidURL, ConnectionError):
+            requests.get(atlas_link)
+        except (MissingSchema, InvalidURL):
             raise InvalidURL(
-                "Ensure that the url is valid and formatted correctly!"
+                "Ensure that the URL is valid and formatted correctly."
             )
 
     # Enforce correct format for symmetric, resolution and shape:
@@ -70,7 +69,6 @@ def generate_metadata_dict(
         orientation=orientation,
         version=version,
         shape=shape,
-        trasform_to_bg=tuple([tuple(m) for m in transformation_mat]),
         additional_references=additional_references,
         atlas_packager=atlas_packager,
     )
@@ -84,10 +82,10 @@ def create_readme(uncompr_atlas_path, metadata_dict, structures):
     structuresTree.save2file(readmepath)
 
     # The prepend the header and info
-    with open(readmepath, "r") as original:
+    with open(readmepath, "r", encoding="utf-8") as original:
         tree = original.read()
 
-    with open(readmepath, "w") as out:
+    with open(readmepath, "w", encoding="utf-8") as out:
         out.write("-- BRAINGLOBE ATLAS --\n")
 
         now = datetime.now()
@@ -138,7 +136,9 @@ def create_metadata_files(
     :param additional_metadata: Dict to add to atlas metadata
     """
     # write metadata dict:
-    with open(dest_dir / descriptors.METADATA_FILENAME, "w") as f:
+    with open(
+        dest_dir / descriptors.METADATA_FILENAME, "w", encoding="utf-8"
+    ) as f:
         # only save additional metadata to json, don't include in readme
         json.dump({**metadata_dict, **additional_metadata}, f)
 

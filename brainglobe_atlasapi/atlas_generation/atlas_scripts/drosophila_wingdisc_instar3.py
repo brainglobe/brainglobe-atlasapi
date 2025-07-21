@@ -11,20 +11,9 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
-
-### Metadata ###
-
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
-__version__ = 0
-
 # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
 # Institution_SpeciesCommonName, e.g. allen_mouse.
-ATLAS_NAME = "L3I_wingdisc"
+ATLAS_NAME = "drosophila_wingdisc_instar3"
 
 # DOI of the most relevant citable document
 CITATION = "unpublished"
@@ -37,7 +26,7 @@ ATLAS_LINK = None
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "asr"
+ORIENTATION = "ras"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not

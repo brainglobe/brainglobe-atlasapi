@@ -1,7 +1,10 @@
 from pathlib import Path
 
 import pandas as pd
+<<<<<<< HEAD
 from brainglobe_utils.image.scale import scale_and_convert_to_16_bits
+=======
+>>>>>>> 99b300e (renamed atlas and redirect orientation)
 from brainglobe_utils.IO.image import load_nii
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
@@ -96,7 +99,10 @@ def retrieve_reference_and_annotation():
 
     annotation = load_nii(annotation_volume_path, as_array=True)
     reference = load_nii(reference_volume_path, as_array=True)
+<<<<<<< HEAD
     reference = scale_and_convert_to_16_bits(reference)
+=======
+>>>>>>> 99b300e (renamed atlas and redirect orientation)
     return reference, annotation
 
 

@@ -15,7 +15,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh_consumer,
 )
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
@@ -389,7 +388,7 @@ if __name__ == "__main__":
 
     params = vars(arg_parser.parse_args())
     # timepoints = params["timepoints"]
-    timepoints = ("E15.5",)
+    timepoints = ("E13.5",)
     modality = params["modality"]
     decimate_fraction = params["decimate_fraction"]
     cached_modality = params["cached_meshes"]
@@ -443,24 +442,24 @@ if __name__ == "__main__":
         )
         # Wrap up, compress, and remove file:
         print("Finalising atlas")
-        output_filename = wrapup_atlas_from_data(
-            atlas_name=atlas_name,
-            atlas_minor_version=VERSION,
-            citation=CITATION,
-            atlas_link=ATLAS_LINK,
-            species=SPECIES,
-            resolution=(resolution_um,) * 3,
-            orientation=ORIENTATION,
-            root_id=ROOT_ID,
-            reference_stack=reference_volume,
-            annotation_stack=annotation_volume,
-            structures_list=structures_with_mesh,
-            meshes_dict=meshes_dict,
-            working_dir=atlas_dir,
-            atlas_packager=PACKAGER,
-            hemispheres_stack=None,  # it is symmetric
-            cleanup_files=False,
-            compress=True,
-            scale_meshes=True,
-        )
-        print("Done. Atlas generated at: ", output_filename)
+        # output_filename = wrapup_atlas_from_data(
+        #     atlas_name=atlas_name,
+        #     atlas_minor_version=VERSION,
+        #     citation=CITATION,
+        #     atlas_link=ATLAS_LINK,
+        #     species=SPECIES,
+        #     resolution=(resolution_um,) * 3,
+        #     orientation=ORIENTATION,
+        #     root_id=ROOT_ID,
+        #     reference_stack=reference_volume,
+        #     annotation_stack=annotation_volume,
+        #     structures_list=structures_with_mesh,
+        #     meshes_dict=meshes_dict,
+        #     working_dir=atlas_dir,
+        #     atlas_packager=PACKAGER,
+        #     hemispheres_stack=None,  # it is symmetric
+        #     cleanup_files=False,
+        #     compress=True,
+        #     scale_meshes=True,
+        # )
+        # print("Done. Atlas generated at: ", output_filename)

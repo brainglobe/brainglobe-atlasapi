@@ -1,5 +1,4 @@
 import argparse
-import multiprocessing as mp
 import shutil
 import time
 from pathlib import Path
@@ -13,12 +12,10 @@ from brainglobe_utils.IO.image import load_nii
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh_consumer,
 )
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
-    postorder_tree_iterative,
 )
 
 ATLAS_NAME = "kim_dev_mouse"
@@ -167,8 +164,8 @@ def create_meshes(
         node.data = Region(is_label)
 
     # Mesh creation
-    closing_n_iters = 2
-    smooth = True  # smooth meshes after creation
+    # closing_n_iters = 2
+    # smooth = True  # smooth meshes after creation
     # subvolume = True  # Memory efficient mesh creation using subvolumes
     compressor = zarr.codecs.BloscCodec(
         cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.bitshuffle
@@ -191,39 +188,60 @@ def create_meshes(
     meshes_mask_store = zarr.storage.LocalStore(mesh_mask_path)
     zarr.create_group(meshes_mask_store)
     meshes_mask_store.close()
+    # mesh_ids = [node for node in postorder_tree_iterative(tree)]
 
     start = time.time()
 
-    work_queue = mp.Queue()
-    num_threads = mp.cpu_count() - 20
-    consumer_args = (
-        work_queue,
-        meshes_dir_path,
-        tree,
-        labels,
-        ann_path,
-        mesh_mask_path,
-        ROOT_ID,
-        closing_n_iters,
-        decimate_fraction,
-        smooth,
-    )
-    pool = [
-        mp.Process(target=create_region_mesh_consumer, args=consumer_args)
-        for _ in range(num_threads)
-    ]
+    # pool.map(
+    #     create_region_mesh_parallel,
+    #     [
+    #         (
+    #             output_path,
+    #             node,
+    #             tree,
+    #             labels,
+    #             ann_path,
+    #             annotation_volume.shape,
+    #             root_id,
+    #             closing_n_iters,
+    #             decimate_fraction,
+    #             smooth,
+    #             subvolume,  # subvolume=True to create meshes for subvolumes
+    #         )
+    #         for node in tree.nodes.values()
+    #     ],
+    # )
 
-    for p in pool:
-        p.start()
-
-    for node in postorder_tree_iterative(tree):
-        work_queue.put(node)
-
-    for _ in pool:
-        work_queue.put(None)
-
-    for p in pool:
-        p.join()
+    # work_queue = mp.Queue()
+    # num_threads = mp.cpu_count() - 20
+    # consumer_args = (
+    #     work_queue,
+    #     meshes_dir_path,
+    #     tree,
+    #     labels,
+    #     ann_path,
+    #     mesh_mask_path,
+    #     ROOT_ID,
+    #     closing_n_iters,
+    #     decimate_fraction,
+    #     smooth,
+    # )
+    # pool = [
+    #     mp.Process(target=create_region_mesh_consumer, args=consumer_args)
+    #     for _ in range(num_threads)
+    # ]
+    #
+    # for p in pool:
+    #     p.start()
+    #
+    # for node in postorder_tree_iterative(tree):
+    #     work_queue.put(node)
+    #
+    # for _ in pool:
+    #     work_queue.put(None)
+    #
+    # for p in pool:
+    #     p.join()
 
     # for node in track(
     #     tree.nodes.values(),

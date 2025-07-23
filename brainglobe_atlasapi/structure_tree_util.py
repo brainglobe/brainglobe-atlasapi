@@ -77,19 +77,20 @@ def postorder_tree(tree: Tree, node_id: Optional[int] = None):
     yield from _postorder(node_id)
 
 
-def postorder_tree_iterative(tree: Tree):
+def postorder_tree_iterative(tree):
     """
-    Yields node identifiers in a post-order depth first traversal of the tree.
+    Yields nodes in a post-order depth first traversal of the tree.
     """
 
     class StackFrame:
-        def __init__(self, identifier, progress=0):
-            self.identifier = identifier
+        def __init__(self, node, progress=0):
+            self.node = node
+            self.identifier = node.identifier
             self.progress = progress
 
-    node_id = tree.root
+    root_node = tree.nodes[tree.root]
 
-    root_frame = StackFrame(node_id)
+    root_frame = StackFrame(root_node)
     stack = deque([root_frame])
 
     while len(stack) > 0:
@@ -103,7 +104,7 @@ def postorder_tree_iterative(tree: Tree):
 
             # Push all children onto the stack
             for child in tree.children(current_frame.identifier):
-                stack.append(StackFrame(child.identifier))
+                stack.append(StackFrame(child))
         else:
-            # Second time visiting this node, yield it
-            yield current_frame.identifier
+            # Second time visiting this node, yield the node
+            yield current_frame.node

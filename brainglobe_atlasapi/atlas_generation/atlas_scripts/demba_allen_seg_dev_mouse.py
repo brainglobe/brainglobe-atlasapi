@@ -7,7 +7,9 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 from scipy.ndimage import zoom
-
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
@@ -34,7 +36,8 @@ data_file_url = (
 )
 resolution_to_modalities = {
     25: ["stpt", "mri", "lsfm", "allen_stpt"],
-    10: ["allen_stpt"],
+    #  the mesh generation is far too slow with 10 um
+    #  10: ["allen_stpt"],
     20: ["stpt", "allen_stpt"],
 }
 
@@ -169,40 +172,6 @@ def retrieve_hemisphere_map():
     """
 
 
-def filter_structures_not_present_in_annotation(structures, annotation):
-    """
-    Filter out structures that are not present in the annotation volume,
-    or whose children are not present. Also prints removed structures.
-
-    Args:
-        structures (list of dict): List containing structure information
-        annotation (np.ndarray): Annotation volume
-
-    Returns:
-        list of dict: Filtered list of structure dictionaries
-    """
-    present_ids = set(np.unique(annotation))
-
-    # Create a structure tree for easy parent-child relationship traversal
-    tree = get_structures_tree(structures)
-
-    # Function to check if a structure or any of its descendants are present
-    def is_present(structure):
-        node = tree.get_node(structure["id"])
-        if structure["id"] in present_ids:
-            return True
-
-        # Check if any children are present
-        for child in tree.children(node.identifier):
-            if child.identifier in present_ids:
-                return True
-        return False
-
-    removed = [s for s in structures if not is_present(s)]
-    for r in removed:
-        print("Removed structure:", r["name"], "(ID:", r["id"], ")")
-
-    return [s for s in structures if is_present(s)]
 
 
 def retrieve_structure_information(download_path):
@@ -234,71 +203,7 @@ def retrieve_structure_information(download_path):
     return structs_with_mesh
 
 
-def retrieve_or_construct_meshes(
-    structures, annotated_volume, download_dir_path
-):
-    """
-    generates meshes based on the segmentation volume
-    """
-    print("constructing meshes")
-    meshes_dir_path = download_dir_path / "meshes"
-    meshes_dir_path.mkdir(exist_ok=True)
-    tree = get_structures_tree(structures)
-    labels = np.unique(annotated_volume).astype(np.int32)
-    for key, node in tree.nodes.items():
-        if key in labels:
-            is_label = True
-        else:
-            is_label = False
-
-        node.data = Region(is_label)
-
-    # Mesh creation
-    closing_n_iters = 2
-    decimate_fraction = 0.2
-    smooth = False
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
-        create_region_mesh(
-            (
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                annotated_volume,
-                ROOT_ID,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            )
-        )
-    # Create meshes dict
-    meshes_dict = dict()
-    structures_with_mesh = []
-    for s in structures:
-        # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
-        if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it")
-            continue
-        else:
-            # Check that the mesh actually exists (i.e. not empty)
-            if mesh_path.stat().st_size < 512:
-                print(f"obj file for {s} is too small, ignoring it.")
-                continue
-
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
-
-    print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
-    )
-    return meshes_dict
-
+import shutil
 
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / NAME
@@ -309,9 +214,14 @@ if __name__ == "__main__":
         atlas_file_url=data_file_url,
     )
     for age in range(4, 57):
+        if age!=4:
+            shutil.rmtree(age_specific_root_dir)
         age_specific_root_dir = bg_root_dir / f"P{age}"
         age_specific_root_dir.mkdir(exist_ok=True)
         for resolution, modalities in resolution_to_modalities.items():
+            if resolution != list(resolution_to_modalities.keys())[0]:
+                shutil.rmtree(age_specific_root_dir)
+            age_specific_root_dir.mkdir(exist_ok=True)
             reference_volume, annotated_volume = (
                 retrieve_reference_and_annotation(
                     bg_root_dir, age, resolution, modalities[0]
@@ -323,14 +233,10 @@ if __name__ == "__main__":
                 )
             hemispheres_stack = retrieve_hemisphere_map()
             structures = retrieve_structure_information(bg_root_dir)
-            structures = filter_structures_not_present_in_annotation(
-                structures, annotated_volume
+            meshes_dict = construct_meshes_from_annotation(
+                age_specific_root_dir,annotated_volume, structures, ROOT_ID, decimate_fraction=0.5, closing_n_iters=1, use_multiprocessing=True
             )
-
-            meshes_dict = retrieve_or_construct_meshes(
-                structures, annotated_volume, age_specific_root_dir
-            )
-            current_name = f"{NAME}_p{age}_{modalities[0]}"
+            current_name = f"{NAME}_p{age}"
 
             structures = [
                 {k: s[k] for k in TEMPLATE_KEYS if k in s} for s in structures
@@ -352,7 +258,10 @@ if __name__ == "__main__":
                 hemispheres_stack=None,
                 cleanup_files=False,
                 compress=True,
-                scale_meshes=True,
+                scale_meshes=True, 
                 additional_references=additional_references,
             )
         meshes_dict = None
+        
+
+        

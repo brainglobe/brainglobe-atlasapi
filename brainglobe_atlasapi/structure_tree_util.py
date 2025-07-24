@@ -1,9 +1,24 @@
-from treelib import Tree
+"""Utility functions for working with structure trees."""
 
-# TODO evaluate whether we want this as a method in StructureDict
+from treelib import Tree
 
 
 def child_ids(structure, structure_list):
+    """
+    Return a list of IDs of the children of a given structure.
+
+    Parameters
+    ----------
+    structure : dict
+        The structure to find the children of.
+    structure_list : list
+        A list of structures to search within.
+
+    Returns
+    -------
+    list
+        A list of child IDs.
+    """
     return [
         s["id"]
         for s in structure_list
@@ -14,8 +29,8 @@ def child_ids(structure, structure_list):
 
 def get_structures_tree(structures_list):
     """
-    Creates a 'tree' graph with the hierarchical organisation of all
-    structures
+    Create a `tree` graph with the hierarchical organisation of all
+    structures.
     """
 
     def add_descendants_to_tree(
@@ -23,7 +38,7 @@ def get_structures_tree(structures_list):
     ):
         """
         Recursively goes through all the the descendants of a region and adds
-        them to the tree
+        them to the tree.
         """
         tree.create_node(
             tag=f"{id_to_acronym_map[structure_id]} ({structure_id})",

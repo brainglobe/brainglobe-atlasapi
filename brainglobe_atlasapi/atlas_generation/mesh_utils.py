@@ -97,7 +97,9 @@ def extract_mesh_from_mask(
             )
 
     # Check volume argument
-    if not (np.issubdtype(volume.dtype, np.integer) or volume.dtype == bool):
+    if not (
+        np.issubdtype(volume.dtype, np.integer) or volume.dtype == bool
+    ) and not (np.max(volume) <= 1 and np.min(volume) >= 0):
         raise ValueError(
             "Argument volume should be a binary mask with only "
             "0s and 1s when passing a np.ndarray"

@@ -29,6 +29,7 @@ def create_atlas(working_dir, resolution):
     CITATION = "unpublished"
     ATLAS_FILE_URL = "https://uol.de/en/ibu/animal-navigation"  # noqa
     ORIENTATION = "asr"
+    ROOT_ID = 999
     ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
     ADDITIONAL_METADATA = {}
 
@@ -187,7 +188,7 @@ def create_atlas(working_dir, resolution):
         species=SPECIES,
         resolution=resolution,
         orientation=ORIENTATION,
-        root_id=999,
+        root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
         structures_list=structure_data_list,

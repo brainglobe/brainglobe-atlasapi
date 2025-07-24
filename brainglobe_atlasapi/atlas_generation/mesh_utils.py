@@ -232,7 +232,7 @@ def create_region_mesh(args):
 
 
 def create_meshes_from_annotated_volume(
-    working_dir: Path,
+    mesh_directory: Path,
     tree: Tree,
     annotated_volume: np.ndarray,
     closing_n_iters: int = 2,
@@ -247,7 +247,7 @@ def create_meshes_from_annotated_volume(
 
     Parameters
     ----------
-    working_dir: Path object
+    mesh_directory: Path object
         Path to the working directory where meshes will be saved.
     tree: treelib.Tree
         Hierarchical structure of regions.
@@ -275,12 +275,12 @@ def create_meshes_from_annotated_volume(
     if num_threads == 0:
         raise ValueError("Number of threads cannot be 0")
 
-    meshes_dir_path = working_dir / "meshes"
+    meshes_dir_path = mesh_directory
     meshes_dir_path.mkdir(parents=True, exist_ok=True)
 
     labels = list(np.unique(annotated_volume))
     # Only used for parallel processing
-    ann_path = working_dir / "temp_annotations.zarr"
+    ann_path = mesh_directory / "temp_annotations.zarr"
 
     if parallel:
         compressor = zarr.codecs.BloscCodec(

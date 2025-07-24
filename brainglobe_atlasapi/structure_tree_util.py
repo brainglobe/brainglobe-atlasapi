@@ -1,5 +1,4 @@
 from collections import deque
-from typing import Optional
 
 from treelib import Tree
 
@@ -25,7 +24,7 @@ def get_structures_tree(structures_list):
         structures_list, id_to_acronym_map, tree, structure_id, parent_id
     ):
         """
-        Recursively goes through all the the descendants of a region and adds
+        Recursively goes through all the descendants of a region and adds
         them to the tree
         """
         tree.create_node(
@@ -62,49 +61,18 @@ def get_structures_tree(structures_list):
     return tree
 
 
-def postorder_tree(tree: Tree, node_id: Optional[int] = None):
+def preorder_dfs(tree):
     """
-    Yields node identifiers in a post-order depth first traversal of the tree.
+    Yields nodes in a pre-order depth first traversal of the tree.
     """
-    if node_id is None:
-        node_id = tree.root
-
-    def _postorder(node_id):
-        for child in tree.children(node_id):
-            yield from _postorder(child.identifier)
-        yield node_id
-
-    yield from _postorder(node_id)
-
-
-def postorder_tree_iterative(tree):
-    """
-    Yields nodes in a post-order depth first traversal of the tree.
-    """
-
-    class StackFrame:
-        def __init__(self, node, progress=0):
-            self.node = node
-            self.identifier = node.identifier
-            self.progress = progress
-
     root_node = tree.nodes[tree.root]
 
-    root_frame = StackFrame(root_node)
-    stack = deque([root_frame])
+    stack = deque([root_node])
 
     while len(stack) > 0:
-        current_frame = stack.pop()
+        current_node = stack.pop()
+        yield current_node
 
-        if current_frame.progress == 0:
-            # First time visiting this node, push it back with
-            # progress incremented
-            current_frame.progress += 1
-            stack.append(current_frame)
-
-            # Push all children onto the stack
-            for child in tree.children(current_frame.identifier):
-                stack.append(StackFrame(child))
-        else:
-            # Second time visiting this node, yield the node
-            yield current_frame.node
+        # Push all children onto the stack
+        for child in tree.children(current_node.identifier):
+            stack.append(child)

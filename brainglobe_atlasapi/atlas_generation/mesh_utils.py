@@ -1,4 +1,9 @@
+import shutil
+
 from scipy.ndimage import binary_closing, binary_fill_holes
+from treelib import Tree
+
+from brainglobe_atlasapi.structure_tree_util import preorder_dfs
 
 try:
     from vedo import Mesh, Volume, write
@@ -16,9 +21,9 @@ except ModuleNotFoundError:
         + '   please install with "pip install PyMCubes -U"'
     )
 
+import multiprocessing as mp
 from pathlib import Path
 
-import dask.array as da
 import numpy as np
 import zarr
 from loguru import logger
@@ -91,12 +96,12 @@ def extract_mesh_from_mask(
                 + f"\n      {str(obj_filepath)}"
             )
 
-    # # Check volume argument
-    # if not np.isin(volume, [0, 1]).all():
-    #     raise ValueError(
-    #         "Argument volume should be a binary mask with only "
-    #         "0s and 1s when passing a np.ndarray"
-    #     )
+    # Check volume argument
+    if not (np.issubdtype(volume.dtype, np.integer) or volume.dtype == bool):
+        raise ValueError(
+            "Argument volume should be a binary mask with only "
+            "0s and 1s when passing a np.ndarray"
+        )
 
     # Apply morphological transformations
     if closing_n_iters is not None:
@@ -144,8 +149,8 @@ def create_region_mesh(args):
     """
     Automates the creation of a region's mesh. Given a volume of annotations
     and a structures tree, it takes the volume's region corresponding to the
-    region of interest and all of it's children's labels and creates a mesh.
-    It takes a tuple of arguments to facilitaed parallel processing with
+    region of interest and all of its children's labels and creates a mesh.
+    It takes a tuple of arguments to facilitate parallel processing with
     multiprocessing.pool.map
 
     Note, by default it avoids overwriting a structure's mesh if the
@@ -155,10 +160,10 @@ def create_region_mesh(args):
     ----------
     meshes_dir_path: pathlib Path object with folder where meshes are saved
     tree: treelib.Tree with hierarchical structures information
-    node: tree's node corresponding to the region who's mesh is being created
+    node: tree's node corresponding to the region whose mesh is being created
     labels: list of unique label annotations in annotated volume,
     (list(np.unique(annotated_volume)))
-    annotated_volume: 3d numpy array with annotaed volume
+    annotated_volume: 3d numpy array path to a zarr store with annotations
     ROOT_ID: int,
     id of root structure (mesh creation is a bit more refined for that)
     """
@@ -180,7 +185,17 @@ def create_region_mesh(args):
     #     logger.debug(f"Mesh file save path exists already, skipping.")
     #     return
 
-    # Get lables for region and it's children
+    if not isinstance(annotated_volume, np.ndarray):
+        # If annotated_volume is a path to a zarr store, open it
+        if isinstance(annotated_volume, (str, Path)):
+            annotated_volume = zarr.open(annotated_volume, mode="r")
+        else:
+            raise ValueError(
+                "Argument annotated_volume should be a np.ndarray"
+                " or a path to a zarr store"
+            )
+
+    # Get labels for region and it's children
     stree = tree.subtree(node.identifier)
     ids = list(stree.nodes.keys())
 
@@ -189,14 +204,14 @@ def create_region_mesh(args):
 
     if (
         not matched_labels
-    ):  # it fails if the region and all of it's children are not in annotation
+    ):  # it fails if the region and all of its children are not in annotation
         print(f"No labels found for {node.tag}")
         return
     else:
         # Create mask and extract mesh
         mask = create_masked_array(annotated_volume, ids)
 
-        if not np.max(mask):
+        if np.sum(mask) == 0:
             print(f"Empty mask for {node.tag}")
         else:
             if node.identifier == ROOT_ID:
@@ -216,132 +231,109 @@ def create_region_mesh(args):
                 )
 
 
-def create_region_mesh_parallel(
-    args: tuple,
+def create_meshes_from_annotated_volume(
+    working_dir: Path,
+    tree: Tree,
+    annotated_volume: np.ndarray,
+    closing_n_iters: int = 2,
+    decimate_fraction: float = 0.2,
+    smooth: bool = True,
+    parallel: bool = True,
+    num_threads: int = -1,
 ):
-    logger.debug(f"Creating mask for region {args[1].identifier}")
-    meshes_dir_path = args[0]
-    node = args[1]
-    tree = args[2]
-    labels = args[3]
-    annotated_volume_path = args[4]
-    # volume_shape = args[5]
-    ROOT_ID = args[6]
-    closing_n_iters = args[7]
-    decimate_fraction = args[8]
-    smooth = args[9]
+    """
+    Creates meshes for all regions in the tree from the annotated volume.
+    If parallel is uses multiprocessing to speed up the process.
 
-    # Get labels for region and it's children
-    stree = tree.subtree(node.identifier)
-    ids = list(stree.nodes.keys())
+    Parameters
+    ----------
+    working_dir: Path object
+        Path to the working directory where meshes will be saved.
+    tree: treelib.Tree
+        Hierarchical structure of regions.
+    annotated_volume: np.ndarray
+        3d numpy array with annotated volume
+    closing_n_iters: int
+        Number of iterations of closing morphological operation.
+    decimate_fraction: float  in range [0, 1].
+        What fraction of the original number of vertices is to be kept.
+        EG .5 means that 50% of the vertices are kept,
+        the others are removed.
+    smooth: bool
+        if True the surface mesh is smoothed
+    parallel: bool
+        If True, uses multiprocessing to speed up mesh creation
+    num_threads: int
+        Number of threads to use for parallel processing.
+        If -1, threads are set to the number of available cores minus 1.
+        If > 0, uses that many threads.
 
-    # Keep only labels that are in the annotation volume
-    matched_labels = [i for i in ids if i in labels]
-    savepath = meshes_dir_path / f"{node.identifier}.obj"
+    Returns
+    -------
+    None, saves meshes to working_dir
+    """
+    if num_threads == 0:
+        raise ValueError("Number of threads cannot be 0")
 
-    if (
-        not matched_labels
-    ):  # it fails if the region and all of it's children are not in annotation
-        print(f"No labels found for {node.tag}")
-        return
+    meshes_dir_path = working_dir / "meshes"
+    meshes_dir_path.mkdir(parents=True, exist_ok=True)
+
+    labels = list(np.unique(annotated_volume))
+    # Only used for parallel processing
+    ann_path = working_dir / "temp_annotations.zarr"
+
+    if parallel:
+        compressor = zarr.codecs.BloscCodec(
+            cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.bitshuffle
+        )
+
+        if ann_path.exists():
+            shutil.rmtree(ann_path)
+
+        ann_store = zarr.storage.LocalStore(ann_path)
+        zarr.create_array(
+            ann_store,
+            data=annotated_volume,
+            compressors=compressor,
+        )
+        ann_store.close()
+        annotated_volume = ann_path
+
+    root_id = tree.root
+    # Create a list of arguments for each region's mesh creation
+    args_list = [
+        (
+            meshes_dir_path,
+            node,
+            tree,
+            labels,
+            annotated_volume,
+            root_id,
+            closing_n_iters,
+            decimate_fraction,
+            smooth,
+        )
+        for node in preorder_dfs(tree)
+    ]
+
+    if parallel:
+        if num_threads == -1:
+            num_threads = mp.cpu_count() - 1
+
+        with mp.Pool(num_threads) as pool:
+            pool.map(create_region_mesh, args_list, chunksize=1)
+
+        shutil.rmtree(ann_path)  # Clean up temporary annotations zarr store
     else:
-        # Create mask and extract mesh
-        volume = zarr.open(annotated_volume_path, mode="r")
-        # mask_group = zarr.open_group(meshes_mask_path, mode="a")
-        # # mask = mask_group.zeros(
-        # #     name=str(node.identifier), shape=volume.shape, dtype=np.uint8
-        # # )
-        # volume = np.memmap(
-        # annotated_volume_path, dtype=np.uint32, shape=volume_shape, mode="r"
-        # )
-
-        if not isinstance(matched_labels, list):
-            mask = volume == matched_labels
-        else:
-            mask = np.isin(volume, matched_labels)
-
-        if np.sum(mask) == 0:
-            print(f"Label {ids} is not in the array, returning empty mask")
-        else:
-            if node.identifier == ROOT_ID:
-                extract_mesh_from_mask(
-                    mask,
-                    obj_filepath=savepath,
-                    smooth=smooth,
-                    decimate_fraction=decimate_fraction,
-                )
-            else:
-                extract_mesh_from_mask(
-                    mask,
-                    obj_filepath=savepath,
-                    smooth=smooth,
-                    closing_n_iters=closing_n_iters,
-                    decimate_fraction=decimate_fraction,
-                )
-
-
-def create_region_mesh_consumer(
-    queue,
-    meshes_dir_path,
-    tree,
-    labels,
-    annotated_volume_path,
-    mesh_mask_path,
-    ROOT_ID,
-    closing_n_iters,
-    decimate_fraction,
-    smooth,
-):
-    volume = da.from_zarr(annotated_volume_path)
-
-    while True:
-        node_id = queue.get()
-        if node_id is None:
-            break
-
-        logger.info(f"Creating mesh for region {node_id}")
-        stree = tree.subtree(node_id)
-        id_check = list(stree.nodes.keys())
-
-        # Keep only labels that are in the annotation volume
-        matched_labels = [i for i in id_check if i in labels]
-        savepath = meshes_dir_path / f"{node_id}.obj"
-
-        if (
-            not matched_labels
-        ):  # it fails if the region and all its children are not in annotation
-            print(f"No labels found for {node_id}")
-        else:
-            mask = da.isin(volume, matched_labels)
-
-            if da.sum(mask) == 0:
-                print(
-                    f"Label {node_id} is not in the array, "
-                    f"returning empty mask"
-                )
-            else:
-                if node_id == ROOT_ID:
-                    extract_mesh_from_mask(
-                        mask,
-                        obj_filepath=savepath,
-                        smooth=smooth,
-                        decimate_fraction=decimate_fraction,
-                    )
-                else:
-                    extract_mesh_from_mask(
-                        mask,
-                        obj_filepath=savepath,
-                        smooth=smooth,
-                        closing_n_iters=closing_n_iters,
-                        decimate_fraction=decimate_fraction,
-                    )
+        for args in args_list:
+            create_region_mesh(args)
 
 
 class Region(object):
     """
     Class used to add metadata to treelib.Tree during atlas creation.
     Using this means that you can then filter tree nodes depending on
-    whether or not they have a mesh/label
+    whether they have a mesh/label
     """
 
     def __init__(self, has_label):

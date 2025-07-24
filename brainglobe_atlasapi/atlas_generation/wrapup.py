@@ -1,5 +1,6 @@
 import json
 import shutil
+import tarfile
 from pathlib import Path
 
 import brainglobe_space as bgs
@@ -321,12 +322,12 @@ def wrapup_atlas_from_data(
 
     output_filename = None
 
-    # # Compress if required:
-    # if compress:
-    #     output_filename = dest_dir.parent / f"{dest_dir.name}.tar.gz"
-    #     print(f"Saving compressed atlas data at: {output_filename}")
-    #     with tarfile.open(output_filename, "w:gz") as tar:
-    #         tar.add(dest_dir, arcname=dest_dir.name)
+    # Compress if required:
+    if compress:
+        output_filename = dest_dir.parent / f"{dest_dir.name}.tar.gz"
+        print(f"Saving compressed atlas data at: {output_filename}")
+        with tarfile.open(output_filename, "w:gz") as tar:
+            tar.add(dest_dir, arcname=dest_dir.name)
 
     # Cleanup if required:
     if cleanup_files:

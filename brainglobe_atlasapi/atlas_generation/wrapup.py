@@ -175,9 +175,6 @@ def wrapup_atlas_from_data(
 
     dest_dir = Path(working_dir) / atlas_dir_name
 
-    if dest_dir.exists():
-        shutil.rmtree(dest_dir)
-
     # exist_ok would be more permissive but error-prone here as there might
     # be old files
     dest_dir.mkdir()
@@ -319,8 +316,6 @@ def wrapup_atlas_from_data(
                 print(f"- {func}: {error}")
 
     _check_validations(validation_results)
-
-    output_filename = None
 
     # Compress if required:
     if compress:

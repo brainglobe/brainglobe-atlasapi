@@ -34,7 +34,7 @@ def create_masked_array(volume, label, greater_than=False) -> np.ndarray[bool]:
         if not isinstance(label, list):
             mask = volume == label
         else:
-            mask = np.isin(volume, label, kind="table")
+            mask = np.isin(volume, label)
     else:
         mask = volume > label
 

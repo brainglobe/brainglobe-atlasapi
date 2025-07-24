@@ -30,14 +30,6 @@ def create_masked_array(volume, label, greater_than=False) -> np.ndarray[bool]:
             f" object not {type(volume)}"
         )
 
-    # if not isinstance(label, list) and not np.all(np.isin(label, volume)):
-    #     print(f"Label {label} is not in the array, returning empty mask")
-    #     return np.zeros_like(volume, dtype=bool)
-    # # elif isinstance(label, list):
-    # #     if not np.any(np.isin(volume, label)):
-    # #         print(f"Label is not in the array, returning empty mask")
-    # #         return arr
-
     if not greater_than:
         if not isinstance(label, list):
             mask = volume == label

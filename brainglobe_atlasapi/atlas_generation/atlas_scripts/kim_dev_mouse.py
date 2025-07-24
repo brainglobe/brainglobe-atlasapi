@@ -170,7 +170,7 @@ def create_meshes(
     start = time.time()
 
     create_meshes_from_annotated_volume(
-        working_dir=output_path,
+        mesh_directory=output_path,
         tree=tree,
         annotated_volume=annotation_volume,
         closing_n_iters=closing_n_iters,

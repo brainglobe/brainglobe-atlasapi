@@ -1,16 +1,12 @@
 __version__ = "2"
 
 import csv
-import glob as glob
-import multiprocessing as mp
 import os
-import shutil
 import time
 from pathlib import Path
 
 import numpy as np
 import pooch
-import zarr
 from brainglobe_utils.IO.image import load_nii
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
@@ -18,12 +14,11 @@ from brainglobe_atlasapi.atlas_generation.annotation_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh_consumer,
+    create_meshes_from_annotated_volume,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
-    postorder_tree_iterative,
 )
 
 
@@ -34,7 +29,6 @@ def create_atlas(working_dir, resolution):
     CITATION = "unpublished"
     ATLAS_FILE_URL = "https://uol.de/en/ibu/animal-navigation"  # noqa
     ORIENTATION = "asr"
-    ROOT_ID = 999
     ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
     ADDITIONAL_METADATA = {}
 
@@ -145,55 +139,17 @@ def create_atlas(working_dir, resolution):
     closing_n_iters = 1
     decimate_fraction = 0.6  # higher = more triangles
     smooth = False
-    ann_path = working_dir / "temp_annotations.zarr"
-    if ann_path.exists():
-        shutil.rmtree(ann_path)
-
-    ann_store = zarr.storage.LocalStore(ann_path)
-    zarr.create_array(
-        ann_store,
-        data=annotated_volume,
-    )
-    ann_store.close()
-    mesh_mask_path = working_dir / "temp_meshes_mask.zarr"
-    if mesh_mask_path.exists():
-        shutil.rmtree(mesh_mask_path)
-    meshes_mask_store = zarr.storage.LocalStore(mesh_mask_path)
-    zarr.create_group(meshes_mask_store)
-    meshes_mask_store.close()
 
     start = time.time()
 
-    work_queue = mp.Queue()
-    num_threads = mp.cpu_count() - 2
-    consumer_args = (
-        work_queue,
+    create_meshes_from_annotated_volume(
         meshes_dir_path,
         tree,
-        labels,
-        ann_path,
-        mesh_mask_path,
-        ROOT_ID,
-        closing_n_iters,
-        decimate_fraction,
-        smooth,
+        annotated_volume,
+        closing_n_iters=closing_n_iters,
+        decimate_fraction=decimate_fraction,
+        smooth=smooth,
     )
-    pool = [
-        mp.Process(target=create_region_mesh_consumer, args=consumer_args)
-        for _ in range(num_threads)
-    ]
-
-    for p in pool:
-        p.start()
-
-    for node in postorder_tree_iterative(tree):
-        work_queue.put(node)
-
-    for _ in pool:
-        work_queue.put(None)
-
-    for p in pool:
-        p.join()
 
     print(
         "Finished mesh extraction in : ",
@@ -206,7 +162,7 @@ def create_atlas(working_dir, resolution):
     structures_with_mesh = []
     for s in structure_data_list:
         # check if a mesh was created
-        mesh_path = meshes_dir_path / f"{s['id']}.obj"
+        mesh_path = meshes_dir_path / "meshes" / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it.")
             continue

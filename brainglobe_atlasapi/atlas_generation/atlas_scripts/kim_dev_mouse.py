@@ -1,18 +1,18 @@
 import argparse
-import shutil
 import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pooch
-import zarr
 from brainglobe_utils.IO.image import load_nii
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
+    create_meshes_from_annotated_volume,
 )
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
@@ -164,108 +164,19 @@ def create_meshes(
         node.data = Region(is_label)
 
     # Mesh creation
-    # closing_n_iters = 2
-    # smooth = True  # smooth meshes after creation
-    # subvolume = True  # Memory efficient mesh creation using subvolumes
-    compressor = zarr.codecs.BloscCodec(
-        cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.bitshuffle
-    )
-
-    ann_path = output_path.parent / "temp_annotations.zarr"
-    if ann_path.exists():
-        shutil.rmtree(ann_path)
-
-    ann_store = zarr.storage.LocalStore(ann_path)
-    zarr.create_array(
-        ann_store,
-        data=annotation_volume,
-        compressors=compressor,
-    )
-    ann_store.close()
-    mesh_mask_path = output_path.parent / "temp_meshes_mask.zarr"
-    if mesh_mask_path.exists():
-        shutil.rmtree(mesh_mask_path)
-    meshes_mask_store = zarr.storage.LocalStore(mesh_mask_path)
-    zarr.create_group(meshes_mask_store)
-    meshes_mask_store.close()
-    # mesh_ids = [node for node in postorder_tree_iterative(tree)]
+    closing_n_iters = 2
+    smooth = True  # smooth meshes after creation
 
     start = time.time()
 
-    # pool.map(
-    #     create_region_mesh_parallel,
-    #     [
-    #         (
-    #             output_path,
-    #             node,
-    #             tree,
-    #             labels,
-    #             ann_path,
-    #             annotation_volume.shape,
-    #             root_id,
-    #             closing_n_iters,
-    #             decimate_fraction,
-    #             smooth,
-    #             subvolume,  # subvolume=True to create meshes for subvolumes
-    #         )
-    #         for node in tree.nodes.values()
-    #     ],
-    # )
-
-    # work_queue = mp.Queue()
-    # num_threads = mp.cpu_count() - 20
-    # consumer_args = (
-    #     work_queue,
-    #     meshes_dir_path,
-    #     tree,
-    #     labels,
-    #     ann_path,
-    #     mesh_mask_path,
-    #     ROOT_ID,
-    #     closing_n_iters,
-    #     decimate_fraction,
-    #     smooth,
-    # )
-    # pool = [
-    #     mp.Process(target=create_region_mesh_consumer, args=consumer_args)
-    #     for _ in range(num_threads)
-    # ]
-    #
-    # for p in pool:
-    #     p.start()
-    #
-    # for node in postorder_tree_iterative(tree):
-    #     work_queue.put(node)
-    #
-    # for _ in pool:
-    #     work_queue.put(None)
-    #
-    # for p in pool:
-    #     p.join()
-
-    # for node in track(
-    #     tree.nodes.values(),
-    #     total=tree.size(),
-    #     # list(tree.nodes.values())[:5],
-    #     # total=5,
-    #     description="Creating meshes",
-    # ):
-    #     output_file = output_path / f"{node.identifier}.obj"
-    #     if output_file.exists():
-    #         continue
-    #     create_region_mesh(
-    #         (
-    #             output_path,
-    #             node,
-    #             tree,
-    #             labels,
-    #             annotation_volume,
-    #             root_id,
-    #             closing_n_iters,
-    #             decimate_fraction,
-    #             smooth,
-    #         )
-    #     )
+    create_meshes_from_annotated_volume(
+        working_dir=output_path,
+        tree=tree,
+        annotated_volume=annotation_volume,
+        closing_n_iters=closing_n_iters,
+        decimate_fraction=decimate_fraction,
+        smooth=smooth,
+    )
 
     print(
         "Finished mesh extraction in: ",
@@ -405,8 +316,7 @@ if __name__ == "__main__":
     import sys
 
     params = vars(arg_parser.parse_args())
-    # timepoints = params["timepoints"]
-    timepoints = ("E13.5",)
+    timepoints = params["timepoints"]
     modality = params["modality"]
     decimate_fraction = params["decimate_fraction"]
     cached_modality = params["cached_meshes"]
@@ -460,24 +370,24 @@ if __name__ == "__main__":
         )
         # Wrap up, compress, and remove file:
         print("Finalising atlas")
-        # output_filename = wrapup_atlas_from_data(
-        #     atlas_name=atlas_name,
-        #     atlas_minor_version=VERSION,
-        #     citation=CITATION,
-        #     atlas_link=ATLAS_LINK,
-        #     species=SPECIES,
-        #     resolution=(resolution_um,) * 3,
-        #     orientation=ORIENTATION,
-        #     root_id=ROOT_ID,
-        #     reference_stack=reference_volume,
-        #     annotation_stack=annotation_volume,
-        #     structures_list=structures_with_mesh,
-        #     meshes_dict=meshes_dict,
-        #     working_dir=atlas_dir,
-        #     atlas_packager=PACKAGER,
-        #     hemispheres_stack=None,  # it is symmetric
-        #     cleanup_files=False,
-        #     compress=True,
-        #     scale_meshes=True,
-        # )
-        # print("Done. Atlas generated at: ", output_filename)
+        output_filename = wrapup_atlas_from_data(
+            atlas_name=atlas_name,
+            atlas_minor_version=VERSION,
+            citation=CITATION,
+            atlas_link=ATLAS_LINK,
+            species=SPECIES,
+            resolution=(resolution_um,) * 3,
+            orientation=ORIENTATION,
+            root_id=ROOT_ID,
+            reference_stack=reference_volume,
+            annotation_stack=annotation_volume,
+            structures_list=structures_with_mesh,
+            meshes_dict=meshes_dict,
+            working_dir=atlas_dir,
+            atlas_packager=PACKAGER,
+            hemispheres_stack=None,  # it is symmetric
+            cleanup_files=False,
+            compress=True,
+            scale_meshes=True,
+        )
+        print("Done. Atlas generated at: ", output_filename)

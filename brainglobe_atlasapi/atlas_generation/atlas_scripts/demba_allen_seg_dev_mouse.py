@@ -1,22 +1,16 @@
 from pathlib import Path
 
-import numpy as np
 import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from brainglobe_utils.IO.image import load_any
-from rich.progress import track
 from scipy.ndimage import zoom
+
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
-from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    Region,
-    create_region_mesh,
-)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 VERSION = 0
 NAME = "demba_allen_seg_dev_mouse"
@@ -172,8 +166,6 @@ def retrieve_hemisphere_map():
     """
 
 
-
-
 def retrieve_structure_information(download_path):
     """
     Use the allen ccf 2022 ontology via the allen ontology api
@@ -214,7 +206,7 @@ if __name__ == "__main__":
         atlas_file_url=data_file_url,
     )
     for age in range(4, 57):
-        if age!=4:
+        if age != 4:
             shutil.rmtree(age_specific_root_dir)
         age_specific_root_dir = bg_root_dir / f"P{age}"
         age_specific_root_dir.mkdir(exist_ok=True)
@@ -234,7 +226,13 @@ if __name__ == "__main__":
             hemispheres_stack = retrieve_hemisphere_map()
             structures = retrieve_structure_information(bg_root_dir)
             meshes_dict = construct_meshes_from_annotation(
-                age_specific_root_dir,annotated_volume, structures, ROOT_ID, decimate_fraction=0.5, closing_n_iters=1, use_multiprocessing=True
+                age_specific_root_dir,
+                annotated_volume,
+                structures,
+                ROOT_ID,
+                decimate_fraction=0.5,
+                closing_n_iters=1,
+                use_multiprocessing=True,
             )
             current_name = f"{NAME}_p{age}"
 
@@ -258,10 +256,7 @@ if __name__ == "__main__":
                 hemispheres_stack=None,
                 cleanup_files=False,
                 compress=True,
-                scale_meshes=True, 
+                scale_meshes=True,
                 additional_references=additional_references,
             )
         meshes_dict = None
-        
-
-        

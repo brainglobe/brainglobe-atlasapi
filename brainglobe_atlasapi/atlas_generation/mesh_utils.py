@@ -16,6 +16,7 @@ except ModuleNotFoundError:
         + '   please install with "pip install PyMCubes -U"'
     )
 
+from multiprocessing import Pool, cpu_count
 from pathlib import Path
 
 import numpy as np
@@ -26,7 +27,6 @@ from brainglobe_atlasapi.atlas_generation.volume_utils import (
     create_masked_array,
 )
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-from multiprocessing import Pool, cpu_count
 
 # ----------------- #
 #   MESH CREATION   #
@@ -223,7 +223,7 @@ def construct_meshes_from_annotation(
     closing_n_iters=2,
     decimate_fraction=0,
     smooth=False,
-    use_multiprocessing=False
+    use_multiprocessing=False,
 ):
     """
     Retrieve or construct atlas region meshes for a given annotation volume.
@@ -266,7 +266,7 @@ def construct_meshes_from_annotation(
         node.data = Region(key in labels)
 
     if use_multiprocessing:
-        
+
         # Prepare arguments for parallel processing
         args_list = [
             (
@@ -282,7 +282,7 @@ def construct_meshes_from_annotation(
             )
             for node in tree.nodes.values()
         ]
-        
+
         # Use multiprocessing to create meshes in parallel
         with Pool(processes=cpu_count()) as pool:
             list(pool.map(create_region_mesh, args_list))

@@ -73,6 +73,6 @@ def preorder_dfs(tree):
         current_node = stack.pop()
         yield current_node
 
-        # Push all children onto the stack
-        for child in tree.children(current_node.identifier):
+        # Push all children onto the stack in reverse order
+        for child in reversed(tree.children(current_node.identifier)):
             stack.append(child)

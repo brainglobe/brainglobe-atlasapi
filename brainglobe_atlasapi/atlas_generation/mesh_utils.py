@@ -193,7 +193,7 @@ def create_region_mesh(args):
         if isinstance(annotated_volume, (str, Path)):
             annotated_volume = zarr.open(annotated_volume, mode="r")
         else:
-            raise ValueError(
+            raise TypeError(
                 "Argument annotated_volume should be a np.ndarray"
                 " or a path to a zarr store"
             )

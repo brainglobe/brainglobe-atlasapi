@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
+import zarr
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
@@ -85,6 +86,47 @@ def test_create_region_mesh_fail(
     mesh_files = list(region_mesh_args[0].iterdir())
     assert len(mesh_files) == 0
     assert expected_captured_out in captured_out
+
+
+@pytest.mark.parametrize(
+    "region_mesh_args",
+    [
+        pytest.param(5),
+    ],
+    indirect=True,
+)
+def test_create_region_mesh_path(region_mesh_args, tmp_path):
+    """Test create_region_mesh with Path object for meshes_dir_path."""
+    args = list(region_mesh_args)
+    zarr.create_array(
+        tmp_path / "test.zarr",
+        data=region_mesh_args[4],
+    )
+    args[4] = tmp_path / "test.zarr"
+    region_mesh_args = tuple(args)
+
+    create_region_mesh(region_mesh_args)
+    mesh_path = region_mesh_args[0] / "5.obj"
+
+    assert mesh_path.exists(), "Mesh file was not created as expected."
+
+
+@pytest.mark.parametrize(
+    "region_mesh_args",
+    [
+        pytest.param(5),
+    ],
+    indirect=True,
+)
+def test_create_region_mesh_wrong_type(region_mesh_args):
+    """Test create_region_mesh with wrong type for label_id."""
+    args = list(region_mesh_args)
+    args[4] = 0.1  # Single float value instead of array
+    args = tuple(args)
+    with pytest.raises(
+        TypeError, match="annotated_volume should be a np.ndarray"
+    ):
+        create_region_mesh(args)
 
 
 @pytest.mark.parametrize(

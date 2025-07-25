@@ -43,6 +43,7 @@ def region_mesh_args(structures, tmp_path, request):
     closing_n_iters = 10
     decimate_fraction = 0.6
     smooth = True
+    verbosity = 1
     return (
         meshes_dir_path,  # 0
         node,  # 1
@@ -53,6 +54,7 @@ def region_mesh_args(structures, tmp_path, request):
         closing_n_iters,  # 6
         decimate_fraction,  # 7
         smooth,  # 8
+        verbosity,  # 9
     )
 
 

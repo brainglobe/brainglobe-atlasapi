@@ -1,9 +1,12 @@
 import shutil
 
+from rich.progress import track
 from scipy.ndimage import binary_closing, binary_fill_holes
-from treelib import Tree
 
-from brainglobe_atlasapi.structure_tree_util import preorder_dfs
+from brainglobe_atlasapi.structure_tree_util import (
+    get_structures_tree,
+    preorder_dfs,
+)
 
 try:
     from vedo import Mesh, Volume, write
@@ -171,7 +174,6 @@ def create_region_mesh(args):
     id of root structure (mesh creation is a bit more refined for that)
     """
     # Split arguments
-    logger.debug(f"Creating mesh for region {args[1].identifier}")
     meshes_dir_path = args[0]
     node = args[1]
     tree = args[2]
@@ -181,6 +183,10 @@ def create_region_mesh(args):
     closing_n_iters = args[6]
     decimate_fraction = args[7]
     smooth = args[8]
+    verbosity = args[9] if len(args) > 9 else 0
+
+    if verbosity > 0:
+        logger.debug(f"Creating mesh for region {args[1].identifier}")
 
     # Avoid overwriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
@@ -208,7 +214,8 @@ def create_region_mesh(args):
     if (
         not matched_labels
     ):  # it fails if the region and all of its children are not in annotation
-        print(f"No labels found for {node.tag}")
+        if verbosity > 0:
+            print(f"No labels found for {node.tag}")
         return
     else:
         # Create mask and extract mesh
@@ -234,56 +241,68 @@ def create_region_mesh(args):
                 )
 
 
-def create_meshes_from_annotated_volume(
-    mesh_directory: Path,
-    tree: Tree,
-    annotated_volume: np.ndarray,
-    closing_n_iters: int = 2,
-    decimate_fraction: float = 0.2,
-    smooth: bool = True,
+def construct_meshes_from_annotation(
+    save_path: Path,
+    volume: np.ndarray,
+    structures_list,
+    closing_n_iters=2,
+    decimate_fraction=0,
+    smooth=False,
     parallel: bool = True,
     num_threads: int = -1,
+    verbosity: int = 0,
 ):
     """
-    Creates meshes for all regions in the tree from the annotated volume.
-    If parallel is uses multiprocessing to speed up the process.
+    Retrieve or construct atlas region meshes for a given annotation volume.
+
+    If an atlas is packaged with mesh files, reuse those. Otherwise, construct
+    the meshes using the existing volume and structure tree. Returns a
+    dictionary mapping structure IDs to their corresponding .obj mesh files.
 
     Parameters
     ----------
-    mesh_directory: Path object
-        Path to the working directory where meshes will be saved.
-    tree: treelib.Tree
-        Hierarchical structure of regions.
-    annotated_volume: np.ndarray
-        3d numpy array with annotated volume
+    save_path : Path
+        Path to the directory where new mesh files will be saved.
+    volume : np.ndarray
+        3D annotation volume.
+    structures_list : list
+        List of structure dictionaries containing id information.
+    smooth: bool
+        if True the surface mesh is smoothed
     closing_n_iters: int
-        Number of iterations of closing morphological operation.
+        number of iterations of closing morphological operation.
+        set to None to avoid applying morphological operations
     decimate_fraction: float  in range [0, 1].
         What fraction of the original number of vertices is to be kept.
         EG .5 means that 50% of the vertices are kept,
         the others are removed.
-    smooth: bool
-        if True the surface mesh is smoothed
     parallel: bool
         If True, uses multiprocessing to speed up mesh creation
     num_threads: int
         Number of threads to use for parallel processing.
         If -1, threads are set to the number of available cores minus 1.
         If > 0, uses that many threads.
-
+    verbosity: int
+        Level of verbosity for logging. 0 for no output, 1 for basic info.
     Returns
     -------
-    None, saves meshes to working_dir
+    dict
+        Dictionary of structure IDs and paths to their .obj mesh files.
     """
     if num_threads == 0:
         raise ValueError("Number of threads cannot be 0")
 
-    meshes_dir_path = mesh_directory
-    meshes_dir_path.mkdir(parents=True, exist_ok=True)
+    meshes_dir_path = save_path / "meshes"
+    meshes_dir_path.mkdir(exist_ok=True)
 
-    labels = list(np.unique(annotated_volume))
+    tree = get_structures_tree(structures_list)
+    labels = np.unique(volume).astype(np.int32)
+
     # Only used for parallel processing
-    ann_path = mesh_directory / "temp_annotations.zarr"
+    ann_path = save_path / "temp_annotations.zarr"
+
+    for key, node in tree.nodes.items():
+        node.data = Region(key in labels)
 
     if parallel:
         compressor = zarr.codecs.BloscCodec(
@@ -296,11 +315,11 @@ def create_meshes_from_annotated_volume(
         ann_store = zarr.storage.LocalStore(ann_path)
         zarr.create_array(
             ann_store,
-            data=annotated_volume,
+            data=volume,
             compressors=compressor,
         )
         ann_store.close()
-        annotated_volume = ann_path
+        volume = ann_path
 
     root_id = tree.root
     # Create a list of arguments for each region's mesh creation
@@ -310,11 +329,12 @@ def create_meshes_from_annotated_volume(
             node,
             tree,
             labels,
-            annotated_volume,
+            volume,
             root_id,
             closing_n_iters,
             decimate_fraction,
             smooth,
+            verbosity,
         )
         for node in preorder_dfs(tree)
     ]
@@ -324,12 +344,41 @@ def create_meshes_from_annotated_volume(
             num_threads = mp.cpu_count() - 1
 
         with mp.Pool(num_threads) as pool:
-            pool.map(create_region_mesh, args_list, chunksize=1)
+            for _ in track(
+                pool.imap(create_region_mesh, args_list, chunksize=1),
+                total=len(args_list),
+                description="Creating meshes",
+            ):
+                pass
 
         shutil.rmtree(ann_path)  # Clean up temporary annotations zarr store
     else:
-        for args in args_list:
+        for args in track(
+            args_list, total=len(args_list), description="Creating meshes"
+        ):
             create_region_mesh(args)
+
+    meshes_dict = {}
+    structures_with_mesh = []
+    for s in structures_list:
+        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        if not mesh_path.exists():
+            print(f"No mesh file exists for: {s}, ignoring it")
+            continue
+        if mesh_path.stat().st_size < 512:
+            print(f"obj file for {s} is too small, ignoring it.")
+            continue
+
+        structures_with_mesh.append(s)
+        meshes_dict[s["id"]] = mesh_path
+
+    print(
+        (
+            f"In the end, {len(structures_with_mesh)}",
+            "structures with mesh are kept",
+        )
+    )
+    return meshes_dict
 
 
 class Region(object):

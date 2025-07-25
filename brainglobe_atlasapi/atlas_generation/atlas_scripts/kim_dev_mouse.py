@@ -10,7 +10,7 @@ from brainglobe_utils.IO.image import load_nii
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_meshes_from_annotated_volume,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -169,10 +169,10 @@ def create_meshes(
 
     start = time.time()
 
-    create_meshes_from_annotated_volume(
-        mesh_directory=output_path,
-        tree=tree,
-        annotated_volume=annotation_volume,
+    construct_meshes_from_annotation(
+        output_path,
+        volume=annotation_volume,
+        structures_list=structures,
         closing_n_iters=closing_n_iters,
         decimate_fraction=decimate_fraction,
         smooth=smooth,
@@ -359,7 +359,7 @@ if __name__ == "__main__":
         else:
             meshes_dir_path = atlas_dir / "meshes"
             create_meshes(
-                meshes_dir_path,
+                atlas_dir,
                 structures,
                 annotation_volume,
                 ROOT_ID,

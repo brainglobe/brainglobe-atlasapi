@@ -345,7 +345,7 @@ def construct_meshes_from_annotation(
 
         with mp.Pool(num_threads) as pool:
             for _ in track(
-                pool.imap(create_region_mesh, args_list, chunksize=1),
+                pool.imap(create_region_mesh, args_list),
                 total=len(args_list),
                 description="Creating meshes",
             ):

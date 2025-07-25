@@ -7,6 +7,7 @@ import zarr
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
+    construct_meshes_from_annotation,
     create_region_mesh,
     extract_mesh_from_mask,
 )
@@ -281,3 +282,20 @@ def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
         assert np.isclose(mesh.area(), 0)
     else:
         assert mesh.area() > 0
+
+
+def test_construct_meshes_from_annotation(structures, tmp_path):
+    """Test constructing meshes from annotation."""
+    meshes_dir_path = tmp_path
+    smoothed_annotations = np.load(
+        Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
+    )
+
+    mesh_dict = construct_meshes_from_annotation(
+        meshes_dir_path, smoothed_annotations, structures, parallel=False
+    )
+
+    assert len(mesh_dict) == len(structures)
+    for struct in structures:
+        mesh_path = meshes_dir_path / "meshes" / f"{struct['id']}.obj"
+        assert mesh_path.exists()

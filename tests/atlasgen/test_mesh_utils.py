@@ -284,7 +284,14 @@ def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
         assert mesh.area() > 0
 
 
-def test_construct_meshes_from_annotation(structures, tmp_path):
+@pytest.mark.parametrize(
+    "parallel",
+    [
+        pytest.param(False, id="sequential"),
+        pytest.param(True, id="parallel"),
+    ],
+)
+def test_construct_meshes_from_annotation(structures, tmp_path, parallel):
     """Test constructing meshes from annotation."""
     meshes_dir_path = tmp_path
     smoothed_annotations = np.load(
@@ -292,7 +299,7 @@ def test_construct_meshes_from_annotation(structures, tmp_path):
     )
 
     mesh_dict = construct_meshes_from_annotation(
-        meshes_dir_path, smoothed_annotations, structures, parallel=False
+        meshes_dir_path, smoothed_annotations, structures, parallel=parallel
     )
 
     assert len(mesh_dict) == len(structures)

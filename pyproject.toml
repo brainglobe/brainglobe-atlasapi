@@ -67,7 +67,8 @@ atlasgen = [
     "vedo",
     "xmltodict",
     "brainglobe-utils",
-    "pooch"
+    "pooch",
+    "zarr"
 ]
 
 [project.scripts]

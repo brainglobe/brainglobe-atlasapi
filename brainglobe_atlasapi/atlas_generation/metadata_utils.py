@@ -82,10 +82,10 @@ def create_readme(uncompr_atlas_path, metadata_dict, structures):
     structuresTree.save2file(readmepath)
 
     # The prepend the header and info
-    with open(readmepath, "r") as original:
+    with open(readmepath, "r", encoding="utf-8") as original:
         tree = original.read()
 
-    with open(readmepath, "w") as out:
+    with open(readmepath, "w", encoding="utf-8") as out:
         out.write("-- BRAINGLOBE ATLAS --\n")
 
         now = datetime.now()
@@ -136,7 +136,9 @@ def create_metadata_files(
     :param additional_metadata: Dict to add to atlas metadata
     """
     # write metadata dict:
-    with open(dest_dir / descriptors.METADATA_FILENAME, "w") as f:
+    with open(
+        dest_dir / descriptors.METADATA_FILENAME, "w", encoding="utf-8"
+    ) as f:
         # only save additional metadata to json, don't include in readme
         json.dump({**metadata_dict, **additional_metadata}, f)
 

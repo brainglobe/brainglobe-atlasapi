@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+from brainglobe_utils.image.scale import scale_and_convert_to_16_bits
 from brainglobe_utils.IO.image import load_nii
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
@@ -95,6 +96,7 @@ def retrieve_reference_and_annotation():
 
     annotation = load_nii(annotation_volume_path, as_array=True)
     reference = load_nii(reference_volume_path, as_array=True)
+    reference = scale_and_convert_to_16_bits(reference)
     return reference, annotation
 
 

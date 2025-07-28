@@ -1,5 +1,6 @@
 import shutil
 
+from brainglobe_utils.general.system import get_num_processes
 from rich.progress import track
 from scipy.ndimage import binary_closing, binary_fill_holes
 
@@ -304,6 +305,7 @@ def construct_meshes_from_annotation(
     for key, node in tree.nodes.items():
         node.data = Region(key in labels)
 
+    volume_size = volume.size
     if parallel:
         compressor = zarr.codecs.BloscCodec(
             cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.bitshuffle
@@ -341,7 +343,14 @@ def construct_meshes_from_annotation(
 
     if parallel:
         if num_threads == -1:
-            num_threads = mp.cpu_count() - 1
+            # Each thread uses ~ 7 times the number of voxels in the volume.
+            mem_per_thread = 7 * volume_size
+            num_threads = get_num_processes(
+                ram_needed_per_process=mem_per_thread,
+                n_max_processes=mp.cpu_count() - 1,
+                fraction_free_ram=0.05,
+            )
+            logger.info(f"Using {num_threads} threads for mesh creation")
 
         with mp.Pool(num_threads) as pool:
             for _ in track(

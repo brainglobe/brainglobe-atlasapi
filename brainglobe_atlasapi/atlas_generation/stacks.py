@@ -17,7 +17,7 @@ def write_stack(stack, filename):
     filename : str or Path
         The path and filename where the stack will be saved.
     """
-    tifffile.imsave(str(filename), stack)
+    tifffile.imwrite(str(filename), stack)
 
 
 def save_reference(stack, output_dir):

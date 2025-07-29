@@ -27,7 +27,7 @@ dependencies = [
     "pyarrow",
     "requests",
     "rich >= 9.0.0",
-    "tifffile",
+    "tifffile>=2018.11.6",
     "treelib",
 ]
 dynamic = ["version"]
@@ -57,6 +57,7 @@ allenmouse_barrels = [
     "allensdk",
     "voxcell"]
 perens_stereotaxic_mri_mouse = ["py7zr"]
+kocher_bumblebee = ["vtk"]
 
 atlasgen = [
     "loguru",

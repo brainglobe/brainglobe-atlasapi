@@ -88,26 +88,39 @@ def atlas_repr_from_name(name):
 
     atlas_name = "_".join(parts)
 
-    # For unspecified version:
+    # For specified version:
     if version_str:
         major_vers, minor_vers = version_str[1:].split(".")
     else:
         major_vers, minor_vers = None, None
 
-    return dict(
+    # separate unit from resolution
+    unit = None
+    for res_unit in descriptors.RESOLUTION:
+        if resolution_str.endswith(res_unit):
+            unit = res_unit
+            resolution_str = resolution_str[: -len(res_unit)]
+            break
+
+    result = dict(
         name=atlas_name,
         major_vers=major_vers,
         minor_vers=minor_vers,
         resolution=resolution_str,
     )
+    if unit:
+        result["unit"] = unit
+    return result
 
 
-def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
+def atlas_name_from_repr(
+    name, resolution, major_vers=None, minor_vers=None, unit="um"
+):
     """Generate atlas name given a description."""
     if major_vers is None and minor_vers is None:
-        return f"{name}_{resolution}"
+        return f"{name}_{resolution}{unit}"
     else:
-        return f"{name}_{resolution}_v{major_vers}.{minor_vers}"
+        return f"{name}_{resolution}{unit}_v{major_vers}.{minor_vers}"
 
 
 ### Web requests

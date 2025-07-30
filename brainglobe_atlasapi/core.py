@@ -1,4 +1,4 @@
-"""Module containing core functionalities and base classes."""
+"""Module containing the core Atlas class."""
 
 import warnings
 from collections import UserDict
@@ -115,7 +115,7 @@ class Atlas:
 
     @property
     def reference(self):
-        """Returns the reference image data. Loads it if not already loaded."""
+        """Return the reference image data. Loads it if not already loaded."""
         if self._reference is None:
             self._reference = read_tiff(self.root_dir / REFERENCE_FILENAME)
         return self._reference
@@ -123,7 +123,7 @@ class Atlas:
     @property
     def annotation(self):
         """
-        Returns the annotation image data.
+        Return the annotation image data.
         Loads it if not already loaded.
         """
         if self._annotation is None:
@@ -233,7 +233,7 @@ class Atlas:
 
     # Meshes-related methods:
     def _get_from_structure(self, structure, key):
-        """Provide internal interface to the structure dict. It support
+        """Provide internal interface to the structure dict. It supports
         querying with a single structure id or a list of ids.
 
         Parameters
@@ -260,15 +260,15 @@ class Atlas:
 
         Parameters
         ----------
-        structure : int or str
+        structure : int or str or list of int/str
             The ID or acronym of the structure for which to retrieve the mesh.
             If a list of IDs/acronyms is passed, a list of meshes will
             be returned.
 
         Returns
         -------
-        trimesh.Trimesh or list of trimesh.Trimesh
-            The mesh data (e.g., a trimesh object) associated with the
+        meshio.Mesh or list of meshio.Mesh
+            The mesh data (e.g., a Mesh object) associated with the
             structure(s).
         """
         return self._get_from_structure(structure, "mesh")

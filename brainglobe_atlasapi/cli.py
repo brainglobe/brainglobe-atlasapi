@@ -32,7 +32,7 @@ def bg_cli(
     show : bool
         If True when using `list` shows the local path of installed
         atlases and when using 'config' it prints the modify config results.
-    atlas_name : ts
+    atlas_name : str
         Used with `update` and `install`, name of the atlas to
         install
     force : bool, optional

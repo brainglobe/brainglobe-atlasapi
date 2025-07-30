@@ -1,10 +1,7 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
-<<<<<<< HEAD
-from brainglobe_utils.image.scale import scale_and_convert_to_16_bits
-=======
->>>>>>> 99b300e (renamed atlas and redirect orientation)
 from brainglobe_utils.IO.image import load_nii
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
@@ -83,7 +80,7 @@ def retrieve_reference_and_annotation():
     """
     annotation_volume_path = Path(
         resources_path / "pouch_peripodial_hinge_notum_refined_"
-        "filtered_filtered_filtered.nii.gz"
+        "filtered_filtered_filtered_corrected_filtered_filtered.nii.gz"
     )
     assert (
         annotation_volume_path.exists()
@@ -99,10 +96,18 @@ def retrieve_reference_and_annotation():
 
     annotation = load_nii(annotation_volume_path, as_array=True)
     reference = load_nii(reference_volume_path, as_array=True)
-<<<<<<< HEAD
-    reference = scale_and_convert_to_16_bits(reference)
-=======
->>>>>>> 99b300e (renamed atlas and redirect orientation)
+    reference.astype(np.float32)
+    dmin = np.min(reference)
+    # clip to 99.9th percentile of pixel values,
+    # because of bright spot being so much brighter!
+    dmax = np.percentile(reference, 99.9)
+    reference = np.clip(reference, dmin, dmax)
+    drange = dmax - dmin
+    dscale = (2**16 - 1) / drange
+    reference = (reference - dmin) * dscale
+    # only keep reference where annotation > 0
+    reference = reference * (annotation > 0).astype(np.uint8)
+    reference = reference.astype(np.uint16)
     return reference, annotation
 
 

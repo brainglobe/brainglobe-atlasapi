@@ -107,11 +107,7 @@ exclude = ["__init__.py", "build", ".eggs"]
 fix = true
 
 [tool.ruff.lint]
-select = ["I", "E", "F", "D"]
-ignore = ["D205"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
+select = ["I", "E", "F"]
 
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["E501"]

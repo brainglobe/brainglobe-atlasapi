@@ -49,15 +49,14 @@ def generate_metadata_dict(
         The species the atlas belongs to (e.g., "mouse", "rat").
     symmetric : bool
         True if the atlas is symmetric, False otherwise.
-    resolution : int or float or tuple of int/float
+    resolution : tuple of int/float
         The resolution of the atlas in micrometers per voxel.
-        Can be a single value or a tuple for anisotropic resolutions.
     orientation : str
         The orientation of the atlas (e.g., "RAS", "LPS").
     version : str
         The version of the atlas.
     shape : tuple of int
-        The shape (dimensions) of the atlas volume (e.g., (x, y, z)).
+        The shape (dimensions) of the atlas volume (e.g., (z, y, x)).
     additional_references : list of str
         A list of additional reference links or citations.
     atlas_packager : str
@@ -116,8 +115,7 @@ def create_readme(uncompr_atlas_path, metadata_dict, structures):
     Create a README.txt file for the atlas in the specified path.
 
     This function generates a comprehensive README file containing atlas
-    metadata and structure information, typically used for documenting a
-    BrainGlobe atlas.
+    metadata and structure information for a BrainGlobe atlas.
 
     Parameters
     ----------

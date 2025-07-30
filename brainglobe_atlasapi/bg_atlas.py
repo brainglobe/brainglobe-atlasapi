@@ -1,4 +1,4 @@
-"""Defines the BgAtlas class for accessing brain atlas data."""
+"""Defines the BrainGlobeAtlas class for accessing brain atlas data."""
 
 import tarfile
 from io import StringIO

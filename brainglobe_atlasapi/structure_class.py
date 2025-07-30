@@ -80,19 +80,12 @@ class StructuresDict(UserDict):
         Parameters
         ----------
         item : str or int
-            If str, the corresponding value is returned.
-            If int, the class itself is returned if `item` is 0,
-            otherwise an error is raised as only one class is stored.
+            The acronym (str) or id (int) of the requested structure.
 
         Returns
         -------
-        str or Structure
-            Depending on the type of `item`.
-
-        Raises
-        ------
-        ValueError
-            If `item` is an integer different than 0.
+        Structure
+            The Structure requested.
         """
         try:
             item = int(item)

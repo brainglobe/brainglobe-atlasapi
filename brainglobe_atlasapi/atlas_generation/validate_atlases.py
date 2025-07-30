@@ -1,4 +1,4 @@
-"""Script to validate."""
+"""Script to validate atlases."""
 
 import json
 import os

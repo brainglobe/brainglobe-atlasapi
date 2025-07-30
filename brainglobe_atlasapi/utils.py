@@ -1,4 +1,4 @@
-"""Provide utility functions for the atlas API."""
+"""Provide utility functions for brainglobe-atlasapi."""
 
 import configparser
 import json
@@ -324,13 +324,13 @@ def get_download_size(url: str) -> int:
 
 def conf_from_url(url) -> configparser.ConfigParser:
     """Read conf file from a URL and
-    caches a copy of the configuration file in the brainglobe directory.
+    cache a copy of the configuration file in the brainglobe directory.
 
     Parameters
     ----------
     url : str
         URL of the configuration file. Ensure it's the raw URL for repository
-        files (e.g., from GitHub raw content).
+        files (e.g., from GIN raw content).
 
     Returns
     -------

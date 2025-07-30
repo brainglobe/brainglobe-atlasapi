@@ -1,4 +1,4 @@
-"""Provides functionality to update the atlas metadata."""
+"""Provides functionality to update the atlas."""
 
 import shutil
 

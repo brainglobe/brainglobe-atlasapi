@@ -1,4 +1,4 @@
-"""Module containing property descriptors for the atlas API."""
+"""Module containing property descriptors for brainglobe-atlasapi."""
 
 import numpy as np
 

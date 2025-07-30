@@ -1,5 +1,6 @@
-"""Some functionality to list all available
-and downloaded brainglobe atlases.
+"""
+Functionality to list all available and downloaded
+brainglobe atlases.
 """
 
 import re

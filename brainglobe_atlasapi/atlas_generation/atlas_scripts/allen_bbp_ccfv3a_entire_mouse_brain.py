@@ -1,3 +1,11 @@
+"""
+Generates the CCFv3a Augmented Mouse Brain Atlas for BrainGlobe.
+
+It handles downloading, processing, and packaging the atlas data,
+including reference volumes, annotations, and structure information,
+from a Zenodo archive.
+"""
+
 import json
 import shutil
 import zipfile
@@ -89,7 +97,7 @@ def retrieve_reference_and_annotation(download_path, resolution):
 
 def retrieve_additional_references(download_path, resolution):
     """
-    This returns the single animal nissl and converts it
+    Return the single animal nissl and converts it
     to 16 bit unsigned int which bg requires.
     """
     additional_reference_path = (
@@ -147,9 +155,7 @@ def flatten_structure_tree(node, structure_id_path=None):
 
 
 def retrieve_structure_information(download_path):
-    """
-    The authors provide a json which is nested so I unest it.
-    """
+    """Unnest the JSON structure provided by the author."""
     with open(download_path / "hierarchy_bbp_atlas_pipeline.json") as f:
         metadata_json = json.load(f)
 
@@ -164,8 +170,8 @@ def retrieve_structure_information(download_path):
 
 def retrieve_or_construct_meshes(download_path, annotated_volume, structures):
     """
-    I use the construct_meshes_from_annotation helper function introduced in
-    this pull request
+    Use the `construct_meshes_from_annotation` helper function introduced in
+    this pull request.
     """
     meshes_dict = construct_meshes_from_annotation(
         download_path, annotated_volume, structures, ROOT_ID

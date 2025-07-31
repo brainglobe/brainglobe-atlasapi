@@ -1,4 +1,4 @@
-"""Atlas for a domestic cat"""
+"""Atlas generation script for the domestic cat (Felis catus)."""
 
 import os
 from pathlib import Path
@@ -31,9 +31,8 @@ ATLAS_PACKAGER = "Henry Crosswell"
 
 def pooch_init(temp_download_dir, base_url):
     """
-    Initiate a pooch object to be used to fetch files in the future,
-    using the hashes saved to the hashes folder.
-
+    Initialize a pooch object to fetch files, using hashes saved
+    to the hashes folder.
     """
     hash_folder = (
         Path(__file__).parent.parent / "hashes" / (ATLAS_NAME + ".txt")
@@ -50,8 +49,7 @@ def pooch_init(temp_download_dir, base_url):
 
 def download_resources(working_dir):
     """
-    Uses Pooch to download the nifti images, labels and annotations
-    for the atlas, using the pooch hashes from the hash folder.
+    Download nifti images, labels, and annotations for the atlas using Pooch.
 
     Returns
     -------
@@ -77,8 +75,7 @@ def download_resources(working_dir):
 
 def download_nifti_files(temp_download_dir):
     """
-    Takes pre-assigned file names and uses pooch to download
-    the files, writing the file_path to a list.
+    Download nifti files using pre-assigned file names and Pooch.
 
     Returns
     -------
@@ -105,9 +102,8 @@ def download_nifti_files(temp_download_dir):
 
 def download_mesh_files(file_paths, temp_download_dir):
     """
-    Retrieves the file names from the hash file,
-    then downloads the mesh files using the associated hash.
-    Appends this to the nifti file path list
+    Retrieve file names from the hash file and download mesh files using
+    their hashes. Append to the nifti file path list.
 
     Returns
     -------
@@ -135,14 +131,17 @@ def download_mesh_files(file_paths, temp_download_dir):
 
 def retrieve_template_and_annotations(file_path_list):
     """
-    Retrieve the desired template and annotations as two numpy arrays.
-    Template_volume is an MRI image of brain
-    annotation_volume is a segmentation - each label has a unique ID
+    Retrieve the template and annotations as two numpy arrays.
+
+    Parameters
+    ----------
+    file_path_list : list
+        A list of file paths to the template and annotation NIfTI files.
 
     Returns
     -------
         tuple: A tuple containing two numpy arrays.
-        The first array is a template volume rescale to uint16 range,
+        The first array is a template volume rescaled to uint16 range,
         and the second array is a reference volume.
     """
     template_volume = load_nii(file_path_list[0], as_array=True)
@@ -160,8 +159,8 @@ def retrieve_template_and_annotations(file_path_list):
 
 def add_hierarchy(labels_df_row):
     """
-    Takes the index at a given row and adds the root_id -
-    produces structural heirarchy
+    Add the root_id to create a structural hierarchy
+    based on the given row index.
     """
     structure_index = labels_df_row["id"]
     structure_id = [ROOT_ID, structure_index]
@@ -170,7 +169,8 @@ def add_hierarchy(labels_df_row):
 
 def add_rgb_col_and_heirarchy(labels_df):
     """
-    Re-formats df columns, from individual r,g,b,a into the desired [r,g,b].
+    Reformat DataFrame columns, converting individual r,g,b,a
+    components into a desired [r,g,b format.
     """
     rgb_list = []
     structure_list = []
@@ -189,25 +189,19 @@ def add_rgb_col_and_heirarchy(labels_df):
 
 def retrieve_structure_information(file_path_list, csv_of_full_name):
     """
-    This function should return a list of dictionaries
-    with information about your atlas.
+    Return a list of dictionaries with information about the atlas structures.
 
-    The list of dictionaries should be in the following format:
-
-    ╭─────┬──────────────────┬─────────┬───────────────────┬─────────────────╮
-    | id  | name             | acronym | structure_id_path | rgb_triplet     |
-    |     |                  |         |                   |                 |
-    ├─────┼──────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 997 | root             | root    | []                | [255, 255, 255] |
-    ├─────┼──────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 8   | grps and regions | grey    | [997]             | [191, 218, 227] |
-    ├─────┼──────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 567 | Cerebrum         | CH      | [997, 8]          | [176, 240, 255] |
-    ╰─────┴──────────────────┴─────────┴───────────────────┴─────────────────╯
+    Parameters
+    ----------
+    file_path_list : list
+        A list of file paths, including the labels and colors text file.
+    csv_of_full_name : list
+        A list of lists mapping acronyms to full names.
 
     Returns
     -------
-        list of dicts: A list containing a dict of the atlas information.
+        list of dicts: A list containing dictionaries of
+        atlas structure information.
     """
     label_df_col = ["id", "acronym", "r", "g", "b", "alpha"]
     full_name_df_col = ["acronym", "name"]
@@ -254,7 +248,14 @@ def retrieve_structure_information(file_path_list, csv_of_full_name):
 def create_mask_for_root(template_volume, mesh_save_folder):
     """
     Create a smooth mask from the template for the whole brain,
-    meshes and saves it .obj file within mesh_save_folder
+    mesh it, and save it as an .obj file within `mesh_save_folder`.
+
+    Parameters
+    ----------
+    template_volume : np.ndarray
+        The template volume from which to create the mask.
+    mesh_save_folder : pathlib.Path
+        The folder path where the generated mesh file will be saved.
 
     Returns
     -------
@@ -276,9 +277,14 @@ def create_mask_for_root(template_volume, mesh_save_folder):
 
 def extract_mesh_from_vtk(working_dir):
     """
-    Given the path to a folder containing annotation.vtk files
-    extracts the data as a vedo.mesh and saves as .obj
-    to be readable by other functions
+    Given the path to a folder containing annotation.vtk files,
+    extract the data as a vedo.mesh and save it as an .obj file
+    to be readable by other functions.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        The working directory containing the downloaded VTK files.
 
     Returns
     -------

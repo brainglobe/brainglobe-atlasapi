@@ -30,7 +30,17 @@ class Structure(UserDict):
 
         Returns
         -------
-        any
+        meshio.Mesh or None or any
+            - If `item` is "mesh" and the mesh data is successfully loaded,
+              returns a `meshio.Mesh` object.
+            - If `item` is "mesh" and `mesh_filename` is None, returns `None`.
+            - For other keys, returns the value associated with the given item,
+              which can be of any type depending on the stored data.
+
+        Raises
+        ------
+        meshio.ReadError
+            If `item` is "mesh" and the mesh cannot be read.
             The value associated with the given item.
         """
         if item == "mesh" and self.data[item] is None:

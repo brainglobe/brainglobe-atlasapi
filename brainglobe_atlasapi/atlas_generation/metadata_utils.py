@@ -1,10 +1,6 @@
 """
-Utility functions for generating metadata and README files for
-BrainGlobe atlases.
-
-This module provides tools to create and manage the metadata dictionaries
-and README files associated with brain atlases packaged within the
-BrainGlobe ecosystem.
+Provides tools to create and manage the metadata dictionaries and
+README files associated with atlases packaged within the BrainGlobe ecosystem.
 """
 
 import json

@@ -33,7 +33,7 @@ def download_atlas_files(
     download_dir_path, atlas_file_url, ATLAS_NAME, known_hash
 ):
     """
-    Download and extracts atlas files from a specified URL.
+    Download and extract atlas files from a specified URL.
 
     Parameters
     ----------

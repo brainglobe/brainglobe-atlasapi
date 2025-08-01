@@ -60,7 +60,7 @@ def create_atlas(working_dir, resolution):
     working_dir : pathlib.Path
         The directory where temporary and final atlas files will be stored.
     resolution : tuple of int
-        The resolution of the atlas in micrometers, as (x, y, z).
+        The resolution of the atlas in micrometers, as (z, y, x).
 
     Returns
     -------

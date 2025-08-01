@@ -35,12 +35,29 @@ ATLAS_PACKAGER = "Harry Carey"
 
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
     """
-    Generate the ccfv3augmented_mouse atlas from source data.
+    Download and extract necessary resources for the CCFv3 augmented
+    mouse atlas.
 
-    This script downloads, processes, and packages the CCFv3 augmented
-    mouse atlas data into the BrainGlobe atlas format. It includes handling
-    of reference and annotation volumes, structure information,
-    and mesh generation.
+    Downloads the main atlas archive from the provided URL, extracts its
+    contents to the specified directory, and then extracts a nested template
+    zip file if it hasn't been extracted already. Handles large file
+    downloads with a progress bar.
+
+    Parameters
+    ----------
+    download_dir_path : Path
+        Path to the directory where downloaded files will be stored and
+        extracted.
+    atlas_file_url : str
+        The URL of the main atlas archive (a .zip file) to download.
+    atlas_name : str
+        The name of the atlas, used to construct the filename for
+        the downloaded zip.
+
+    Raises
+    ------
+    requests.HTTPError
+        If the download request fails for any reason.
     """
     if "download=1" not in atlas_file_url:
         atlas_file_url = atlas_file_url + "?download=1"

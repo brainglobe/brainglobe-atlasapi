@@ -1,3 +1,5 @@
+"""Generate the Drosophila melanogaster third instar wing disc atlas."""
+
 from pathlib import Path
 
 import pandas as pd
@@ -45,14 +47,12 @@ gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/black
 
 def download_resources():
     """
-    Download the necessary resources for the atlas.
+    Retrieve the local resources path for the atlas data.
 
-    If possible, please use the Pooch library to retrieve any resources.
-    """
-    """
-    resources_path = pooch.retrieve(
-        gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
-    )
+    Returns
+    -------
+    pathlib.Path
+        The path to the directory containing the atlas resources.
     """
     resources_path = Path("D:/UCL/Postgraduate_programme/templates/Version3")
     return resources_path
@@ -67,7 +67,8 @@ def retrieve_reference_and_annotation():
 
     Returns
     -------
-        tuple: A tuple containing two numpy arrays. The first array is the
+    tuple
+        A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
     print("loading reference and annotation volume")
@@ -113,7 +114,8 @@ def retrieve_hemisphere_map():
 
     Returns
     -------
-        numpy.array or None: A numpy array representing the hemisphere map,
+    numpy.array or None
+        A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
     return None
@@ -121,25 +123,39 @@ def retrieve_hemisphere_map():
 
 def retrieve_structure_information():
     """
-    This function should return a pandas DataFrame with information about your
-    atlas.
+    Return a list of dictionaries with information about the atlas.
 
-    The DataFrame should be in the following format:
+    Returns a list of dictionaries, where each dictionary represents a
+    structure and contains its ID, name, acronym, hierarchical path,
+    and RGB triplet.
+    The expected format for each dictionary is:
 
-    ╭────┬───────────────────┬─────────┬───────────────────┬─────────────────╮
-    | id | name              | acronym | structure_id_path | rgb_triplet     |
-    |    |                   |         |                   |                 |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 997| root              | root    | [997]             | [255, 255, 255] |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 8  | Basic cell groups | grey    | [997, 8]          | [191, 218, 227] |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 567| Cerebrum          | CH      | [997, 8, 567]     | [176, 240, 255] |
-    ╰────┴───────────────────┴─────────┴───────────────────┴─────────────────╯
+    .. code-block:: python
+        {
+            "id": int,
+            "name": str,
+            "acronym": str,
+            "structure_id_path": list[int],
+            "rgb_triplet": list[int, int, int],
+        }
+
+    Example
+    -------
+    .. code-block:: python
+        [
+            {'id': 997, 'name': 'root', 'acronym': 'root',
+            'structure_id_path': [997], 'rgb_triplet': [255, 255, 255]},
+            {'id': 8, 'name': 'Basic cell groups', 'acronym': 'grey',
+            'structure_id_path': [997, 8], 'rgb_triplet': [191, 218, 227]},
+            {'id': 567, 'name': 'Cerebrum', 'acronym': 'CH',
+            'structure_id_path': [997, 8, 567], 'rgb_triplet': [176, 240, 255]}
+        ]
 
     Returns
     -------
-        pandas.DataFrame: A DataFrame containing the atlas information.
+    list[dict]
+        A list of dictionaries, each containing information for a single
+        atlas structure.
     """
     label_path = resources_path / "wingdisc_annotation.txt"
 
@@ -173,11 +189,22 @@ def retrieve_structure_information():
 
 def retrieve_or_construct_meshes(annotated_volume, ROOT_ID):
     """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. Some atlases are packaged with mesh files, in these cases we
-    should use these files. Then this function should download those meshes.
-    In other cases we need to construct the meshes ourselves. For this we have
-    helper functions to achieve this.
+    Return a dictionary of IDs and corresponding paths to mesh files.
+
+    Some atlases are packaged with mesh files; in these cases, download
+    those meshes. Otherwise, construct the meshes using helper functions.
+
+    Parameters
+    ----------
+    annotated_volume : numpy.ndarray
+        The annotation volume.
+    ROOT_ID : int
+        The ID of the root structure in the atlas hierarchy.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping structure IDs to their mesh file paths.
     """
     download_path = resources_path / "wingdisc_meshes"
     download_path.mkdir(exist_ok=True, parents=True)
@@ -189,9 +216,18 @@ def retrieve_or_construct_meshes(annotated_volume, ROOT_ID):
 
 
 def retrieve_additional_references():
-    """This function only needs editing if the atlas has additional reference
+    """
+    Return a dictionary of additional reference images.
+
+    This function only needs editing if the atlas has additional reference
     images. It should return a dictionary that maps the name of each
     additional reference image to an image stack containing its data.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are reference names (str) and values are
+        image stacks (numpy.ndarray).
     """
     additional_references = {}
     return additional_references

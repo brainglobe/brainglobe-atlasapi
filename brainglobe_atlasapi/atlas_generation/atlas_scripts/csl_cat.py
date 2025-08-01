@@ -142,7 +142,7 @@ def retrieve_template_and_annotations(file_path_list):
     -------
         tuple: A tuple containing two numpy arrays.
         The first array is a template volume rescaled to uint16 range,
-        and the second array is a reference volume.
+        and the second array is the annotation volume.
     """
     template_volume = load_nii(file_path_list[0], as_array=True)
     annotation_volume = load_nii(file_path_list[1], as_array=True)

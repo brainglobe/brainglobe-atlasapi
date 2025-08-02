@@ -1,5 +1,5 @@
 """One-off script to reproduce how we combined the first version of
-the annotations provided by the bird anatomists
+the annotations provided by the bird anatomists.
 """
 
 import csv

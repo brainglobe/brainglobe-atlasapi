@@ -34,9 +34,8 @@ def setup_preexisting_local_atlases():
 def structures():
     """Provide a list of structures for testing.
 
-    The structure tree is defined as:
-
-    >>> root (999)
+    >>> The structure tree is defined as:
+    root (999)
     └── o (101)
         ├── aon (5)
         └── on (1)

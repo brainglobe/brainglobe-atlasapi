@@ -1,3 +1,5 @@
+"""Generate the Perens Multimodal LSFM mouse brain atlas."""
+
 import os
 import time
 import urllib.request
@@ -97,8 +99,10 @@ BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 
 def download_resources():
     """
-    Download the necessary resources for the atlas.
+    Download necessary resources for the atlas.
 
+    Notes
+    -----
     If possible, please use the Pooch library to retrieve any resources.
     """
     download_dir_path = BG_ROOT_DIR / "downloads"
@@ -137,7 +141,8 @@ def retrieve_reference_and_annotation():
 
     Returns
     -------
-        tuple: A tuple containing two numpy arrays. The first array is the
+    tuple
+        A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
     print("loading reference and annotation volume")
@@ -167,15 +172,16 @@ def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
+    If the atlas is asymmetrical, you may want to use a hemisphere map.
     This is an array in the same shape as your template,
     with 0's marking the left hemisphere, and 1's marking the right.
 
-    If your atlas is symmetrical, ignore this function.
+    If the atlas is symmetrical, ignore this function.
 
     Returns
     -------
-        numpy.array or None: A numpy array representing the hemisphere map,
+    numpy.array or None
+        A numpy array representing the hemisphere map,
         or None if the atlas is symmetrical.
     """
     return None
@@ -187,7 +193,8 @@ def retrieve_structure_information():
 
     Returns
     -------
-        pandas.DataFrame: A DataFrame containing the atlas information.
+    pandas.DataFrame
+        A DataFrame containing the atlas information.
     """
     # Since this atlas inherits from the allen can we not simply get the data
     # from the bgapi?
@@ -209,11 +216,16 @@ def retrieve_structure_information():
 
 def retrieve_or_construct_meshes():
     """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. Some atlases are packaged with mesh files, in these cases we
-    should use these files. Then this function should download those meshes.
-    In other cases we need to construct the meshes ourselves. For this we have
-    helper functions to achieve this.
+    Return a dictionary of IDs and corresponding paths to mesh files.
+
+    If the atlas is packaged with mesh files, this function should download
+    those meshes. Otherwise, helper functions are used to construct the meshes.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are structure IDs and values are paths to
+        their corresponding mesh files.
     """
     print("constructing meshes")
 

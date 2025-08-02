@@ -1,3 +1,5 @@
+"""Provide utility functions for brainglobe-atlasapi."""
+
 import configparser
 import json
 import logging
@@ -261,7 +263,7 @@ def retrieve_over_http(
 
 
 def get_download_size(url: str) -> int:
-    """Get file size based on the MB value on the "src" page of each atlas
+    """Get file size based on the MB value on the "src" page of each atlas.
 
     Parameters
     ----------
@@ -321,15 +323,19 @@ def get_download_size(url: str) -> int:
 
 
 def conf_from_url(url) -> configparser.ConfigParser:
-    """Read conf file from a URL. And cache a copy in the brainglobe dir.
+    """Read conf file from a URL and
+    cache a copy of the configuration file in the brainglobe directory.
+
     Parameters
     ----------
     url : str
-        conf file url (in a repo, make sure the "raw" url is passed)
+        URL of the configuration file. Ensure it's the raw URL for repository
+        files (e.g., from GIN raw content).
 
     Returns
     -------
-    conf object
+    configparser.ConfigParser
+        A ConfigParser object containing the configuration data.
 
     """
     cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
@@ -373,16 +379,23 @@ def conf_from_url(url) -> configparser.ConfigParser:
 
 
 def conf_from_file(file_path: Path) -> configparser.ConfigParser:
-    """Read conf file from a local file path.
+    """Read a configuration file from a local file path.
+
     Parameters
     ----------
     file_path : Path
-        conf file path (obtained from config.get_brainglobe_dir())
+        The path to the configuration file (e.g., obtained from
+        config.get_brainglobe_dir()).
 
     Returns
     -------
-    conf object if file available
+    configparser.ConfigParser
+        A ConfigParser object containing the configuration data.
 
+    Raises
+    ------
+    FileNotFoundError
+        If the specified `file_path` does not exist.
     """
     if not file_path.exists():
         raise FileNotFoundError("Last versions cache file not found.")

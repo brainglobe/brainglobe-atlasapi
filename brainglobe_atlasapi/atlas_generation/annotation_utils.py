@@ -19,7 +19,7 @@ def split_label_text(name: str) -> str:
 
 
 def read_itk_labels(path: Path) -> dict:
-    """Turns ITK label data from a file into a list of dictionaries."""
+    """Turn ITK label data from a file into a list of dictionaries."""
     labels = []
     with open(path) as labels_file:
         for line in labels_file:
@@ -63,7 +63,7 @@ ITK_CLEAR_LABEL = '0 0 0 0 0 0 0 "Clear Label"\n'
 
 
 def write_itk_labels(path: Path, labels):
-    """Writes ITK label data to a file."""
+    """Write ITK label data to a file."""
     with open(path, "w") as labels_file:
         labels_file.write(ITK_SNAP_HEADER)
         labels_file.write(ITK_CLEAR_LABEL)

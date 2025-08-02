@@ -1,3 +1,8 @@
+"""
+Provide a class for representing hierarchical structures,
+such as brain regions in an atlas.
+"""
+
 import warnings
 from collections import UserDict
 
@@ -12,6 +17,32 @@ class Structure(UserDict):
     """
 
     def __getitem__(self, item):
+        """
+        Retrieve an item from the structure's data.
+
+        If the item is `mesh` and the mesh data is currently None, it attempts
+        to load the mesh from the `mesh_filename` if available.
+
+        Parameters
+        ----------
+        item : str
+            The key of the item to retrieve.
+
+        Returns
+        -------
+        meshio.Mesh or None or any
+            - If `item` is "mesh" and the mesh data is successfully loaded,
+              returns a `meshio.Mesh` object.
+            - If `item` is "mesh" and `mesh_filename` is None, returns `None`.
+            - For other keys, returns the value associated with the given item,
+              which can be of any type depending on the stored data.
+
+        Raises
+        ------
+        meshio.ReadError
+            If `item` is "mesh" and the mesh cannot be read.
+            The value associated with the given item.
+        """
         if item == "mesh" and self.data[item] is None:
             if self.data["mesh_filename"] is None:
                 warnings.warn(
@@ -58,11 +89,13 @@ class StructuresDict(UserDict):
 
         Parameters
         ----------
-        item :
+        item : str or int
+            The acronym (str) or id (int) of the requested structure.
 
         Returns
         -------
-
+        Structure
+            The Structure requested.
         """
         try:
             item = int(item)
@@ -72,5 +105,7 @@ class StructuresDict(UserDict):
         return self.data[int(item)]
 
     def __repr__(self):
-        """String representation of the class, print all regions names"""
+        """Return string representation of the class,
+        showing all region names.
+        """
         return self.tree.show(stdout=False)

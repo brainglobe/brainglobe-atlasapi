@@ -1,3 +1,5 @@
+"""Add module level docstring here."""
+
 import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
@@ -25,19 +27,22 @@ BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
 
 def download_resources():
     """
-    Download the necessary resources for the atlas. Here we don't, because we
-    can out-source this to the Allen SDK in later functions.
+    Download necessary resources for the atlas.
+
+    This function does not perform any downloads as the Allen SDK handles
+    resource retrieval in subsequent functions.
     """
     pass
 
 
 def retrieve_reference_and_annotation():
     """
-    Retrieve the Allen Mouse atlas reference and annotation as two numpy arrays
-    using the allen_sdk.
+    Retrieve the Allen Mouse atlas reference and annotation.
 
-    Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the
+    Returns
+    -------
+    tuple[numpy.ndarray, numpy.ndarray]
+        A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotated volume.
     """
     # Create temporary download directory
@@ -80,12 +85,15 @@ def retrieve_reference_and_annotation():
 
 def retrieve_hemisphere_map():
     """
-    The Allen atlas is symmetrical, so we can just return `None` in this
-    function.
+    Retrieve the hemisphere map for the atlas.
 
-        Returns:
-            numpy.array or None: A numpy array representing the hemisphere map,
-            or None if the atlas is symmetrical.
+    The Allen atlas is symmetrical, so this function returns `None`.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        A numpy array representing the hemisphere map, or None if the atlas
+        is symmetrical.
     """
     return None
 
@@ -94,8 +102,11 @@ def retrieve_structure_information():
     """
     Retrieve the structures tree and meshes for the Allen mouse brain atlas.
 
-    Returns:
-        pandas.DataFrame: A DataFrame containing the atlas information.
+    Returns
+    -------
+    list[dict]
+        A list of dictionaries, where each dictionary contains information
+        about a structure, including its ID and other properties.
     """
     download_dir_path = BG_ROOT_DIR / "downloading_path"
     oapi = OntologiesApi()
@@ -128,9 +139,16 @@ def retrieve_structure_information():
 
 def retrieve_or_construct_meshes():
     """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. This atlas comes packaged with mesh files, so we don't need to
-    use our helper functions to create them ourselves in this case.
+    Retrieve pre-existing mesh files for the atlas structures.
+
+    The Allen atlas comes with pre-packaged mesh files, so this function
+    downloads them directly rather than constructing them.
+
+    Returns
+    -------
+    dict[int, Path]
+        A dictionary mapping structure IDs to their corresponding
+        mesh file paths.
     """
     space = ReferenceSpaceApi()
     meshes_dir = BG_ROOT_DIR / "mesh_temp_download"

@@ -1,5 +1,6 @@
 """
-Some functionality to list all available and downloaded brainglobe atlases
+Functionality to list all available and downloaded
+brainglobe atlases.
 """
 
 import re
@@ -19,7 +20,6 @@ def get_downloaded_atlases():
     list
         A list of tuples with the locally available atlases and their version
     """
-
     # Get brainglobe directory:
     brainglobe_dir = config.get_brainglobe_dir()
 
@@ -43,7 +43,6 @@ def get_local_atlas_version(atlas_name):
     str
         Version of atlas.
     """
-
     brainglobe_dir = config.get_brainglobe_dir()
     try:
         return [
@@ -57,7 +56,7 @@ def get_local_atlas_version(atlas_name):
 
 
 def get_all_atlases_lastversions():
-    """Read from URL or local cache all available last versions"""
+    """Read from URL or local cache all available last versions."""
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
     custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
 
@@ -79,12 +78,14 @@ def get_all_atlases_lastversions():
 
 def get_atlases_lastversions():
     """
+    Return a dictionary of atlas metadata for the latest versions of all
+    available atlases.
+
     Returns
     -------
     dict
         A dictionary with metadata about already installed atlases.
     """
-
     available_atlases = get_all_atlases_lastversions()
 
     # Get downloaded atlases looping over folders in brainglobe directory:
@@ -104,8 +105,9 @@ def get_atlases_lastversions():
 
 def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
     """
-    Prints a formatted table with the name and version of local (downloaded)
+    Print a formatted table with the name and version of local (downloaded)
     and online (available) atlases.
+
     Parameters
     ----------
     show_local_path : bool, optional
@@ -119,7 +121,6 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
     None
 
     """
-
     available_atlases = get_all_atlases_lastversions()
 
     # Get local atlases

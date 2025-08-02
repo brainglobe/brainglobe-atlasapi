@@ -1,4 +1,4 @@
-"""Script to validate atlases"""
+"""Script to validate atlases."""
 
 import json
 import os
@@ -19,13 +19,27 @@ from brainglobe_atlasapi.update_atlases import update_atlas
 
 def validate_atlas_files(atlas: BrainGlobeAtlas):
     """
-    Checks if basic files exist in the atlas folder
+    Check if essential files exist in the atlas folder.
 
-    custom_atlas_path is used when the function is called as part of
-    the wrapup function in the atlas packaging script. The expected
-    input is working_dir
+    This function verifies the presence of core files such as
+    'annotation.tiff', 'reference.tiff', 'metadata.json', 'structures.json',
+    and the 'meshes' directory within the atlas's root directory.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if all expected files and directories are found.
+
+    Raises
+    ------
+    AssertionError
+        If any expected file or directory is missing.
     """
-
     atlas_path = atlas.root_dir
 
     assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
@@ -48,11 +62,35 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
 
 def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
     """
-    Helper function to check if the mesh and the annotation coordinate
-    are closer to each other than an arbitrary tolerance value
-    times the pixel size.
+    Check if mesh and annotation coordinates are sufficiently close.
+
+    Compares a mesh coordinate to an annotation coordinate, considering
+    the pixel size and an arbitrary tolerance.
 
     The default tolerance value is 10.
+
+    Parameters
+    ----------
+    mesh_coord : float
+        The coordinate from the mesh.
+    annotation_coord : float
+        The coordinate from the annotation image, scaled by pixel size.
+    pixel_size : float
+        The size of a pixel in the dimension being checked.
+    diff_tolerance : int, optional
+        The maximum allowed difference between coordinates as a multiple
+        of pixel size. By default, 10.
+
+    Returns
+    -------
+    bool
+        True if the coordinates are within the specified tolerance.
+
+    Raises
+    ------
+    AssertionError
+        If the absolute difference between `mesh_coord` and
+        `annotation_coord` exceeds `diff_tolerance * pixel_size`.
     """
     assert abs(mesh_coord - annotation_coord) <= diff_tolerance * pixel_size, (
         f"Mesh coordinate {mesh_coord} and "
@@ -63,8 +101,28 @@ def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
 
 
 def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
-    """Checks if the mesh and the image extents are similar"""
+    """Check if the mesh and the image extents are similar.
 
+    Validates that the spatial extents of the `root` mesh align with the
+    extents of the non-zero voxels in the annotation image, considering
+    the atlas resolution.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the mesh and image extents are sufficiently similar.
+
+    Raises
+    ------
+    AssertionError
+        If the extents differ by more than the allowed tolerance
+        (default 10 times pixel size).
+    """
     root_mesh = atlas.mesh_from_structure("root")
     annotation_image = atlas.annotation
     resolution = atlas.resolution
@@ -106,18 +164,60 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
 
 
 def open_for_visual_check(atlas: BrainGlobeAtlas):
+    """Open the atlas for visual inspection (not implemented).
+
+    This function is a placeholder for future visual validation routines.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The atlas to be visually checked.
+
+    Returns
+    -------
+    bool
+        Always True, as visual checks are not yet implemented.
+    """
     # implement visual checks later
     return True
 
 
 def validate_checksum(atlas: BrainGlobeAtlas):
+    """Validate the atlas checksum (not implemented).
+
+    This function is a placeholder for future checksum validation routines.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The atlas to be validated.
+
+    Returns
+    -------
+    bool
+        Always True, as checksum validation is not yet implemented.
+    """
     # implement later
     return True
 
 
 def validate_image_dimensions(atlas: BrainGlobeAtlas):
-    """
-    Check that annotation and reference image have the same dimensions.
+    """Check that annotation and reference images have identical dimensions.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the dimensions match.
+
+    Raises
+    ------
+    AssertionError
+        If the `annotation` and `reference` image arrays have different shapes.
     """
     assert atlas.annotation.shape == atlas.reference.shape, (
         "Annotation and reference image have different dimensions. \n"
@@ -128,8 +228,28 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
 
 
 def validate_additional_references(atlas: BrainGlobeAtlas):
-    """
-    Check that additional references are different, but have same dimensions.
+    """Check that additional references have expected properties.
+
+    Verifies that all additional reference images:
+    1. Have the same dimensions as the main reference image.
+    2. Are not identical to the main reference image (i.e., contain different
+    data).
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if all additional references pass the validation checks.
+
+    Raises
+    ------
+    AssertionError
+        If an additional reference has unexpected dimensions or is identical
+        to the main reference.
     """
     for (
         additional_reference_name
@@ -148,14 +268,25 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
 
 
 def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
-    """
-    Checks if all the structures in the atlas have a corresponding mesh file
+    """Check if all structures in the atlas have a corresponding mesh file.
 
-    custom_atlas_path is used when the function is called as part of
-    the wrapup function in the atlas packaging script. The expected
-    input is working_dir
-    """
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
 
+    Returns
+    -------
+    bool
+        True if all structures listed in the atlas have a
+        corresponding mesh file.
+
+    Raises
+    ------
+    AssertionError
+        If any structure ID found in `atlas.structures` does not have a
+        matching `.obj` file in the atlas's `meshes` directory.
+    """
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     atlas_path = atlas.root_dir
@@ -182,11 +313,25 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
 
 
 def catch_missing_structures(atlas: BrainGlobeAtlas):
-    """
-    Checks if all the mesh files in the atlas folder
-    are listed as a structure in the atlas.
-    """
+    """Check if all mesh files in the atlas folder are listed as a structure.
 
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if all mesh files have a corresponding entry in the atlas's
+        structures.
+
+    Raises
+    ------
+    AssertionError
+        If any .obj file found in the atlas's 'meshes' directory does not
+        have a corresponding structure ID in `atlas.structures`.
+    """
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     atlas_path = atlas.root_dir
@@ -213,9 +358,30 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
 
 
 def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
-    """Validates that reference image was correctly rescaled to
-    target datatype. Often goes wrong when naively passing float64
-    (MRI) data to wrapup function.
+    """Validate that the reference image was correctly rescaled.
+
+    This check aims to catch issues where a float64 reference image (e.g., from
+    MRI) might have been incorrectly rescaled or cast to the target integer
+    data type (e.g., `REFERENCE_DTYPE`), resulting in pixel values that are
+    too low. It asserts that not all pixel values are below 128
+    (assuming 8-bit range).
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the reference image's pixel values appear to be
+        correctly scaled.
+
+    Raises
+    ------
+    AssertionError
+        If all pixel values in the reference image are less than 128,
+        suggesting incorrect scaling.
     """
     assert not np.all(
         atlas.reference < 128
@@ -224,10 +390,29 @@ def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
 
 
 def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
-    """Validates that equivalent regions in L+R hemispheres have same
-    annotation value. This is done by naively comparing two central pixels
-    that are opposite each other along the mid-sagittal plane, and near
-    the mid-sagittal plane."""
+    """Validate that equivalent regions in left and right hemispheres have the
+    same annotation value.
+
+    This is done by comparing annotation values at two pixels equidistant
+    from the mid-sagittal plane along the central horizontal axis, near the
+    center of the image.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the selected annotation labels across the mid-sagittal plane
+        are symmetric.
+
+    Raises
+    ------
+    AssertionError
+        If the annotation labels at the chosen symmetric points are different.
+    """
     annotation = atlas.annotation
     centre = np.array(annotation.shape) // 2
     central_leftright_axis_annotations = annotation[centre[0], centre[1], :]
@@ -240,10 +425,29 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
 
 
 def validate_atlas_name(atlas: BrainGlobeAtlas):
-    """Validate atlas name.
-    - Can contain: lowercase letters, digits, underscores, hyphens, periods
-    - Ends with resolution (e.g., 5um, 37.5um, 1mm)
-    - Resolution: number + um (micrometers) or mm (millimeters)
+    """Validate the naming convention of the atlas.
+
+    Checks if the atlas name adheres to specific rules:
+    - Must be entirely lowercase.
+    - Can only contain lowercase letters, digits, underscores, hyphens,
+    and periods.
+    - Must end with a resolution string (e.g., "5um", "37.5um", "1mm").
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the atlas name follows the specified conventions.
+
+    Raises
+    ------
+    AssertionError
+        If the atlas name contains capital letters, invalid characters, or
+        does not end with a valid resolution string.
     """
     name = atlas.atlas_name
     allowed_chars = r"^[a-z0-9_.-]+$"
@@ -265,10 +469,28 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
 
 
 def validate_metadata(atlas: BrainGlobeAtlas):
-    """Validate atlas metadata.
+    """Validate the atlas metadata.
+
     Checks that the metadata of the given atlas has the correct format.
-    Specifically, it ensures that all required keys are present and that the
-    types of the values match the types specified in the METADATA_TEMPLATE.
+    Specifically, it ensures that all required keys from `METADATA_TEMPLATE`
+    are present and that the types of the values match the types specified
+    in `METADATA_TEMPLATE`.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object whose metadata is to be validated.
+
+    Returns
+    -------
+    bool
+        True if the metadata adheres to the expected format and types.
+
+    Raises
+    ------
+    AssertionError
+        If a required key is missing from the metadata or if the type of
+        a metadata value does not match the expected type.
     """
     for key, value in METADATA_TEMPLATE.items():
         assert key in atlas.metadata, f"Missing key: {key}"
@@ -280,8 +502,16 @@ def validate_metadata(atlas: BrainGlobeAtlas):
 
 
 def get_all_validation_functions():
-    """Returns all individual validation functions as a list.
-    All functions should expect 1 argument, a BrainGlobeAtlas."""
+    """Return all individual validation functions as a list.
+
+    All functions returned by this method are expected to accept
+    a single argument: a `BrainGlobeAtlas` instance.
+
+    Returns
+    -------
+    list of callable
+        A list of functions that can be used to validate a BrainGlobe atlas.
+    """
     return [
         validate_atlas_files,
         validate_mesh_matches_image_extents,
@@ -298,8 +528,30 @@ def get_all_validation_functions():
 
 
 def validate_atlas(atlas_name, version, validation_functions):
-    """Validates the latest version of a given atlas"""
+    """Validate the latest version of a given atlas.
 
+    This function attempts to load the specified atlas, updates it if
+    necessary, and then runs a suite of provided validation functions
+    against it. It collects and reports the results of each validation check.
+
+    Parameters
+    ----------
+    atlas_name : str
+        The name of the atlas to validate.
+    version : str
+        The version of the atlas to validate. (Currently not directly used
+        for loading, but passed from `get_all_atlases_lastversions`).
+    validation_functions : list of callable
+        A list of functions, each expecting a `BrainGlobeAtlas` object
+        as input and designed to perform a specific validation check.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the validation results for the specified atlas.
+        The format is `{atlas_name: [(function_name, error_message, status)]}`.
+        `error_message` is None if the check passes.
+    """
     print(atlas_name, version)
     BrainGlobeAtlas(atlas_name)
     updated = get_atlases_lastversions()[atlas_name]["updated"]
@@ -323,6 +575,7 @@ def validate_atlas(atlas_name, version, validation_functions):
 
 
 if __name__ == "__main__":
+    """Main execution block for running atlas validations."""
     # list to store the validation functions
     all_validation_functions = [
         validate_atlas_files,

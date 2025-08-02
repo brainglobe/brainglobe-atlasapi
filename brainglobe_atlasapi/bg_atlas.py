@@ -1,3 +1,5 @@
+"""Defines the BrainGlobeAtlas class for accessing brain atlas data."""
+
 import tarfile
 from io import StringIO
 from pathlib import Path
@@ -154,7 +156,6 @@ class BrainGlobeAtlas(core.Atlas):
     @property
     def remote_url(self):
         """Format complete url for download."""
-
         if self.remote_version is not None:
             name = (
                 f"{self.atlas_name}_v{self.remote_version[0]}."
@@ -187,7 +188,7 @@ class BrainGlobeAtlas(core.Atlas):
         self, print_warning: bool = True
     ) -> Optional[bool]:
         """
-        Checks if the local version is the latest available
+        Check if the local version is the latest available
         and prompts the user to update if not.
 
         Parameters
@@ -203,7 +204,6 @@ class BrainGlobeAtlas(core.Atlas):
             Returns False if the local version is not the latest,
             True if it is, and None if we are offline.
         """
-
         # Cache remote version to avoid multiple requests
         remote_version = self.remote_version
         # If we are offline, return None
@@ -249,8 +249,8 @@ class BrainGlobeAtlas(core.Atlas):
 
     def __rich_console__(self, *args):
         """
-        Method for rich API's console protocol.
-        Prints the atlas metadata as a table nested in a panel
+        Use rich API's console protocol.
+        Prints the atlas metadata as a table nested in a panel.
         """
         panel = _rich_atlas_metadata(self.atlas_name, self.metadata)
         yield panel

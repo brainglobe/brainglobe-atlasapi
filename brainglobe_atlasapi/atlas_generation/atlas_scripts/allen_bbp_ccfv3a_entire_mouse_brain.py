@@ -1,3 +1,11 @@
+"""
+Generates the CCFv3a Augmented Mouse Brain Atlas for BrainGlobe.
+
+It handles downloading, processing, and packaging the atlas data,
+including reference volumes, annotations, and structure information,
+from a Zenodo archive.
+"""
+
 import json
 import shutil
 import zipfile
@@ -27,9 +35,21 @@ ATLAS_PACKAGER = "Harry Carey"
 
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
     """
-    Download the necessary resources for the atlas.
+    Download necessary resources for the atlas.
 
-    Pooch for some reason refused to download the entire file.
+    Parameters
+    ----------
+    download_dir_path : Path
+        Path to the directory where files will be downloaded.
+    atlas_file_url : str
+        URL to the Zenodo archive containing atlas files.
+    atlas_name : str
+        Name of the atlas, used for naming the downloaded zip file.
+
+    Notes
+    -----
+    `pooch` was initially attempted for downloading, but it failed to download
+    the entire file. Therefore, `requests` is used instead.
     """
     if "download=1" not in atlas_file_url:
         atlas_file_url = atlas_file_url + "?download=1"
@@ -61,12 +81,29 @@ def download_resources(download_dir_path, atlas_file_url, atlas_name):
 
 def retrieve_reference_and_annotation(download_path, resolution):
     """
-    Retrieve the desired reference and annotation as two numpy arrays.
-    When the annotation is 10 microns the authors only provided a hemi
-    segmentation. I checked with the lead author and he confirmed this was
-    accidental. Here I correct this by mirroring if the resolution is 10um.
-    The developers only provided a 10um population average template so I
-    downsample here.
+    Retrieve reference and annotation as NumPy arrays.
+
+    Parameters
+    ----------
+    download_path : Path
+        Path to the directory containing downloaded atlas files.
+    resolution : int
+        The desired resolution of the atlas in micrometers (e.g., 10 or 25).
+
+    Returns
+    -------
+    numpy.ndarray
+        The reference volume.
+    numpy.ndarray
+        The annotation volume.
+
+    Notes
+    -----
+    For the 10-micron resolution, the provided annotation is only a
+    hemi-segmentation. This function corrects it by mirroring the existing
+    hemi-segmentation to create a full volume. The developers provided only
+    a 10um population average template, which is downsampled when a
+    25um resolution is requested.
     """
     reference_path = download_path / "nissl_average_full.nii.gz"
     reference = load_any(reference_path)
@@ -89,10 +126,26 @@ def retrieve_reference_and_annotation(download_path, resolution):
 
 def retrieve_additional_references(download_path, resolution):
     """
-    This returns the single animal nissl and converts it
-    to 16 bit unsigned int which bg requires.
-    """
+    Retrieve additional reference volumes.
 
+    Parameters
+    ----------
+    download_path : Path
+        Path to the directory containing downloaded atlas files.
+    resolution : int
+        The desired resolution of the atlas in micrometers (e.g., 10 or 25).
+
+    Returns
+    -------
+    dict of numpy.ndarray
+        A dictionary containing additional reference volumes,
+        e.g., {"single_animal_nissl": reference_volume}.
+
+    Notes
+    -----
+    The single animal Nissl reference volume is converted to a 16-bit
+    unsigned integer array as required by BrainGlobe.
+    """
     additional_reference_path = (
         download_path / f"arav3a_bbp_nisslCOR_{resolution}.nrrd"
     )
@@ -104,11 +157,13 @@ def retrieve_additional_references(download_path, resolution):
 
 def retrieve_hemisphere_map():
     """
-    At least one of the templates is technically not
-    symmetrical as in pixels differ in left vs right
-    hemisphere. But it is registered to a symmetrical
-    template meaning there should not be morphological
-    differences.
+    Retrieve hemisphere map for the atlas.
+
+    Returns
+    -------
+    None
+        A hemisphere map is not provided or required for this atlas,
+        as the reference template is symmetrical.
     """
     return None
 
@@ -148,9 +203,7 @@ def flatten_structure_tree(node, structure_id_path=None):
 
 
 def retrieve_structure_information(download_path):
-    """
-    The authors provide a json which is nested so I unest it.
-    """
+    """Unnest the JSON structure provided by the author."""
     with open(download_path / "hierarchy_bbp_atlas_pipeline.json") as f:
         metadata_json = json.load(f)
 
@@ -165,8 +218,23 @@ def retrieve_structure_information(download_path):
 
 def retrieve_or_construct_meshes(download_path, annotated_volume, structures):
     """
-    I use the construct_meshes_from_annotation helper function introduced in
-    this pull request
+    Construct meshes for atlas structures.
+
+    Parameters
+    ----------
+    download_path : Path
+        Path to the directory containing downloaded atlas files.
+    annotated_volume : numpy.ndarray
+        The annotation volume used to generate meshes.
+    structures : list of dict
+        A list of dictionaries, where each dictionary represents a structure
+        and contains its metadata (e.g., ID, name, acronym, color).
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are structure IDs and values are paths to
+        the generated mesh files.
     """
     meshes_dict = construct_meshes_from_annotation(
         download_path, annotated_volume, structures, ROOT_ID

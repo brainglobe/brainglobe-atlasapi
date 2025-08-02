@@ -1,3 +1,5 @@
+"""Generate the UNAM axolotl brain atlas."""
+
 __version__ = "1"
 
 import csv
@@ -36,6 +38,17 @@ RESOLUTION = 40, 40, 40  # Resolution tuple
 def modal_filter_ignore_zeros(window):
     """
     Compute the mode of the window ignoring zero values.
+
+    Parameters
+    ----------
+    window : ndarray
+        A 1D array representing the sliding window.
+
+    Returns
+    -------
+    int or float
+        The mode of the non-zero values in the window, or 0 if all values
+        are zero.
     """
     # Remove zeros from the window
     non_zero_values = window[window != 0]
@@ -52,12 +65,15 @@ def apply_modal_filter(image, filter_size=3):
 
     Parameters
     ----------
-        image (ndarray): Input image as a 2D NumPy array.
-        filter_size (int): Size of the filtering window (must be odd).
+    image : ndarray
+        Input image as a 2D NumPy array.
+    filter_size : int, optional
+        Size of the filtering window (must be odd), by default 3.
 
     Returns
     -------
-        ndarray: Filtered image.
+    ndarray
+        Filtered image.
     """
     # Apply the modal filter using a sliding window
     filtered_image = generic_filter(
@@ -67,7 +83,26 @@ def apply_modal_filter(image, filter_size=3):
 
 
 def create_atlas(working_dir, resolution):
+    """
+    Generate the UNAM axolotl atlas.
 
+    Downloads necessary files, processes annotation and reference images,
+    creates a hierarchical structure tree, generates meshes for brain regions,
+    and wraps up the data into a BrainGlobe atlas format.
+
+    Parameters
+    ----------
+    working_dir : Path or str
+        The directory where downloaded files and generated atlas data will
+        be stored.
+    resolution : tuple of int
+        The resolution of the atlas in (x, y, z) dimensions, in microns.
+
+    Returns
+    -------
+    str
+        The path to the generated atlas file.
+    """
     # setup folder for downloading
     working_dir = Path(working_dir)
 

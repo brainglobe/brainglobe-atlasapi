@@ -1,4 +1,4 @@
-"""Generate the Kim Dev Mouse Atlas for various developmental timepoints
+"""Package the Kim Dev Mouse Atlas for various developmental timepoints
 and modalities.
 
 The Kim Dev Mouse Atlas provides high-resolution anatomical data for different
@@ -53,7 +53,7 @@ def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
     ----------
     download_dir_path : Path
         Path to the directory where data will be downloaded.
-    timepoints : list[str
+    timepoints : list[str]
         List of timepoints for which data archives are expected.
 
     Returns
@@ -208,7 +208,7 @@ def create_meshes(
     root_id,
     decimate_fraction,
 ):
-    """Generate and save 3D meshes for each brain region.
+    """Package and save 3D meshes for each brain region.
 
     Parameters
     ----------
@@ -286,7 +286,7 @@ def create_mesh_dict(structures, meshes_dir_path):
 
     Parameters
     ----------
-    structures : list
+    structures : list[dict]
         List of dictionaries, each representing a brain structure.
     meshes_dir_path : Path
         Path to the directory containing mesh files.

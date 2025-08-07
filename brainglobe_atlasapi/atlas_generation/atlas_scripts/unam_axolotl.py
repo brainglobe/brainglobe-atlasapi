@@ -1,4 +1,4 @@
-"""Generate the UNAM axolotl brain atlas."""
+"""Package the UNAM axolotl brain atlas."""
 
 __version__ = "1"
 
@@ -84,7 +84,7 @@ def apply_modal_filter(image, filter_size=3):
 
 def create_atlas(working_dir, resolution):
     """
-    Generate the UNAM axolotl atlas.
+    Package the UNAM axolotl atlas.
 
     Downloads necessary files, processes annotation and reference images,
     creates a hierarchical structure tree, generates meshes for brain regions,
@@ -96,7 +96,7 @@ def create_atlas(working_dir, resolution):
         The directory where downloaded files and generated atlas data will
         be stored.
     resolution : tuple of int
-        The resolution of the atlas in (x, y, z) dimensions, in microns.
+        The resolution of the atlas in (z, y, x) dimensions, in microns.
 
     Returns
     -------

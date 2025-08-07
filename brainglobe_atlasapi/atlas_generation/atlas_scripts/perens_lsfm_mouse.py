@@ -1,4 +1,4 @@
-"""Generate the Perens LSFM Mouse Brain Atlas."""
+"""Package the Perens LSFM Mouse Brain Atlas."""
 
 __version__ = "2"
 
@@ -156,7 +156,7 @@ def get_all_parents(df, key):
 
 
 def create_atlas(working_dir, resolution):
-    """Generate the Perens LSFM Mouse Brain Atlas from downloaded data.
+    """Package the Perens LSFM Mouse Brain Atlas from downloaded data.
 
     Downloads necessary files, processes the structure hierarchy,
     creates meshes, and wraps up the atlas into a BrainGlobe-compatible format.

@@ -18,7 +18,7 @@ from brainglobe_atlasapi.list_atlases import (
 
 
 def test_get_downloaded_atlases():
-    """Retrieve a list of downloaded atlases."""
+    """Test retrieving a list of downloaded atlases."""
     available_atlases = get_downloaded_atlases()
 
     # Check that example is listed:
@@ -26,13 +26,13 @@ def test_get_downloaded_atlases():
 
 
 def test_get_local_atlas_version_real_atlas():
-    """Get the version of a real, downloaded atlas."""
+    """Test getting the version of a real, downloaded atlas."""
     v = get_local_atlas_version("example_mouse_100um")
     assert len(v.split(".")) == 2
 
 
 def test_get_local_atlas_version_missing_atlas(capsys):
-    """Handle retrieving the version of a non-existent atlas.
+    """Test retrieving the version of a non-existent atlas.
 
     Parameters
     ----------
@@ -46,7 +46,7 @@ def test_get_local_atlas_version_missing_atlas(capsys):
 
 
 def test_lastversions():
-    """Verify latest versions retrieved from the online source."""
+    """Test retrieving atlas versions from the online source."""
     last_versions = get_atlases_lastversions()
     example_atlas = last_versions["example_mouse_100um"]
 
@@ -64,13 +64,13 @@ def test_lastversions():
 
 
 def test_show_atlases():
-    """Display a table of available atlases."""
+    """Test displaying a table of available atlases."""
     # TODO add more valid testing than just look for errors when running:
     show_atlases(show_local_path=True)
 
 
 def test_get_all_atlases_lastversions():
-    """Retrieve the latest versions of all known atlases."""
+    """Test retrieving the latest versions of all known atlases."""
     last_versions = get_all_atlases_lastversions()
 
     assert "example_mouse_100um" in last_versions
@@ -79,7 +79,7 @@ def test_get_all_atlases_lastversions():
 
 
 def test_get_all_atlases_custom_atlases(mocker):
-    """Include available custom atlases in the list of all atlases.
+    """Check inclusion of available custom atlases in the list of all atlases.
 
     Parameters
     ----------
@@ -100,7 +100,7 @@ def test_get_all_atlases_custom_atlases(mocker):
 
 
 def test_get_all_atlases_lastversions_offline():
-    """Retrieve atlas versions from cache when offline."""
+    """Test retrieving atlas versions from cache when offline."""
     cleanup_cache = False
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
 
@@ -131,7 +131,7 @@ def test_get_all_atlases_lastversions_offline():
 
 
 def test_get_all_atlases_lastversions_gin_down():
-    """Retrieve atlas versions from cache when GIN is down."""
+    """Test retrieving atlas versions from cache when GIN is down."""
     cleanup_cache = False
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
 

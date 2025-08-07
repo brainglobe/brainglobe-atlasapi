@@ -41,7 +41,7 @@ RES_UM = 25
 
 
 def create_atlas(working_dir, resolution):
-    """Generate the Allen Mouse BlueBrain Barrels atlas.
+    """Package the Allen Mouse BlueBrain Barrels atlas.
 
     Combines the Allen Mouse Brain Common Coordinate Framework (CCFv3)
     with enhanced barrel cortex annotations from the Blue Brain Project

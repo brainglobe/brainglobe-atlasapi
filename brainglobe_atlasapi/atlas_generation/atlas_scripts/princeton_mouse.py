@@ -1,4 +1,4 @@
-"""Generate the Princeton Mouse Brain Atlas.
+"""Package the Princeton Mouse Brain Atlas.
 
 This script processes raw data from the Princeton Mouse Brain Atlas, including
 tissue and annotation volumes, and structure metadata, to create a BrainGlobe
@@ -39,7 +39,7 @@ PACKAGER = "Sam Clothier. sam.clothier.18@ucl.ac.uk"
 
 
 def create_atlas(working_dir, resolution):
-    """Generate the Princeton Mouse Brain Atlas.
+    """Package the Princeton Mouse Brain Atlas.
 
     Downloads and processes the Princeton Mouse Brain Atlas data, including
     tissue and annotation volumes, and structure metadata, to create a

@@ -1,4 +1,4 @@
-"""Generate the Kim Mouse Brain Atlas.
+"""Package the Kim Mouse Brain Atlas.
 
 This script processes the raw data from the Kim Lab atlas, including annotation
 volumes and structure hierarchies, to create a BrainGlobe-compatible atlas.

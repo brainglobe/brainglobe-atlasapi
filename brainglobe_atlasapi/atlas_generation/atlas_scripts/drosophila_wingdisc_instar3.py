@@ -1,4 +1,4 @@
-"""Generate the Drosophila melanogaster third instar wing disc atlas."""
+"""Package the Drosophila melanogaster third instar wing disc atlas."""
 
 from pathlib import Path
 
@@ -138,18 +138,6 @@ def retrieve_structure_information():
             "structure_id_path": list[int],
             "rgb_triplet": list[int, int, int],
         }
-
-    Example
-    -------
-    .. code-block:: python
-        [
-            {'id': 997, 'name': 'root', 'acronym': 'root',
-            'structure_id_path': [997], 'rgb_triplet': [255, 255, 255]},
-            {'id': 8, 'name': 'Basic cell groups', 'acronym': 'grey',
-            'structure_id_path': [997, 8], 'rgb_triplet': [191, 218, 227]},
-            {'id': 567, 'name': 'Cerebrum', 'acronym': 'CH',
-            'structure_id_path': [997, 8, 567], 'rgb_triplet': [176, 240, 255]}
-        ]
 
     Returns
     -------

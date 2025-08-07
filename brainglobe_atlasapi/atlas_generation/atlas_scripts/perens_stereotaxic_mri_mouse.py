@@ -1,5 +1,5 @@
 """
-Generate the Perens Stereotaxic MRI Mouse Atlas for BrainGlobe.
+Package the Perens Stereotaxic MRI Mouse Atlas for BrainGlobe.
 
 This script processes the raw data from the Perens et al. 2023 atlas,
 downloads necessary files, converts them into BrainGlobe's compatible format,

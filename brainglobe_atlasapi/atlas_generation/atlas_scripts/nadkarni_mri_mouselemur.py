@@ -1,4 +1,4 @@
-"""Generate the Nadkarni MRI Mouse Lemur atlas.
+"""Package the Nadkarni MRI Mouse Lemur atlas.
 
 This module provides functions to download, process, and package the
 Nadkarni MRI Mouse Lemur atlas into the BrainGlobe atlas format.

@@ -1,4 +1,4 @@
-"""Generate the Perens Multimodal LSFM mouse brain atlas."""
+"""Package the Perens Multimodal LSFM mouse brain atlas."""
 
 import os
 import time

@@ -1,4 +1,4 @@
-"""Test core BrainGlobe atlas functionalities."""
+"""Test the core Atlas class."""
 
 import contextlib
 import warnings

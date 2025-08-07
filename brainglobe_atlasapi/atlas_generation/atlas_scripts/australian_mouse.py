@@ -1,4 +1,4 @@
-"""Generate the Australian Mouse Brain Microatlas (AMBMC).
+"""Package the Australian Mouse Brain Microatlas (AMBMC).
 
 This script downloads, preprocesses, and packages the Australian Mouse Brain
 Microatlas (AMBMC) into the BrainGlobe atlas format.

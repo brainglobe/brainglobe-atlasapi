@@ -1,4 +1,4 @@
-"""Module to generate the Allen Human Reference Atlas."""
+"""Module to package the Allen Human Reference Atlas."""
 
 __version__ = "0"
 
@@ -137,7 +137,7 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
 
 def create_atlas(working_dir):
     """
-    Generate the Allen Human Reference Atlas.
+    Package the Allen Human Reference Atlas.
 
     This function downloads the necessary annotation and anatomy files,
     constructs the hierarchical structure tree, creates meshes for

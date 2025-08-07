@@ -1,4 +1,4 @@
-"""Generate the WHS_SD_Rat rat brain atlas.
+"""Package the WHS_SD_Rat rat brain atlas.
 
 Downloads the necessary files, processes them, creates meshes, and
 packages the atlas in the BrainGlobe format.
@@ -187,7 +187,7 @@ def create_structure_hierarchy(structures, df, root_id):
 
 
 def create_meshes(download_dir_path, tree, annotated_volume, labels, root_id):
-    """Generate meshes for each brain region.
+    """Package meshes for each brain region.
 
     Parameters
     ----------
@@ -293,7 +293,7 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 def create_atlas(working_dir):
-    """Generate the WHS_SD_Rat atlas.
+    """Package the WHS_SD_Rat atlas.
 
     Downloads the necessary raw data, processes the annotation and reference
     volumes, creates meshes for each brain region, and wraps up the data

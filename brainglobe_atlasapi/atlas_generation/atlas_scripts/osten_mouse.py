@@ -1,4 +1,4 @@
-"""Generate the Osten Mouse Atlas.
+"""Package the Osten Mouse Atlas.
 
 This script generates the Osten mouse brain atlas, based on data from
 Kim et al. 2015. It downloads the necessary annotation and structure data,
@@ -43,7 +43,7 @@ RESOLUTION = 100  # some resolution, in microns
 
 
 def create_atlas(working_dir, resolution):
-    """Generate the Osten Mouse Atlas.
+    """Package the Osten Mouse Atlas.
 
     Parameters
     ----------

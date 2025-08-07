@@ -1,5 +1,5 @@
 """
-Script to generate 3D mouse brain atlases for different developmental stages
+Script to package 3D mouse brain atlases for different developmental stages
 (E11.5, E13.5, E15.5, E18.5, P4, P14, P28, P56) from ADMBA data.
 """
 
@@ -168,7 +168,7 @@ def create_structure_hierarchy(structures, df, root_id):
 
 def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     """
-    Generate 3D meshes for brain regions from an annotated volume.
+    Package 3D meshes for brain regions from an annotated volume.
 
     This function iterates through the structure hierarchy, creates a mesh for
     each region that has corresponding labels in the annotated volume,
@@ -321,7 +321,7 @@ def create_atlas(
     working_dir: Path = Path.home(), atlas_config: "AtlasConfig" = None
 ):
     """
-    Generate a 3D mouse brain atlas for a specific developmental stage
+    Package a 3D mouse brain atlas for a specific developmental stage
     from ADMBA data.
 
     This function orchestrates the entire atlas generation process:

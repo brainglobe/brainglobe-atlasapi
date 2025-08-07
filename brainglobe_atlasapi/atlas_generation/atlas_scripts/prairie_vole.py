@@ -1,6 +1,6 @@
-"""Generate the Prairie Vole atlas.
+"""Package the Prairie Vole atlas.
 
-This module provides functionality to download, process, and generate the
+This module provides functionality to download, process, and package the
 Prairie Vole atlas from raw data files, including creating anatomical meshes
 and organizing the hierarchical structure of brain regions.
 """
@@ -29,7 +29,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def create_atlas(working_dir):
-    """Generate the Prairie Vole atlas.
+    """Package the Prairie Vole atlas.
 
     Downloads the necessary data files, processes the anatomical hierarchy,
     creates 3D meshes for brain regions, and packages the data into the

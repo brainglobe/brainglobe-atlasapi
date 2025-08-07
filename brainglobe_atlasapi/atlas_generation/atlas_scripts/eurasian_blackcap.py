@@ -1,4 +1,4 @@
-"""Generate the BrainGlobe atlas for the Eurasian Blackcap."""
+"""Package the BrainGlobe atlas for the Eurasian Blackcap."""
 
 __version__ = "2"
 
@@ -26,7 +26,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 def create_atlas(working_dir, resolution):
     """
-    Generate the Eurasian Blackcap BrainGlobe atlas.
+    Package the Eurasian Blackcap BrainGlobe atlas.
 
     This function downloads necessary data, processes anatomical structures,
     creates reference and annotation volumes, generates 3D meshes for

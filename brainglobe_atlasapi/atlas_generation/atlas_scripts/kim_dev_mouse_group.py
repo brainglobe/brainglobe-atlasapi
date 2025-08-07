@@ -1,4 +1,4 @@
-"""Generate the Kim Dev Mouse atlas."""
+"""Package the Kim Dev Mouse atlas."""
 
 __version__ = "2"
 
@@ -99,7 +99,7 @@ def create_atlas(
     existing_mesh_dir_path=None,
 ):
     """
-    Create a Kim Dev Mouse atlas version.
+    Package the specified Kim Dev Mouse atlas.
 
     Parameters
     ----------
@@ -315,7 +315,7 @@ def create_atlas(
 
 if __name__ == "__main__":
     """
-    Generate all versions of the Kim Dev Mouse atlas.
+    Package all versions of the Kim Dev Mouse atlas.
 
     This atlas is too large to package into a single atlas.
     Hence it is split with one atlas per reference.

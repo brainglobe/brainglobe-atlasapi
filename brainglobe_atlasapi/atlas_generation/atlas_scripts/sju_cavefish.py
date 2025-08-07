@@ -1,5 +1,5 @@
 """
-Generate the SJU Cavefish atlas from source data.
+Package the SJU Cavefish atlas from source data.
 
 The SJU Cavefish atlas provides anatomical annotations and a reference brain
 for Astyanax mexicanus.

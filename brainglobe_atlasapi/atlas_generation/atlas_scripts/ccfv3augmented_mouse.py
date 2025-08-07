@@ -1,5 +1,5 @@
 """
-Generate the ccfv3augmented_mouse atlas from source data.
+Package the ccfv3augmented_mouse atlas from source data.
 
 This script downloads, processes, and packages the CCFv3 augmented mouse atlas
 data into the BrainGlobe atlas format. It includes handling of reference and

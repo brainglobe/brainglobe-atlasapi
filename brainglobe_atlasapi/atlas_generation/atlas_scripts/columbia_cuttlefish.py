@@ -1,4 +1,4 @@
-"""Generate the Columbia Cuttlefish brain atlas.
+"""Package the Columbia Cuttlefish brain atlas.
 
 This module provides functions to download, process, and package the Columbia
 Cuttlefish brain atlas for use with Brainglobe tools.
@@ -49,7 +49,7 @@ def hex_to_rgb(hex):
 
 
 def create_atlas(working_dir, resolution):
-    """Generate the Columbia Cuttlefish brain atlas.
+    """Package the Columbia Cuttlefish brain atlas.
 
     Downloads necessary files, processes annotation and template data,
     creates a hierarchical structure tree, generates meshes for brain

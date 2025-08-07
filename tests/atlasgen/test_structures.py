@@ -128,7 +128,7 @@ def test_get_structure_children_no_children(structures, use_tree):
 def test_get_structure_children_incomplete_region(
     dropped_key, error, structures
 ):
-    """Raise error when region data is incomplete.
+    """Test raising of error when region data is incomplete.
 
     Error if 'id' or 'structure_id_path' is missing but not when other keys
     (e.g. 'name') are missing.

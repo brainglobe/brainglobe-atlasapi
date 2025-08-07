@@ -1,4 +1,4 @@
-"""Script to generate the Allen Cord Atlas."""
+"""Script to package the Allen Cord Atlas."""
 
 __version__ = "1"
 
@@ -156,7 +156,7 @@ def create_structure_hierarchy(structures, df, root_id):
 
 def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     """
-    Generate 3D meshes for brain regions from an annotated volume.
+    Package 3D meshes for brain regions from an annotated volume.
 
     This function iterates through the structure hierarchy, creates a mesh for
     each region that has corresponding labels in the annotated volume,
@@ -295,7 +295,7 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 def create_atlas(working_dir):
     """
-    Generate the Allen Cord Atlas from source files.
+    Package the Allen Cord Atlas from source files.
 
     This function orchestrates the entire atlas generation process,
     including downloading raw data, parsing structure metadata,
@@ -384,6 +384,6 @@ if __name__ == "__main__":
     bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 
-    # generate atlas
+    # package atlas
     print(f'Creating atlas and saving it at "{bg_root_dir}"')
     create_atlas(bg_root_dir)

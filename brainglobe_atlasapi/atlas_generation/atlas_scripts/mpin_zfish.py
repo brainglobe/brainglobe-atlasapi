@@ -1,4 +1,4 @@
-"""Generate the MPIN Z-Fish atlas.
+"""Package the MPIN Z-Fish atlas.
 
 The MPIN Z-Fish atlas is derived from data published by Kunst et al. (2019).
 It includes volumetric data for reference, annotation, and hemispheres,

@@ -1,4 +1,4 @@
-"""Generate the Allen Mouse Brain Atlas for BrainGlobe.
+"""Package the Allen Mouse Brain Atlas for BrainGlobe.
 
 This module provides functionality to download data from the Allen Institute
 and create a BrainGlobe-compatible atlas, including annotation and template

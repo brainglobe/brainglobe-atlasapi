@@ -38,7 +38,7 @@ def get_id_from_acronym(df, acronym):
     Parameters
     ----------
     df : pandas.DataFrame
-        Atlas table dataframe (e.g., from `atlas.load_table()`).
+        Atlas table dataframe.
     acronym : str or list of str
         Brain region acronym(s).
 
@@ -69,7 +69,7 @@ def get_acronym_from_id(df, ID):
     Parameters
     ----------
     df : pandas.DataFrame
-        Atlas table dataframe (e.g., from `atlas.load_table()`).
+        Atlas table dataframe.
     ID : int or list of int
         Brain region ID(s).
 

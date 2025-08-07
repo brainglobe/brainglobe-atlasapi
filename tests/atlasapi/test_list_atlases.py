@@ -1,3 +1,5 @@
+"""Test functions for listing and managing BrainGlobe atlases."""
+
 from unittest import mock
 
 import pytest
@@ -16,6 +18,7 @@ from brainglobe_atlasapi.list_atlases import (
 
 
 def test_get_downloaded_atlases():
+    """Test retrieving a list of downloaded atlases."""
     available_atlases = get_downloaded_atlases()
 
     # Check that example is listed:
@@ -23,11 +26,19 @@ def test_get_downloaded_atlases():
 
 
 def test_get_local_atlas_version_real_atlas():
+    """Test getting the version of a real, downloaded atlas."""
     v = get_local_atlas_version("example_mouse_100um")
     assert len(v.split(".")) == 2
 
 
 def test_get_local_atlas_version_missing_atlas(capsys):
+    """Test retrieving the version of a non-existent atlas.
+
+    Parameters
+    ----------
+    capsys : pytest.CaptureFixture
+        Fixture to capture stdout/stderr.
+    """
     atlas_name = "unicorn_atlas"
     assert get_local_atlas_version(atlas_name) is None
     captured = capsys.readouterr()
@@ -35,6 +46,7 @@ def test_get_local_atlas_version_missing_atlas(capsys):
 
 
 def test_lastversions():
+    """Test retrieving atlas versions from the online source."""
     last_versions = get_atlases_lastversions()
     example_atlas = last_versions["example_mouse_100um"]
 
@@ -52,11 +64,13 @@ def test_lastversions():
 
 
 def test_show_atlases():
+    """Test displaying a table of available atlases."""
     # TODO add more valid testing than just look for errors when running:
     show_atlases(show_local_path=True)
 
 
 def test_get_all_atlases_lastversions():
+    """Test retrieving the latest versions of all known atlases."""
     last_versions = get_all_atlases_lastversions()
 
     assert "example_mouse_100um" in last_versions
@@ -65,7 +79,13 @@ def test_get_all_atlases_lastversions():
 
 
 def test_get_all_atlases_custom_atlases(mocker):
-    """Checks inclusion of available custom atlases."""
+    """Check inclusion of available custom atlases in the list of all atlases.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.plugin.MockerFixture
+        The mocker fixture.
+    """
     custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
     mock_custom_atlas = {"atlases": {"mock_custom_atlas": "1.1"}}
 
@@ -80,6 +100,7 @@ def test_get_all_atlases_custom_atlases(mocker):
 
 
 def test_get_all_atlases_lastversions_offline():
+    """Test retrieving atlas versions from cache when offline."""
     cleanup_cache = False
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
 
@@ -110,6 +131,7 @@ def test_get_all_atlases_lastversions_offline():
 
 
 def test_get_all_atlases_lastversions_gin_down():
+    """Test retrieving atlas versions from cache when GIN is down."""
     cleanup_cache = False
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
 
@@ -161,7 +183,17 @@ def test_get_all_atlases_lastversions_gin_down():
     ],
 )
 def test_add_atlas_to_row(version, expected_print, capsys):
-    """Tests correct print when versions match/mismatch"""
+    """Test correct print formatting when atlas versions match or mismatch.
+
+    Parameters
+    ----------
+    version : dict
+        A dictionary containing "version" and "latest_version" strings.
+    expected_print : str
+        The expected string output in the console.
+    capsys : pytest.CaptureFixture
+        Fixture to capture stdout/stderr.
+    """
     info = {
         "downloaded": True,
         "version": version["version"],

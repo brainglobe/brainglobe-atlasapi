@@ -1,3 +1,5 @@
+"""Module to package the Allen Human Reference Atlas."""
+
 __version__ = "0"
 
 import json
@@ -33,6 +35,26 @@ ORIENTATION = "rpi"
 
 
 def prune_tree(tree):
+    """
+    Prunes the input tree based on the 'has_label' attribute of its nodes.
+
+    Nodes are removed if:
+    - They have a label, and all their children are removed
+    (meaning only the labeled parent is kept).
+    - They do not have a label, and none of their descendants have a label.
+
+    Parameters
+    ----------
+    tree : treelib.Tree
+        The tree to be pruned, where each node's data contains a 'has_label'
+        boolean attribute indicating if the region has a corresponding label
+        in the annotation volume.
+
+    Returns
+    -------
+    treelib.Tree
+        The pruned tree.
+    """
     nodes = tree.nodes.copy()
     for key, node in nodes.items():
         if node.tag == "root":
@@ -64,6 +86,24 @@ def prune_tree(tree):
 
 
 def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
+    """
+    Download the annotation file and anatomy template image for
+    the Allen Human Reference Atlas.
+
+    Parameters
+    ----------
+    download_dir_path : pathlib.Path
+        The path to the directory where the files should be downloaded.
+    atlas_file_url : str
+        The URL for the full annotation NIfTI file (gzipped).
+    template_file_url : str
+        The URL for the anatomy template image NIfTI file (zipped).
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the directory where the files were downloaded.
+    """
     utils.check_internet_connection()
 
     data_fld = download_dir_path
@@ -96,6 +136,24 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
 
 
 def create_atlas(working_dir):
+    """
+    Package the Allen Human Reference Atlas.
+
+    This function downloads the necessary annotation and anatomy files,
+    constructs the hierarchical structure tree, creates meshes for
+    the brain regions, and finally packages all data into a BrainGlobe atlas.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        The directory where all downloaded files and generated atlas data
+        will be stored.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the generated BrainGlobe atlas file (e.g., a .zip file).
+    """
     # ------------------ #
     #   PREP FILEPATHS   #
     # ------------------ #

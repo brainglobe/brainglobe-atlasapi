@@ -1,6 +1,6 @@
 """
-Script to generate a Brainglobe compatible atlas object
-for the Adult Zebrafish Brain Atlas (AZBA)
+Script to package a Brainglobe compatible atlas object
+for the Adult Zebrafish Brain Atlas (AZBA).
 
 @author: Kailyn Fields, kailyn.fields@wayne.edu
 """
@@ -36,7 +36,24 @@ RESOLUTION = 4
 
 
 def create_atlas(working_dir, resolution):
+    """
+    Create the Adult Zebrafish Brain Atlas (AZBA) in Brainglobe format.
 
+    Downloads necessary files, processes them, generates meshes, and
+    packages the atlas.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        The directory where temporary files and the final atlas will be stored.
+    resolution : int
+        The resolution of the atlas in micrometers per voxel.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the generated atlas file.
+    """
     download_path = working_dir / "downloads"
     download_path.mkdir(exist_ok=True, parents=True)
 

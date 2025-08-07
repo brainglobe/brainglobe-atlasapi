@@ -1,3 +1,9 @@
+"""Define test fixtures for atlas generation tests.
+
+Provide commonly used fixtures and setup for testing `brainglobe_atlasapi`
+functionality.
+"""
+
 from pathlib import Path
 
 import pytest
@@ -7,8 +13,11 @@ from brainglobe_atlasapi import BrainGlobeAtlas
 
 @pytest.fixture(autouse=True)
 def setup_preexisting_local_atlases():
-    """Automatically setup all tests to have three downloaded atlases
-    in the test user data."""
+    """Set up all tests to have three downloaded atlases in the test user data.
+
+    Automatically downloads and sets up predefined atlases for testing
+    purposes, ensuring they are available locally before test execution.
+    """
     preexisting_atlases = [
         ("example_mouse_100um", "v1.2"),
         ("allen_mouse_100um", "v1.2"),
@@ -23,15 +32,19 @@ def setup_preexisting_local_atlases():
 
 @pytest.fixture
 def structures():
-    """List of structures for testing.
+    """Provide a list of structures for testing.
 
-    Structure tree:
-
+    >>> The structure tree is defined as:
     root (999)
     └── o (101)
-      ├── aon (5)
-      └── on (1)
+        ├── aon (5)
+        └── on (1)
 
+    Returns
+    -------
+    list
+        A list of dictionaries, where each dictionary represents a structure
+        with its ID, acronym, name, RGB triplet, and structure ID path.
     """
     structure101 = {
         "id": 101,

@@ -1,3 +1,5 @@
+"""Package the Perens LSFM Mouse Brain Atlas."""
+
 __version__ = "2"
 
 import json
@@ -31,22 +33,20 @@ RESOLUTION = 20
 
 
 def get_id_from_acronym(df, acronym):
+    """Retrieve Allen brain atlas ID(s) from brain region acronym(s).
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Atlas table dataframe.
+    acronym : str or list of str
+        Brain region acronym(s).
+
+    Returns
+    -------
+    int or list of int
+        Brain region ID(s) corresponding to the input acronym(s).
     """
-    Get Allen's brain atlas ID from brain region acronym(s)
-
-    Call:
-        get_id_from_acronym(df, acronym)
-
-    Args:
-        df      (pandas dataframe):
-            atlas table file [see atlas.load_table()]
-        acronym (string or list of strings): brain region acronym(s)
-
-    Returns:
-        ID (int or list of ints):
-            brain region ID(s) corresponding to input acronym(s)
-    """
-
     # create as list if necessary
     if not isinstance(acronym, list):
         acronym = [acronym]
@@ -64,21 +64,20 @@ def get_id_from_acronym(df, acronym):
 
 
 def get_acronym_from_id(df, ID):
+    """Retrieve Allen brain atlas acronym(s) from brain region ID(s).
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Atlas table dataframe.
+    ID : int or list of int
+        Brain region ID(s).
+
+    Returns
+    -------
+    str or list of str
+        Brain region acronym(s) corresponding to the input ID(s).
     """
-    Get Allen's brain atlas acronym from brain region ID(s)
-
-    Call:
-        get_acronym_from_ID(df, acronym)
-
-    Args:
-        df (pandas dataframe): atlas table dataframe [see atlas.load_table()]
-        ID (int or list of int): brain region ID(s)
-
-    Returns:
-        acronym (string or list of strings):
-        brain region acronym(s) corresponding to input ID(s)
-    """
-
     # create as list if necessary
     if not isinstance(ID, list):
         ID = [ID]
@@ -94,6 +93,24 @@ def get_acronym_from_id(df, ID):
 
 
 def tree_traverse_child2parent(df, child_id, ids):
+    """Recursively traverse the structure tree from child to parent,
+    collecting parent IDs.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Atlas table dataframe.
+    child_id : int
+        The ID of the child region.
+    ids : list
+        A list to accumulate parent IDs during traversal.
+
+    Returns
+    -------
+    list
+        A list of parent IDs, starting from the immediate parent up to
+        the root.
+    """
     parent = df["parent_id"][df["id"] == child_id].item()
 
     if not np.isnan(parent):
@@ -106,20 +123,21 @@ def tree_traverse_child2parent(df, child_id, ids):
 
 
 def get_all_parents(df, key):
+    """Obtain all parent IDs or acronyms in the Allen brain atlas
+    hierarchical structure.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Atlas table dataframe.
+    key : int or str
+        Atlas region ID or acronym.
+
+    Returns
+    -------
+    list
+        A list of parent IDs or acronyms.
     """
-    Get all parent IDs/acronyms in Allen's brain atlas hierarchical structure'
-
-    Call:
-        get_all_children(df, key)
-
-    Args:
-        df (pandas dataframe) : atlas table dataframe [see atlas.load_table()]
-        key (int/string)      : atlas region ID/acronym
-
-    Returns:
-        parents (list) : brain region acronym corresponding to input ID
-    """
-
     if isinstance(key, str):  # if input is acronym convert to ID
         list_parent_ids = tree_traverse_child2parent(
             df, get_id_from_acronym(df, key), []
@@ -138,6 +156,23 @@ def get_all_parents(df, key):
 
 
 def create_atlas(working_dir, resolution):
+    """Package the Perens LSFM Mouse Brain Atlas from downloaded data.
+
+    Downloads necessary files, processes the structure hierarchy,
+    creates meshes, and wraps up the atlas into a BrainGlobe-compatible format.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        The directory where temporary files and the final atlas will be stored.
+    resolution : int
+        The resolution of the atlas in micrometres per voxel.
+
+    Returns
+    -------
+    str
+        The path to the generated atlas file.
+    """
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)

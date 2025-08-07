@@ -1,3 +1,11 @@
+"""Package the Nadkarni MRI Mouse Lemur atlas.
+
+This module provides functions to download, process, and package the
+Nadkarni MRI Mouse Lemur atlas into the BrainGlobe atlas format.
+It includes steps for retrieving reference and annotation volumes,
+processing structure information, and generating meshes.
+"""
+
 import time
 from pathlib import Path
 
@@ -51,9 +59,7 @@ DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 
 def download_resources():
-    """
-    Downloads the necessary resources for the atlas with Pooch.
-    """
+    """Download the necessary resources for the atlas with Pooch."""
     # Define the path to the doggie bag
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
     known_hash = (
@@ -77,7 +83,8 @@ def retrieve_reference_and_annotation():
     annotation), we additionally mirror the right annotation hemisphere to
     overwrite the original left annotation hemisphere.
 
-    Returns:
+    Returns
+    -------
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """
@@ -110,42 +117,33 @@ def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
-    This atlas is symmetrical "enough" that we mark it as symmetrical.
-    (The template is not entirely pixel-by-pixel symmetrical).
-    Symmetrical enough means that we can easily compute the hemispheres,
-    by taking half the annotation along the LR axis, so we
-    don't need to store it.
+    Mark the atlas as symmetrical, as it is symmetrical "enough"
+    (the template is not entirely pixel-by-pixel symmetrical).
+    Sufficient symmetry means that hemispheres can be easily computed
+    by taking half the annotation along the LR axis, thus eliminating
+    the need to store a separate map.
 
-    Returns:
-        numpy.array or None: A numpy array representing the hemisphere map,
-        or None if the atlas is symmetrical.
+    Returns
+    -------
+    numpy.array or None
+        A numpy array representing the hemisphere map, or None if the atlas
+        is symmetrical.
     """
     return None
 
 
 def retrieve_structure_information():
     """
-    Entries ending with '_L' or ' L ' are dropped,
-    to match the symmetrised annotation.
+    Retrieve structure information for the atlas.
 
-    Then we return a Dataframe that in the following format.
-    In the mouselemur case, the original data doesn't provide acronyms.
-    And there is no easy way to come up with a sensible unique acronym
-    programmatically. So we use the name as the acronym too.
+    Drop entries ending with '_L' or ' L ' to match the symmetrised annotation.
+    Use the name as the acronym, as the original data does not
+    provide acronyms.
 
-    ╭────┬───────────────────┬─────────┬───────────────────┬─────────────────╮
-    | id | name              | acronym | structure_id_path | rgb_triplet     |
-    |    |                   |         |                   |                 |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 997| root              | root    | [997]             | [255, 255, 255] |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 8  | Basic cell groups | grey    | [997, 8]          | [191, 218, 227] |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 567| Cerebrum          | CH      | [997, 8, 567]     | [176, 240, 255] |
-    ╰────┴───────────────────┴─────────┴───────────────────┴─────────────────╯
-
-    Returns:
-        pandas.DataFrame: A DataFrame containing the atlas information.
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame containing the atlas information in the specified format.
     """
     col_names = ["IDX", "R", "G", "B", "A", "VIS", "MSH", "LABEL"]
     df = pd.read_csv(
@@ -191,9 +189,22 @@ def retrieve_structure_information():
 
 def retrieve_or_construct_meshes(structures):
     """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. We construct the meshes ourselves for this atlas, as the
-    original data does not provide precomputed meshes.
+    Return a dictionary of IDs and corresponding paths to mesh files.
+
+    Construct the meshes for this atlas, as the original data does not
+    provide precomputed meshes.
+
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries, where each dictionary represents a structure
+        and contains at least an 'id' key.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are structure IDs and values are paths to
+        their corresponding mesh files.
     """
     print("constructing meshes")
 

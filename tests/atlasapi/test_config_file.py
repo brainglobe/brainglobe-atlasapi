@@ -1,3 +1,9 @@
+"""Test configuration file handling.
+
+Verify the creation, modification, and CLI interaction with the Brainglobe
+atlas API configuration file.
+"""
+
 import shutil
 import tempfile
 from pathlib import Path
@@ -11,6 +17,13 @@ from brainglobe_atlasapi.config import cli_modify_config
 
 @pytest.fixture()
 def conf_path():
+    """Create a temporary configuration file for testing.
+
+    Yields
+    ------
+    Path
+        The path to the temporary configuration file.
+    """
     temp_dir = Path(tempfile.mkdtemp())
     conf_path = temp_dir / config.CONFIG_FILENAME
     config.write_default_config(conf_path)
@@ -21,6 +34,11 @@ def conf_path():
 
 
 def test_config_creation(conf_path):
+    """Verify default configuration file creation.
+
+    Checks that a newly created configuration file contains all default
+    settings as expected.
+    """
     conf = config.read_config(conf_path)
     for sectname, sectcont in conf.items():
         for k, val in sectcont.items():
@@ -28,6 +46,13 @@ def test_config_creation(conf_path):
 
 
 def test_config_edit(tmp_path):
+    """Test editing configuration values via CLI and direct access.
+
+    Ensures that modifying a configuration value (e.g., 'brainglobe_dir')
+    through the `config.write_config_value` function correctly updates the
+    configuration and affects how `BrainGlobeAtlas` locates its root
+    directory.
+    """
     runner = CliRunner()
     result = runner.invoke(cli.bg_cli, ["config", "--show"])
 
@@ -83,12 +108,28 @@ def test_config_edit(tmp_path):
 def test_cli_modify_config(
     key, show, value_factory, expected_output, capsys, tmpdir
 ):
-    """Test the cli_modify_config used by CLI "config" command.
+    """Test the `cli_modify_config` function used by the CLI "config" command.
 
-    Checks that the `cli_modify_config` handles valid / invalid paths
-    correctly and behaviour is as expected when show is set to True and
-    ensures that the start of the captured output (printed out by
+    Checks that the `cli_modify_config` handles valid/invalid paths
+    correctly and the behavior is as expected when `show` is set to True.
+    Ensures that the start of the captured output (printed out by
     _print_config) is as expected.
+
+    Parameters
+    ----------
+    key : str
+        The configuration key to modify.
+    show : bool
+        Whether to show the configuration after modification.
+    value_factory : callable
+        A factory function to generate the value for the key, taking `tmpdir`
+        as an argument.
+    expected_output : str
+        The expected start of the captured standard output.
+    capsys : pytest.CaptureFixture
+        Fixture to capture stdout/stderr.
+    tmpdir : pytest.pathlib.Path
+        A temporary directory fixture.
     """
     value = str(value_factory(tmpdir))
     cli_modify_config(key=key, value=value, show=show)

@@ -1,3 +1,11 @@
+"""Package the Kim Mouse Brain Atlas.
+
+This script processes the raw data from the Kim Lab atlas, including annotation
+volumes and structure hierarchies, to create a BrainGlobe-compatible atlas.
+It handles downloading data, parsing structure information, creating meshes,
+and wrapping up the atlas into the final BrainGlobe format.
+"""
+
 __version__ = "1"
 
 import argparse
@@ -32,6 +40,21 @@ ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/kim_atlas_materials/raw/mast
 
 
 def create_atlas(working_dir, resolution):
+    """Create the Kim Mouse Brain Atlas.
+
+    Parameters
+    ----------
+    working_dir : Path
+        The directory where temporary files and the final atlas will be stored.
+    resolution : int
+        The desired resolution of the atlas in micrometers.
+
+    Returns
+    -------
+    Path
+        The path to the generated atlas file.
+
+    """
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)

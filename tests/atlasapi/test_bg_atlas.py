@@ -1,3 +1,5 @@
+"""Test the BrainGlobeAtlas class."""
+
 import shutil
 from unittest.mock import PropertyMock, patch
 
@@ -9,11 +11,12 @@ from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
 def test_versions(atlas):
+    """Assert local and remote versions are equal."""
     assert atlas.local_version == atlas.remote_version
 
 
 def test_local_full_name_none():
-    """Test local_version when local_full_name is None."""
+    """Test `local_version` property when `local_full_name` is `None`."""
     with patch.object(
         BrainGlobeAtlas, "local_full_name", new_callable=PropertyMock
     ) as mock_local_full_name:
@@ -40,7 +43,17 @@ def test_remote_version_connection_error():
     ],
 )
 def test_check_latest_version_local(local_version, remote_version, expected):
-    """Test check_latest_version"""
+    """Test `check_latest_version` method.
+
+    Parameters
+    ----------
+    local_version : tuple
+        The mock local version.
+    remote_version : tuple
+        The mock remote version.
+    expected : bool or None
+        The expected result of `check_latest_version`.
+    """
     with (
         patch.object(
             BrainGlobeAtlas, "local_version", new_callable=PropertyMock
@@ -74,14 +87,22 @@ def test_check_latest_version_local(local_version, remote_version, expected):
     ],
 )
 def test_repr(atlas_name, expected_repr):
-    """Test BrainGlobeAtlas repr method"""
+    """Test `BrainGlobeAtlas` `__repr__` method.
+
+    Parameters
+    ----------
+    atlas_name : str
+        The name of the atlas.
+    expected_repr : str
+        The expected string representation.
+    """
     atlas = object.__new__(BrainGlobeAtlas)
     atlas.atlas_name = atlas_name
     assert repr(atlas) == expected_repr
 
 
 def test_str(atlas, capsys):
-    """Test BrainGlobeAtlas str method"""
+    """Test `BrainGlobeAtlas` `__str__` method."""
     print(atlas)
     captured = capsys.readouterr()
     expected_doi = "https://doi.org/10.1016/j.cell.2020.04.007"
@@ -90,6 +111,7 @@ def test_str(atlas, capsys):
 
 
 def test_local_search(tmpdir):
+    """Test local atlas search and handling of multiple versions."""
     atlas_file_name = "example_mouse_100um_v1.2"
     brainglobe_dir = config.get_brainglobe_dir()
     temp_brainglobe_dir = tmpdir.mkdir("brainglobe")

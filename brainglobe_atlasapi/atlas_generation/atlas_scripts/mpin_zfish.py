@@ -1,3 +1,11 @@
+"""Package the MPIN Z-Fish atlas.
+
+The MPIN Z-Fish atlas is derived from data published by Kunst et al. (2019).
+It includes volumetric data for reference, annotation, and hemispheres,
+along with a hierarchical structure tree and corresponding meshes for
+brain regions.
+"""
+
 __version__ = "1"
 __atlas__ = "mpin_zfish"
 
@@ -19,7 +27,20 @@ BASE_URL = r"https://fishatlas.neuro.mpg.de"
 
 
 def download_line_stack(bg_root_dir, tg_line_name):
-    """Utility function to download a line from its name."""
+    """Download a transgenic line stack.
+
+    Parameters
+    ----------
+    bg_root_dir : pathlib.Path
+        The root directory where the data should be downloaded.
+    tg_line_name : str
+        The name of the transgenic line to download.
+
+    Returns
+    -------
+    numpy.ndarray
+        The downloaded Tiff stack as a NumPy array.
+    """
     reference_url = (
         f"{BASE_URL}/media/brain_browser/Lines/"
         f"{tg_line_name}/AverageData/Tiff_File/"
@@ -34,14 +55,14 @@ def download_line_stack(bg_root_dir, tg_line_name):
 
 
 def add_path_inplace(parent):
-    """Recursively traverse hierarchy of regions and append for each region
-    the full path of substructures in brainglobe standard list.
+    """Recursively traverse region hierarchy and append full path of
+    substructures.
 
     Parameters
     ----------
     parent : dict
-        node parsed from fishatlas website containing a "sub_regions" key
-
+        A node parsed from the fishatlas website, expected to contain
+        a "sub_regions" key.
     """
     for ch in parent["sub_regions"]:
         new_root = parent["structure_id_path"] + [
@@ -59,19 +80,20 @@ def collect_all_inplace(
     download_path,
     mesh_dict,
 ):
-    """Recursively traverse a region hierarchy, download meshes, and append
-    regions to a list inplace.
+    """Recursively traverse a region hierarchy, download meshes, and
+    append regions to a list.
 
     Parameters
     ----------
-    node
-    traversing_list
-    download_path
-    mesh_dict
-
-
+    node : dict
+        The current region node in the hierarchy.
+    traversing_list : list
+        The list to which collected region information will be appended.
+    download_path : pathlib.Path
+        The directory where meshes should be downloaded.
+    mesh_dict : dict
+        A dictionary to store paths to downloaded meshes, keyed by region ID.
     """
-
     # Append clean dictionary with brainglobe standard info:
     traversing_list.append(
         {
@@ -104,6 +126,21 @@ def collect_all_inplace(
 
 
 def create_atlas(working_dir, resolution):
+    """Create the MPIN Z-Fish atlas.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        The directory where all intermediate and final atlas files will
+        be stored.
+    resolution : int
+        The resolution of the atlas in micrometers per voxel.
+
+    Returns
+    -------
+    str
+        The path to the generated atlas file.
+    """
     # Specify fixed information about the atlas:
     RES_UM = resolution
     ATLAS_NAME = "mpin_zfish"

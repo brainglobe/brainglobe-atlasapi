@@ -1,3 +1,11 @@
+"""Package the Osten Mouse Atlas.
+
+This script generates the Osten mouse brain atlas, based on data from
+Kim et al. 2015. It downloads the necessary annotation and structure data,
+processes it to create an atlas, and then wraps it up into the
+BrainGlobe atlas format.
+"""
+
 __version__ = "0"
 
 import json
@@ -35,6 +43,20 @@ RESOLUTION = 100  # some resolution, in microns
 
 
 def create_atlas(working_dir, resolution):
+    """Package the Osten Mouse Atlas.
+
+    Parameters
+    ----------
+    working_dir : Path
+        The directory where the atlas data will be downloaded and processed.
+    resolution : int
+        The desired resolution of the atlas in microns per pixel.
+
+    Returns
+    -------
+    Path
+        The path to the generated atlas file.
+    """
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)

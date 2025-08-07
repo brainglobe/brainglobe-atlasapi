@@ -1,3 +1,9 @@
+"""Template script for generating a BrainGlobe atlas.
+
+Use this script as a starting point to package a new BrainGlobe atlas by
+filling in the required functions and metadata.
+"""
+
 from pathlib import Path
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
@@ -51,11 +57,12 @@ def download_resources():
 
 def retrieve_reference_and_annotation():
     """
-    Retrieve the desired reference and annotation as two numpy arrays.
+    Retrieve the reference and annotation volumes.
 
-    Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the
-        reference volume, and the second array is the annotation volume.
+    Returns
+    -------
+    tuple[numpy.ndarray, numpy.ndarray]
+        A tuple containing the reference volume and the annotation volume.
     """
     reference = None
     annotation = None
@@ -66,59 +73,77 @@ def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
-    This is an array in the same shape as your template,
-    with 0's marking the left hemisphere, and 1's marking the right.
+    Use a hemisphere map if the atlas is asymmetrical. This map is an array
+    with the same shape as the template, where 0 marks the left hemisphere
+    and 1 marks the right.
 
-    If your atlas is symmetrical, ignore this function.
-
-    Returns:
-        numpy.array or None: A numpy array representing the hemisphere map,
-        or None if the atlas is symmetrical.
+    Returns
+    -------
+    np.ndarray or None
+        A numpy array representing the hemisphere map, or None if the atlas
+        is symmetrical.
     """
     return None
 
 
 def retrieve_structure_information():
     """
-    This function should return a pandas DataFrame with information about your
-    atlas.
+    Return a list of dictionaries with information about the atlas.
 
-    The DataFrame should be in the following format:
+    Returns a list of dictionaries, where each dictionary represents a
+    structure and contains its ID, name, acronym, hierarchical path,
+    and RGB triplet.
 
-    ╭────┬───────────────────┬─────────┬───────────────────┬─────────────────╮
-    | id | name              | acronym | structure_id_path | rgb_triplet     |
-    |    |                   |         |                   |                 |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 997| root              | root    | [997]             | [255, 255, 255] |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 8  | Basic cell groups | grey    | [997, 8]          | [191, 218, 227] |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 567| Cerebrum          | CH      | [997, 8, 567]     | [176, 240, 255] |
-    ╰────┴───────────────────┴─────────┴───────────────────┴─────────────────╯
+    The expected format for each dictionary is:
 
-    Returns:
-        pandas.DataFrame: A DataFrame containing the atlas information.
+    .. code-block:: python
+
+        {
+            "id": int,
+            "name": str,
+            "acronym": str,
+            "structure_id_path": list[int],
+            "rgb_triplet": list[int, int, int],
+        }
+
+    Returns
+    -------
+    list[dict]
+        A list of dictionaries, each containing information for a single
+        atlas structure.
     """
     return None
 
 
 def retrieve_or_construct_meshes():
     """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. Some atlases are packaged with mesh files, in these cases we
-    should use these files. Then this function should download those meshes.
-    In other cases we need to construct the meshes ourselves. For this we have
-    helper functions to achieve this.
+    Return a dictionary mapping structure IDs to paths of mesh files.
+
+    If the atlas is packaged with mesh files, download and use them. Otherwise,
+    construct the meshes using available helper functions.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are structure IDs and values are paths to the
+        corresponding mesh files.
     """
     meshes_dict = {}
     return meshes_dict
 
 
 def retrieve_additional_references():
-    """This function only needs editing if the atlas has additional reference
-    images. It should return a dictionary that maps the name of each
-    additional reference image to an image stack containing its data.
+    """
+    Return a dictionary of additional reference images.
+
+    This function should be edited only if the atlas includes additional
+    reference images. The dictionary should map the name of each additional
+    reference image to its corresponding image stack data.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping reference image names to their image stack data.
     """
     additional_references = {}
     return additional_references

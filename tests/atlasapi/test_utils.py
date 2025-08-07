@@ -1,3 +1,5 @@
+"""Tests for utility functions in brainglobe_atlasapi."""
+
 import os
 import sys
 from typing import Callable
@@ -19,6 +21,7 @@ conf_url = (
 
 
 def test_http_check():
+    """Test internet connection check utility."""
     assert utils.check_internet_connection()
 
     with pytest.raises(ConnectionError) as error:
@@ -32,11 +35,13 @@ def test_http_check():
 
 
 def test_get_download_size_bad_url():
+    """Test getting download size with a bad URL."""
     with pytest.raises(IndexError):
         utils.get_download_size(url="http://asd")
 
 
 def test_get_download_size_no_size_url():
+    """Test getting download size when content-length header is missing."""
     with pytest.raises(ValueError):
         utils.get_download_size(
             "https://gin.g-node.org/BrainGlobe/atlases/src/5ee75365555e3b4665c685b65a488bca3461ac94/last_versions.conf"
@@ -65,6 +70,15 @@ def test_get_download_size_no_size_url():
     ],
 )
 def test_get_download_size(url, real_size):
+    """Test getting download size for various URLs.
+
+    Parameters
+    ----------
+    url : str
+        The URL to test.
+    real_size : float
+        The expected real size of the download in MB.
+    """
     size = utils.get_download_size(url)
 
     real_size = real_size * 1e6
@@ -73,6 +87,7 @@ def test_get_download_size(url, real_size):
 
 
 def test_get_download_size_kb():
+    """Test getting download size when content-length is in KB."""
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_response = mock.Mock(spec=requests.Response)
         mock_response.status_code = 200
@@ -85,6 +100,7 @@ def test_get_download_size_kb():
 
 
 def test_get_download_size_HTTPError():
+    """Test HTTPError handling when getting download size."""
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_request.side_effect = HTTPError()
 
@@ -93,6 +109,7 @@ def test_get_download_size_HTTPError():
 
 
 def test_check_gin_status():
+    """Test checking GIN server status with a valid response."""
     # Test with requests.get returning a valid response
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_response = mock.Mock(spec=requests.Response)
@@ -103,6 +120,7 @@ def test_check_gin_status():
 
 
 def test_check_gin_status_down():
+    """Test checking GIN server status when it's down (ConnectionError)."""
     # Test with requests.get returning a 404 response
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_request.side_effect = requests.ConnectionError()
@@ -113,6 +131,9 @@ def test_check_gin_status_down():
 
 
 def test_check_gin_status_down_no_error():
+    """Test checking GIN server status when it's down but without raising
+    an error.
+    """
     # Test with requests.get returning a 404 response
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_request.side_effect = requests.ConnectionError()
@@ -121,6 +142,13 @@ def test_check_gin_status_down_no_error():
 
 
 def test_conf_from_file(temp_path):
+    """Test reading configuration from a file.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary path for test files.
+    """
     conf_path = temp_path / "conf.conf"
     content = (
         "[atlases]\n"
@@ -140,6 +168,13 @@ def test_conf_from_file(temp_path):
 
 
 def test_conf_from_file_no_file(temp_path):
+    """Test reading configuration when the file does not exist.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary path for test files.
+    """
     conf_path = temp_path / "conf.conf"
 
     # Test with a non-existing file
@@ -151,6 +186,16 @@ def test_conf_from_file_no_file(temp_path):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Does not run on Windows")
 def test_conf_from_url_read_only(temp_path, mocker):
+    """Test reading configuration from URL with read-only permissions on
+    cache directory.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary path for test files.
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
     # Test with a valid URL and a non-existing parent folder
     mocker.patch(
         "brainglobe_atlasapi.utils.config.get_brainglobe_dir"
@@ -173,7 +218,17 @@ def test_conf_from_url_read_only(temp_path, mocker):
 
 
 def test_conf_from_url_gin_200(temp_path, mocker):
-    """Connected to the internet, GIN is available and returns 200"""
+    """Test reading configuration from URL when GIN returns 200.
+
+    Connected to the internet, GIN is available and returns 200.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary path for test files.
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
     mocker.patch(
         "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
         return_value=temp_path,
@@ -199,8 +254,19 @@ def test_conf_from_url_gin_200(temp_path, mocker):
 
 
 def test_conf_from_url_wrong_status_with_cache(temp_path, mocker):
-    """Connected to the internet, but GIN is down (404),
-    so we revert to local cache of atlas versions"""
+    """Test reading configuration from URL when GIN returns wrong status
+    but local cache is available.
+
+    Connected to the internet, but GIN is down (404),
+    so revert to local cache of atlas versions.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary path for test files.
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
     mock_response = mock.patch("requests.Response", autospec=True)
     mock_response.status_code = 404
 
@@ -228,8 +294,19 @@ def test_conf_from_url_wrong_status_with_cache(temp_path, mocker):
 
 
 def test_conf_from_url_no_connection_with_cache(temp_path, mocker):
-    """Not connected to the internet,
-    but we can revert to local cache of atlas versions"""
+    """Test reading configuration from URL when no connection but local
+    cache is available.
+
+    Not connected to the internet,
+    but can revert to local cache of atlas versions.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary path for test files.
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
     with open(temp_path / "last_versions.conf", "w") as f:
         f.write(
             "[atlases]\n"
@@ -252,8 +329,19 @@ def test_conf_from_url_no_connection_with_cache(temp_path, mocker):
 
 
 def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
-    """Not connected to the internet
-    and we have no local cache of atlas version"""
+    """Test reading configuration from URL when no connection and no
+    local cache.
+
+    Not connected to the internet
+    and have no local cache of atlas version.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary path for test files.
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
     mocker.patch(
         "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
         return_value=temp_path,
@@ -292,13 +380,21 @@ def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
     ],
 )
 def test_rich_atlas_metadata_table_title(name, title):
-    """Tests atlas name conversion for rich panel."""
+    """Test atlas name conversion for rich panel title.
+
+    Parameters
+    ----------
+    name : str
+        The input atlas name.
+    title : str
+        The expected title for the rich panel.
+    """
     panel = utils._rich_atlas_metadata(atlas_name=name, metadata=METADATA)
     assert panel.renderable.title == title
 
 
 def test_rich_atlas_metadata_type():
-    """Tests right data type is created"""
+    """Test correct data type is created for rich atlas metadata panel."""
     panel = utils._rich_atlas_metadata(
         atlas_name=METADATA["name"],
         metadata=METADATA,
@@ -363,25 +459,50 @@ def test_rich_atlas_metadata_type():
     ]
 )
 def name_repr(request):
-    """Fixture with atlas name and representation pairs."""
+    """Provide atlas name and representation pairs.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the atlas name and its expected representation.
+    """
     return request.param
 
 
 def test_atlas_repr_from_name(name_repr):
-    """Test atlas name to repr conversion."""
+    """Test atlas name to representation conversion.
+
+    Parameters
+    ----------
+    name_repr : dict
+        Fixture with atlas name and representation pairs.
+    """
     name = name_repr["name"]
     expected_repr = name_repr["repr"]
     assert utils.atlas_repr_from_name(name) == expected_repr
 
 
 def test_atlas_name_from_repr(name_repr):
-    """Test atlas repr to name conversion."""
+    """Test atlas representation to name conversion.
+
+    Parameters
+    ----------
+    name_repr : dict
+        Fixture with atlas name and representation pairs.
+    """
     expected_name = name_repr["name"]
     repr = name_repr["repr"]
     assert utils.atlas_name_from_repr(**repr) == expected_name
 
 
 def test_retrieve_over_http_ConnectionError(tmp_path):
+    """Test ConnectionError handling in retrieve_over_http.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary path for test files.
+    """
     with mock.patch(
         "requests.get",
         side_effect=requests.exceptions.ConnectionError,
@@ -403,7 +524,17 @@ def test_retrieve_over_http_ConnectionError(tmp_path):
 def test_retrieve_over_http_fn_update(
     tmp_path, content_length, expected_last_call
 ):
-    """Test handling of fn_update when not None."""
+    """Test handling of fn_update in retrieve_over_http when not None.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary path for test files.
+    content_length : str or int
+        The value for the 'content-length' header.
+    expected_last_call : tuple
+        The expected arguments for the last call to fn_update.
+    """
     mock_fn_update: Callable[[int, int]] = mock.Mock()
 
     with mock.patch("requests.get", autospec=True) as mock_request:
@@ -431,7 +562,16 @@ def test_retrieve_over_http_fn_update(
 
 
 def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
-    """Test creating a directory if it does not exist."""
+    """Test creating a directory if it does not exist when getting conf
+    from URL.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary path for test files.
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
     mock_cache_path = tmp_path / "parent" / "file"
     mocker.patch(
         "brainglobe_atlasapi.utils.config.get_brainglobe_dir",

@@ -1,3 +1,9 @@
+"""Package the Columbia Cuttlefish brain atlas.
+
+This module provides functions to download, process, and package the Columbia
+Cuttlefish brain atlas for use with Brainglobe tools.
+"""
+
 __version__ = "0"
 
 import csv
@@ -21,6 +27,18 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def hex_to_rgb(hex):
+    """Convert a hexadecimal color string to an RGB triplet.
+
+    Parameters
+    ----------
+    hex : str
+        The hexadecimal color string (e.g., "#RRGGBB").
+
+    Returns
+    -------
+    list
+        A list of three integers representing the RGB color (0-255).
+    """
     hex = hex.lstrip("#")
     rgb = []
     for i in (0, 2, 4):
@@ -31,6 +49,24 @@ def hex_to_rgb(hex):
 
 
 def create_atlas(working_dir, resolution):
+    """Package the Columbia Cuttlefish brain atlas.
+
+    Downloads necessary files, processes annotation and template data,
+    creates a hierarchical structure tree, generates meshes for brain
+    regions, and packages the atlas into a BrainGlobe compatible format.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        The directory where temporary and final atlas files will be stored.
+    resolution : tuple of int
+        The resolution of the atlas in micrometers, as (z, y, x).
+
+    Returns
+    -------
+    str
+        The path to the generated atlas file.
+    """
     ATLAS_NAME = "columbia_cuttlefish"
     SPECIES = "Sepia bandensis"
     ATLAS_LINK = "https://www.cuttlebase.org/"

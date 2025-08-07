@@ -1,3 +1,5 @@
+"""Tests for mesh utility functions."""
+
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,11 +16,17 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 @pytest.mark.parametrize("label", [True, False, "True"])
 def test_region_has_label(label):
-    """Test if label is added correctly as class instance variable.
+    """
+    Test that the label is added correctly as a class instance variable.
 
-    Label is added without explicitly assinging it to has_label
+    Label is added without explicitly assigning it to has_label
     (which would be `Region(has_label=label)`), as this reflects what
     happens during the atlas generation.
+
+    Parameters
+    ----------
+    label : bool or str
+        The label value to test.
     """
     region = Region(label)
     assert region.has_label == label
@@ -26,9 +34,23 @@ def test_region_has_label(label):
 
 @pytest.fixture
 def region_mesh_args(structures, tmp_path, request):
-    """Fixture for creating arguments for `create_region_mesh`.
+    """Fixture to create arguments for `create_region_mesh`.
 
     `label_id` can be passed using indirect parametrization.
+
+    Parameters
+    ----------
+    structures : dict
+        A dictionary of structures used for creating the structure tree.
+    tmp_path : Path
+        Temporary directory path provided by pytest fixture.
+    request : pytest.FixtureRequest
+        The request object for accessing parametrize parameters.
+
+    Returns
+    -------
+    tuple
+        A tuple containing arguments for `create_region_mesh`.
     """
     label_id = request.param
     meshes_dir_path = tmp_path
@@ -66,12 +88,22 @@ def region_mesh_args(structures, tmp_path, request):
 def test_create_region_mesh_fail(
     region_mesh_args, capsys, test_case, expected_captured_out
 ):
-    """Test create_region_mesh handling of label mismatch / empty mask.
+    """Test `create_region_mesh` handling of label mismatch / empty mask.
 
     The test expects no mesh_files to be created and checks whether the right
     message is printed.
-    """
 
+    Parameters
+    ----------
+    region_mesh_args : tuple
+        Arguments for `create_region_mesh` provided by the fixture.
+    capsys : pytest.CaptureFixture
+        Fixture to capture stdout and stderr.
+    test_case : str
+        Indicates the failure scenario to test ("empty_mask" or "no_match").
+    expected_captured_out : str
+        The expected substring in the captured output.
+    """
     if test_case == "empty_mask":
         smoothed_annotations = region_mesh_args[4]
         smoothed_annotations[:] = 0
@@ -96,7 +128,13 @@ def test_create_region_mesh_fail(
     indirect=True,
 )
 def test_create_region_mesh(region_mesh_args):
-    """Test region mesh creation with specific label_id."""
+    """Test region mesh creation with a specific label ID.
+
+    Parameters
+    ----------
+    region_mesh_args : tuple
+        Arguments for `create_region_mesh` provided by the fixture.
+    """
     create_region_mesh(region_mesh_args)
     mesh_files = list(region_mesh_args[0].iterdir())
     assert len(mesh_files) == 1
@@ -109,6 +147,12 @@ def mesh_from_mask():
 
     The `volume` is a 100 unit cube of zeros with a centered 50 unit cube of
     ones in the middle.
+
+    Returns
+    -------
+    dict
+        A dictionary containing volume and default parameters for
+        `mesh_from_mask`.
     """
     volume = np.zeros((100, 100, 100), dtype=int)
     volume[24:75, 24:75, 24:75] = 1
@@ -130,7 +174,18 @@ def mesh_from_mask():
 def test_extract_mesh_from_mask_object_filepath_str(
     mesh_from_mask, tmp_path, obj_filepath_is_str
 ):
-    """Test conversion to path when `obj_filepath` is a string."""
+    """Test conversion to path when `obj_filepath` is a string.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    tmp_path : Path
+        Temporary directory path provided by pytest fixture.
+    obj_filepath_is_str : bool
+        If True, `obj_filepath` will be a string; otherwise,
+        it will be a Path object.
+    """
     obj_filepath = tmp_path / "mesh"
     if obj_filepath_is_str:
         obj_filepath = str(obj_filepath)
@@ -147,7 +202,15 @@ def test_extract_mesh_from_mask_object_filepath_str(
 
 
 def test_extract_mesh_from_mask_none_existing_parent(mesh_from_mask, tmp_path):
-    """Test handling of obj filepath with missing parent"""
+    """Test handling of obj filepath with missing parent.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    tmp_path : Path
+        Temporary directory path provided by pytest fixture.
+    """
     obj_filepath = tmp_path / "non_existing_parent" / "mesh"
     mesh_from_mask.update({"obj_filepath": obj_filepath})
     match = "The folder where the .obj file is to be saved doesn't exist"
@@ -156,14 +219,26 @@ def test_extract_mesh_from_mask_none_existing_parent(mesh_from_mask, tmp_path):
 
 
 def test_extract_mesh_from_mask_defaults(mesh_from_mask):
-    """Test extract_mesh_from_mask with defaults"""
+    """Test `extract_mesh_from_mask` with default parameters.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
     mesh = extract_mesh_from_mask(**mesh_from_mask)
     assert mesh.contains([50, 50, 50]) is True
     assert mesh.contains([2, 2, 2]) is False
 
 
 def test_extract_mesh_from_mask_ValueError(mesh_from_mask):
-    """Test ValueError for non-binary volume in `extract_mesh_from_mask`."""
+    """Test `ValueError` for non-binary volume in `extract_mesh_from_mask`.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
     volume = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     mesh_from_mask.update({"volume": volume})
     with pytest.raises(ValueError, match="volume should be a binary mask"):
@@ -174,7 +249,17 @@ def test_extract_mesh_from_mask_ValueError(mesh_from_mask):
 def test_extract_mesh_from_mask_marching_cubes(
     mcubes_smooth, mesh_from_mask, capsys
 ):
-    """Test mesh_from_mask using marching cubes with/without mcubes_smooth."""
+    """Test `mesh_from_mask` using marching cubes with/without `mcubes_smooth`.
+
+    Parameters
+    ----------
+    mcubes_smooth : bool
+        Whether to apply smoothing with marching cubes.
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    capsys : pytest.CaptureFixture
+        Fixture to capture stdout and stderr.
+    """
     mesh_from_mask.update({"use_marching_cubes": True})
     mesh_from_mask.update({"mcubes_smooth": mcubes_smooth})
     extract_mesh_from_mask(**mesh_from_mask)
@@ -188,22 +273,28 @@ def test_extract_mesh_from_mask_marching_cubes(
 def test_extract_largest_mesh_from_mask(extract_largest, mesh_from_mask):
     """Test `extract_largest` during mesh from mask extraction.
 
-    Tests mesh volume when extract_largest parameter set to True / False.
+    Tests mesh volume when `extract_largest` parameter is set to True / False.
 
     `expected_mesh_largest_true` is created using the volume mask from the
     `mesh_from_mask` fixture, which contains one large region.
 
     `expected_mesh_largest_false` is created using a volume mask containing
     the original large region and an additional smaller region (with default
-    extract_largest = False)
+    `extract_largest = False`)
 
     `mesh` is created using the volume mask with both regions, setting
-    extract_largest to True / False.
+    `extract_largest` to True / False.
 
     The assertions check that the mesh area matches the expected values based
     on the `extract_largest` parameter.
-    """
 
+    Parameters
+    ----------
+    extract_largest : bool
+        Whether to extract only the largest connected component.
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
     # using the origingal volume containing only the large region
     expected_mesh_largest_true = extract_mesh_from_mask(**mesh_from_mask)
 
@@ -229,7 +320,15 @@ def test_extract_largest_mesh_from_mask(extract_largest, mesh_from_mask):
 
 @pytest.mark.parametrize("zeros_ones", [0, 1])
 def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
-    """Test mesh extraction from masks containing only zeros or only ones."""
+    """Test mesh extraction from masks containing only zeros or only ones.
+
+    Parameters
+    ----------
+    zeros_ones : int
+        Value (0 or 1) to fill the volume mask.
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
     volume = np.full((100, 100, 100), zeros_ones, dtype=int)
     mesh_from_mask.update({"volume": volume})
     mesh = extract_mesh_from_mask(**mesh_from_mask)

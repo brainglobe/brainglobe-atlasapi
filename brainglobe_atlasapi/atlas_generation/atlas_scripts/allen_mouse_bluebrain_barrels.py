@@ -1,3 +1,10 @@
+"""
+Generates the Allen Mouse BlueBrain Barrels atlas.
+
+The atlas combines the Allen Mouse Brain Common Coordinate Framework (CCFv3)
+with enhanced barrel cortex annotations from the Blue Brain Project.
+"""
+
 __version__ = "0"
 
 import json
@@ -34,6 +41,31 @@ RES_UM = 25
 
 
 def create_atlas(working_dir, resolution):
+    """Package the Allen Mouse BlueBrain Barrels atlas.
+
+    Combines the Allen Mouse Brain Common Coordinate Framework (CCFv3)
+    with enhanced barrel cortex annotations from the Blue Brain Project
+    to produce a BrainGlobe atlas.
+
+    Parameters
+    ----------
+    working_dir : Path
+        Directory to store downloaded files and generated atlas data.
+    resolution : int
+        Resolution of the atlas in micrometers (e.g., 10 or 25).
+
+    Returns
+    -------
+    Path
+        Path to the generated atlas file.
+
+    Raises
+    ------
+    ValueError
+        If the provided resolution is not supported.
+    requests.exceptions.ConnectionError
+        If there is an issue connecting to download resources.
+    """
     # Parameters for mesh creation:
     CLOSING_N_ITERS = 2
     DECIMATE_FRACTION = 0.3
@@ -112,18 +144,24 @@ def create_atlas(working_dir, resolution):
     # Add barrels structures to Allen structures
     def find_dicts_with_key_containing_substring(d, key, substring):
         """
-        Recursively find all dictionaries within a nested dictionary that
+        Recursively finds all dictionaries within a nested dictionary that
         contain a specific substring in the value associated with a given key.
 
-        Args:
-        d (dict): The input dictionary.
-        key (str): The key to search for.
-        substring (str): The substring to search for in the value associated
-        with the key.
+        Parameters
+        ----------
+        d : dict
+            The input dictionary to search within.
+        key : str
+            The key whose value will be checked for the substring.
+        substring : str
+            The substring to search for within the value associated with
+            the key.
 
-        Returns:
-        list: A list of dictionaries that contain the key with a value
-        containing the substring.
+        Returns
+        -------
+        list
+            A list of dictionaries that contain the specified key with a value
+            containing the substring.
         """
         if not isinstance(d, dict):
             raise ValueError("Input should be a dictionary")

@@ -1,3 +1,5 @@
+"""Command-line interface for brainglobe_atlasapi."""
+
 import click
 
 from brainglobe_atlasapi.config import cli_modify_config
@@ -19,21 +21,24 @@ def bg_cli(
     Command line dispatcher. Given a command line call to `brainglobe`
     it calls the correct function, depending on which `command` was passed.
 
-    Arguments:
+    Parameters
     ----------
-    command: str. Name of the command:
+    command : str
+        Name of the command:
         - list: list available atlases
         - install: install new atlas
         - update: update an installed atlas
         - config: modify config
-
-    show: bool. If True when using `list` shows the local path of installed
-    atlases and when using 'config' it prints the modify config results.
-    atlas_name: ts. Used with `update` and `install`, name of the atlas to
-    install
-    force: bool, used with `update`. If True it forces the update
+    show : bool
+        If True when using `list` shows the local path of installed
+        atlases and when using 'config' it prints the modify config results.
+    atlas_name : str
+        Used with `update` and `install`, name of the atlas to
+        install
+    force : bool, optional
+        Used with `update`. If True it forces the update.
+        Defaults to False.
     """
-
     if command == "list":  # list atlases
         return show_atlases(show_local_path=show)
 

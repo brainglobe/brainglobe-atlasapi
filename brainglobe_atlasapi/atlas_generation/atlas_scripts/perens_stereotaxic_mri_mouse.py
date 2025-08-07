@@ -1,3 +1,11 @@
+"""
+Package the Perens Stereotaxic MRI Mouse Atlas for BrainGlobe.
+
+This script processes the raw data from the Perens et al. 2023 atlas,
+downloads necessary files, converts them into BrainGlobe's compatible format,
+and generates the atlas structures, reference, and annotation volumes.
+"""
+
 import os
 import time
 import urllib.request
@@ -134,11 +142,14 @@ def download_resources():
 
 def retrieve_reference_and_annotation():
     """
-    Retrieve the desired reference and annotation as two numpy arrays.
+    Load the reference and annotation volumes as numpy arrays.
 
-    Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the
-        reference volume, and the second array is the annotation volume.
+    Returns
+    -------
+    tuple
+        A tuple containing two numpy arrays:
+        - The reference volume.
+        - The annotation volume.
     """
     print("loading reference and annotation volume")
     download_dir_path = BG_ROOT_DIR / "downloads"
@@ -167,25 +178,30 @@ def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
-    This is an array in the same shape as your template,
-    with 0's marking the left hemisphere, and 1's marking the right.
+    Provide a hemisphere map if the atlas is asymmetrical.
+    The map should be an array in the same shape as the template,
+    with 0s marking the left hemisphere and 1s marking the right.
+    Return None if the atlas is symmetrical.
 
-    If your atlas is symmetrical, ignore this function.
-
-    Returns:
-        numpy.array or None: A numpy array representing the hemisphere map,
-        or None if the atlas is symmetrical.
+    Returns
+    -------
+    numpy.ndarray or None
+        A numpy array representing the hemisphere map, or None if the atlas
+        is symmetrical.
     """
     return None
 
 
 def retrieve_structure_information():
     """
-    Retrieve the structures tree and meshes for the Allen mouse brain atlas.
+    Retrieve structure information for the atlas from the Allen Mouse
+    Brain Atlas.
 
-    Returns:
-        pandas.DataFrame: A DataFrame containing the atlas information.
+    Returns
+    -------
+    list of dict
+        A list of dictionaries, where each dictionary represents a structure
+        with its ID, name, acronym, path, and RGB triplet.
     """
     # Since this atlas inherits from the allen can we not simply get the data
     # from the bgapi?
@@ -207,11 +223,16 @@ def retrieve_structure_information():
 
 def retrieve_or_construct_meshes():
     """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. Some atlases are packaged with mesh files, in these cases we
-    should use these files. Then this function should download those meshes.
-    In other cases we need to construct the meshes ourselves. For this we have
-    helper functions to achieve this.
+    Generate meshes for the atlas structures from the annotation volume.
+
+    Constructs meshes for each defined structure using the annotation volume
+    and stores them as .obj files.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping structure IDs to paths of their corresponding
+        .obj mesh files.
     """
     print("constructing meshes")
 

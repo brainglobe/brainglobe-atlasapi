@@ -1,3 +1,10 @@
+"""Package the Allen Mouse Brain Atlas for BrainGlobe.
+
+This module provides functionality to download data from the Allen Institute
+and create a BrainGlobe-compatible atlas, including annotation and template
+volumes, as well as structural meshes.
+"""
+
 __version__ = "2"
 
 from allensdk.api.queries.ontologies_api import OntologiesApi
@@ -19,7 +26,26 @@ RES_UM = 25
 
 
 def create_atlas(working_dir, resolution):
+    """
+    Create a BrainGlobe atlas from Allen Mouse Brain data.
 
+    Downloads the annotation and template volumes, structure tree, and meshes
+    from the Allen Institute API, then wraps them into a BrainGlobe atlas
+    format.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        Path to the directory where temporary files and the final atlas
+        will be stored.
+    resolution : int
+        The resolution of the atlas in micrometers per voxel.
+
+    Returns
+    -------
+    str
+        The path to the generated atlas file.
+    """
     # Temporary folder for nrrd files download:
     download_dir_path = working_dir / "downloading_path"
     download_dir_path.mkdir(exist_ok=True)

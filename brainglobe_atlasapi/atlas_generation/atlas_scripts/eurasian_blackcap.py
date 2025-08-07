@@ -1,3 +1,5 @@
+"""Package the BrainGlobe atlas for the Eurasian Blackcap."""
+
 __version__ = "2"
 
 import csv
@@ -23,6 +25,25 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def create_atlas(working_dir, resolution):
+    """
+    Package the Eurasian Blackcap BrainGlobe atlas.
+
+    This function downloads necessary data, processes anatomical structures,
+    creates reference and annotation volumes, generates 3D meshes for
+    brain regions, and packages them into a BrainGlobe atlas.
+
+    Parameters
+    ----------
+    working_dir : Path
+        The directory where temporary files and the final atlas will be saved.
+    resolution : tuple
+        The resolution of the atlas volumes in microns (x, y, z).
+
+    Returns
+    -------
+    str
+        The path to the generated atlas file.
+    """
     ATLAS_NAME = "eurasian_blackcap"
     SPECIES = "Sylvia atricapilla"
     ATLAS_LINK = "https://uol.de/en/ibu/animal-navigation"

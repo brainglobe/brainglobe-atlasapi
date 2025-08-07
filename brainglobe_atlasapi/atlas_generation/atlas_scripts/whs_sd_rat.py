@@ -311,7 +311,6 @@ def create_atlas(working_dir):
 
     Raises
     ------
-    utils.check_internet_connection()
     AssertionError
         If `ORIENTATION` or `RESOLUTION` are not correctly defined, or
         if `REFERENCE_URL` is missing.

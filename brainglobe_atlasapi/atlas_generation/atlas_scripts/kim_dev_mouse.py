@@ -1,3 +1,11 @@
+"""Package the Kim Dev Mouse Atlas for various developmental timepoints
+and modalities.
+
+The Kim Dev Mouse Atlas provides high-resolution anatomical data for different
+developmental stages of the mouse brain, including both light sheet
+fluorescence microscopy (LSFM) and various MRI modalities.
+"""
+
 import argparse
 import time
 from pathlib import Path
@@ -39,6 +47,20 @@ MODALITIES = (
 
 
 def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
+    """Initialize Pooch for downloading atlas data.
+
+    Parameters
+    ----------
+    download_dir_path : Path
+        Path to the directory where data will be downloaded.
+    timepoints : list[str]
+        List of timepoints for which data archives are expected.
+
+    Returns
+    -------
+    pooch.Pooch
+        Initialized Pooch instance.
+    """
     utils.check_internet_connection()
 
     empty_registry = {
@@ -57,6 +79,32 @@ def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
 
 
 def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
+    """Fetch annotation and reference volumes for a specific age and modality.
+
+    Parameters
+    ----------
+    pooch_ : pooch.Pooch
+        The initialized Pooch instance.
+    age : str
+        The age timepoint (e.g., "E11.5", "P56").
+    modality : str
+        The imaging modality (e.g., "LSFM", "MRI-T2").
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - annotations (np.ndarray): The annotation volume.
+        - reference (np.ndarray): The reference volume (scaled to uint16).
+        - resolution_um (float): The resolution of the images in micrometers.
+
+    Raises
+    ------
+    AssertionError
+        If an unknown age timepoint is provided.
+    RuntimeError
+        If an unknown reference image modality is provided.
+    """
     assert age in TIMEPOINTS, f"Unknown age timepoint: '{age}'"
     archive = age + ".zip"
     if modality == "LSFM":
@@ -101,6 +149,19 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
 
 
 def fetch_ontology(pooch_: pooch.Pooch):
+    """Fetch and parse the ontology (structure tree) from an Excel file.
+
+    Parameters
+    ----------
+    pooch_ : pooch.Pooch
+        The initialized Pooch instance.
+
+    Returns
+    -------
+    list
+        A list of dictionaries, where each dictionary represents a brain
+        structure with its properties (id, acronym, name, path, RGB color).
+    """
     devccfv1_path = pooch_.fetch(
         "DevCCFv1_OntologyStructure.xlsx", progressbar=True
     )
@@ -147,6 +208,26 @@ def create_meshes(
     root_id,
     decimate_fraction,
 ):
+    """Generate and save 3D meshes for each brain region.
+
+    Parameters
+    ----------
+    output_path : str or Path
+        Directory to save the generated mesh files.
+    structures : list
+        List of dictionaries, each representing a brain structure.
+    annotation_volume : np.ndarray
+        The annotation volume containing region labels.
+    root_id : int
+        The ID of the root structure in the ontology.
+    decimate_fraction : float
+        Fraction of original meshes' vertices to be kept (0 < value <= 1).
+
+    Returns
+    -------
+    Path
+        The path to the directory where meshes are saved.
+    """
     if not isinstance(output_path, Path):
         output_path = Path(output_path)
     output_path.mkdir(exist_ok=True)
@@ -199,6 +280,26 @@ def create_meshes(
 
 
 def create_mesh_dict(structures, meshes_dir_path):
+    """Create a dictionary mapping structure IDs to their mesh file paths.
+
+    Filter out structures for which no valid mesh file was created.
+
+    Parameters
+    ----------
+    structures : list[dict]
+        List of dictionaries, each representing a brain structure.
+    meshes_dir_path : Path
+        Path to the directory containing mesh files.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - meshes_dict (dict): Dictionary where keys are structure IDs and
+          values are paths to their corresponding mesh files.
+        - structures_with_mesh (list): List of structure dictionaries for
+          which a valid mesh was found.
+    """
     meshes_dict = dict()
     structures_with_mesh = []
     for s in structures:
@@ -222,6 +323,10 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 class HideChoicesRawTextHelpFormatter(argparse.RawTextHelpFormatter):
+    """Extend RawTextHelpFormatter to hide choices in help messages and
+    format invocation.
+    """
+
     def _get_help_string(self, action):
         help_text = action.help
         if action.choices:
@@ -281,6 +386,23 @@ cached_meshes_help = (
 
 
 def decimate_fraction_type(arg):
+    """Validate and convert the decimate fraction argument to a float.
+
+    Parameters
+    ----------
+    arg : str
+        The string argument to be validated.
+
+    Returns
+    -------
+    float
+        The validated decimate fraction as a float.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If the argument is not a number > 0 and <= 1.
+    """
     try:
         f = float(arg)
         if 0 < f <= 1:

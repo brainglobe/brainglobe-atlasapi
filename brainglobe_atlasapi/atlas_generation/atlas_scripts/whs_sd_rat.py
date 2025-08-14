@@ -1,3 +1,9 @@
+"""Package the WHS_SD_Rat rat brain atlas.
+
+Downloads the necessary files, processes them, creates meshes, and
+packages the atlas in the BrainGlobe format.
+"""
+
 __version__ = "2"
 
 import json
@@ -10,7 +16,6 @@ import xmltodict
 from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
-from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -34,9 +39,27 @@ ATLAS_PACKAGER = (
 
 
 def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
+    """Download and extract atlas files.
 
-    utils.check_internet_connection()
+    Parameters
+    ----------
+    download_dir_path : pathlib.Path
+        The directory where the atlas files will be downloaded.
+    atlas_file_url : str
+        The URL of the atlas zip file.
+    ATLAS_NAME : str
+        The name of the atlas, used for naming the downloaded file.
 
+    Returns
+    -------
+    pathlib.Path
+        The path to the extracted atlas files.
+
+    Raises
+    ------
+    requests.exceptions.ConnectionError
+        If there is no internet connection.
+    """
     download_name = ATLAS_NAME + "_atlas.zip"
     destination_path = download_dir_path / download_name
 
@@ -52,6 +75,23 @@ def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
 
 
 def parse_structures_xml(root, path=None, structures=None):
+    """Recursively parse the XML structure definition.
+
+    Parameters
+    ----------
+    root : dict
+        The current root element of the XML structure.
+    path : list, optional
+        The current path of structure IDs, by default None.
+    structures : list, optional
+        A list to accumulate parsed structures, by default None.
+
+    Returns
+    -------
+    list
+        A list of dictionaries, where each dictionary represents a structure
+        with its name, acronym, ID, path, and RGB triplet.
+    """
     structures = structures or []
     path = path or []
 
@@ -81,6 +121,19 @@ def parse_structures_xml(root, path=None, structures=None):
 
 
 def parse_structures(structures_file: Path):
+    """Parse the structures XML file to extract atlas region metadata.
+
+    Parameters
+    ----------
+    structures_file : pathlib.Path
+        The path to the .ilf XML file containing structure definitions.
+
+    Returns
+    -------
+    list
+        A list of dictionaries, where each dictionary represents a structure
+        with its name, acronym, ID, path, and RGB triplet.
+    """
     root = xmltodict.parse(structures_file.read_text())["milf"]["structure"]
     root["@abbreviation"] = "root"
     root["@color"] = "#ffffff"
@@ -92,6 +145,25 @@ def parse_structures(structures_file: Path):
 
 
 def create_structure_hierarchy(structures, df, root_id):
+    """Reconstruct the full structure ID path for each structure.
+
+    Parameters
+    ----------
+    structures : list
+        A list of dictionaries, where each dictionary represents a structure.
+        Each structure dictionary must contain 'id' and 'parent_structure_id'.
+    df : pandas.DataFrame
+        A DataFrame containing structure information, including 'id' and
+        'parent_structure_id', used for looking up parent IDs.
+    root_id : int
+        The ID of the root structure.
+
+    Returns
+    -------
+    list
+        The updated list of structures with corrected 'structure_id_path'
+        entries.
+    """
     for structure in structures:
         if structure["id"] != root_id:
             parent_id = structure["parent_structure_id"]
@@ -115,6 +187,26 @@ def create_structure_hierarchy(structures, df, root_id):
 
 
 def create_meshes(download_dir_path, tree, annotated_volume, labels, root_id):
+    """Generate meshes for each brain region.
+
+    Parameters
+    ----------
+    download_dir_path : pathlib.Path
+        The directory where meshes will be saved.
+    tree : Any
+        The structure tree object.
+    annotated_volume : numpy.ndarray
+        The 3D numpy array representing the annotated brain volume.
+    labels : set
+        A set of unique labels found in the annotated volume.
+    root_id : int
+        The ID of the root structure.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the directory containing the generated meshes.
+    """
     meshes_dir_path = download_dir_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
@@ -159,6 +251,23 @@ def create_meshes(download_dir_path, tree, annotated_volume, labels, root_id):
 
 
 def create_mesh_dict(structures, meshes_dir_path):
+    """Create a dictionary mapping structure IDs to their mesh file paths.
+
+    Parameters
+    ----------
+    structures : list
+        A list of dictionaries, where each dictionary represents a structure.
+    meshes_dir_path : pathlib.Path
+        The directory where the mesh files are stored.
+
+    Returns
+    -------
+    tuple
+        - dict: A dictionary where keys are structure IDs and values are paths
+          to their corresponding .obj mesh files.
+        - list: A filtered list of structures that successfully had a mesh
+          created and verified.
+    """
     meshes_dict = dict()
     structures_with_mesh = []
     for s in structures:
@@ -184,6 +293,28 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 def create_atlas(working_dir):
+    """Package the WHS_SD_Rat atlas.
+
+    Downloads the necessary raw data, processes the annotation and reference
+    volumes, creates meshes for each brain region, and wraps up the data
+    into the BrainGlobe atlas format.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        The directory where temporary and final atlas files will be stored.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the generated BrainGlobe atlas zip file.
+
+    Raises
+    ------
+    AssertionError
+        If `ORIENTATION` or `RESOLUTION` are not correctly defined, or
+        if `REFERENCE_URL` is missing.
+    """
     assert len(ORIENTATION) == 3, (
         "Orientation is not 3 characters, Got" + ORIENTATION
     )

@@ -391,8 +391,7 @@ def retrieve_hemisphere_map() -> None:
 
 
 def add_hierarchy(labels_df_row: pd.Series) -> list[int]:
-    """Take the index at a given row and add the root_id to
-    create a structure id path.
+    """Add the root_id to a structure id path for the given row index.
 
     Parameters
     ----------
@@ -409,7 +408,8 @@ def add_hierarchy(labels_df_row: pd.Series) -> list[int]:
 
 
 def add_rgb_col_and_heirarchy(labels_df: pd.DataFrame) -> pd.DataFrame:
-    """Re-formats df columns, from individual r,g,b,a into the desired [r,g,b].
+    """Reformat dataframe columns, combining individual r, g, b, a into
+    a single [r,g,b] column.
 
     Parameters
     ----------
@@ -625,12 +625,10 @@ def extract_meshes_from_vtk(
 def retrieve_or_construct_meshes(
     annotations_path: Path, working_dir: Path
 ) -> dict[str, str]:
-    """Return a dictionary of ids and corresponding paths to mesh files.
+    """Return a mapping of region IDs to mesh file paths.
 
-    Some atlases are packaged with mesh files, in these cases we
-    should use these files. Then this function should download those meshes.
-    In other cases we need to construct the meshes ourselves. For this we have
-    helper functions to achieve this.
+    Some atlases are packaged with mesh files; in these cases, use those files.
+    Otherwise, construct the meshes using helper functions.
 
     Parameters
     ----------

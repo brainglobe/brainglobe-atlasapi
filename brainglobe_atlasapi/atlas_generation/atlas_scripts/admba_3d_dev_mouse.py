@@ -1,3 +1,8 @@
+"""
+Script to package 3D mouse brain atlases for different developmental stages
+(E11.5, E13.5, E15.5, E18.5, P4, P14, P28, P56) from ADMBA data.
+"""
+
 __version__ = "1"
 __atlas__ = "admba_3d_dev_mouse"
 
@@ -27,6 +32,25 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 def download_atlas_files(
     download_dir_path, atlas_file_url, ATLAS_NAME, known_hash
 ):
+    """
+    Download and extract atlas files from a specified URL.
+
+    Parameters
+    ----------
+    download_dir_path : pathlib.Path
+        The directory where the downloaded atlas zip file will be stored.
+    atlas_file_url : str
+        The URL from which to download the atlas zip file.
+    ATLAS_NAME : str
+        The name of the atlas, used for naming the downloaded file.
+    known_hash : str
+        The SHA256 hash of the expected downloaded file for integrity checking.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the extracted atlas files within the download directory.
+    """
     utils.check_internet_connection()
 
     try:
@@ -47,6 +71,23 @@ def download_atlas_files(
 
 
 def parse_structures(structures_file, root_id):
+    """
+    Parse a CSV file containing structure information and organizes it
+    into a hierarchical structure.
+
+    Parameters
+    ----------
+    structures_file : str
+        Path to the CSV file containing structure data.
+    root_id : int
+        The ID of the root structure for the hierarchy.
+
+    Returns
+    -------
+    list
+        A list of dictionaries, where each dictionary represents a structure
+        with its ID, name, acronym, parent, RGB triplet, and structure ID path.
+    """
     df = pd.read_csv(structures_file)
     df = df.rename(columns={"Parent": "parent_structure_id"})
     df = df.rename(columns={"Region": "id"})
@@ -77,6 +118,32 @@ def parse_structures(structures_file, root_id):
 
 
 def create_structure_hierarchy(structures, df, root_id):
+    """
+    Create a hierarchical structure ID path for each structure in the list.
+
+    This function iterates through the given structures and constructs
+    a full path of parent structure IDs for each, leading up to the root_id.
+    It also renames the root structure.
+
+    Parameters
+    ----------
+    structures : list
+        A list of dictionaries, where each dictionary represents a structure
+        and must contain 'id', 'parent_structure_id', and 'structure_id_path'
+        keys.
+    df : pandas.DataFrame
+        A DataFrame containing the original structure data, used to look up
+        parent IDs by structure ID. Must contain 'id' and
+        'parent_structure_id' columns.
+    root_id : int
+        The ID of the root structure in the hierarchy.
+
+    Returns
+    -------
+    list
+        The modified list of structures, with updated 'structure_id_path'
+        and the 'parent_structure_id' key removed.
+    """
     for structure in structures:
         if structure["id"] != root_id:
             parent_id = structure["parent_structure_id"]
@@ -100,6 +167,34 @@ def create_structure_hierarchy(structures, df, root_id):
 
 
 def create_meshes(download_dir_path, structures, annotated_volume, root_id):
+    """
+    Generate 3D meshes for brain regions from an annotated volume.
+
+    This function iterates through the structure hierarchy, creates a mesh for
+    each region that has corresponding labels in the annotated volume,
+    and saves these meshes to a specified directory.
+
+    Parameters
+    ----------
+    download_dir_path : pathlib.Path
+        The base directory where meshes will be stored (a 'meshes'
+        subdirectory will be created within it).
+    structures : list
+        A list of dictionaries, where each dictionary represents a structure
+        with its ID and other metadata. This list is used to build the
+        structure tree.
+    annotated_volume : numpy.ndarray
+        A 3D NumPy array representing the annotated brain volume, where each
+        voxel contains a label corresponding to a brain region.
+    root_id : int
+        The ID of the root structure in the hierarchy, used for building
+        the structure tree.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the directory where the generated meshes are saved.
+    """
     meshes_dir_path = download_dir_path / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
 
@@ -149,6 +244,33 @@ def create_meshes(download_dir_path, structures, annotated_volume, root_id):
 
 
 def create_mesh_dict(structures, meshes_dir_path):
+    """
+    Create a dictionary of structure IDs to mesh file paths for structures
+    that have a valid mesh file.
+
+    This function iterates through a list of structures, checks if a
+    corresponding mesh file exists for each structure ID in the specified
+    directory, and verifies that the mesh file is not empty. Only structures
+    with valid, non-empty mesh files are included in the output.
+
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries, where each dictionary represents a structure
+        and must contain an 'id' key.
+    meshes_dir_path : pathlib.Path
+        The path to the directory where the mesh (.obj) files are stored.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - meshes_dict (dict): A dictionary where keys are structure IDs (int)
+          and values are pathlib.Path objects pointing to the corresponding
+          mesh files.
+        - structures_with_mesh (list): A filtered list of structure
+          dictionaries that have associated valid mesh files.
+    """
     meshes_dict = dict()
     structures_with_mesh = []
     for s in structures:
@@ -198,6 +320,36 @@ class AtlasConfig:
 def create_atlas(
     working_dir: Path = Path.home(), atlas_config: "AtlasConfig" = None
 ):
+    """
+    Package a 3D mouse brain atlas for a specific developmental stage
+    from ADMBA data.
+
+    This function orchestrates the entire atlas generation process:
+    downloads raw data, parses structure information, creates 3D meshes
+    for brain regions, and packages the final atlas.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path, optional
+        The base directory where the generated atlas and its temporary
+        files will be stored. Defaults to the user's home directory.
+    atlas_config : AtlasConfig, optional
+        An instance of `AtlasConfig` containing all necessary
+        configuration details for the atlas to be created (e.g., name,
+        download URL, resolution, species, etc.). If None, an AssertionError
+        will be raised due to missing configuration.
+
+    Returns
+    -------
+    pathlib.Path
+        The path to the generated and packaged atlas file (e.g., a .zip file).
+
+    Raises
+    ------
+    AssertionError
+        If the atlas_config is invalid (e.g., orientation or resolution
+        length is not 3, or atlas_file_url is missing).
+    """
     assert (
         len(atlas_config.orientation) == 3
     ), f"Orientation is not 3 characters, Got {atlas_config.orientation}"

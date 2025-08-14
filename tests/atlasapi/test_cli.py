@@ -1,3 +1,5 @@
+"""Test the command line interface for brainglobe_atlasapi."""
+
 import pytest
 from click.testing import CliRunner
 
@@ -7,6 +9,10 @@ from brainglobe_atlasapi import cli, config
 # This testing of the command line application does not really
 # cange anything in the filesystem, so the repo config will remain unchanged:
 def test_config_cli():
+    """Test the configuration command line interface.
+
+    Tests printing and a dummy edit of the config file.
+    """
     runner = CliRunner()
 
     # Test printing of config file:
@@ -23,7 +29,10 @@ def test_config_cli():
 
 
 def test_update_command():
-    """Test update command."""
+    """Test the update command.
+
+    Checks if the output contains the expected message during an update.
+    """
     update_atlas = CliRunner().invoke(
         cli.bg_cli, ["update", "-a", "example_mouse_100um", "-f"]
     )
@@ -32,6 +41,7 @@ def test_update_command():
 
 
 def test_install_command():
+    """Test the install command."""
     runner = CliRunner()
 
     # Test printing of config file:
@@ -39,7 +49,11 @@ def test_install_command():
 
 
 def test_cli_list():
-    """Test list command."""
+    """Test the list command.
+
+    Verify that the list command exits successfully and includes
+    a known atlas in its output.
+    """
     atlases_table = CliRunner().invoke(cli.bg_cli, ["list", "--show"])
     assert atlases_table.exit_code == 0
     assert "nadkarni_mri_mouselemur_91um" in atlases_table.output
@@ -49,7 +63,13 @@ def test_cli_list():
     ["command"], [pytest.param("install"), pytest.param("update")]
 )
 def test_atlas_name_is_none_value_error(command):
-    """Test whether command without atlas name raises ValueError."""
+    """Test that commands without an atlas name raise a ValueError.
+
+    Parameters
+    ----------
+    command : str
+        The CLI command to test (e.g., "install", "update").
+    """
     with pytest.raises(
         ValueError,
         match=(
@@ -63,7 +83,10 @@ def test_atlas_name_is_none_value_error(command):
 
 
 def test_cli_incorrect_command():
-    """Test whether incorrect "flibble" command raises ValueError."""
+    """Test that an incorrect command raises a ValueError.
+
+    Verifies the error message for an invalid CLI command.
+    """
     command = "flibble"
     with pytest.raises(
         ValueError,

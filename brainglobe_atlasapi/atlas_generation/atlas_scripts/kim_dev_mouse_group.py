@@ -1,3 +1,5 @@
+"""Package the Kim Dev Mouse atlas."""
+
 __version__ = "2"
 
 import json
@@ -35,7 +37,12 @@ ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaw
 
 def clean_up_df_entries(df):
     """
-    Remove ' from string entries in the csv
+    Remove single quotes from string entries and convert ID to integer.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The DataFrame containing atlas structure information.
     """
     df["Acronym"] = df["Acronym"].apply(lambda x: x.replace("'", ""))
     df["Name"] = df["Name"].apply(lambda x: x.replace("'", ""))
@@ -49,8 +56,23 @@ def clean_up_df_entries(df):
 
 def get_structure_id_path_from_id(id, id_dict, root_id):
     """
-    Create the structure_id_path for a region
-    from a dict mapping id to parent_id
+    Create the structure_id_path for a region from a dict mapping ID
+    to parent ID.
+
+    Parameters
+    ----------
+    id : int
+        The ID of the structure.
+    id_dict : dict
+        A dictionary mapping structure IDs to their parent IDs.
+    root_id : int
+        The ID of the root structure.
+
+    Returns
+    -------
+    list of int
+        A list representing the structure ID path from the root to the
+        given ID.
     """
     structure_id_path = [id]
     if id == root_id:
@@ -76,7 +98,32 @@ def create_atlas(
     mesh_creation,
     existing_mesh_dir_path=None,
 ):
+    """
+    Package the specified Kim Dev Mouse atlas.
 
+    Parameters
+    ----------
+    working_dir : Path
+        The directory where temporary and final atlas files will be stored.
+    resolution : int
+        The desired resolution of the atlas in micrometers.
+    reference_key : str
+        A key identifying the reference template (e.g., "stp", "idisco").
+    reference_filename : str
+        The filename of the reference template NIfTI file within
+        the downloaded data.
+    mesh_creation : str
+        Strategy for mesh creation: "generate" to create new meshes,
+        or "copy" to use existing meshes.
+    existing_mesh_dir_path : Path, optional
+        Path to the directory containing pre-generated meshes, required if
+        `mesh_creation` is "copy".
+
+    Returns
+    -------
+    str
+        The filename of the generated and wrapped-up atlas.
+    """
     atlas_name = f"kim_dev_mouse_{reference_key}"
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
@@ -268,6 +315,8 @@ def create_atlas(
 
 if __name__ == "__main__":
     """
+    Package all versions of the Kim Dev Mouse atlas.
+
     This atlas is too large to package into a single atlas.
     Hence it is split with one atlas per reference.
     To avoid re-generating the meshes for each creation,

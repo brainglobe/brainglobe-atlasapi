@@ -1,3 +1,11 @@
+"""Package the Princeton Mouse Brain Atlas.
+
+This script processes raw data from the Princeton Mouse Brain Atlas, including
+tissue and annotation volumes, and structure metadata, to create a BrainGlobe
+atlas. It downloads necessary files, processes annotation volumes, generates
+region meshes, and wraps up the data into a BrainGlobe-compatible atlas.
+"""
+
 __version__ = "0"
 
 import json
@@ -31,6 +39,24 @@ PACKAGER = "Sam Clothier. sam.clothier.18@ucl.ac.uk"
 
 
 def create_atlas(working_dir, resolution):
+    """Package the Princeton Mouse Brain Atlas.
+
+    Downloads and processes the Princeton Mouse Brain Atlas data, including
+    tissue and annotation volumes, and structure metadata, to create a
+    BrainGlobe-compatible atlas.
+
+    Parameters
+    ----------
+    working_dir : pathlib.Path
+        The directory to store downloaded files and intermediate results.
+    resolution : int
+        The desired resolution of the atlas in micrometers per voxel.
+
+    Returns
+    -------
+    str
+        The path to the generated atlas file.
+    """
     # Download the atlas tissue and annotation TIFFs:
     ######################################
 

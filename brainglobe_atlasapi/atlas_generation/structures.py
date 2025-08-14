@@ -1,16 +1,31 @@
+"""Handle structure information for atlas generation."""
+
 from brainglobe_atlasapi.descriptors import STRUCTURE_TEMPLATE as STEMPLATE
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def check_struct_consistency(structures):
-    """Ensures internal consistency of the structures list
+    """Ensure internal consistency of the structures list.
+
+    Checks that each structure dictionary in the list has all the required
+    keys and that their values are of the correct types, as defined by
+    `STRUCTURE_TEMPLATE`.
+
     Parameters
     ----------
-    structures
+    structures : list of dict
+        A list of dictionaries, where each dictionary represents a brain
+        structure with its properties.
 
     Returns
     -------
+    None
 
+    Raises
+    ------
+    AssertionError
+        If any structure dictionary is missing required keys, or if
+        the types of values do not match the expected template.
     """
     assert isinstance(structures, list)
     assert isinstance(structures[0], dict)
@@ -29,12 +44,37 @@ def check_struct_consistency(structures):
 
 
 def get_structure_children(structures, region, use_tree=False):
-    """
-    Given a list of dictionaries with structures data,
-    and a structure from the list, this function returns
-    the structures in the list that are children of
-    the given structure (region).
-    If use_tree is true it creates a StructureTree and uses that.
+    """Get the direct and indirect children of a given brain region.
+
+    Given a list of dictionaries with structures data and a specific
+    region from that list, this function returns the IDs of all structures
+    that are children (direct or indirect) of the given `region`.
+    It can optionally use a `StructureTree` for more efficient traversal.
+
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries, where each dictionary represents a brain
+        structure with its properties.
+    region : dict
+        A dictionary representing the parent brain region, which must contain
+        'id' and 'structure_id_path' keys.
+    use_tree : bool, optional
+        If True, a `StructureTree` will be constructed and used to find
+        children. If False, a simpler list comprehension will be used.
+        By default, False.
+
+    Returns
+    -------
+    list of int or None
+        A list of integer IDs for all child structures, or None if the
+        region contains no other regions.
+
+    Raises
+    ------
+    ValueError
+        If `structures` is not a list of dictionaries, or if `region` is not
+        a dictionary, or if `region` is missing 'id' or 'structure_id_path'.
     """
     if not isinstance(structures, list):
         raise ValueError("structures should be a list")
@@ -73,14 +113,28 @@ def get_structure_children(structures, region, use_tree=False):
 
 
 def get_structure_terminal_nodes(structures, region):
-    """
-    Given a list of dictionaries with structures data,
-    and a structure from the list, this function returns
-    the structures in the list that are children of
-    the given structure (region) that are leafs of the
-    struture tree
-    """
+    """Get the terminal (leaf) child nodes of a given brain region.
 
+    Given a list of dictionaries with structures data and a specific
+    region from that list, this function returns the IDs of all structures
+    that are children of the given `region` and are also leaf nodes in the
+    structure tree (i.e., they have no further children).
+
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries, where each dictionary represents a brain
+        structure with its properties.
+    region : dict
+        A dictionary representing the parent brain region, which must contain
+        an 'id' key.
+
+    Returns
+    -------
+    list of int or None
+        A list of integer IDs for all terminal child structures, or None if
+        the region contains no terminal child regions.
+    """
     tree = get_structures_tree(structures)
 
     sub_region_ids = [

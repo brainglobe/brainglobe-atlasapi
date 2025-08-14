@@ -1,3 +1,10 @@
+"""
+Package the SJU Cavefish atlas from source data.
+
+The SJU Cavefish atlas provides anatomical annotations and a reference brain
+for Astyanax mexicanus.
+"""
+
 __version__ = "0"
 
 import csv
@@ -31,6 +38,24 @@ RESOLUTION = 2, 2, 2
 
 
 def create_atlas(working_dir, resolution):
+    """
+    Create the SJU Cavefish atlas.
+
+    Downloads the necessary files, processes them, generates meshes,
+    and packages the atlas.
+
+    Parameters
+    ----------
+    working_dir : Path
+        The directory where temporary and final atlas files will be stored.
+    resolution : tuple of int
+        The resolution of the atlas in micrometers per voxel (z, y, x).
+
+    Returns
+    -------
+    Path
+        The path to the generated atlas file.
+    """
     # setup folder for downloading
 
     download_dir_path = working_dir / "downloads"

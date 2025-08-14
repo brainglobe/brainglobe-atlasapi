@@ -1,5 +1,6 @@
 """One-off script to reproduce how we combined
-the second version of the annotations provided by the bird anatomists"""
+the second version of the annotations provided by the bird anatomists.
+"""
 
 from pathlib import Path
 
@@ -9,7 +10,18 @@ from scipy.ndimage import binary_erosion, generic_filter
 
 def modal_filter_ignore_zeros(window):
     """
-    Compute the mode of the window ignoring zero values.
+    Compute the mode of the window, ignoring zero values.
+
+    Parameters
+    ----------
+    window : numpy.ndarray
+        The input window of values.
+
+    Returns
+    -------
+    int or float
+        The most common non-zero value in the window, or 0 if all values
+        are zero.
     """
     # Remove zeros from the window
     non_zero_values = window[window != 0]
@@ -21,15 +33,19 @@ def modal_filter_ignore_zeros(window):
 
 
 def apply_modal_filter(image, filter_size=3):
-    """
-    Apply a modal filter to the image, ignoring zero neighbors.
+    """Apply a modal filter to the image, ignoring zero neighbors.
 
-    Parameters:
-        image (ndarray): Input image as a 2D NumPy array.
-        filter_size (int): Size of the filtering window (must be odd).
+    Parameters
+    ----------
+    image : numpy.ndarray
+        Input image as a 2D NumPy array.
+    filter_size : int
+        Size of the filtering window (must be odd).
 
-    Returns:
-        ndarray: Filtered image.
+    Returns
+    -------
+    numpy.ndarray
+        Filtered image.
     """
     # Apply the modal filter using a sliding window
     filtered_image = generic_filter(

@@ -1,3 +1,9 @@
+"""Package the Australian Mouse Brain Microatlas (AMBMC).
+
+This script downloads, preprocesses, and packages the Australian Mouse Brain
+Microatlas (AMBMC) into the BrainGlobe atlas format.
+"""
+
 __version__ = "1"
 import os
 import tarfile
@@ -461,6 +467,13 @@ TEMPLATE_STRING = "ambmc-c57bl6-label-{}_v0.8{}"
 
 
 def download_resources():
+    """
+    Download the atlas reference and annotation files.
+
+    Downloads the main reference template and individual region annotation
+    files from specified OSF URLs. Extracts all downloaded tar.gz files
+    into the `DOWNLOAD_DIR_PATH`.
+    """
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
     ## Download atlas_file
     destination_path = DOWNLOAD_DIR_PATH / "template.nii.tar.gz"
@@ -489,14 +502,13 @@ def download_resources():
 
 
 def preprocess_annotations():
-    """
-    The annotations are split amongst multiple files,
-    in different formats, and are required to correct values
-    in the volumes themselves which are at times overlapping.
-    So this preprocessing function must be run before retrieving
-    the reference and annotation
-    """
+    """Preprocess raw annotation files.
 
+    Preprocesses annotation files from different sources and formats. Handles
+    corrections for values within the annotation volumes, especially for
+    overlapping regions. This step is essential before retrieving the final
+    reference and annotation volumes.
+    """
     label_list = []
     for region, url in ANNOTATION_URLS.items():
         label_path = (
@@ -558,12 +570,18 @@ def preprocess_annotations():
 
 
 def retrieve_reference_and_annotation():
-    """
-    Retrieve the desired reference and annotation as two numpy arrays.
+    """Retrieve the reference and annotation volumes as numpy arrays.
 
-    Returns:
-        tuple: A tuple containing two numpy arrays. The first array is the
-        reference volume, and the second array is the annotation volume.
+    Combines individual region annotation volumes into a single
+    comprehensive annotation volume and loads the reference volume.
+    Renumber the annotation IDs to be sequential and non-overlapping.
+
+    Returns
+    -------
+    tuple
+        A tuple containing two numpy arrays:
+        - The combined annotation volume.
+        - The reference volume, normalized and converted to uint16.
     """
     filename = (
         DOWNLOAD_DIR_PATH
@@ -627,44 +645,37 @@ def retrieve_reference_and_annotation():
 
 
 def retrieve_hemisphere_map():
-    """
-    Retrieve a hemisphere map for the atlas.
+    """Retrieve a hemisphere map for the atlas.
 
-    If your atlas is asymmetrical, you may want to use a hemisphere map.
-    This is an array in the same shape as your template,
-    with 0's marking the left hemisphere, and 1's marking the right.
+    Returns
+    -------
+    None
+        Always returns None, as this atlas is symmetrical.
 
-    If your atlas is symmetrical, ignore this function.
-
-    Returns:
-        numpy.array or None: A numpy array representing the hemisphere map,
-        or None if the atlas is symmetrical.
+    Notes
+    -----
+    For asymmetrical atlases, a hemisphere map is an array with the same
+    shape as the template volume, where 0's mark the left hemisphere and
+    1's mark the right. This specific AMBMC atlas is symmetrical, so a
+    hemisphere map is not required or generated.
     """
     return None  # Symmetrical atlas
 
 
 def retrieve_structure_information():
+    """Retrieve a DataFrame with information about the atlas structures.
+
+    Constructs a pandas DataFrame containing hierarchical information
+    for all atlas structures, including IDs, acronyms, full names,
+    structure ID paths, and RGB triplets. Filters out unwanted structures.
+
+    Returns
+    -------
+    list of dict
+        A list of dictionaries, where each dictionary represents a structure
+        with keys 'acronym', 'id', 'name', 'structure_id_path',
+        and 'rgb_triplet'.
     """
-    This function should return a pandas DataFrame with information about your
-    atlas.
-
-    The DataFrame should be in the following format:
-
-    ╭────┬───────────────────┬─────────┬───────────────────┬─────────────────╮
-    | id | name              | acronym | structure_id_path | rgb_triplet     |
-    |    |                   |         |                   |                 |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 997| root              | root    | [997]             | [255, 255, 255] |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 8  | Basic cell groups | grey    | [997, 8]          | [191, 218, 227] |
-    ├────┼───────────────────┼─────────┼───────────────────┼─────────────────┤
-    | 567| Cerebrum          | CH      | [997, 8, 567]     | [176, 240, 255] |
-    ╰────┴───────────────────┴─────────┴───────────────────┴─────────────────╯
-
-    Returns:
-        pandas.DataFrame: A DataFrame containing the atlas information.
-    """
-
     hierarchical_labels = pd.DataFrame(
         {
             "id": [ROOT_ID, 1001, 1002, 1003, 1004, 1005],
@@ -775,12 +786,25 @@ def retrieve_structure_information():
 
 
 def retrieve_or_construct_meshes(annotated_volume, structures):
-    """
-    This function should return a dictionary of ids and corresponding paths to
-    mesh files. Some atlases are packaged with mesh files, in these cases we
-    should use these files. Then this function should download those meshes.
-    In other cases we need to construct the meshes ourselves. For this we have
-    helper functions to achieve this.
+    """Retrieve or construct mesh files for each atlas structure.
+
+    Checks for existing mesh files; if not found, constructs meshes
+    from the `annotated_volume` for each structure listed in `structures`.
+    Filters out structures for which mesh creation fails or results in empty
+    files.
+
+    Parameters
+    ----------
+    annotated_volume : numpy.ndarray
+        The annotation volume of the atlas.
+    structures : list of dict
+        A list of dictionaries, each describing an atlas structure.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are structure IDs and values are paths
+        to the corresponding mesh files.
     """
     meshes_dir_path = DOWNLOAD_DIR_PATH / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)

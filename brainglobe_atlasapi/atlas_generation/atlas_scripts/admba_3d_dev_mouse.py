@@ -168,7 +168,7 @@ def create_structure_hierarchy(structures, df, root_id):
 
 def create_meshes(download_dir_path, structures, annotated_volume, root_id):
     """
-    Package 3D meshes for brain regions from an annotated volume.
+    Generate 3D meshes for brain regions from an annotated volume.
 
     This function iterates through the structure hierarchy, creates a mesh for
     each region that has corresponding labels in the annotated volume,

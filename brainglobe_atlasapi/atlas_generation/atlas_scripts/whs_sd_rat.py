@@ -187,7 +187,7 @@ def create_structure_hierarchy(structures, df, root_id):
 
 
 def create_meshes(download_dir_path, tree, annotated_volume, labels, root_id):
-    """Package meshes for each brain region.
+    """Generate meshes for each brain region.
 
     Parameters
     ----------

@@ -208,7 +208,7 @@ def create_meshes(
     root_id,
     decimate_fraction,
 ):
-    """Package and save 3D meshes for each brain region.
+    """Generate and save 3D meshes for each brain region.
 
     Parameters
     ----------

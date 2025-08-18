@@ -264,7 +264,6 @@ def construct_meshes_from_annotation(
     for key, node in tree.nodes.items():
         node.data = Region(key in labels)
 
-    # Sequential processing (original behavior)
     for node in track(
         tree.nodes.values(),
         total=tree.size(),

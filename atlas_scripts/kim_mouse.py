@@ -1,13 +1,14 @@
-"""Package the Osten Mouse Atlas.
+"""Package the Kim Mouse Brain Atlas.
 
-This script generates the Osten mouse brain atlas, based on data from
-Kim et al. 2015. It downloads the necessary annotation and structure data,
-processes it to create an atlas, and then wraps it up into the
-BrainGlobe atlas format.
+This script processes the raw data from the Kim Lab atlas, including annotation
+volumes and structure hierarchies, to create a BrainGlobe-compatible atlas.
+It handles downloading data, parsing structure information, creating meshes,
+and wrapping up the atlas into the final BrainGlobe format.
 """
 
-__version__ = "0"
+__version__ = "1"
 
+import argparse
 import json
 import time
 
@@ -28,34 +29,31 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-ATLAS_NAME = "osten_mouse"
+ATLAS_NAME = "kim_mouse"
 SPECIES = "Mus musculus"
-ATLAS_LINK = "https://doi.org/10.1016/j.celrep.2014.12.014"
-CITATION = "Kim et al. 2015, https://doi.org/10.1016/j.celrep.2014.12.014"
+ATLAS_LINK = "https://kimlab.io/brain-map/atlas/"
+CITATION = "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w"
 ORIENTATION = "asr"
 ROOT_ID = 997
 ANNOTATIONS_RES_UM = 10
-ATLAS_FILE_URL = (
-    "https://gin.g-node.org/brainglobe/osten_atlas_"
-    "materials/raw/master/osten_atlas_materials.tar.gz"
-)
-RESOLUTION = 100  # some resolution, in microns
+ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/kim_atlas_materials/raw/master/kim_atlas_materials.tar.gz"
 
 
 def create_atlas(working_dir, resolution):
-    """Package the Osten Mouse Atlas.
+    """Create the Kim Mouse Brain Atlas.
 
     Parameters
     ----------
     working_dir : Path
-        The directory where the atlas data will be downloaded and processed.
+        The directory where temporary files and the final atlas will be stored.
     resolution : int
-        The desired resolution of the atlas in microns per pixel.
+        The desired resolution of the atlas in micrometers.
 
     Returns
     -------
     Path
         The path to the generated atlas file.
+
     """
     # Temporary folder for  download:
     download_dir_path = working_dir / "downloads"
@@ -65,17 +63,16 @@ def create_atlas(working_dir, resolution):
     utils.check_internet_connection()
 
     destination_path = download_dir_path / "atlas_download"
-
     pooch.retrieve(
         url=ATLAS_FILE_URL,
-        known_hash="ee2760152b8a4086965b9ff2dcdc9c476df676f8fee54cac695bb7ce12eaf4aa",
+        known_hash="7ed3c13e6612aef68784d8d5fa9dae5e76d15783f0ff8d31b55e9481112e9919",
         path=destination_path,
         progressbar=True,
-        processor=pooch.Untar(extract_dir="."),
+        processor=pooch.Untar(extract_dir=""),
     )
 
-    structures_file = destination_path / "osten_atlas" / "structures.csv"
-    annotations_file = destination_path / "osten_atlas" / "annotation.tiff"
+    structures_file = destination_path / "kim_atlas" / "structures.csv"
+    annotations_file = destination_path / "kim_atlas" / "annotation.tiff"
 
     # ---------------- #
     #   GET TEMPLATE   #
@@ -110,7 +107,7 @@ def create_atlas(working_dir, resolution):
     # Parse region names & hierarchy
     # ##############################
     df = pd.read_csv(structures_file)
-    df = df.drop(columns=["parent_id"])
+    df = df.drop(columns=["Unnamed: 0", "parent_id", "parent_acronym"])
 
     # split by "/" and convert list of strings to list of ints
     df["structure_id_path"] = (
@@ -118,9 +115,9 @@ def create_atlas(working_dir, resolution):
         .str.split(pat="/")
         .map(lambda x: [int(i) for i in x])
     )
-    df["structure_id_path"] = df["structure_id_path"].map(lambda x: x[:-1])
+
     structures = df.to_dict("records")
-    structures[0000]["structure_id_path"] = [997]
+
     for structure in structures:
         structure.update({"rgb_triplet": [255, 255, 255]})
         # root doesn't have a parent
@@ -138,9 +135,7 @@ def create_atlas(working_dir, resolution):
 
     tree = get_structures_tree(structures)
 
-    rotated_annotations = np.rot90(annotated_volume, axes=(0, 2))
-
-    labels = np.unique(rotated_annotations).astype(np.int32)
+    labels = np.unique(annotated_volume).astype(np.int32)
     for key, node in tree.nodes.items():
         if key in labels:
             is_label = True
@@ -153,6 +148,7 @@ def create_atlas(working_dir, resolution):
     closing_n_iters = 2
     decimate_fraction = 0.2
     smooth = False  # smooth meshes after creation
+
     start = time.time()
 
     for node in track(
@@ -166,7 +162,7 @@ def create_atlas(working_dir, resolution):
                 node,
                 tree,
                 labels,
-                rotated_annotations,
+                annotated_volume,
                 ROOT_ID,
                 closing_n_iters,
                 decimate_fraction,
@@ -233,7 +229,21 @@ def create_atlas(working_dir, resolution):
 
 
 if __name__ == "__main__":
+    # Create argument parser to pass resoulution as an argument
+    parser = argparse.ArgumentParser(
+        description="Create an atlas with a specified resolution."
+    )
+    parser.add_argument(
+        "--resolution",
+        type=int,
+        default=10,
+        help="Resolution in microns (10, 25, 50, 100)",
+    )
+    args = parser.parse_args()
+
     # Generated atlas path:
     bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    create_atlas(bg_root_dir, RESOLUTION)
+
+    # Use the parsed resolution
+    create_atlas(bg_root_dir, args.resolution)

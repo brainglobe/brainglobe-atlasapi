@@ -58,7 +58,7 @@ def download_atlas_files(download_dir_path: Path, atlas_file_url: str) -> Path:
         known_hash="4e8d592c78d1613827fa7bc524f215dc0fe7c7e5049fb31be6d3e4b3822852f7",
         path=download_dir_path,
         progressbar=True,
-        processor=pooch.Unzip(extract_dir="."),
+        processor=pooch.Unzip(extract_dir=""),
     )
 
     atlas_files_dir = download_dir_path / "SC_P56_Atlas_10x10x20_v5_2020"

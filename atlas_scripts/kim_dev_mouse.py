@@ -130,7 +130,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     fetched_paths = pooch_.fetch(
         archive,
         progressbar=True,
-        processor=pooch.Unzip(extract_dir=".", members=members),
+        processor=pooch.Unzip(extract_dir="", members=members),
     )
     # the file paths returned by pooch.ExtractorProcessor (superclass of Unzip)
     # may not respect the order of the given members.

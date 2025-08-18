@@ -187,7 +187,7 @@ def create_atlas(working_dir, resolution):
         known_hash="f8722e855263f71f9e7cbdfc05b348be30ea627a3d7c1e9b1f77e17febeb4774",
         path=destination_path,
         progressbar=True,
-        processor=pooch.Untar(extract_dir="."),
+        processor=pooch.Untar(extract_dir=""),
     )
 
     structures_file = (

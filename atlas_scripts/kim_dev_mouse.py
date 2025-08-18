@@ -72,9 +72,7 @@ def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
         base_url="doi:10.6084/m9.figshare.26377171.v1/",
         registry=empty_registry,
     )
-    p.load_registry(
-        Path(__file__).parent.parent / "hashes" / (ATLAS_NAME + ".txt")
-    )
+    p.load_registry(Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt"))
     return p
 
 

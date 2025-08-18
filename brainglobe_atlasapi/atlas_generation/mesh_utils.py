@@ -16,6 +16,7 @@ except ModuleNotFoundError:
         + '   please install with "pip install PyMCubes -U"'
     )
 
+from multiprocessing import Pool, cpu_count
 from pathlib import Path
 
 import numpy as np
@@ -26,7 +27,6 @@ from brainglobe_atlasapi.atlas_generation.volume_utils import (
     create_masked_array,
 )
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-from multiprocessing import Pool, cpu_count
 
 # ----------------- #
 #   MESH CREATION   #

@@ -223,7 +223,6 @@ def construct_meshes_from_annotation(
     closing_n_iters=2,
     decimate_fraction=0,
     smooth=False,
-    use_multiprocessing=False
 ):
     """
     Retrieve or construct atlas region meshes for a given annotation volume.
@@ -265,10 +264,13 @@ def construct_meshes_from_annotation(
     for key, node in tree.nodes.items():
         node.data = Region(key in labels)
 
-    if use_multiprocessing:
-        
-        # Prepare arguments for parallel processing
-        args_list = [
+    # Sequential processing (original behavior)
+    for node in track(
+        tree.nodes.values(),
+        total=tree.size(),
+        description="Creating meshes",
+    ):
+        create_region_mesh(
             (
                 meshes_dir_path,
                 node,
@@ -280,32 +282,7 @@ def construct_meshes_from_annotation(
                 decimate_fraction,
                 smooth,
             )
-            for node in tree.nodes.values()
-        ]
-        
-        # Use multiprocessing to create meshes in parallel
-        with Pool(processes=cpu_count()) as pool:
-            list(pool.map(create_region_mesh, args_list))
-    else:
-        # Sequential processing (original behavior)
-        for node in track(
-            tree.nodes.values(),
-            total=tree.size(),
-            description="Creating meshes",
-        ):
-            create_region_mesh(
-                (
-                    meshes_dir_path,
-                    node,
-                    tree,
-                    labels,
-                    volume,
-                    root_id,
-                    closing_n_iters,
-                    decimate_fraction,
-                    smooth,
-                )
-            )
+        )
     meshes_dict = {}
     structures_with_mesh = []
     for s in structures_list:

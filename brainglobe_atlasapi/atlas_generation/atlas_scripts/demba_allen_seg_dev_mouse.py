@@ -234,7 +234,7 @@ if __name__ == "__main__":
             hemispheres_stack = retrieve_hemisphere_map()
             structures = retrieve_structure_information(bg_root_dir)
             meshes_dict = construct_meshes_from_annotation(
-                age_specific_root_dir,annotated_volume, structures, ROOT_ID, decimate_fraction=0.5, closing_n_iters=1, use_multiprocessing=True
+                age_specific_root_dir,annotated_volume, structures, ROOT_ID, decimate_fraction=0.5, closing_n_iters=1
             )
             current_name = f"{NAME}_p{age}"
 

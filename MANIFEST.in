@@ -5,10 +5,10 @@ include requirements.txt
 
 exclude .codecov.yml
 exclude .pre-commit-config.yaml
+recursive-exclude atlas-scripts *.py
+recursive-exclude atlas-scripts/hashes *.txt
 
 graft brainglobe_atlasapi *.py
 
 prune tests
 prune tutorials
-prune brainglobe_atlasapi/atlas_generation/atlas_scripts/*
-prune brainglobe_atlasapi/atlas_generation/hashes

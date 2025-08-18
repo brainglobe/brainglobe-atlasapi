@@ -1,5 +1,6 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -63,7 +64,8 @@ def get_reference_and_annotation_paths(download_dir_path, age, modality):
     """
     Determine the reference and annotation paths based on the modality.
 
-    Returns:
+    Returns
+    -------
         tuple: A tuple containing the reference path and annotation path.
     """
     base_path = f"{download_dir_path}/{NAME}/"
@@ -161,7 +163,8 @@ def retrieve_hemisphere_map():
     Retrieve a hemisphere map for the atlas.
     Atlas is symmetrical, so hemisphere map is None.
 
-    Returns:
+    Returns
+    -------
         None: Atlas is symmetrical
     """
 
@@ -193,6 +196,7 @@ def retrieve_structure_information(download_path):
     ]
     structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
     return structs_with_mesh
+
 
 age_specific_root_dir = None
 

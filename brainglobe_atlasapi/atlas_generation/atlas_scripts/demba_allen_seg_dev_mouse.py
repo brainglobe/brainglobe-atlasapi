@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import shutil
 import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
@@ -194,8 +194,7 @@ def retrieve_structure_information(download_path):
     structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
     return structs_with_mesh
 
-
-import shutil
+age_specific_root_dir = None
 
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / NAME
@@ -226,9 +225,6 @@ if __name__ == "__main__":
             hemispheres_stack = retrieve_hemisphere_map()
             structures = retrieve_structure_information(bg_root_dir)
             meshes_dict = construct_meshes_from_annotation(
-<<<<<<< HEAD
-                age_specific_root_dir,annotated_volume, structures, ROOT_ID, decimate_fraction=0.5, closing_n_iters=1
-=======
                 age_specific_root_dir,
                 annotated_volume,
                 structures,
@@ -236,7 +232,6 @@ if __name__ == "__main__":
                 decimate_fraction=0.5,
                 closing_n_iters=1,
                 use_multiprocessing=True,
->>>>>>> 567d45392b27f85ccb450b8044aa8339841bf94d
             )
             current_name = f"{NAME}_p{age}"
 

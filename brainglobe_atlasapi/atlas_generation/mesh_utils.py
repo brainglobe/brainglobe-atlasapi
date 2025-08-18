@@ -16,7 +16,6 @@ except ModuleNotFoundError:
         + '   please install with "pip install PyMCubes -U"'
     )
 
-from multiprocessing import Pool, cpu_count
 from pathlib import Path
 
 import numpy as np

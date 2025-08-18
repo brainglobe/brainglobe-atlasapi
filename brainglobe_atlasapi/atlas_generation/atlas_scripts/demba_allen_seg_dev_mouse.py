@@ -234,8 +234,7 @@ if __name__ == "__main__":
                 structures,
                 ROOT_ID,
                 decimate_fraction=0.5,
-                closing_n_iters=1,
-                use_multiprocessing=True,
+                closing_n_iters=1
             )
             current_name = f"{NAME}_p{age}"
 

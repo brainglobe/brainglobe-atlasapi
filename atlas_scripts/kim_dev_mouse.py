@@ -72,9 +72,7 @@ def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
         base_url="doi:10.6084/m9.figshare.26377171.v1/",
         registry=empty_registry,
     )
-    p.load_registry(
-        Path(__file__).parent.parent / "hashes" / (ATLAS_NAME + ".txt")
-    )
+    p.load_registry(Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt"))
     return p
 
 
@@ -130,7 +128,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     fetched_paths = pooch_.fetch(
         archive,
         progressbar=True,
-        processor=pooch.Unzip(extract_dir=".", members=members),
+        processor=pooch.Unzip(extract_dir="", members=members),
     )
     # the file paths returned by pooch.ExtractorProcessor (superclass of Unzip)
     # may not respect the order of the given members.

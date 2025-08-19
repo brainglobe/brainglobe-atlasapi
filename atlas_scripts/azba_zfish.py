@@ -62,7 +62,7 @@ def create_atlas(working_dir, resolution):
         known_hash="a14b09b88979bca3c06fa96d525e6c1ba8906fe08689239433eb72d8d3e2ba44",
         path=download_path,
         progressbar=True,
-        processor=pooch.Untar(extract_dir="."),
+        processor=pooch.Untar(extract_dir=""),
     )
 
     print("Atlas files download completed")

@@ -68,7 +68,7 @@ def download_atlas_files(download_dir_path, atlas_file_url, ATLAS_NAME):
         known_hash=None,
         path=destination_path,
         progressbar=True,
-        processor=pooch.Unzip(extract_dir="."),
+        processor=pooch.Unzip(extract_dir=""),
     )
 
     return destination_path

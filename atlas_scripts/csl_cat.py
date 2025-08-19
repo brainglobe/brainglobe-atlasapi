@@ -34,9 +34,7 @@ def pooch_init(temp_download_dir, base_url):
     Initialize a pooch object to fetch files, using hashes saved
     to the hashes folder.
     """
-    hash_folder = (
-        Path(__file__).parent.parent / "hashes" / (ATLAS_NAME + ".txt")
-    )
+    hash_folder = Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt")
     dawg = pooch.create(
         path=temp_download_dir,
         base_url=base_url,

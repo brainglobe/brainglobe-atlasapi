@@ -137,7 +137,7 @@ def create_atlas(
         known_hash="bfc38d1992aa2300f4c12a510c50fe380b3f4cbdb3664888587f874dd1a16823",
         path=destination_path,
         progressbar=True,
-        processor=pooch.Unzip(extract_dir="."),
+        processor=pooch.Unzip(extract_dir=""),
     )
 
     # Set paths to volumes

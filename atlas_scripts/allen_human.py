@@ -127,7 +127,7 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
         known_hash="acce3b85039176aaf7de2c3169272551ddfcae5d9a4e5ce642025b795f9f1d20",
         path=download_dir_path,
         progressbar=True,
-        processor=pooch.Unzip(extract_dir="."),
+        processor=pooch.Unzip(extract_dir=""),
     )
 
     print("Download and decompression completed.")

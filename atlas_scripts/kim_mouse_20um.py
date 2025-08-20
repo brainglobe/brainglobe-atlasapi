@@ -22,8 +22,10 @@ __version__ = 0
 ATLAS_NAME = "kim_mouse"
 
 # DOI of the most relevant citable document
-CITATION = ("Chon et al., 2019, Nature Communications (PMID: 31699990), " 
-            "doi: 10.1038/s41467-019-13057-w")
+CITATION = (
+    "Chon et al., 2019, Nature Communications (PMID: 31699990), "
+    "doi: 10.1038/s41467-019-13057-w"
+)
 
 # The scientific name of the species, ie; Rattus norvegicus
 SPECIES = "Mus musculus"
@@ -90,7 +92,7 @@ class AtlasBuilder:
     retrieve_or_construct_meshes() -> Dict[int, str]
         Returns paths to mesh files for each structure, constructing them if needed.
     """
-    
+
     def __init__(self):
         self.bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
         self.bg_root_dir.mkdir(parents=True, exist_ok=True)
@@ -100,7 +102,6 @@ class AtlasBuilder:
 
         If possible, please use the Pooch library to retrieve any resource
         """
-        
         self.download_folder = self.bg_root_dir / "download"
         self.download_folder.mkdir(exist_ok=True)
         initial_download_folder_content = {
@@ -132,7 +133,6 @@ class AtlasBuilder:
             tuple: A tuple containing two numpy arrays. The first array is the
             reference volume, and the second array is the annotation volume.
         """
-        
         if ANNOTATION_FILE not in self.download_dir_content:
             raise Exception(
                 f"{ANNOTATION_FILE} not found in {self.download_folder}"
@@ -163,12 +163,11 @@ class AtlasBuilder:
         -------
             None
         """
-        
         return None
 
     def retrieve_structure_information(self) -> List[Dict[str, Any]]:
         """Returns a list with dictionaries containing information about the atlas.
-        
+
         Example of the ROOT dictionary entry:
             {
                 "id": ROOT_ID,
@@ -183,7 +182,6 @@ class AtlasBuilder:
         List[Dict[str, Any]]
             list of dictionaries containing the atlas information.
         """
-        
         if ONTOLOGY_FILE not in self.download_dir_content:
             raise Exception(
                 f"{ONTOLOGY_FILE} not found in {self.download_folder}"
@@ -219,18 +217,17 @@ class AtlasBuilder:
         return self.structures
 
     def retrieve_or_construct_meshes(self) -> Dict[int, str]:
-        """Returns a dictionary of ids and corresponding paths to mesh files. 
-        
+        """Returns a dictionary of ids and corresponding paths to mesh files.
+
         Some atlases are packaged with mesh files, in these cases we
         should use these files. Then this function should download those meshes.
         In other cases we need to construct the meshes ourselves. For this we have
         helper functions to achieve this.
-        
+
         Returns
         -------
             Dictionary
         """
-        
         meshes_dir = self.download_folder
         meshes_dict = construct_meshes_from_annotation(
             meshes_dir, self.annotation, self.structures, ROOT_ID
@@ -261,7 +258,6 @@ class AtlasBuilder:
         List[int]
             A list of structure IDs starting from the root ID to `current_id`.
         """
-        
         path_to_root = []
         while True:
             current_row = id_to_row.get(current_id)
@@ -293,7 +289,6 @@ class AtlasBuilder:
         np.ndarray
             A 3D numpy array representing the image data in ASR orientation.
         """
-
         img = nib.load(path)
         data = np.asarray(img.dataobj).squeeze().astype(np.int32)
         reordered = np.flip(data, axis=2)

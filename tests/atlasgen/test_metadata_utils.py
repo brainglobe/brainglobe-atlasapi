@@ -1,3 +1,5 @@
+"""Tests for metadata utility functions."""
+
 import json
 from datetime import datetime
 
@@ -15,6 +17,13 @@ from brainglobe_atlasapi.atlas_generation.metadata_utils import (
 
 @pytest.fixture
 def metadata_input_template():
+    """Provide a template dictionary for metadata input.
+
+    Returns
+    -------
+    dict
+        A dictionary containing template metadata.
+    """
     return {
         "name": "author_species",
         "citation": "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3",
@@ -32,7 +41,13 @@ def metadata_input_template():
 
 
 def test_generate_metadata_dict(metadata_input_template):
-    """Test generate_metadata_dict using metadata_input_template."""
+    """Test `generate_metadata_dict` using `metadata_input_template`.
+
+    Parameters
+    ----------
+    metadata_input_template : dict
+        A template dictionary for metadata input.
+    """
     input_data = metadata_input_template.copy()
     output = generate_metadata_dict(**input_data)
 
@@ -127,7 +142,17 @@ def test_generate_metadata_dict(metadata_input_template):
 def test_generate_metadata_dict_errors(
     metadata, error, metadata_input_template
 ):
-    """Test generate_metadata_dict error raising with modified metadata."""
+    """Test `generate_metadata_dict` error raising with modified metadata.
+
+    Parameters
+    ----------
+    metadata : dict
+        Dictionary of metadata fields to update in the template for testing.
+    error : type or None
+        Expected exception type to be raised, or None if no error is expected.
+    metadata_input_template : dict
+        A template dictionary for metadata input.
+    """
     metadata_input_template.update(metadata)
     if error is not None:
         with pytest.raises(error):
@@ -138,6 +163,13 @@ def test_generate_metadata_dict_errors(
 
 @pytest.fixture
 def structures():
+    """Provide a list of dummy structure dictionaries for testing.
+
+    Returns
+    -------
+    list of dict
+        A list of dictionaries, where each dictionary represents a structure.
+    """
     structure101 = {
         "id": 101,
         "acronym": "o",
@@ -172,7 +204,18 @@ def structures():
 
 
 def get_root_id(structures: list[dict]):
-    """Helper function to get root id from a list of structures."""
+    """Get the root ID from a list of structures.
+
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries representing structures.
+
+    Returns
+    -------
+    int
+        The ID of the root structure.
+    """
     for s in structures:
         if s["name"] == "root":
             return s["id"]
@@ -183,8 +226,17 @@ def test_create_metadata_files(
     metadata_input_template,
     tmp_path,
 ):
-    """Test create_metadata_files."""
+    """Test `create_metadata_files`.
 
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries representing structures.
+    metadata_input_template : dict
+        A template dictionary for metadata input.
+    tmp_path : Path
+        Temporary directory path provided by pytest fixture.
+    """
     metadata = generate_metadata_dict(**metadata_input_template)
 
     # json is expected to be present in the dest_dir
@@ -204,8 +256,15 @@ def test_create_metadata_files(
 
 
 def test_create_structures_csv(structures, tmp_path):
-    """Test create_structures_csv."""
+    """Test `create_structures_csv`.
 
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries representing structures.
+    tmp_path : Path
+        Temporary directory path provided by pytest fixture.
+    """
     root = get_root_id(structures)
 
     # json is expected to be present in the dest_dir
@@ -227,8 +286,17 @@ def test_create_readme(
     metadata_input_template,
     tmp_path,
 ):
-    """Test create_readme."""
+    """Test `create_readme`.
 
+    Parameters
+    ----------
+    structures : list of dict
+        A list of dictionaries representing structures.
+    metadata_input_template : dict
+        A template dictionary for metadata input.
+    tmp_path : Path
+        Temporary directory path provided by pytest fixture.
+    """
     metadata = generate_metadata_dict(**metadata_input_template)
 
     create_readme(

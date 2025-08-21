@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+import nibabel as nib
 import numpy as np
 import pandas as pd
 import pooch
-import nibabel as nib
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
@@ -62,7 +62,6 @@ def download_resources() -> Tuple[Path, Path]:
     Tuple[Path, Path]
         The root directory and the nested download directory as Path objects.
     """
-
     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
     bg_root_dir.mkdir(parents=True, exist_ok=True)
 
@@ -94,7 +93,6 @@ def retrieve_reference_and_annotation(
     Tuple[np.ndarray, np.ndarray]
         The reference volume and the annotation volume as numpy arrays.
     """
-
     download_dir_content = {item.name for item in download_dir.iterdir()}
     if ANNOTATION_FILE not in download_dir_content:
         raise FileNotFoundError(
@@ -130,7 +128,6 @@ def retrieve_structure_information(download_dir: Path) -> List[Dict[str, Any]]:
     List[Dict[str, Any]]
         List of dictionaries containing the atlas information.
     """
-
     download_dir_content = {item.name for item in download_dir.iterdir()}
     if ONTOLOGY_FILE not in download_dir_content:
         raise FileNotFoundError(f"{ONTOLOGY_FILE} not found in {download_dir}")
@@ -183,7 +180,6 @@ def retrieve_or_construct_meshes(
     Dict[int, str]
         Mapping from structure ID to mesh file path.
     """
-
     meshes_dir = download_dir
     meshes_dict = construct_meshes_from_annotation(
         meshes_dir, annotation, structures, ROOT_ID
@@ -212,7 +208,6 @@ def get_path_to_root_id(
     List[int]
         A list of structure IDs starting from the root ID to `current_id`.
     """
-
     path_to_root = []
     while True:
         current_row = id_to_row.get(current_id)

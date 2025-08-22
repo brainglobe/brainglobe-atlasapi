@@ -1,3 +1,11 @@
+"""Package the Kim Mouse Isotropic Brain Atlas.
+
+This script downloads the Kim Mouse isotropic brain atlas resources, including
+the raw data, annotation volumes, and structure hierarchy. It processes the
+ontology data, generates meshes for anatomical structures, and packages the
+atlas in the BrainGlobe format.
+"""
+
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 

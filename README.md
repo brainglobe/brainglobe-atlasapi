@@ -56,9 +56,9 @@ A number of atlases are in development, but those available currently are:
 - **IHC**: Immunohistochemistry
 - **LSFM**: Light Sheet Fluorescent Microscopy
 - **MRI**: Magnetic Resonance Imaging
-- **P**: Post natal day 
+- **P**: Post natal day
 - **STPT**: Serial Two Photon Tomography
-  
+
 ## Installation
 
 `brainglobe-atlasapi` can be installed from PyPI with:

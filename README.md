@@ -1,4 +1,4 @@
-<img width="1201" height="123" alt="image" src="https://github.com/user-attachments/assets/0a582256-0535-47c1-b06f-b69448acdfe6" /># brainglobe-atlasapi
+# brainglobe-atlasapi
 
 [![Python Version](https://img.shields.io/pypi/pyversions/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
 [![PyPI](https://img.shields.io/pypi/v/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi/)

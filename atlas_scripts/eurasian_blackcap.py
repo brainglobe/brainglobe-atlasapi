@@ -1,6 +1,6 @@
 """Package the BrainGlobe atlas for the Eurasian Blackcap."""
 
-__version__ = "3"
+__version__ = "4"
 
 import csv
 import glob as glob
@@ -59,11 +59,11 @@ def create_atlas(working_dir, resolution):
         gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
     )
 
-    hierarchy_path = atlas_path[2]  # "combined_structures_update_0825.csv"
-    reference_file = atlas_path[0]  # "blackcap_male_template.nii.gz"
-    structures_file = atlas_path[1]  # "merged_unique_labels.txt"
+    hierarchy_path = atlas_path[3]  # "combined_structures_update_0825.csv"
+    reference_file = atlas_path[2]  # "blackcap_male_template.nii.gz"
+    structures_file = atlas_path[0]  # "merged_unique_labels.txt"
     annotations_file = atlas_path[
-        3
+        1
     ]  # "blackcap_male_smoothed_annotations.nii.gz"
     meshes_dir_path = Path.home() / "blackcap-meshes"
 

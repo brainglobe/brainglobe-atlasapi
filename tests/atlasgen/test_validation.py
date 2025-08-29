@@ -1,3 +1,5 @@
+"""Test atlas validation functions."""
+
 import os
 import re
 
@@ -26,16 +28,27 @@ from brainglobe_atlasapi.core import AdditionalRefDict
 
 @pytest.fixture
 def atlas():
-    """A fixture providing a small atlas for testing.
-    Tests assume this atlas is valid"""
+    """Provide a small atlas for testing.
+    Tests assume this atlas is valid.
+
+    Returns
+    -------
+    BrainGlobeAtlas
+        A BrainGlobeAtlas instance for testing.
+    """
     return BrainGlobeAtlas("kim_dev_mouse_e11-5_mri-adc_31.5um")
 
 
 @pytest.fixture
 def atlas_with_bad_reference_file():
-    """A fixture providing an invalid version of Allen Mouse atlas for testing.
-    The atlas will have a misnamed template file that won't be found by the API
-    This fixture also does the clean-up after the test has run
+    """Provide an invalid version of the Allen Mouse atlas for testing.
+    The atlas will have a misnamed template file that won't be found by
+    the API. Restore the original file name after tests complete.
+
+    Yields
+    ------
+    BrainGlobeAtlas
+        An invalid BrainGlobeAtlas instance for testing.
     """
     good_name = get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference.tiff"
     bad_name = (
@@ -48,9 +61,14 @@ def atlas_with_bad_reference_file():
 
 @pytest.fixture
 def atlas_with_bad_reference_tiff_content():
-    """A fixture providing an invalid version of Allen Mouse atlas for testing.
-    The atlas will have a misnamed template file that won't be found by the API
-    This fixture cleans up the invalid atlas after the test has run.
+    """Provide an invalid version of the Allen Mouse atlas for testing.
+    The atlas will have a misnamed template file that won't be found
+    by the API. Restore the original file after tests complete.
+
+    Yields
+    ------
+    BrainGlobeAtlas
+        An invalid BrainGlobeAtlas instance for testing.
     """
     BrainGlobeAtlas("allen_mouse_100um")  # ensure atlas is locally downloaded
     actual_name = (
@@ -69,6 +87,13 @@ def atlas_with_bad_reference_tiff_content():
 
 @pytest.fixture
 def atlas_with_missing_structure():
+    """Provide an atlas with a manually removed structure for testing.
+
+    Returns
+    -------
+    BrainGlobeAtlas
+        A modified BrainGlobeAtlas instance with a missing structure.
+    """
     atlas = BrainGlobeAtlas("osten_mouse_100um")
     modified_structures = atlas.structures.copy()
     modified_structures.pop(688)
@@ -80,10 +105,17 @@ def atlas_with_missing_structure():
 
 @pytest.fixture
 def atlas_with_valid_additional_reference():
-    """A fixture providing a testing-only version of the Allen Mouse atlas.
+    """Provide a testing-only version of the Allen Mouse atlas with
+    a valid additional reference.
+
     The instance of the atlas returned has an additional reference
-    consisting of an array of 1, of the correct size.
-    This fixture cleans up the invalid atlas after the test has run.
+    consisting of an array of 1s, of the correct size.
+    Remove the additional reference file after tests complete.
+
+    Yields
+    ------
+    BrainGlobeAtlas
+        A BrainGlobeAtlas instance with a valid additional reference.
     """
     allen_100 = BrainGlobeAtlas(
         "allen_mouse_100um"
@@ -104,10 +136,16 @@ def atlas_with_valid_additional_reference():
 
 @pytest.fixture
 def atlas_with_reference_matching_additional_reference():
-    """A fixture providing an invalid version of Allen Mouse atlas for testing.
-    It provides the atlas, with an additional reference containing
-    the same data as the main reference image.
-    This fixture cleans up the invalid atlas after the test has run.
+    """Provide an invalid version of the Allen Mouse atlas for testing.
+
+    The atlas has an additional reference containing the same data as the main
+    reference image. Remove the additional reference file after tests complete.
+
+    Yields
+    ------
+    BrainGlobeAtlas
+        An invalid BrainGlobeAtlas instance with a duplicate additional
+        reference.
     """
     allen_100 = BrainGlobeAtlas(
         "allen_mouse_100um"
@@ -127,9 +165,12 @@ def atlas_with_reference_matching_additional_reference():
 
 
 def test_valid_atlas_passes_all_validations(atlas):
-    """
-    Check all our validation functions return True
-    for a valid atlas
+    """Check all validation functions return True for a valid atlas.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        A valid BrainGlobeAtlas instance.
     """
     validation_functions = get_all_validation_functions()
     for validation_function in validation_functions:
@@ -139,6 +180,16 @@ def test_valid_atlas_passes_all_validations(atlas):
 
 
 def test_validate_mesh_matches_image_extents_negative(mocker, atlas):
+    """Verify `validate_mesh_matches_image_extents` fails for
+    mismatched extents.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    """
     flipped_annotation_image = np.transpose(atlas.annotation)
     mocker.patch(
         "brainglobe_atlasapi.BrainGlobeAtlas.annotation",
@@ -152,15 +203,25 @@ def test_validate_mesh_matches_image_extents_negative(mocker, atlas):
 
 
 def test_invalid_atlas_path(atlas_with_bad_reference_file):
+    """Verify `validate_atlas_files` raises an error for a missing
+    reference file.
+
+    Parameters
+    ----------
+    atlas_with_bad_reference_file : BrainGlobeAtlas
+        An atlas instance with a bad reference file path.
+    """
     with pytest.raises(AssertionError, match="Expected file not found"):
         validate_atlas_files(atlas_with_bad_reference_file)
 
 
 def test_assert_close():
+    """Verify `_assert_close` returns True for close values."""
     assert _assert_close(99.5, 8, 10)
 
 
 def test_assert_close_negative():
+    """Verify `_assert_close` raises an error for values not close enough."""
     with pytest.raises(
         AssertionError, match="differ by more than 10 times pixel size"
     ):
@@ -168,15 +229,11 @@ def test_assert_close_negative():
 
 
 def test_catch_missing_mesh_files():
-    """
-    Tests if catch_missing_mesh_files function raises an error,
-    when there is at least one structure in the atlas that doesn't have
-    a corresponding obj file.
+    """Test `catch_missing_mesh_files` raises an error for missing mesh files.
 
     Expected behaviour:
-    True for "allen_mouse_100um" (structure 545 doesn't have an obj file):
-    fails the validation function,
-    raises an error --> no output from this test function
+    For "allen_mouse_100um", structure 545 does not have an obj file,
+    so this validation function should fail and raise an error.
     """
     atlas_with_missing_mesh_file = BrainGlobeAtlas("allen_mouse_100um")
     with pytest.raises(
@@ -188,16 +245,16 @@ def test_catch_missing_mesh_files():
 
 
 def test_catch_missing_structures(atlas_with_missing_structure):
-    """
-    Tests if catch_missing_structures function raises an error,
-    when there is at least one orphan obj file (doesn't have a
-    corresponding structure in the atlas)
+    """Test `catch_missing_structures` raises an error for orphan mesh files.
 
-    Expected behaviour:
-    Currently no atlas fails the validation function this way so the
-    [] is always empty --> this test function should always raise an error
-    """
+    Verify that an error is raised when there is at least one mesh file that
+    does not have a corresponding structure in the atlas.
 
+    Parameters
+    ----------
+    atlas_with_missing_structure : BrainGlobeAtlas
+        An atlas instance with a missing structure.
+    """
     with pytest.raises(
         AssertionError,
         match=r"Structures with IDs \[.*?\] have a mesh file, "
@@ -209,8 +266,14 @@ def test_catch_missing_structures(atlas_with_missing_structure):
 def test_atlas_image_dimensions_match_negative(
     atlas_with_bad_reference_tiff_content,
 ):
-    """Checks that an atlas with different annotation and reference
-    dimensions is flagged by the validation."""
+    """Check that an atlas with different annotation and reference
+    dimensions is flagged by the validation.
+
+    Parameters
+    ----------
+    atlas_with_bad_reference_tiff_content : BrainGlobeAtlas
+        An atlas instance with mismatched image dimensions.
+    """
     with pytest.raises(
         AssertionError,
         match=r"Annotation and reference image have different dimensions.*",
@@ -221,8 +284,15 @@ def test_atlas_image_dimensions_match_negative(
 def test_atlas_additional_reference_same(
     atlas_with_reference_matching_additional_reference,
 ):
-    """Checks that an atlas with a rduplicate additional reference
-    fails the validation for this case."""
+    """Check that an atlas with a duplicate additional reference
+    fails the validation.
+
+    Parameters
+    ----------
+    atlas_with_reference_matching_additional_reference : BrainGlobeAtlas
+        An atlas instance where the additional reference matches the
+        main reference.
+    """
     with pytest.raises(
         AssertionError,
         match=r"Additional reference is not different to main reference.",
@@ -233,7 +303,15 @@ def test_atlas_additional_reference_same(
 
 
 def test_badly_scaled_reference_fails(mocker, atlas):
-    """Checks that an atlas with only ones as reference image fails"""
+    """Check that an atlas with only ones as reference image fails.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    """
     invalid_reference = np.ones_like(atlas.reference)
     mocker.patch(
         "brainglobe_atlasapi.BrainGlobeAtlas.reference",
@@ -248,7 +326,15 @@ def test_badly_scaled_reference_fails(mocker, atlas):
 
 
 def test_asymmetrical_annotation_fails(mocker, atlas):
-    """Checks that an atlas with LR annotation mismatch fails"""
+    """Check that an atlas with LR annotation mismatch fails validation.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    """
     asymmetrical_lr_labels = atlas.annotation.copy()
     midsagittal_index = asymmetrical_lr_labels.shape[2] // 2
     asymmetrical_lr_labels[:, :, midsagittal_index:] += 1
@@ -297,7 +383,17 @@ def test_asymmetrical_annotation_fails(mocker, atlas):
     ],
 )
 def test_validate_atlas_name(atlas_name, should_pass, error_message):
-    """Checks various atlas name validation cases"""
+    """Check various atlas name validation cases.
+
+    Parameters
+    ----------
+    atlas_name : str
+        The name of the atlas to test.
+    should_pass : bool
+        True if the validation should pass, False otherwise.
+    error_message : str, optional
+        The expected error message if validation fails, by default None.
+    """
     atlas = object.__new__(BrainGlobeAtlas)
     atlas.atlas_name = atlas_name
     if should_pass:
@@ -341,7 +437,20 @@ def test_validate_atlas_name(atlas_name, should_pass, error_message):
     ],
 )
 def test_validate_metadata(atlas, metadata, expected_output, error_message):
-    """Checks whether atlas metadata is validated correctly."""
+    """Check whether atlas metadata is validated correctly.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    metadata : dict
+        A dictionary containing the metadata key and value to test.
+    expected_output : bool or str
+        True if the validation should pass, "AssertionError" if it should
+        raise an error.
+    error_message : str, optional
+        The expected error message if validation fails, by default None.
+    """
     atlas.metadata[metadata["key"]] = metadata["value"]
     if expected_output == "AssertionError":
         with pytest.raises(AssertionError, match=error_message):

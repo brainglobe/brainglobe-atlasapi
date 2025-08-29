@@ -1,3 +1,5 @@
+"""Module containing the core Atlas class."""
+
 import warnings
 from collections import UserDict
 from pathlib import Path
@@ -113,12 +115,17 @@ class Atlas:
 
     @property
     def reference(self):
+        """Return the reference image data. Loads it if not already loaded."""
         if self._reference is None:
             self._reference = read_tiff(self.root_dir / REFERENCE_FILENAME)
         return self._reference
 
     @property
     def annotation(self):
+        """
+        Return the annotation image data.
+        Loads it if not already loaded.
+        """
         if self._annotation is None:
             self._annotation = read_tiff(self.root_dir / ANNOTATION_FILENAME)
         return self._annotation
@@ -176,7 +183,6 @@ class Atlas:
             Hemisphere label.
 
         """
-
         hem = self.hemispheres[self._idx_from_coords(coords, microns)]
         if as_string:
             hem = ["left", "right"][hem - 1]
@@ -210,7 +216,6 @@ class Atlas:
         int or string
             Structure containing the coordinates.
         """
-
         rid = self.annotation[self._idx_from_coords(coords, microns)]
 
         # If we want to cut the result at some high level of the hierarchy:
@@ -228,8 +233,8 @@ class Atlas:
 
     # Meshes-related methods:
     def _get_from_structure(self, structure, key):
-        """Internal interface to the structure dict. It support querying with a
-        single structure id or a list of ids.
+        """Provide internal interface to the structure dict. It supports
+        querying with a single structure id or a list of ids.
 
         Parameters
         ----------
@@ -250,15 +255,60 @@ class Atlas:
             return self.structures[structure][key]
 
     def mesh_from_structure(self, structure):
+        """
+        Retrieve the mesh associated with a given structure.
+
+        Parameters
+        ----------
+        structure : int or str or list of int/str
+            The ID or acronym of the structure for which to retrieve the mesh.
+            If a list of IDs/acronyms is passed, a list of meshes will
+            be returned.
+
+        Returns
+        -------
+        meshio.Mesh or list of meshio.Mesh
+            The mesh data (e.g., a Mesh object) associated with the
+            structure(s).
+        """
         return self._get_from_structure(structure, "mesh")
 
     def meshfile_from_structure(self, structure):
+        """
+        Retrieve the path to the mesh file associated with a given structure.
+
+        Parameters
+        ----------
+        structure : int or str
+            The ID or acronym of the structure for which to retrieve the mesh
+            file path. If a list of IDs/acronyms is passed, a list of paths
+            will be returned.
+
+        Returns
+        -------
+        Path or list of Path
+            The path(s) to the mesh file(s) for the structure(s).
+        """
         return self._get_from_structure(structure, "mesh_filename")
 
     def root_mesh(self):
+        """
+        Retrieve the mesh for the root structure.
+
+        Returns
+        -------
+            The mesh data for the root structure.
+        """
         return self.mesh_from_structure("root")
 
     def root_meshfile(self):
+        """
+        Retrieve the path to the mesh file for the root structure.
+
+        Returns
+        -------
+            str: The path to the mesh file for the root structure.
+        """
         return self.meshfile_from_structure("root")
 
     def _idx_from_coords(self, coords, microns):
@@ -269,7 +319,7 @@ class Atlas:
         return tuple([int(c) for c in coords])
 
     def get_structure_ancestors(self, structure):
-        """Returns a list of acronyms for all ancestors of a given structure
+        """Return a list of acronyms for all ancestors of a given structure.
 
         Parameters
         ----------
@@ -289,7 +339,7 @@ class Atlas:
         return self._get_from_structure(ancestors_id, "acronym")
 
     def get_structure_descendants(self, structure):
-        """Returns a list of acronyms for all descendants of a given structure.
+        """Return a list of acronyms for all descendants of a given structure.
 
         Parameters
         ----------
@@ -314,7 +364,7 @@ class Atlas:
 
     def get_structure_mask(self, structure):
         """
-        Returns a stack with the mask for a specific structure (including all
+        Return a stack with the mask for a specific structure (including all
         sub-structures).
 
         This function might take a few seconds for structures with many
@@ -359,6 +409,29 @@ class AdditionalRefDict(UserDict):
             self.data[ref_name] = None
 
     def __getitem__(self, ref_name):
+        """Retrieve an item from the dictionary using the reference name
+        as key.
+
+        If the reference image data for `ref_name` has not been loaded yet,
+        it will be read from the disk and cached. If `ref_name` is not
+        one of the predefined additional references, a warning is issued
+        and None is returned.
+
+        Parameters
+        ----------
+        ref_name : str
+            The name of the reference image to retrieve (e.g., "aba").
+
+        Returns
+        -------
+        np.ndarray or None
+            The image data associated with the reference name, or None if the
+            reference name is not found in the list of available references.
+
+        Raises
+        ------
+            KeyError: If the ref_name is not found.
+        """
         if ref_name not in self.references_list:
             warnings.warn(
                 f"No reference named {ref_name} "

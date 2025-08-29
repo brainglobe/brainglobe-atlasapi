@@ -1,3 +1,5 @@
+"""Provides functionality to update the atlas."""
+
 import shutil
 
 from rich import print as rprint
@@ -10,10 +12,10 @@ from brainglobe_atlasapi.list_atlases import get_downloaded_atlases
 
 
 def update_atlas(atlas_name, force=False, fn_update=None):
-    """Updates a brainglobe_atlasapi atlas from the latest
+    """Update a brainglobe_atlasapi atlas from the latest
     available version online.
 
-    Arguments:
+    Parameters
     ----------
     atlas_name: str
         Name of the atlas to update.
@@ -23,7 +25,6 @@ def update_atlas(atlas_name, force=False, fn_update=None):
     fn_update : Callable, Optional
         A callback function to update progress during download.
     """
-
     atlas = BrainGlobeAtlas(
         atlas_name=atlas_name, check_latest=False, fn_update=fn_update
     )
@@ -67,14 +68,13 @@ def install_atlas(atlas_name, fn_update=None):
     """Installs a BrainGlobe atlas from the latest
     available version online.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     atlas_name : str
         Name of the atlas to update.
     fn_update : Callable, Optional
         A callback function to update progress during download.
     """
-
     # Check input:
     if not isinstance(atlas_name, str):
         raise TypeError(

@@ -8,21 +8,37 @@ import numpy as np
 import zarr
 
 
-def create_masked_array(volume, label, greater_than=False) -> np.ndarray[bool]:
-    """
-    Given a 2d or 3d numpy array and a
-    label value, creates a masked binary
-    array which is True when volume == label
-    and False otherwise
+def create_masked_array(volume, label, greater_than=False):
+    """Create a binary masked array from a volumetric dataset.
+
+    Given a 2D or 3D NumPy array and a label value (or list of labels),
+    this function generates a binary array. The output array will have
+    values of True where the `volume` matches the `label` (or is contained
+    within the `label` list) and False otherwise. If `greater_than` is True,
+    all voxels with values strictly greater than `label` will be set to True.
 
     Parameters
     ----------
-    volume: np.ndarray
-        (2d or 3d array)
-    label: int, float or list of int.
-        the masked array will be 1 where volume == label
-    greater_than: bool
-        if True, all voxels with value > label will be set to True
+    volume : np.ndarray
+        The input 2D or 3D NumPy array.
+    label : int, float, or list of int
+        The value(s) to match in the `volume`. If `greater_than` is True,
+        this should be a single numerical value.
+    greater_than : bool, optional
+        If True, all voxels with values strictly greater than `label`
+        will be set to True. If False, voxels equal to `label` (or in the
+        list of `label`s) will be set to True. By default, False.
+
+    Returns
+    -------
+    np.ndarray
+        A binary NumPy array with the same shape as `volume`, where
+        matching (or greater than) voxels are 1 and others are 0.
+
+    Raises
+    ------
+    ValueError
+        If `volume` is not a NumPy array.
     """
     if not isinstance(volume, (np.ndarray, zarr.Array)):
         raise ValueError(

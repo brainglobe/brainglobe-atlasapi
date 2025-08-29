@@ -1,3 +1,5 @@
+"""Utility functions for working with meshes."""
+
 import shutil
 
 from brainglobe_utils.general.system import get_num_processes
@@ -53,10 +55,9 @@ def extract_mesh_from_mask(
     extract_largest=False,
 ):
     """
-    Returns a vedo mesh actor with just the outer surface of a
+    Return a vedo mesh actor with just the outer surface of a
     binary mask volume. It's faster though less accurate than
-    extract_mesh_from_mask
-
+    extract_mesh_from_mask.
 
     Parameters
     ----------
@@ -154,11 +155,11 @@ def extract_mesh_from_mask(
 
 def create_region_mesh(args):
     """
-    Automates the creation of a region's mesh. Given a volume of annotations
+    Automate the creation of a region's mesh. Given a volume of annotations
     and a structures tree, it takes the volume's region corresponding to the
     region of interest and all of its children's labels and creates a mesh.
     It takes a tuple of arguments to facilitate parallel processing with
-    multiprocessing.pool.map
+    multiprocessing.pool.map.
 
     Note, by default it avoids overwriting a structure's mesh if the
     .obj file exists already.
@@ -281,10 +282,12 @@ def construct_meshes_from_annotation(
         If True, uses multiprocessing to speed up mesh creation
     num_threads: int
         Number of threads to use for parallel processing.
-        If -1, threads are set to the number of available cores minus 1.
+        If -1, threads are set to the maximum number based on
+        available memory.
         If > 0, uses that many threads.
     verbosity: int
         Level of verbosity for logging. 0 for no output, 1 for basic info.
+
     Returns
     -------
     dict
@@ -394,7 +397,7 @@ class Region(object):
     """
     Class used to add metadata to treelib.Tree during atlas creation.
     Using this means that you can then filter tree nodes depending on
-    whether they have a mesh/label
+    whether they have a mesh/label.
     """
 
     def __init__(self, has_label):

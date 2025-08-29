@@ -9,10 +9,10 @@ atlas in the BrainGlobe format.
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import nibabel as nib
 import numpy as np
 import pandas as pd
 import pooch
+from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
@@ -111,11 +111,11 @@ def retrieve_reference_and_annotation(
             f"{REFERENCE_FILE} not found in {download_dir}"
         )
     # Load reference volume (nifti -> numpy array)
-    nifti_img = nib.load(download_dir / REFERENCE_FILE)
-    reference = np.asarray(nifti_img.dataobj).squeeze().astype(np.int32)
+    img_array = load_any(download_dir / REFERENCE_FILE)
+    reference = img_array.squeeze().astype(np.int32)
     # Load annotation volume (nifti -> numpy array)
-    nifti_img = nib.load(download_dir / ANNOTATION_FILE)
-    annotation = np.asarray(nifti_img.dataobj).squeeze().astype(np.int32)
+    img_array = load_any(download_dir / ANNOTATION_FILE)
+    annotation = img_array.squeeze().astype(np.int32)
     return reference, annotation
 
 

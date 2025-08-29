@@ -6,7 +6,7 @@ from scipy.ndimage import binary_closing, binary_fill_holes
 
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
-    preorder_dfs,
+    preorder_depth_first_search,
 )
 
 try:
@@ -338,7 +338,7 @@ def construct_meshes_from_annotation(
             smooth,
             verbosity,
         )
-        for node in preorder_dfs(tree)
+        for node in preorder_depth_first_search(tree)
     ]
 
     if parallel:

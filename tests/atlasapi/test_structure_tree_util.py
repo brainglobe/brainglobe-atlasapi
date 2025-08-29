@@ -1,6 +1,6 @@
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
-    preorder_dfs,
+    preorder_depth_first_search,
 )
 
 STRUCTURES_LIST = [
@@ -61,7 +61,7 @@ def mock_tree():
 def test_preorder_dfs():
     tree = mock_tree()
 
-    preorder = [node.identifier for node in preorder_dfs(tree)]
+    preorder = [node.identifier for node in preorder_depth_first_search(tree)]
     expected_preorder = [
         997,  # root
         8,  # grey

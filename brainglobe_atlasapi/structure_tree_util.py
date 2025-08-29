@@ -61,7 +61,7 @@ def get_structures_tree(structures_list):
     return tree
 
 
-def preorder_dfs(tree):
+def preorder_depth_first_search(tree):
     """
     Yields nodes in a pre-order depth first traversal of the tree.
     """

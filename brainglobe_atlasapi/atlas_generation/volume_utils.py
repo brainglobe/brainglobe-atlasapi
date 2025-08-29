@@ -10,10 +10,10 @@ import zarr
 
 def create_masked_array(volume, label, greater_than=False) -> np.ndarray[bool]:
     """
-    Given a 2d o 3d numpy array and a
+    Given a 2d or 3d numpy array and a
     label value, creates a masked binary
-    array which is 1 when volume == label
-    and 0 otherwise
+    array which is True when volume == label
+    and False otherwise
 
     Parameters
     ----------
@@ -22,7 +22,7 @@ def create_masked_array(volume, label, greater_than=False) -> np.ndarray[bool]:
     label: int, float or list of int.
         the masked array will be 1 where volume == label
     greater_than: bool
-        if True, all voxels with value > label will be set to 1
+        if True, all voxels with value > label will be set to True
     """
     if not isinstance(volume, (np.ndarray, zarr.Array)):
         raise ValueError(

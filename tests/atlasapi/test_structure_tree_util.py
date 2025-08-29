@@ -54,7 +54,6 @@ STRUCTURES_LIST = [
 
 def mock_tree():
     """Create a tree structure from a list of structures."""
-
     return get_structures_tree(STRUCTURES_LIST)
 
 

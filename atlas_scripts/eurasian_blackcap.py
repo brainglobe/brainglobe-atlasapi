@@ -1,6 +1,6 @@
 """Package the BrainGlobe atlas for the Eurasian Blackcap."""
 
-__version__ = "3"
+__version__ = "4"
 
 import csv
 import glob as glob
@@ -55,16 +55,19 @@ def create_atlas(working_dir, resolution):
     ADDITIONAL_METADATA = {}
 
     gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
-    atlas_path = pooch.retrieve(
+    atlas_materials_paths = pooch.retrieve(
         gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
     )
 
-    hierarchy_path = atlas_path[2]  # "combined_structures_update_0825.csv"
-    reference_file = atlas_path[0]  # "blackcap_male_template.nii.gz"
-    structures_file = atlas_path[1]  # "merged_unique_labels.txt"
-    annotations_file = atlas_path[
-        3
-    ]  # "blackcap_male_smoothed_annotations.nii.gz"
+    materials_folder = Path(atlas_materials_paths[0]).parent
+    hierarchy_path = materials_folder / "combined_structures_update_0825.csv"
+    reference_file = materials_folder / "blackcap_male_template.nii.gz"
+    structures_file = (
+        materials_folder / "merged_unique_labels_color-adjusted.txt"
+    )
+    annotations_file = (
+        materials_folder / "blackcap_male_smoothed_annotations.nii.gz"
+    )
     meshes_dir_path = Path.home() / "blackcap-meshes"
 
     try:

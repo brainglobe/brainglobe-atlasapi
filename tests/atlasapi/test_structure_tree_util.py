@@ -1,3 +1,5 @@
+"""Test the structure tree utility functions."""
+
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
     preorder_depth_first_search,
@@ -54,11 +56,11 @@ STRUCTURES_LIST = [
 
 def mock_tree():
     """Create a tree structure from a list of structures."""
-
     return get_structures_tree(STRUCTURES_LIST)
 
 
 def test_preorder_dfs():
+    """Test the preorder depth-first search traversal of the tree."""
     tree = mock_tree()
 
     preorder = [node.identifier for node in preorder_depth_first_search(tree)]

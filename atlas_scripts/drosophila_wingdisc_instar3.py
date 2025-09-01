@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 from brainglobe_utils.image.scale import scale_and_convert_to_16_bits
 from brainglobe_utils.IO.image import load_nii
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
     read_itk_labels,
@@ -165,7 +166,7 @@ def retrieve_structure_information(resources_path: Path):
     return atlas_info
 
 
-def retrieve_or_construct_meshes(annotated_volume, ROOT_ID):
+def retrieve_or_construct_meshes(annotated_volume, structures, resources_path):
     """
     Return a dictionary of IDs and corresponding paths to mesh files.
 
@@ -184,11 +185,10 @@ def retrieve_or_construct_meshes(annotated_volume, ROOT_ID):
     dict
         A dictionary mapping structure IDs to their mesh file paths.
     """
-    download_path = resources_path / "wingdisc_meshes"
+    download_path = DEFAULT_WORKDIR / "wingdisc_meshes"
     download_path.mkdir(exist_ok=True, parents=True)
-    structures = retrieve_structure_information()
     meshes_dict = construct_meshes_from_annotation(
-        download_path, annotated_volume, structures, ROOT_ID
+        download_path, annotated_volume, structures
     )
     return meshes_dict
 
@@ -217,10 +217,10 @@ if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
     resources_path = download_resources()
+    structures = retrieve_structure_information(resources_path)
     reference_volume, annotated_volume = retrieve_reference_and_annotation(resources_path)
     hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information(resources_path)
-    meshes_dict = retrieve_or_construct_meshes(annotated_volume, ROOT_ID)
+    meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures, resources_path)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

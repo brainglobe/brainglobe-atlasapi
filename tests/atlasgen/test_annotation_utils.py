@@ -12,6 +12,8 @@ from brainglobe_atlasapi.atlas_generation.annotation_utils import (
 
 
 def test_split_label_text_name_square_acronym_square():
+    """Test splitting label text with acronym in square brackets.
+    """
     input_name = "BrainGlobeAtlas-Name (BGA-N)"
     expected_name = "BrainGlobeAtlas-Name"
     expected_acronym = "BGA-N"
@@ -21,6 +23,8 @@ def test_split_label_text_name_square_acronym_square():
 
 
 def test_split_label_text_no_acronym_length_specified():
+    """Test splitting label text without acronym, default length 1.
+    """
     input_name = "BrainGlobeAtlas-Name"
     expected_name = "BrainGlobeAtlas-Name"
     expected_acronym = "B"
@@ -30,6 +34,8 @@ def test_split_label_text_no_acronym_length_specified():
 
 
 def test_split_label_text_acronym_length_specified():
+    """Test splitting label text without acronym, specified length 3.
+    """
     input_name = "BrainGlobeAtlas-Name"
     expected_name = "BrainGlobeAtlas-Name"
     expected_acronym = "Bra"
@@ -40,6 +46,8 @@ def test_split_label_text_acronym_length_specified():
 
 
 def test_split_label_text_acronym_length_too_long():
+    """Test error when acronym length exceeds name length.
+    """
     input_name = "BrainGlobeAtlas-Name"
     acronym_length = len(input_name) + 1
     with pytest.raises(ValueError) as exc_info:

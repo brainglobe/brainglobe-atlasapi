@@ -1,3 +1,5 @@
+"""Tests for annotation utility functions."""
+
 from pathlib import Path
 
 import pytest
@@ -48,7 +50,14 @@ def test_split_label_text_acronym_length_too_long():
 
 @pytest.fixture
 def itk_snap_labels():
-    """Labels match those in dummy_itk_snap_labels.txt file."""
+    """Define ITK-SNAP labels that match the dummy file content.
+
+    Returns
+    -------
+    list of dict
+        A list of dictionaries, where each dictionary represents an
+        ITK-SNAP label with its id, name, RGB triplet, and acronym.
+    """
     return [
         {
             "id": 123,
@@ -66,7 +75,13 @@ def itk_snap_labels():
 
 
 def test_read_itk_labels(itk_snap_labels):
-    """Test reading ITK labels from a file."""
+    """Test reading ITK labels from a file.
+
+    Parameters
+    ----------
+    itk_snap_labels : list of dict
+        A list of dictionaries representing expected ITK-SNAP labels.
+    """
     itk_labels_file = (
         Path(__file__).parent / "dummy_data" / "dummy_itk_snap_labels.txt"
     )
@@ -75,7 +90,15 @@ def test_read_itk_labels(itk_snap_labels):
 
 
 def test_write_itk_labels(tmp_path, itk_snap_labels):
-    """Test writing ITK labels to a file."""
+    """Test writing ITK labels to a file.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Temporary directory path provided by pytest fixture.
+    itk_snap_labels : list of dict
+        A list of dictionaries representing ITK-SNAP labels to write.
+    """
     output_file = tmp_path / "output_itk_labels.txt"
     write_itk_labels(output_file, itk_snap_labels)
 

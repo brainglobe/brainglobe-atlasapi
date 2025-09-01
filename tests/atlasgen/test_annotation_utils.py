@@ -13,37 +13,46 @@ from brainglobe_atlasapi.atlas_generation.annotation_utils import (
 )
 
 
-@pytest.mark.parametrize(
-    "input_name, expected_name, expected_acronym",
-    [
-        pytest.param(
-            "BrainGlobeAtlas Name (BGA-N)",
-            "BrainGlobeAtlas Name",
-            "BGA-N",
-            id="name (acronym)",
-        ),
-        pytest.param(
-            "BrainGlobeAtlas Name", "BrainGlobeAtlas Name", "B", id="name"
-        ),
-    ],
-)
-def test_split_label_text(input_name, expected_name, expected_acronym):
-    """Test splitting label text into name and acronym.
-
-    Uses the name's first letter as acronym if not provided.
-
-    Parameters
-    ----------
-    input_name : str
-        Input string containing the label name and optional acronym.
-    expected_name : str
-        Expected name after splitting.
-    expected_acronym : str
-        Expected acronym after splitting.
-    """
+def test_split_label_text_name_square_acronym_square():
+    """Test splitting label text with acronym in square brackets."""
+    input_name = "BrainGlobeAtlas-Name (BGA-N)"
+    expected_name = "BrainGlobeAtlas-Name"
+    expected_acronym = "BGA-N"
     name, acronym = split_label_text(input_name)
     assert name == expected_name
     assert acronym == expected_acronym
+
+
+def test_split_label_text_no_acronym_length_specified():
+    """Test splitting label text without acronym, default length 1."""
+    input_name = "BrainGlobeAtlas-Name"
+    expected_name = "BrainGlobeAtlas-Name"
+    expected_acronym = "B"
+    name, acronym = split_label_text(input_name)
+    assert name == expected_name
+    assert acronym == expected_acronym
+
+
+def test_split_label_text_acronym_length_specified():
+    """Test splitting label text without acronym, specified length 3."""
+    input_name = "BrainGlobeAtlas-Name"
+    expected_name = "BrainGlobeAtlas-Name"
+    expected_acronym = "Bra"
+    acronym_length = 3
+    name, acronym = split_label_text(input_name, acronym_length)
+    assert name == expected_name
+    assert acronym == expected_acronym
+
+
+def test_split_label_text_acronym_length_too_long():
+    """Test error when acronym length exceeds name length."""
+    input_name = "BrainGlobeAtlas-Name"
+    acronym_length = len(input_name) + 1
+    with pytest.raises(ValueError) as exc_info:
+        split_label_text(input_name, acronym_length)
+    assert "Acronym length cannot be longer than the name itself." in str(
+        exc_info.value
+    )
 
 
 @pytest.fixture

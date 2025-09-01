@@ -46,7 +46,10 @@ def test_split_label_text_acronym_length_too_long():
     acronym_length = len(input_name) + 1
     with pytest.raises(ValueError) as exc_info:
         split_label_text(input_name, acronym_length)
-    assert "Acronym length cannot be longer than the name itself." in str(exc_info.value)
+    assert "Acronym length cannot be longer than the name itself." in str(
+        exc_info.value
+    )
+
 
 @pytest.fixture
 def itk_snap_labels():

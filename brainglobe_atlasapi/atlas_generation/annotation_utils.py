@@ -25,7 +25,7 @@ def split_label_text(name: str, acronym_length=1) -> str:
 
 
 def read_itk_labels(path: Path, acronym_length=1) -> dict:
-    """Turns ITK label data from a file into a list of dictionaries."""
+    """Turn ITK label data from a file into a list of dictionaries."""
     labels = []
     with open(path) as labels_file:
         for line in labels_file:

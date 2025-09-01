@@ -1,3 +1,10 @@
+"""
+Test functions for the structure processing utilities in brainglobe_atlasapi.
+
+Verifies the correctness of structure consistency checks,
+children retrieval, and terminal node identification.
+"""
+
 import pytest
 
 from brainglobe_atlasapi.atlas_generation.structures import (
@@ -29,7 +36,17 @@ from brainglobe_atlasapi.atlas_generation.structures import (
 def test_check_struct_consistency(
     structures, structure_transform, expected_error_message
 ):
-    """Test structure consistency check with various modifications."""
+    """Test structure consistency check with various modifications.
+
+    Parameters
+    ----------
+    structures : list
+        List of structure dictionaries.
+    structure_transform : callable
+        Function to modify the structures for testing.
+    expected_error_message : str
+        The expected error message for the AssertionError.
+    """
     structure_transform(structures)
     with pytest.raises(AssertionError, match=expected_error_message):
         check_struct_consistency(structures)
@@ -49,14 +66,24 @@ def test_check_struct_consistency(
 def test_get_structure_children(
     struct_index, use_tree, expected_children, structures
 ):
-    """Verifies correct retrieval of children from a structures fixture tree.
+    """Verify correct retrieval of children from a structures fixture tree.
 
-    Tree:
-
+    >>> Tree:
     root (999)
     └── o (101)
       ├── aon (5)
       └── on (1)
+
+    Parameters
+    ----------
+    struct_index : int
+        Index of the structure in the `structures` list to test.
+    use_tree : bool
+        Whether to use the tree-based approach for getting children.
+    expected_children : list or None
+        The list of expected child IDs, or None if no children are expected.
+    structures : list
+        List of structure dictionaries.
     """
     region = structures[struct_index]
     children = get_structure_children(
@@ -73,7 +100,15 @@ def test_get_structure_children(
     ],
 )
 def test_get_structure_children_no_children(structures, use_tree):
-    """Test retrieval of children from structures tree without children."""
+    """Test retrieval of children from structures tree without children.
+
+    Parameters
+    ----------
+    structures : list
+        List of structure dictionaries.
+    use_tree : bool
+        Whether to use the tree-based approach for getting children.
+    """
     region = structures[0]
     structures = [region, structures[3]]
     children = get_structure_children(
@@ -93,10 +128,20 @@ def test_get_structure_children_no_children(structures, use_tree):
 def test_get_structure_children_incomplete_region(
     dropped_key, error, structures
 ):
-    """Error should be raised when region data is incomplete.
+    """Test raising of error when region data is incomplete.
 
     Error if 'id' or 'structure_id_path' is missing but not when other keys
-    (e.g. 'name') are missing."""
+    (e.g. 'name') are missing.
+
+    Parameters
+    ----------
+    dropped_key : str
+        The key to remove from the region dictionary.
+    error : type or None
+        The expected exception type, or None if no exception is expected.
+    structures : list
+        List of structure dictionaries.
+    """
     region = structures[0].copy()
     region.pop(dropped_key)
     if error is not None:
@@ -154,7 +199,23 @@ def test_get_structure_children_errors(
     expected_message,
     structures,
 ):
-    """Test correct raising of ValueError for invalid inputs."""
+    """Test correct raising of ValueError for invalid inputs.
+
+    Parameters
+    ----------
+    structures_transform : callable
+        Function to transform the `structures` list for testing.
+    region_transform : callable
+        Function to transform the `region` dictionary for testing.
+    expected_error : type
+        The expected exception type.
+    use_tree : bool
+        Whether to use the tree-based approach for getting children.
+    expected_message : str
+        The expected error message for the exception.
+    structures : list
+        List of structure dictionaries.
+    """
     with pytest.raises(expected_error, match=expected_message):
         get_structure_children(
             structures=structures_transform(structures),
@@ -176,7 +237,17 @@ def test_get_structure_children_errors(
 def test_get_structure_terminal_nodes(
     structure_id_path, expected_terminal_nodes, structures
 ):
-    """Test get_structure_terminal_nodes with various structures."""
+    """Test get_structure_terminal_nodes with various structures.
+
+    Parameters
+    ----------
+    structure_id_path : list or None
+        The structure ID path to add for a new terminal node, or None.
+    expected_terminal_nodes : list
+        The list of expected terminal node IDs.
+    structures : list
+        List of structure dictionaries.
+    """
     if structure_id_path is not None:
         structures += [
             {
@@ -195,7 +266,15 @@ def test_get_structure_terminal_nodes(
 
 
 def test_get_structure_terminal_nodes_without_leaves(capsys, structures):
-    """Test region without any terminal nodes (leaves)."""
+    """Test region without any terminal nodes (leaves).
+
+    Parameters
+    ----------
+    capsys : fixture
+        Pytest fixture to capture stdout and stderr.
+    structures : list
+        List of structure dictionaries.
+    """
     region = structures[1]
     terminal_nodes = get_structure_terminal_nodes(
         structures=structures, region=region

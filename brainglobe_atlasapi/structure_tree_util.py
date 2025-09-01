@@ -1,9 +1,28 @@
+"""Utility functions for working with structure trees."""
+
+from collections import deque
+
 from treelib import Tree
 
 # TODO evaluate whether we want this as a method in StructureDict
 
 
 def child_ids(structure, structure_list):
+    """
+    Return a list of IDs of the children of a given structure.
+
+    Parameters
+    ----------
+    structure : dict
+        The structure to find the children of.
+    structure_list : list
+        A list of structures to search within.
+
+    Returns
+    -------
+    list
+        A list of child IDs.
+    """
     return [
         s["id"]
         for s in structure_list
@@ -14,16 +33,16 @@ def child_ids(structure, structure_list):
 
 def get_structures_tree(structures_list):
     """
-    Creates a 'tree' graph with the hierarchical organisation of all
-    structures
+    Create a `tree` graph with the hierarchical organisation of all
+    structures.
     """
 
     def add_descendants_to_tree(
         structures_list, id_to_acronym_map, tree, structure_id, parent_id
     ):
         """
-        Recursively goes through all the the descendants of a region and adds
-        them to the tree
+        Recursively goes through all the descendants of a region and adds
+        them to the tree.
         """
         tree.create_node(
             tag=f"{id_to_acronym_map[structure_id]} ({structure_id})",
@@ -57,3 +76,18 @@ def get_structures_tree(structures_list):
         )
 
     return tree
+
+
+def preorder_depth_first_search(tree):
+    """Yield nodes in a pre-order depth first traversal of the tree."""
+    root_node = tree.nodes[tree.root]
+
+    stack = deque([root_node])
+
+    while len(stack) > 0:
+        current_node = stack.pop()
+        yield current_node
+
+        # Push all children onto the stack in reverse order
+        for child in reversed(tree.children(current_node.identifier)):
+            stack.append(child)

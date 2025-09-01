@@ -1,3 +1,5 @@
+"""Pytest fixtures for the brainglobe_atlasapi package."""
+
 import os
 import shutil
 import tempfile
@@ -10,16 +12,19 @@ from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas, config
 
 @pytest.fixture(autouse=True)
 def mock_brainglobe_user_folders(monkeypatch):
-    """Ensures user config and data is mocked during all local testing.
+    """Mock BrainGlobe user folders.
 
-    User config and data need mocking to avoid interfering with user data.
+    Ensure user config and data is mocked during all local testing to avoid
+    interfering with actual user data.
+
     Mocking is achieved by turning user data folders used in tests into
-    subfolders of a new ~/.brainglobe-tests folder instead of ~/.
-
-    It is not sufficient to mock the home path in the tests, as this
+    subfolders of a new ~/.brainglobe-tests folder instead of the user's home
+    directory. It is not sufficient to mock the home path in the tests, as this
     will leave later imports in other modules unaffected.
 
-    GH actions workflow will test with default user folders.
+    Note
+    ----
+    GitHub Actions workflow will test with default user folders.
     """
     if not os.getenv("GITHUB_ACTIONS"):
         home_path = Path.home()  # actual home path
@@ -53,16 +58,39 @@ def mock_brainglobe_user_folders(monkeypatch):
 
 @pytest.fixture()
 def atlas():
+    """Provide a default BrainGlobeAtlas instance.
+
+    Returns
+    -------
+    BrainGlobeAtlas
+        An instance of BrainGlobeAtlas for 'example_mouse_100um'.
+    """
     return BrainGlobeAtlas("example_mouse_100um")
 
 
 @pytest.fixture()
 def asymmetric_atlas():
+    """Provide an asymmetric BrainGlobeAtlas instance.
+
+    Returns
+    -------
+    BrainGlobeAtlas
+        An instance of BrainGlobeAtlas for 'unam_axolotl_40um'.
+    """
     return BrainGlobeAtlas("unam_axolotl_40um")
 
 
 @pytest.fixture()
 def temp_path():
+    """Create a temporary directory for testing.
+
+    The directory is automatically removed after the test.
+
+    Yields
+    ------
+    pathlib.Path
+        Path to the temporary directory.
+    """
     path = Path(tempfile.mkdtemp())
     yield path
     shutil.rmtree(path)
@@ -70,4 +98,11 @@ def temp_path():
 
 @pytest.fixture(scope="module")
 def atlas_path():
+    """Provide the root directory path of the default atlas.
+
+    Returns
+    -------
+    pathlib.Path
+        The root directory path of the 'example_mouse_100um' atlas.
+    """
     return BrainGlobeAtlas("example_mouse_100um").root_dir

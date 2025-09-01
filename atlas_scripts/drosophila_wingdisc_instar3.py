@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pooch
 from brainglobe_utils.image.scale import scale_and_convert_to_16_bits
 from brainglobe_utils.IO.image import load_nii
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -14,8 +15,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-
-import pooch
 
 # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
 # Institution_SpeciesCommonName, e.g. allen_mouse.
@@ -45,7 +44,7 @@ ROOT_ID = 997
 # parameter for non isotropic datasets or datasets with multiple resolutions.
 RESOLUTION = 2
 gin_url = "https://gin.g-node.org/BrainGlobe/drosophila_materials/raw/master/drosophila_wingdisc_materials.zip"
-    
+
 
 def download_resources():
     """
@@ -60,6 +59,7 @@ def download_resources():
         gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
     )
     return Path(resources_path[-1]).parent
+
 
 def retrieve_reference_and_annotation(resources_path: Path):
     """

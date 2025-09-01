@@ -1,4 +1,4 @@
-"""Unit tests for stack writing functions"""
+"""Unit tests for stack writing functions."""
 
 import os
 from pathlib import Path

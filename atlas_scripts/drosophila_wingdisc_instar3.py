@@ -6,7 +6,6 @@ import pandas as pd
 import pooch
 from brainglobe_utils.image.scale import scale_and_convert_to_16_bits
 from brainglobe_utils.IO.image import load_nii
-from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
     read_itk_labels,
@@ -15,6 +14,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
 # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
 # Institution_SpeciesCommonName, e.g. allen_mouse.
@@ -218,9 +218,13 @@ if __name__ == "__main__":
     bg_root_dir.mkdir(exist_ok=True, parents=True)
     resources_path = download_resources()
     structures = retrieve_structure_information(resources_path)
-    reference_volume, annotated_volume = retrieve_reference_and_annotation(resources_path)
+    reference_volume, annotated_volume = retrieve_reference_and_annotation(
+        resources_path
+    )
     hemispheres_stack = retrieve_hemisphere_map()
-    meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures, resources_path)
+    meshes_dict = retrieve_or_construct_meshes(
+        annotated_volume, structures, resources_path
+    )
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

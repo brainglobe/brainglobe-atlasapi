@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pooch
 from brainglobe_utils.image.scale import scale_and_convert_to_16_bits
 from brainglobe_utils.IO.image import load_nii
 
@@ -13,6 +14,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
 # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
 # Institution_SpeciesCommonName, e.g. allen_mouse.
@@ -41,8 +43,7 @@ ROOT_ID = 997
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
 RESOLUTION = 2
-# Need review
-gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
+gin_url = "https://gin.g-node.org/BrainGlobe/drosophila_materials/raw/master/drosophila_wingdisc_materials.zip"
 
 
 def download_resources():
@@ -54,14 +55,13 @@ def download_resources():
     pathlib.Path
         The path to the directory containing the atlas resources.
     """
-    resources_path = Path("D:/UCL/Postgraduate_programme/templates/Version3")
-    return resources_path
+    resources_path = pooch.retrieve(
+        gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
+    )
+    return Path(resources_path[-1]).parent
 
 
-resources_path = download_resources()
-
-
-def retrieve_reference_and_annotation():
+def retrieve_reference_and_annotation(resources_path: Path):
     """
     Retrieve the desired reference and annotation as two numpy arrays.
 
@@ -72,21 +72,12 @@ def retrieve_reference_and_annotation():
         reference volume, and the second array is the annotation volume.
     """
     print("loading reference and annotation volume")
-    # Need review
-    """
-    annotation_volume_path = Path(resources_path[0])
-    reference_volume_path = Path(resources_path[2])
-
-    annotation = load_nii(annotation_volume_path, as_array=True)
-    reference = load_nii(reference_volume_path, as_array=True)
-    """
     annotation_volume_path = Path(
-        resources_path / "pouch_peripodial_hinge_notum_refined_"
-        "filtered_filtered_filtered.nii.gz"
+        resources_path / "version_1_annotation.nii.gz"
     )
     assert (
         annotation_volume_path.exists()
-    ), "Annotation volume path does not exist."
+    ), f"Annotation volume path {annotation_volume_path} does not exist."
 
     reference_volume_path = Path(
         resources_path
@@ -94,7 +85,7 @@ def retrieve_reference_and_annotation():
     )
     assert (
         reference_volume_path.exists()
-    ), "Reference volume path does not exist."
+    ), f"Reference volume path {reference_volume_path} does not exist."
 
     annotation = load_nii(annotation_volume_path, as_array=True)
     reference = load_nii(reference_volume_path, as_array=True)
@@ -121,7 +112,7 @@ def retrieve_hemisphere_map():
     return None
 
 
-def retrieve_structure_information():
+def retrieve_structure_information(resources_path: Path):
     """
     Return a list of dictionaries with information about the atlas.
 
@@ -149,7 +140,7 @@ def retrieve_structure_information():
 
     itk_labels = pd.DataFrame(read_itk_labels(label_path, 2))
     atlas_info = pd.DataFrame(columns=["id", "name", "acronym", "rgb_triplet"])
-    for index, row in itk_labels.iterrows():
+    for _, row in itk_labels.iterrows():
         atlas_info.loc[len(atlas_info)] = {
             "id": row["id"],
             "name": row["name"],
@@ -175,7 +166,7 @@ def retrieve_structure_information():
     return atlas_info
 
 
-def retrieve_or_construct_meshes(annotated_volume, ROOT_ID):
+def retrieve_or_construct_meshes(annotated_volume, structures, resources_path):
     """
     Return a dictionary of IDs and corresponding paths to mesh files.
 
@@ -194,11 +185,10 @@ def retrieve_or_construct_meshes(annotated_volume, ROOT_ID):
     dict
         A dictionary mapping structure IDs to their mesh file paths.
     """
-    download_path = resources_path / "wingdisc_meshes"
+    download_path = DEFAULT_WORKDIR / "wingdisc_meshes"
     download_path.mkdir(exist_ok=True, parents=True)
-    structures = retrieve_structure_information()
     meshes_dict = construct_meshes_from_annotation(
-        download_path, annotated_volume, structures, ROOT_ID
+        download_path, annotated_volume, structures
     )
     return meshes_dict
 
@@ -226,12 +216,15 @@ def retrieve_additional_references():
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-    download_resources()
-    reference_volume, annotated_volume = retrieve_reference_and_annotation()
-    additional_references = retrieve_additional_references()
+    resources_path = download_resources()
+    structures = retrieve_structure_information(resources_path)
+    reference_volume, annotated_volume = retrieve_reference_and_annotation(
+        resources_path
+    )
     hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information()
-    meshes_dict = retrieve_or_construct_meshes(annotated_volume, ROOT_ID)
+    meshes_dict = retrieve_or_construct_meshes(
+        annotated_volume, structures, resources_path
+    )
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -251,5 +244,4 @@ if __name__ == "__main__":
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
-        additional_references=additional_references,
     )

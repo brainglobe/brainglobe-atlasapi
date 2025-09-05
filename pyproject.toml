@@ -41,6 +41,7 @@ dynamic = ["version"]
 [project.optional-dependencies]
 dev = [
     "black",
+    "brainglobe-atlasapi[atlasgen]",
     "check-manifest",
     "coverage",
     "mypy",

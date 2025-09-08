@@ -1,3 +1,5 @@
+"""Test the core Atlas class."""
+
 import contextlib
 import warnings
 from io import StringIO
@@ -12,6 +14,7 @@ from brainglobe_atlasapi.core import AdditionalRefDict
 
 
 def test_initialization(atlas):
+    """Test Atlas class initialization."""
     assert atlas.metadata == {
         "name": "example_mouse",
         "citation": (
@@ -40,6 +43,7 @@ def test_initialization(atlas):
 
 
 def test_additional_ref_dict(temp_path):
+    """Test AdditionalRefDict class functionality."""
     fake_data = dict()
     for k in ["1", "2"]:
         stack = np.ones((10, 20, 30)) * int(k)
@@ -56,7 +60,13 @@ def test_additional_ref_dict(temp_path):
 
 
 def test_addition_ref_dict_keys_only(temp_path):
-    """Test that AdditionalRefDict can be initialized with keys only."""
+    """Initialize AdditionalRefDict with keys only.
+
+    Parameters
+    ----------
+    temp_path : Path
+        Temporary path for test files.
+    """
     fake_data = ["1", "2"]
     add_ref_dict = AdditionalRefDict(fake_data, temp_path)
 
@@ -72,11 +82,29 @@ def test_addition_ref_dict_keys_only(temp_path):
     ],
 )
 def test_stacks(atlas, stack_name, val):
+    """Test loading and accessing different atlas stacks.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    stack_name : str
+        The name of the stack to test (e.g., "reference", "annotation").
+    val : np.ndarray
+        Expected values for a specific region within the stack.
+    """
     loaded_stack = getattr(atlas, stack_name)
     assert np.allclose(loaded_stack[65:67, 39:41, 56:58], val)
 
 
 def test_structures(atlas):
+    """Test the structures dictionary and retrieval methods.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     assert {s["acronym"]: k for k, s in atlas.structures.items()} == {
         "root": 997,
         "grey": 8,
@@ -93,6 +121,15 @@ def test_structures(atlas):
     "coords", [[39.0, 36.0, 57.0], (39, 36, 57), np.array([39.0, 36.0, 57.0])]
 )
 def test_data_from_coords(atlas, coords):
+    """Test retrieving structure and hemisphere information from coordinates.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    coords : list, tuple, or np.ndarray
+        Coordinates to query.
+    """
     res = atlas.resolution
     assert atlas.structure_from_coords(coords) == 997
     assert atlas.structure_from_coords(coords, as_acronym=True) == "root"
@@ -115,6 +152,13 @@ def test_data_from_coords(atlas, coords):
 def test_data_from_coords_out_of_brain(
     atlas,
 ):
+    """Test querying coordinates outside the atlas boundaries.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     coords = (1, 1, 1)
     key_error_string = "Outside atlas"
 
@@ -132,6 +176,13 @@ def test_data_from_coords_out_of_brain(
 
 
 def test_meshfile_from_id(atlas):
+    """Test retrieving mesh file paths from structure IDs.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     assert (
         atlas.meshfile_from_structure("CH")
         == atlas.root_dir / "meshes/567.obj"
@@ -140,6 +191,13 @@ def test_meshfile_from_id(atlas):
 
 
 def test_mesh_from_id(atlas):
+    """Test loading mesh objects from structure IDs.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     mesh = atlas.structures[567]["mesh"]
     assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
 
@@ -151,6 +209,13 @@ def test_mesh_from_id(atlas):
 
 
 def test_lookup_df(atlas):
+    """Test the lookup DataFrame property.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     df_lookup = atlas.lookup_df
     df = pd.DataFrame(
         dict(
@@ -164,6 +229,13 @@ def test_lookup_df(atlas):
 
 
 def test_hierarchy(atlas):
+    """Test the hierarchy property and its string representation.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     hier = atlas.hierarchy
     temp_stdout = StringIO()
     with contextlib.redirect_stdout(temp_stdout):
@@ -179,6 +251,13 @@ def test_hierarchy(atlas):
 
 
 def test_descendants(atlas):
+    """Test retrieving ancestors and descendants of a structure.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     anc = atlas.get_structure_ancestors("CH")
     assert anc == ["root", "grey"]
 
@@ -187,6 +266,13 @@ def test_descendants(atlas):
 
 
 def test_odd_hemisphere_size(atlas):
+    """Test hemisphere stack handling with an odd Z-axis size.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     atlas.metadata["shape"] = [132, 80, 115]
     assert atlas.hemispheres.shape == (132, 80, 115)
     assert (atlas.hemispheres[:, :, 57] == 2).all()
@@ -194,13 +280,20 @@ def test_odd_hemisphere_size(atlas):
 
 
 def test_even_hemisphere_size(atlas):
+    """Test hemisphere stack handling with an even Z-axis size.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
     assert atlas.hemispheres.shape == (132, 80, 114)
     assert (atlas.hemispheres[:, :, 56] == 2).all()
     assert (atlas.hemispheres[:, :, 57] == 1).all()
 
 
 def test_get_structure_mask(atlas):
-    """Test the get_structure_mask method.
+    """Generate a structure mask and verify its properties.
 
     >>> atlas.structures
     root (997)
@@ -222,6 +315,11 @@ def test_get_structure_mask(atlas):
 
     All labels belonging to structures that are outside of the parent structure
     should be set to 0.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
     """
     atlas.structures["grey"]["id"] = 7
     atlas.structures["CH"]["id"] = 566
@@ -241,7 +339,15 @@ def test_get_structure_mask(atlas):
 
 
 def test_key_error_for_additional_references(atlas, mocker):
-    """Test warning if metadata lacks 'additional_references'."""
+    """Warn if metadata lacks 'additional_references'.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    mocker : pytest_mock.plugin.MockerFixture
+        The mocker fixture.
+    """
     atlas.metadata.pop("additional_references")
     mock_metadata = atlas.metadata
     structures_list = atlas.structures_list
@@ -268,7 +374,17 @@ def test_key_error_for_additional_references(atlas, mocker):
     ],
 )
 def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
-    """Test that TIFF is read for asymmetric atlas hemispheres."""
+    """Read TIFF for asymmetric atlas hemispheres.
+
+    Parameters
+    ----------
+    atlas_fixture : str
+        Name of the atlas fixture to use ("asymmetric_atlas" or "atlas").
+    request : pytest.FixtureRequest
+        Pytest request fixture to get fixture values.
+    mocker : pytest_mock.plugin.MockerFixture
+        The mocker fixture.
+    """
     atlas = request.getfixturevalue(atlas_fixture)
     mocker.patch("brainglobe_atlasapi.core.read_tiff")
     _ = atlas.hemispheres

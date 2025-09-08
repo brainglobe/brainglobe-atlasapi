@@ -41,6 +41,7 @@ dynamic = ["version"]
 [project.optional-dependencies]
 dev = [
     "black",
+    "brainglobe-atlasapi[atlasgen]",
     "check-manifest",
     "coverage",
     "mypy",
@@ -60,6 +61,7 @@ perens_stereotaxic_mri_mouse = ["py7zr"]
 kocher_bumblebee = ["vtk"]
 
 atlasgen = [
+    "brainglobe-utils",
     "loguru",
     "PyMCubes",
     "SimpleITK",
@@ -67,7 +69,8 @@ atlasgen = [
     "vedo",
     "xmltodict",
     "brainglobe-utils",
-    "pooch"
+    "pooch",
+    "zarr"
 ]
 
 [project.scripts]

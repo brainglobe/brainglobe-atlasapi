@@ -14,16 +14,17 @@ import numpy as np
 import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
-from rich.progress import track
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.structure_tree_util import (
+    get_structures_tree,
+)
 
 ATLAS_NAME = "kim_dev_mouse"
 SPECIES = "Mus musculus"
@@ -135,7 +136,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     # see: https://github.com/fatiando/pooch/issues/457
     annotations_path = next(p for p in fetched_paths if p.endswith(members[0]))
     reference_path = next(p for p in fetched_paths if p.endswith(members[1]))
-    annotations = load_nii(annotations_path, as_array=True)
+    annotations = load_nii(annotations_path, as_array=True).astype(np.uint32)
     reference = load_nii(reference_path, as_array=True)
     dmin = np.min(reference)
     dmax = np.max(reference)
@@ -244,30 +245,17 @@ def create_meshes(
     # Mesh creation
     closing_n_iters = 2
     smooth = True  # smooth meshes after creation
+
     start = time.time()
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        # list(tree.nodes.values())[:5],
-        # total=5,
-        description="Creating meshes",
-    ):
-        output_file = output_path / f"{node.identifier}.obj"
-        if output_file.exists():
-            continue
-        create_region_mesh(
-            (
-                output_path,
-                node,
-                tree,
-                labels,
-                annotation_volume,
-                root_id,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            )
-        )
+
+    construct_meshes_from_annotation(
+        output_path,
+        volume=annotation_volume,
+        structures_list=structures,
+        closing_n_iters=closing_n_iters,
+        decimate_fraction=decimate_fraction,
+        smooth=smooth,
+    )
 
     print(
         "Finished mesh extraction in: ",
@@ -491,7 +479,7 @@ if __name__ == "__main__":
         else:
             meshes_dir_path = atlas_dir / "meshes"
             create_meshes(
-                meshes_dir_path,
+                atlas_dir,
                 structures,
                 annotation_volume,
                 ROOT_ID,

@@ -1,11 +1,14 @@
 """Atlas generation script for the Allen Segmentation version of DeMBA"""
+
 import shutil
 from pathlib import Path
+
 import pooch
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from brainglobe_utils.IO.image import load_any
 from scipy.ndimage import zoom
+
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,

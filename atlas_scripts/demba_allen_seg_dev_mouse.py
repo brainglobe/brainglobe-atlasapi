@@ -42,7 +42,7 @@ def download_resources(download_dir_path, atlas_file_url, atlas_name):
     Slight issue that the hash seems different each time.
     I think the files are being zipped on the server each time we request and it's
     changing the hash somehow (Maybe date and time is encoded in the
-    file when zipped)
+    file when zipped).
     """
     utils.check_internet_connection()
 
@@ -113,8 +113,8 @@ def retrieve_reference_and_annotation(
 ):
     """
     Retrieve the desired reference and annotation as two numpy arrays.
-    we unfortunately did not provide 25um segmentations so
-    we will just downsample the 20um ones
+    we unfortunately did not provide 25um segmentations so we will just
+    downsample the 20um ones.
     Returns:
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
@@ -171,7 +171,7 @@ def retrieve_hemisphere_map():
 
 
 def retrieve_structure_information(download_path):
-    """Use the allen ccf 2022 ontology via the allen ontology api"""
+    """Use the allen ccf 2022 ontology via the allen ontology api."""
     spacecache = ReferenceSpaceCache(
         manifest=download_path / "manifest.json",
         # downloaded files are stored relative to here

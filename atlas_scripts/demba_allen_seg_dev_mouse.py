@@ -1,4 +1,4 @@
-"""Atlas generation script for the Allen Segmentation version of DeMBA"""
+"""Atlas generation script for the Allen Segmentation version of DeMBA."""
 
 import shutil
 from pathlib import Path

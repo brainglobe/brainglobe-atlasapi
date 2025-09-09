@@ -115,7 +115,9 @@ def retrieve_reference_and_annotation(
     Retrieve the desired reference and annotation as two numpy arrays.
     we unfortunately did not provide 25um segmentations so we will just
     downsample the 20um ones.
-    Returns:
+
+    Returns
+    -------
         tuple: A tuple containing two numpy arrays. The first array is the
         reference volume, and the second array is the annotation volume.
     """

@@ -40,8 +40,8 @@ resolution_to_modalities = {
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
     """
     Slight issue that the hash seems different each time.
-    I think the files are being zipped on the server each time we request 
-    and it's changing the hash somehow (Maybe date and time is encoded in 
+    I think the files are being zipped on the server each time we request
+    and it's changing the hash somehow (Maybe date and time is encoded in
     the file when zipped).
     """
     utils.check_internet_connection()

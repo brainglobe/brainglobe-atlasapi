@@ -40,9 +40,9 @@ resolution_to_modalities = {
 def download_resources(download_dir_path, atlas_file_url, atlas_name):
     """
     Slight issue that the hash seems different each time.
-    I think the files are being zipped on the server each time we request and it's
-    changing the hash somehow (Maybe date and time is encoded in the
-    file when zipped).
+    I think the files are being zipped on the server each time we request 
+    and it's changing the hash somehow (Maybe date and time is encoded in 
+    the file when zipped).
     """
     utils.check_internet_connection()
 
@@ -142,7 +142,7 @@ def retrieve_additional_references(
     download_dir_path, age, resolution, modalities
 ):
     """
-    Retrieves the additional references which are MRI LSFM and Allen STPT.
+    Retrieve the additional references which are MRI LSFM and Allen STPT.
     For the 10um Allen stpt is the main and only reference.
     This is because it is the only volume with 10um resolution.
     """

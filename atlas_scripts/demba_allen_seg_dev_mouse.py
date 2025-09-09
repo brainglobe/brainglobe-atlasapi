@@ -167,6 +167,7 @@ def retrieve_hemisphere_map():
     -------
         None: Atlas is symmetrical
     """
+    return None
 
 
 def retrieve_structure_information(download_path):

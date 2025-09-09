@@ -1,3 +1,5 @@
+"""Provide utility functions for brainglobe-atlasapi."""
+
 import configparser
 import json
 import logging
@@ -86,26 +88,39 @@ def atlas_repr_from_name(name):
 
     atlas_name = "_".join(parts)
 
-    # For unspecified version:
+    # For specified version:
     if version_str:
         major_vers, minor_vers = version_str[1:].split(".")
     else:
         major_vers, minor_vers = None, None
 
-    return dict(
+    # separate unit from resolution
+    unit = None
+    for res_unit in descriptors.RESOLUTION:
+        if resolution_str.endswith(res_unit):
+            unit = res_unit
+            resolution_str = resolution_str[: -len(res_unit)]
+            break
+
+    result = dict(
         name=atlas_name,
         major_vers=major_vers,
         minor_vers=minor_vers,
         resolution=resolution_str,
     )
+    if unit:
+        result["unit"] = unit
+    return result
 
 
-def atlas_name_from_repr(name, resolution, major_vers=None, minor_vers=None):
+def atlas_name_from_repr(
+    name, resolution, major_vers=None, minor_vers=None, unit="um"
+):
     """Generate atlas name given a description."""
     if major_vers is None and minor_vers is None:
-        return f"{name}_{resolution}"
+        return f"{name}_{resolution}{unit}"
     else:
-        return f"{name}_{resolution}_v{major_vers}.{minor_vers}"
+        return f"{name}_{resolution}{unit}_v{major_vers}.{minor_vers}"
 
 
 ### Web requests
@@ -167,7 +182,7 @@ def check_gin_status(timeout=5, raise_error=True):
         _ = requests.get(url, timeout=timeout)
 
         return True
-    except requests.ConnectionError as e:
+    except (requests.ConnectionError, requests.exceptions.Timeout) as e:
         error_message = "GIN server is down."
         if not raise_error:
             print(error_message)
@@ -248,7 +263,7 @@ def retrieve_over_http(
 
 
 def get_download_size(url: str) -> int:
-    """Get file size based on the MB value on the "src" page of each atlas
+    """Get file size based on the MB value on the "src" page of each atlas.
 
     Parameters
     ----------
@@ -308,15 +323,19 @@ def get_download_size(url: str) -> int:
 
 
 def conf_from_url(url) -> configparser.ConfigParser:
-    """Read conf file from a URL. And cache a copy in the brainglobe dir.
+    """Read conf file from a URL and
+    cache a copy of the configuration file in the brainglobe directory.
+
     Parameters
     ----------
     url : str
-        conf file url (in a repo, make sure the "raw" url is passed)
+        URL of the configuration file. Ensure it's the raw URL for repository
+        files (e.g., from GIN raw content).
 
     Returns
     -------
-    conf object
+    configparser.ConfigParser
+        A ConfigParser object containing the configuration data.
 
     """
     cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
@@ -360,16 +379,23 @@ def conf_from_url(url) -> configparser.ConfigParser:
 
 
 def conf_from_file(file_path: Path) -> configparser.ConfigParser:
-    """Read conf file from a local file path.
+    """Read a configuration file from a local file path.
+
     Parameters
     ----------
     file_path : Path
-        conf file path (obtained from config.get_brainglobe_dir())
+        The path to the configuration file (e.g., obtained from
+        config.get_brainglobe_dir()).
 
     Returns
     -------
-    conf object if file available
+    configparser.ConfigParser
+        A ConfigParser object containing the configuration data.
 
+    Raises
+    ------
+    FileNotFoundError
+        If the specified `file_path` does not exist.
     """
     if not file_path.exists():
         raise FileNotFoundError("Last versions cache file not found.")

@@ -1,3 +1,5 @@
+"""Test the StructuresDict class for handling atlas structures."""
+
 import meshio as mio
 import pytest
 
@@ -35,6 +37,11 @@ structures_list = [
 
 @pytest.mark.filterwarnings("ignore:No mesh filename for region root")
 def test_structure_indexing():
+    """Test various indexing methods for StructuresDict.
+
+    Verify that structures can be accessed by integer ID, float ID,
+    and string ID, and that mesh loading errors are handled.
+    """
     structures_dict = StructuresDict(structures_list)
     print(structures_dict)
     assert structures_dict[997] == structures_dict["root"]
@@ -49,6 +56,13 @@ def test_structure_indexing():
 
 
 def test_mesh_loading(atlas_path):
+    """Load meshes from a StructuresDict and verify type.
+
+    Parameters
+    ----------
+    atlas_path : Path
+        Path to the test atlas directory.
+    """
     structures_list_real = read_json(
         atlas_path / descriptors.STRUCTURES_FILENAME
     )

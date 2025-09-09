@@ -1,3 +1,5 @@
+"""Module containing property descriptors for brainglobe-atlasapi."""
+
 import numpy as np
 
 # Base url of the gin repository:

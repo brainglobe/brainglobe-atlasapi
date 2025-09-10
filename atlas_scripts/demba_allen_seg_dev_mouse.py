@@ -235,7 +235,6 @@ if __name__ == "__main__":
                 age_specific_root_dir,
                 annotated_volume,
                 structures,
-                ROOT_ID,
                 decimate_fraction=0.5,
                 closing_n_iters=1,
             )

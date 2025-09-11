@@ -94,11 +94,11 @@ class BrainGlobeAtlas(core.Atlas):
             else:
                 self.download_extract_file()
 
-        # Instantiate after eventual download:
-        super().__init__(self.brainglobe_dir / self.local_full_name)
-
-        if check_latest:
-            self.check_latest_version()
+        # # Instantiate after eventual download:
+        # super().__init__(self.brainglobe_dir / self.local_full_name)
+        #
+        # if check_latest:
+        #     self.check_latest_version()
 
     @property
     def local_version(self):

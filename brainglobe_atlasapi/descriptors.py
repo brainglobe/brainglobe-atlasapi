@@ -7,6 +7,10 @@ remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
 remote_url_base_v2 = (
     "https://gin.g-node.org/brainglobe/atlases-v2/raw/master/{}"
 )
+remote_url_base_allen = (
+    "s3://aind-scratch-data/david.feng/allen-atlas-assets/{}"
+)
+remote_bucket_allen = "aind-scratch-data/david.feng/allen-atlas-assets/{}"
 
 # Major version of atlases used by current brainglobe-atlasapi release:
 ATLAS_MAJOR_V = 0

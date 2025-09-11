@@ -54,6 +54,22 @@ class Atlas:
                 / STRUCTURES_FILENAME
             )
             meshes_dir = "meshes/" + self.metadata["meshes"][0]
+        elif atlas_path.suffix == ".json":
+            self.root_dir = atlas_path.parents[3]
+            self.metadata = read_json(atlas_path)
+            structures_path = (
+                self.root_dir
+                / self.metadata["terminology"]["location"]
+                / STRUCTURES_FILENAME
+            )
+            structures_list = read_json(structures_path)
+            meshes_dir = str(
+                self.metadata["annotation_set"]["location"] / MESHES_DIRNAME
+            )
+        else:
+            raise ValueError(
+                "Atlas path must be a folder (v1) or a .yaml/.json file (v2)."
+            )
 
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list

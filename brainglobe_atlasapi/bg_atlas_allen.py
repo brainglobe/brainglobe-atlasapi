@@ -1,10 +1,11 @@
-"""Defines the BrainGlobeAtlasAllen class for instantiating atlases from Allen."""
+"""Defines BrainGlobeAtlasAllen class for instantiating atlases from Allen."""
 
 import json
 import re
 from pathlib import Path
 from typing import List, Optional, Union
 
+import numpy as np
 import pandas as pd
 import s3fs
 import zarr
@@ -23,6 +24,33 @@ def _version_str_from_tuple(version_tuple):
 
 
 class BrainGlobeAtlasAllen(BrainGlobeAtlas):
+    """Add remote atlas fetching and version comparison functionalities
+    to the core Atlas class.
+
+    Parameters
+    ----------
+    atlas_name : str
+        Name of the atlas to be used.
+    resolution : int or float
+        Desired isotropic resolution in microns.
+    version : str (optional)
+        Desired version of the atlas. If None, the latest version will be used.
+    brainglobe_dir : str or Path object
+        Default folder for brainglobe downloads.
+    interm_download_dir : str or Path object
+        Folder to download the compressed file for extraction.
+    check_latest : bool (optional)
+        If true, check if we have the most recent atlas (default=True). Set
+        this to False to avoid waiting for remote server response on atlas
+        instantiation and to suppress warnings.
+    print_authors : bool (optional)
+        If true, disable default listing of the atlas reference.
+    fn_update : Callable
+        Handler function to update during download. Takes completed and total
+        bytes.
+
+    """
+
     atlas_name = None
     _remote_url_base = descriptors.remote_url_base_allen
 
@@ -40,16 +68,18 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
         self._local_version = (
             _version_tuple_from_str(version) if version else None
         )
-        self._resolution = (resolution, resolution, resolution)
-        self.metadata = None
+        # Hacky solution handling: we assume isotropic atlases for now
+        self._resolution = [resolution, resolution, resolution]
+        self._pyramid_level = None
+        self._shape = None
         self.fs = s3fs.S3FileSystem(anon=True)
 
         super().__init__(atlas_name, **kwargs)
 
     @property
     def local_full_name(self):
-        """As we can't know the local version a priori, search candidate dirs
-        using name and not version number. If none is found, return None.
+        """If atlas is local, return actual version of the downloaded files;
+        Else, return none.
         """
         if self._local_full_name is None:
             # Create the v2 atlases directory if it doesn't exist
@@ -58,9 +88,15 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
             )
 
             if self._requested_version is not None:
-                pattern = f"atlases_allen/atlases/{self.atlas_name}/{self._requested_version}/manifest.json"
+                pattern = (
+                    f"atlases_allen/atlases/{self.atlas_name}/"
+                    f"{self._requested_version}/manifest.json"
+                )
             else:
-                pattern = rf"atlases_allen/atlases/{self.atlas_name}/\d+(?:_\d+)?/manifest.json"
+                pattern = (
+                    rf"atlases_allen/atlases/"
+                    rf"{self.atlas_name}/\d+(?:_\d+)?/manifest.json"
+                )
 
             # Search for local directories matching the pattern
             glob_pattern = (
@@ -77,13 +113,57 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
 
             available_versions.sort(reverse=True)
 
-            self._local_full_name = f"atlases_allen/atlases/{self.atlas_name}/{_version_str_from_tuple(available_versions[0])}/manifest.json"
+            self._local_full_name = (
+                f"atlases_allen/atlases/"
+                f"{self.atlas_name}/"
+                f"{_version_str_from_tuple(available_versions[0])}/"
+                f"manifest.json"
+            )
 
         return self._local_full_name
 
     @property
-    def resolution(self):
-        return self._resolution
+    def shape(self):
+        """Make shape more accessible from class."""
+        if self._shape is not None:
+            return self._shape
+
+        annotation_set_path = self.metadata["annotation_set"]["location"][1:]
+        annotation_path = (
+            self.brainglobe_dir / "atlases_allen" / annotation_set_path
+        )
+        annotation_zarr_path = (
+            annotation_path / "annotations_compressed.ome.zarr"
+        )
+        if annotation_zarr_path.exists():
+            group = zarr.open(annotation_zarr_path, mode="r", zarr_format=3)
+            ome_metadata = group.attrs.get("ome", None)
+            pyramid_transforms = ome_metadata["multiscales"][0]["datasets"]
+
+            for pyramid_level in pyramid_transforms:
+                transforms = pyramid_level["coordinateTransformations"]
+                for transform in transforms:
+                    if transform["type"] == "scale":
+                        # Assume scales are mm and resolution in um
+                        scale_factors = np.array(transform["scale"]) * 1e3
+                        if np.allclose(scale_factors, self._resolution):
+                            self._pyramid_level = pyramid_level["path"]
+                            self.metadata["shape"] = group[
+                                self._pyramid_level
+                            ].shape
+                            self._shape = self.metadata["shape"]
+                            self.metadata["resolution"] = self._resolution
+                            break
+
+                if self._pyramid_level is not None:
+                    break
+
+            if self._pyramid_level is None:
+                raise ValueError(
+                    f"Requested resolution {self._resolution} not found in "
+                    f"available pyramid levels."
+                )
+        return self._shape
 
     @property
     def local_version(self):
@@ -133,6 +213,7 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
 
     @property
     def template(self):
+        """Return the template image data. Loads it if not already loaded."""
         if self._template is None:
             template_path = (
                 self.root_dir
@@ -162,10 +243,15 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
     @property
     @deprecated("Use the 'template' property instead.")
     def reference(self):
+        """Return the reference image data. Loads it if not already loaded."""
         return self.template
 
     @property
     def annotation(self):
+        """
+        Return the annotation image data.
+        Loads it if not already loaded.
+        """
         if self._annotation is None:
             annotation_path = (
                 self.root_dir
@@ -194,6 +280,7 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
 
     @property
     def remote_url(self):
+        """Format complete url for download."""
         if self.remote_version is not None:
             name = (
                 f"{self.atlas_name}_v{self.remote_version[0]}_"
@@ -334,14 +421,13 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
             self.fs.get(remote_zarr_path, local_zarr_path / "zarr.json")
 
     def _get_from_structure(self, structure, key):
-        """
-        Internal interface to the structure dict. It supports querying with a
-        single structure id or a list of ids.
+        """Provide internal interface to the structure dict. It supports
+        querying with a single structure id or a list of ids.
 
         Parameters
         ----------
         structure : int or str or list
-            Valid id or acronym, or list of ids or acronyms.
+            Valid id or acronym, or list if ids or acronyms.
         key : str
             Key for the Structure dictionary (eg "name" or "rgb_triplet").
 
@@ -349,6 +435,7 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
         -------
         value or list of values
             If structure is a list, returns list.
+
         """
         # Check if mesh is cached
         if key == "mesh":

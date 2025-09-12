@@ -59,12 +59,14 @@ class Atlas:
             self.metadata = read_json(atlas_path)
             structures_path = (
                 self.root_dir
-                / self.metadata["terminology"]["location"]
+                / self.metadata["terminology"]["location"][1:]
                 / STRUCTURES_FILENAME
             )
             structures_list = read_json(structures_path)
-            meshes_dir = str(
-                self.metadata["annotation_set"]["location"] / MESHES_DIRNAME
+            meshes_dir = (
+                self.metadata["annotation_set"]["location"][1:]
+                + "/"
+                + MESHES_DIRNAME
             )
         else:
             raise ValueError(

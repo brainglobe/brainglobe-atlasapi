@@ -215,28 +215,28 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
     def template(self):
         """Return the template image data. Loads it if not already loaded."""
         if self._template is None:
+            template_location = self.metadata["annotation_set"]["template"][
+                "location"
+            ][1:]
             template_path = (
                 self.root_dir
-                / "templates"
-                / self.metadata["template_names"][0]
-                / f"{int(self.resolution[0])}um.zarr.zip"
+                / template_location
+                / "template.ome.zarr"
+                / self._pyramid_level
             )
-            if not template_path.exists():
+            if not (template_path / "c").exists():
                 print("Downloading template image...")
                 remote_name = (
-                    f"templates/{self.metadata['template_names'][0]}/"
-                    f"{int(self.resolution[0])}um.zarr.zip"
+                    template_location
+                    + f"/template.ome.zarr/{self._pyramid_level}"
                 )
-                self.pooch.registry[remote_name] = None
-                self.pooch.fetch(
-                    remote_name,
-                    progressbar=True,
+                remote_path = descriptors.remote_bucket_allen.format(
+                    remote_name
                 )
+                self.fs.get(remote_path, template_path.parent, recursive=True)
 
-            store = zarr.storage.ZipStore(template_path, mode="r")
-            template_array = zarr.open_array(store, mode="r", zarr_format=3)
+            template_array = zarr.open(template_path, mode="r", zarr_format=3)
             self._template = template_array[...]
-            store.close()
 
         return self._template
 
@@ -253,28 +253,32 @@ class BrainGlobeAtlasAllen(BrainGlobeAtlas):
         Loads it if not already loaded.
         """
         if self._annotation is None:
+            annotation_location = self.metadata["annotation_set"]["location"][
+                1:
+            ]
             annotation_path = (
                 self.root_dir
-                / "annotations"
-                / self.metadata["annotation_names"][0]
-                / f"{int(self.resolution[0])}um.zarr.zip"
+                / annotation_location
+                / "annotations_compressed.ome.zarr"
+                / self._pyramid_level
             )
-            if not annotation_path.exists():
+            if not (annotation_path / "c").exists():
                 print("Downloading annotation image...")
                 remote_name = (
-                    f"annotations/{self.metadata['annotation_names'][0]}/"
-                    f"{int(self.resolution[0])}um.zarr.zip"
+                    annotation_location
+                    + f"/annotations_compressed.ome.zarr/{self._pyramid_level}"
                 )
-                self.pooch.registry[remote_name] = None
-                self.pooch.fetch(
-                    remote_name,
-                    progressbar=True,
+                remote_path = descriptors.remote_bucket_allen.format(
+                    remote_name
+                )
+                self.fs.get(
+                    remote_path, annotation_path.parent, recursive=True
                 )
 
-            store = zarr.storage.ZipStore(annotation_path, mode="r")
-            annotation_array = zarr.open_array(store, mode="r", zarr_format=3)
+            annotation_array = zarr.open(
+                annotation_path, mode="r", zarr_format=3
+            )
             self._annotation = annotation_array[...]
-            store.close()
 
         return self._annotation
 

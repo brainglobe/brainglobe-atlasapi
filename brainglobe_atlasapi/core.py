@@ -362,6 +362,115 @@ class Atlas:
 
         return descendants
 
+    def get_structures_at_hierarchy_level(
+        self, structure, hierarchy_level=None, as_acronym=False
+    ):
+        """
+        Get structures at a specific hierarchy level within the descendants
+        of a given structure.
+
+        For a given brain structure, this method finds all leaf nodes
+        (terminal structures with no children) in its subtree, then extracts
+        the structures at the specified hierarchy level from their paths.
+
+        Parameters
+        ----------
+        structure : str or int
+            Structure ID or acronym to query.
+        hierarchy_level : int or None, optional
+            The hierarchy level to extract (0-indexed, where 0 is root).
+            If None, returns all structures in the paths to all leaves.
+        as_acronym : bool, optional
+            If True, return acronyms instead of IDs. Default is False.
+
+        Returns
+        -------
+        list
+            List of structure IDs (if as_acronym=False) or acronyms
+            (if as_acronym=True) at the specified hierarchy level.
+
+        Raises
+        ------
+        ValueError
+            If hierarchy_level is not an integer or None.
+            If the structure has no descendants at the specified level.
+
+        Examples
+        --------
+        >>> atlas = BrainGlobeAtlas("allen_mouse_25um")
+        >>> # Get all level-3 structures under cortex
+        >>> ids = atlas.get_structures_at_hierarchy_level("CTX", 3)
+        >>> # Get as acronyms instead
+        >>> acronyms = atlas.get_structures_at_hierarchy_level("CTX", 3, as_acronym=True)
+        """
+        # Type validation
+        if not (
+            hierarchy_level is None
+            or (
+                isinstance(hierarchy_level, int)
+                and not isinstance(hierarchy_level, bool)
+            )
+        ):
+            raise ValueError(
+                f"hierarchy_level must be an int or None, got {type(hierarchy_level).__name__}"
+            )
+
+        # Validate non-negative hierarchy level
+        if hierarchy_level is not None and hierarchy_level < 0:
+            raise ValueError("hierarchy_level must be non-negative")
+
+        # Validate structure exists
+        try:
+            input_id = self.structures[structure]["id"]
+        except KeyError:
+            raise KeyError(f"Structure '{structure}' not found in atlas")
+
+        # Get all leaf nodes (terminal descendants) of this structure
+        input_id_leaves = self.structures.tree.leaves(input_id)
+
+        # Handle empty leaves (structure has no descendants)
+        if not input_id_leaves:
+            return []
+
+        if hierarchy_level is None:
+            # Get all structures in paths to leaves
+            conn_ids = set(
+                np.concatenate(
+                    [
+                        self.structures[leaf.identifier]["structure_id_path"][
+                            :
+                        ]
+                        for leaf in input_id_leaves
+                    ]
+                )
+            )
+            conn_acronyms = [
+                self.structures[sid]["acronym"] for sid in conn_ids
+            ]
+        else:
+            # Get structures at specific hierarchy level
+            try:
+                conn_ids = set(
+                    [
+                        self.structures[leaf.identifier]["structure_id_path"][
+                            hierarchy_level
+                        ]
+                        for leaf in input_id_leaves
+                    ]
+                )
+                conn_acronyms = [
+                    self.structures[sid]["acronym"] for sid in conn_ids
+                ]
+            except IndexError:
+                raise ValueError(
+                    f'Structure {self.structures[structure]["acronym"]} has no '
+                    f"descendants at hierarchy level {hierarchy_level}"
+                )
+
+        if as_acronym:
+            return conn_acronyms
+        return list(conn_ids)
+
     def get_structure_mask(self, structure):
         """
         Return a stack with the mask for a specific structure (including all

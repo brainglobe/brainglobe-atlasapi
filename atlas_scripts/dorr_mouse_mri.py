@@ -3,6 +3,7 @@
 __version__ = "0"
 
 import random
+import shutil
 import time
 from pathlib import Path
 
@@ -10,17 +11,12 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 import tifffile
-from rich.progress import track
-from skimage.filters.rank import modal
-from skimage.morphology import ball
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    Region,
-    create_region_mesh,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def create_atlas(working_dir):
@@ -50,11 +46,10 @@ def create_atlas(working_dir):
     ROOT_ID = 1
     ANNOTATIONS_RES_UM = 32
 
-    ### Need to change gin link ###
-    # ATLAS_FILE_URL = "https://gin.g-node.org/brainglobe/kim_atlas_materials/raw/master/kim_atlas_materials.tar.gz"
-    ###############################
+    temp_dir = working_dir / "dorr-temp"
+    temp_dir.mkdir(exist_ok=True)
 
-    def get_reference_and_annotations(root_dir=working_dir):
+    def get_reference_and_annotations(root_dir=temp_dir):
         urls = {
             "male-female-mouse-atlas.mnc": "https://www.mouseimaging.ca/mnc/C57Bl6j_mouse_atlas/"
             "male-female-mouse-atlas.mnc",
@@ -95,14 +90,24 @@ def create_atlas(working_dir):
             outputs["c57_fixed_labels_resized.mnc"],
         )
 
-    def generate_brainglobe_structures(root_id=1, root_dir=working_dir):
+    def generate_brainglobe_structures(root_id=1, root_dir=temp_dir):
         csv_url = f"{ATLAS_LINK}/c57_brain_atlas_labels.csv"
         csv_path = root_dir / "c57_brain_atlas_labels.csv"
         utils.retrieve_over_http(csv_url, csv_path)
 
         df = pd.read_csv(csv_path)
 
-        structures = [
+        original_structures = [
+            {
+                "acronym": "root",
+                "id": root_id,
+                "name": "brain",
+                "structure_id_path": [root_id],
+                "rgb_triplet": [255, 255, 255],
+            }
+        ]
+
+        unified_structures = [
             {
                 "acronym": "root",
                 "id": root_id,
@@ -113,22 +118,24 @@ def create_atlas(working_dir):
         ]
 
         used_ids = set([root_id])
+        unified_used_ids = set([root_id])
+        hemisphere_pairs = {}
 
         for _, row in df.iterrows():
             name = row["Structure"].strip()
             left_id = int(row["left label"])
             right_id = int(row["right label"])
 
-            # Generate acronym from first letters of up to first 3 words
+            # Create acronym
             acronym = "".join([w[0].upper() for w in name.split()[:3]])[:5]
 
             random.seed(name)
             color = [random.randint(0, 255) for _ in range(3)]
 
-            # Merge if IDs are the same
+            # Original structures (keep left/right separate)
             if left_id == right_id:
                 if left_id not in used_ids:
-                    structures.append(
+                    original_structures.append(
                         {
                             "acronym": acronym,
                             "id": left_id,
@@ -141,7 +148,7 @@ def create_atlas(working_dir):
             else:
                 # Right hemisphere
                 if right_id not in used_ids:
-                    structures.append(
+                    original_structures.append(
                         {
                             "acronym": acronym + "_R",
                             "id": right_id,
@@ -154,7 +161,7 @@ def create_atlas(working_dir):
 
                 # Left hemisphere
                 if left_id not in used_ids:
-                    structures.append(
+                    original_structures.append(
                         {
                             "acronym": acronym + "_L",
                             "id": left_id,
@@ -165,16 +172,39 @@ def create_atlas(working_dir):
                     )
                     used_ids.add(left_id)
 
-        return structures
+                # Record hemisphere mapping
+                hemisphere_pairs[right_id] = left_id
+
+            # Unified structures (merge L/R)
+            canonical_id = left_id  # Use left hemisphere ID
+            if canonical_id not in unified_used_ids:
+                unified_structures.append(
+                    {
+                        "acronym": acronym,
+                        "id": canonical_id,
+                        "name": name,
+                        "structure_id_path": [root_id, canonical_id],
+                        "rgb_triplet": color,
+                    }
+                )
+                unified_used_ids.add(canonical_id)
+
+        return original_structures, unified_structures, hemisphere_pairs
 
     reference, annotations = get_reference_and_annotations()
-    structures = generate_brainglobe_structures()
+    original_structures, unified_structures, hemisphere_pairs = (
+        generate_brainglobe_structures()
+    )
 
-    # ----------- REMAP ANNOTATION LABELS TO MATCH STRUCTURE IDS ----------- #
+    # Remap Annotation Labels to Match Structure IDS
+    print("Remapping annotation labels to structure IDs...")
+
     unique_ann = np.unique(annotations)
-    structure_ids = [s["id"] for s in structures if s["id"] != ROOT_ID]
-
     unique_ann_sorted = np.sort(unique_ann[unique_ann != 0])
+
+    structure_ids = [
+        s["id"] for s in original_structures if s["id"] != ROOT_ID
+    ]
     structure_ids_sorted = np.sort(structure_ids)
 
     if len(unique_ann_sorted) != len(structure_ids_sorted):
@@ -183,101 +213,54 @@ def create_atlas(working_dir):
             f"{len(structure_ids_sorted)} structure IDs."
         )
 
-    print(
-        f"Mapping {len(unique_ann_sorted)} "
-        f"annotation labels to structure IDs..."
-    )
-
     label_mapping = dict(zip(unique_ann_sorted, structure_ids_sorted))
 
     remapped_annotations = np.zeros_like(annotations, dtype=np.int32)
-    for old, new in label_mapping.items():
-        remapped_annotations[annotations == old] = new
-
-    annotations = remapped_annotations
+    for old_id, new_id in label_mapping.items():
+        remapped_annotations[annotations == old_id] = new_id
 
     print("Remapping complete.")
-    print("Unique annotation IDs after remap:", np.unique(annotations))
+    print(
+        "Unique annotation IDs after remap:",
+        len(np.unique(remapped_annotations)),
+    )
+
+    # Unify Left and Right Hemisphere Labels
+    print("Unifying left and right hemisphere labels...")
+
+    unified_annotations = remapped_annotations.copy()
+    for right_id, left_id in hemisphere_pairs.items():
+        if right_id in np.unique(unified_annotations):
+            unified_annotations[unified_annotations == right_id] = left_id
+
+    print("Hemisphere unification complete.")
+    print(
+        "Unique annotation IDs after unification:",
+        len(np.unique(unified_annotations)),
+    )
 
     # ---------------------------------------------------------------------- #
-
-    tree = get_structures_tree(structures)
-
-    # Generate binary mask for mesh creation
-    labels = np.unique(annotations).astype(np.int_)
-    for key, node in tree.nodes.items():
-        is_label = key in labels
-        node.data = Region(is_label)
 
     # Mesh creation parameters
     closing_n_iters = 10
     decimate_fraction = 0.6
     smooth = True
 
-    meshes_dir_path = working_dir / "meshes"
-    meshes_dir_path.mkdir(exist_ok=True)
-
-    # pass a smoothed version of the annotations for meshing
-    smoothed_annotations = annotations.copy()
-    smoothed_annotations = modal(
-        smoothed_annotations.astype(np.uint8), ball(5)
-    )
-
-    # Measure duration of mesh creation
     start = time.time()
 
-    # Iterate over each node in the tree and create meshes
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
-
-        create_region_mesh(
-            [
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                smoothed_annotations,
-                ROOT_ID,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            ]
-        )
-
-    print(
-        "Finished mesh extraction in : ",
-        round((time.time() - start) / 60, 2),
-        " minutes",
+    meshes_dict = construct_meshes_from_annotation(
+        working_dir,
+        unified_annotations,
+        unified_structures,
+        closing_n_iters,
+        decimate_fraction,
+        smooth,
     )
 
-    # Create a dictionary to store mappings of structure IDs to mesh file paths
-    meshes_dict = {}
-    structures_with_mesh = []
-
-    for s in structures:
-        # Construct the path to the mesh file using the structure ID
-        mesh_path = meshes_dir_path / f"{s['id']}.obj"
-
-        # Check if the mesh file exists
-        if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it.")
-            continue
-
-        # Check that the mesh actually exists and isn't empty
-        if mesh_path.stat().st_size < 512:
-            print(f"OBJ file for {s} is too small, ignoring it.")
-            continue
-
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
-
-    # Print the total number of structures that have valid meshes
     print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
+        "Finished mesh extraction in: ",
+        round((time.time() - start) / 60, 2),
+        " minutes",
     )
 
     # Package all the provided data and parameters into an atlas format
@@ -291,8 +274,8 @@ def create_atlas(working_dir):
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=reference,
-        annotation_stack=annotations,
-        structures_list=structures,
+        annotation_stack=unified_annotations,
+        structures_list=unified_structures,
         meshes_dict=meshes_dict,
         working_dir=working_dir,
         hemispheres_stack=None,
@@ -300,6 +283,9 @@ def create_atlas(working_dir):
         compress=True,
         scale_meshes=True,
     )
+
+    # Clean up temporary directory
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
     return output_filename
 

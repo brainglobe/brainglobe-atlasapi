@@ -401,7 +401,9 @@ class Atlas:
         >>> # Get all level-3 structures under cortex
         >>> ids = atlas.get_structures_at_hierarchy_level("CTX", 3)
         >>> # Get as acronyms instead
-        >>> acronyms = atlas.get_structures_at_hierarchy_level("CTX", 3, as_acronym=True)
+        >>> acronyms = atlas.get_structures_at_hierarchy_level(
+        ...     "CTX", 3, as_acronym=True
+        ... )
         """
         # Type validation
         if not (
@@ -412,7 +414,8 @@ class Atlas:
             )
         ):
             raise ValueError(
-                f"hierarchy_level must be an int or None, got {type(hierarchy_level).__name__}"
+                f"hierarchy_level must be an int or None, "
+                f"got {type(hierarchy_level).__name__}"
             )
 
         # Validate non-negative hierarchy level
@@ -463,8 +466,8 @@ class Atlas:
                 ]
             except IndexError:
                 raise ValueError(
-                    f'Structure {self.structures[structure]["acronym"]} has no '
-                    f"descendants at hierarchy level {hierarchy_level}"
+                    f'Structure {self.structures[structure]["acronym"]} '
+                    f"has no descendants at hierarchy level {hierarchy_level}"
                 )
 
         if as_acronym:

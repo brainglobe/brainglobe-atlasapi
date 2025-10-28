@@ -119,7 +119,21 @@ def create_atlas(working_dir):
 
         used_ids = set([root_id])
         unified_used_ids = set([root_id])
+        used_acronyms = {"root"}
         hemisphere_pairs = {}
+
+        def make_unique_acronym(name):
+            words = name.split()
+            acronym = "".join([w[0].upper() for w in words[:3]])[:5]
+
+            # Extend with more letters from the name until unique
+            i = 1
+            flat = "".join(words).upper()
+            while acronym in used_acronyms and i < len(flat):
+                acronym = (acronym + flat[i])[:8]  # up to max 8 characters
+                i += 1
+            used_acronyms.add(acronym)
+            return acronym
 
         for _, row in df.iterrows():
             name = row["Structure"].strip()
@@ -127,7 +141,7 @@ def create_atlas(working_dir):
             right_id = int(row["right label"])
 
             # Create acronym
-            acronym = "".join([w[0].upper() for w in name.split()[:3]])[:5]
+            acronym = make_unique_acronym(name)
 
             random.seed(name)
             color = [random.randint(0, 255) for _ in range(3)]

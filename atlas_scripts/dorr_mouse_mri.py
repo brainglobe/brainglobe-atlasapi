@@ -18,6 +18,71 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
+ACRONYM_MAP = {
+    "amygdala": "A",
+    "anterior commissure: pars anterior": "aco",
+    "anterior commissure: pars posterior": "act",
+    "arbor vita of cerebellum": "arb",
+    "basal forebrain": "fb",
+    "bed nucleus of stria terminalis": "BST",
+    "cerebellar cortex": "CBX",
+    "cerebellar peduncle: inferior": "icp",
+    "cerebellar peduncle: middle": "mcp",
+    "cerebellar peduncle: superior": "dscp",
+    "cerebral aqueduct": "AQ",
+    "cerebral cortex: entorhinal cortex": "CTXe",
+    "cerebral cortex: frontal lobe": "CTXf",
+    "cerebral cortex: occipital lobe": "CTXo",
+    "cerebral cortex: parieto-temporal lobe": "CTXp",
+    "cerebral peduncle": "cpd",
+    "colliculus: inferior": "IC",
+    "colliculus: superior": "SC",
+    "corpus callosum": "cc",
+    "corticospinal tract/pyramids": "cst",
+    "cuneate nucleus": "CU",
+    "dentate gyrus of hippocampus": "DG",
+    "facial nerve (cranial nerve 7)": "VIIn",
+    "fasciculus retroflexus": "fr",
+    "fimbria": "fi",
+    "fornix": "fxs",
+    "fourth ventricle": "V4",
+    "fundus of striatum": "FS",
+    "globus pallidus": "GP",
+    "habenular commissure": "hbc",
+    "hippocampus": "HIP",
+    "hypothalamus": "HY",
+    "inferior olivary complex": "IO",
+    "internal capsule": "int",
+    "interpedunclar nucleus": "IPN",
+    "lateral olfactory tract": "lotg",
+    "lateral septum": "LS",
+    "lateral ventricle": "VL",
+    "mammillary bodies": "MBO",
+    "mammilothalamic tract": "mtt",
+    "medial lemniscus/medial longitudinal fasciculus": "ml",
+    "medial septum": "MS",
+    "medulla": "MY",
+    "midbrain": "MB",
+    "nucleus accumbens": "ACB",
+    "olfactory bulbs": "OB",
+    "olfactory tubercle": "OT",
+    "optic tract": "opt",
+    "periaqueductal grey": "PAG",
+    "pons": "P",
+    "pontine nucleus": "PRN",
+    "posterior commissure": "pc",
+    "pre-para subiculum": "SUB",
+    "stratum granulosum of hippocampus": "DGsg",
+    "stria medullaris": "sm",
+    "stria terminalis": "st",
+    "striatum": "STR",
+    "subependymale zone / rhinocele": "SEZ",
+    "superior olivary complex": "SOC",
+    "thalamus": "TH",
+    "third ventricle": "V3",
+    "ventral tegmental decussation": "vtd",
+}
+
 
 def create_atlas(working_dir):
     """Create the Dorr Mouse MRI BrainGlobe atlas.
@@ -119,29 +184,18 @@ def create_atlas(working_dir):
 
         used_ids = set([root_id])
         unified_used_ids = set([root_id])
-        used_acronyms = {"root"}
         hemisphere_pairs = {}
-
-        def make_unique_acronym(name):
-            words = name.split()
-            acronym = "".join([w[0].upper() for w in words[:3]])[:5]
-
-            # Extend with more letters from the name until unique
-            i = 1
-            flat = "".join(words).upper()
-            while acronym in used_acronyms and i < len(flat):
-                acronym = (acronym + flat[i])[:8]  # up to max 8 characters
-                i += 1
-            used_acronyms.add(acronym)
-            return acronym
 
         for _, row in df.iterrows():
             name = row["Structure"].strip()
             left_id = int(row["left label"])
             right_id = int(row["right label"])
 
-            # Create acronym
-            acronym = make_unique_acronym(name)
+            # Use provided acronym map
+            acronym = ACRONYM_MAP.get(name.lower(), None)
+            if acronym is None:
+                # fallback for unmapped structures
+                acronym = "".join([w[0].upper() for w in name.split()])[:6]
 
             random.seed(name)
             color = [random.randint(0, 255) for _ in range(3)]

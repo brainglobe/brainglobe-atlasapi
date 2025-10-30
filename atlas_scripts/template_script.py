@@ -59,6 +59,8 @@ def retrieve_reference_and_annotation():
     """
     Retrieve the reference and annotation volumes.
 
+    If possible, use brainglobe_utils.IO.image.load_any for opening images.
+
     Returns
     -------
     tuple[numpy.ndarray, numpy.ndarray]

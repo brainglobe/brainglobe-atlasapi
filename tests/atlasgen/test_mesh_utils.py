@@ -5,9 +5,11 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
+import zarr
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
+    construct_meshes_from_annotation,
     create_region_mesh,
     extract_mesh_from_mask,
 )
@@ -64,6 +66,7 @@ def region_mesh_args(structures, tmp_path, request):
     closing_n_iters = 10
     decimate_fraction = 0.6
     smooth = True
+    verbosity = 1
     return (
         meshes_dir_path,  # 0
         node,  # 1
@@ -74,6 +77,7 @@ def region_mesh_args(structures, tmp_path, request):
         closing_n_iters,  # 6
         decimate_fraction,  # 7
         smooth,  # 8
+        verbosity,  # 9
     )
 
 
@@ -117,6 +121,47 @@ def test_create_region_mesh_fail(
     mesh_files = list(region_mesh_args[0].iterdir())
     assert len(mesh_files) == 0
     assert expected_captured_out in captured_out
+
+
+@pytest.mark.parametrize(
+    "region_mesh_args",
+    [
+        pytest.param(5),
+    ],
+    indirect=True,
+)
+def test_create_region_mesh_path(region_mesh_args, tmp_path):
+    """Test create_region_mesh with Path object for meshes_dir_path."""
+    args = list(region_mesh_args)
+    zarr.create_array(
+        tmp_path / "test.zarr",
+        data=region_mesh_args[4],
+    )
+    args[4] = tmp_path / "test.zarr"
+    region_mesh_args = tuple(args)
+
+    create_region_mesh(region_mesh_args)
+    mesh_path = region_mesh_args[0] / "5.obj"
+
+    assert mesh_path.exists(), "Mesh file was not created as expected."
+
+
+@pytest.mark.parametrize(
+    "region_mesh_args",
+    [
+        pytest.param(5),
+    ],
+    indirect=True,
+)
+def test_create_region_mesh_wrong_type(region_mesh_args):
+    """Test create_region_mesh with wrong type for label_id."""
+    args = list(region_mesh_args)
+    args[4] = 0.1  # Single float value instead of array
+    args = tuple(args)
+    with pytest.raises(
+        TypeError, match="annotated_volume should be a np.ndarray"
+    ):
+        create_region_mesh(args)
 
 
 @pytest.mark.parametrize(
@@ -336,3 +381,27 @@ def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
         assert np.isclose(mesh.area(), 0)
     else:
         assert mesh.area() > 0
+
+
+@pytest.mark.parametrize(
+    "parallel",
+    [
+        pytest.param(False, id="sequential"),
+        pytest.param(True, id="parallel"),
+    ],
+)
+def test_construct_meshes_from_annotation(structures, tmp_path, parallel):
+    """Test constructing meshes from annotation."""
+    meshes_dir_path = tmp_path
+    smoothed_annotations = np.load(
+        Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
+    )
+
+    mesh_dict = construct_meshes_from_annotation(
+        meshes_dir_path, smoothed_annotations, structures, parallel=parallel
+    )
+
+    assert len(mesh_dict) == len(structures)
+    for struct in structures:
+        mesh_path = meshes_dir_path / "meshes" / f"{struct['id']}.obj"
+        assert mesh_path.exists()

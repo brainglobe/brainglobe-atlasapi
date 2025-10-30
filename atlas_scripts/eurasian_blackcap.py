@@ -3,7 +3,6 @@
 __version__ = "4"
 
 import csv
-import glob as glob
 import os
 import time
 from pathlib import Path
@@ -11,17 +10,18 @@ from pathlib import Path
 import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load_nii
-from rich.progress import track
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
     read_itk_labels,
 )
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh,
+    create_meshes_from_annotated_volume,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.structure_tree_util import (
+    get_structures_tree,
+)
 
 
 def create_atlas(working_dir, resolution):
@@ -89,6 +89,7 @@ def create_atlas(working_dir, resolution):
     for structure in structure_data_list:
         structure_id = structure["id"]
         structure["structure_id_path"] = structure_to_parent_map[structure_id]
+        structure["rgb_triplet"] = list(structure["rgb_triplet"])
 
     # append root and pallium structures, which don't have their own voxels
     # and are therefore not in itk file
@@ -154,24 +155,14 @@ def create_atlas(working_dir, resolution):
 
     start = time.time()
 
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
-        create_region_mesh(
-            (
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                annotated_volume,
-                ROOT_ID,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            )
-        )
+    create_meshes_from_annotated_volume(
+        meshes_dir_path,
+        tree,
+        annotated_volume,
+        closing_n_iters=closing_n_iters,
+        decimate_fraction=decimate_fraction,
+        smooth=smooth,
+    )
 
     print(
         "Finished mesh extraction in : ",
@@ -209,7 +200,7 @@ def create_atlas(working_dir, resolution):
         species=SPECIES,
         resolution=resolution,
         orientation=ORIENTATION,
-        root_id=999,
+        root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
         structures_list=structure_data_list,

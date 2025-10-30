@@ -69,13 +69,13 @@ def itk_snap_labels():
         {
             "id": 123,
             "name": "BrainGlobe",
-            "rgb_triplet": (0, 255, 0),
+            "rgb_triplet": [0, 255, 0],
             "acronym": "BG",
         },
         {
             "id": 456,
             "name": "Label without acronym",
-            "rgb_triplet": (255, 145, 0),
+            "rgb_triplet": [255, 145, 0],
             "acronym": "L",
         },
     ]

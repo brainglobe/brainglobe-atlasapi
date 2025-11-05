@@ -392,3 +392,60 @@ def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
         core.read_tiff.assert_not_called()
     elif atlas.metadata["symmetric"] is False:
         core.read_tiff.assert_called_once()
+
+
+def test_get_structures_at_hierarchy_level(atlas):
+    """Test get_structures_at_hierarchy_level method."""
+    # Basic usage with acronyms and IDs
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", 1, as_acronym=True
+    )
+    assert result == ["grey"]
+
+    result_ids = atlas.get_structures_at_hierarchy_level("root", 1)
+    assert result_ids == [8]
+
+    # Works with numeric structure IDs
+    assert atlas.get_structures_at_hierarchy_level(997, 1) == [8]
+
+    # Level 0 returns root
+    assert atlas.get_structures_at_hierarchy_level(
+        "root", 0, as_acronym=True
+    ) == ["root"]
+
+    # Query multiple levels
+    assert atlas.get_structures_at_hierarchy_level(
+        "root", 2, as_acronym=True
+    ) == ["CH"]
+
+
+def test_get_structures_at_hierarchy_level_none(atlas):
+    """Test that hierarchy_level=None returns all structures in paths."""
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", None, as_acronym=True
+    )
+    assert set(result) == {"root", "grey", "CH"}
+
+
+def test_get_structures_at_hierarchy_level_invalid_structure(atlas):
+    """Test error handling for invalid structure."""
+    with pytest.raises(KeyError, match=r"not found"):
+        atlas.get_structures_at_hierarchy_level("INVALID", 1)
+
+
+def test_get_structures_at_hierarchy_level_negative_level(atlas):
+    """Test error handling for negative hierarchy level."""
+    with pytest.raises(ValueError, match=r"must be non-negative"):
+        atlas.get_structures_at_hierarchy_level("root", -1)
+
+
+def test_get_structures_at_hierarchy_level_wrong_type(atlas):
+    """Test error handling for wrong hierarchy_level type."""
+    with pytest.raises(ValueError, match=r"must be an int or None"):
+        atlas.get_structures_at_hierarchy_level("root", "2")
+
+
+def test_get_structures_at_hierarchy_level_too_deep(atlas):
+    """Test error handling when hierarchy level exceeds structure depth."""
+    with pytest.raises(ValueError, match=r"no descendants at hierarchy level"):
+        atlas.get_structures_at_hierarchy_level("root", 10)

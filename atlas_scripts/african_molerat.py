@@ -10,9 +10,9 @@ import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_any
 
-
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    Region, construct_meshes_from_annotation
+    Region,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import (
@@ -51,13 +51,21 @@ def create_atlas(working_dir, resolution):
     ADDITIONAL_METADATA = {}
 
     atlas_path = pooch.retrieve(
-        ATLAS_FILE_URL, known_hash=None, processor=pooch.Unzip(), progressbar=True
+        ATLAS_FILE_URL,
+        known_hash=None,
+        processor=pooch.Unzip(),
+        progressbar=True,
     )
 
-    hierarchy_path = Path(atlas_path[1]).parent / "annotation_table_20251023.xlsx"
-    reference_file = Path(atlas_path[1]).parent / "Reference_mole-rat_brain_fullmap.tif"
-    annotations_file = Path(atlas_path[1]).parent / "anotation_latest_cleaned_fullmap.tif"
-
+    hierarchy_path = (
+        Path(atlas_path[1]).parent / "annotation_table_20251023.xlsx"
+    )
+    reference_file = (
+        Path(atlas_path[1]).parent / "Reference_mole-rat_brain_fullmap.tif"
+    )
+    annotations_file = (
+        Path(atlas_path[1]).parent / "anotation_latest_cleaned_fullmap.tif"
+    )
 
     print("Reading structures files")
     df = pd.read_excel(hierarchy_path, engine="openpyxl")
@@ -96,10 +104,7 @@ def create_atlas(working_dir, resolution):
     print(tree)
 
     # use tifffile to read annotated file
-    annotated_volume = load_any(annotations_file).astype(
-        np.uint16
-    )
-
+    annotated_volume = load_any(annotations_file).astype(np.uint16)
 
     # rescale reference volume into int16 range
     reference_volume = load_any(reference_file).astype(np.uint16)

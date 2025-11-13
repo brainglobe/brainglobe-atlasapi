@@ -193,7 +193,6 @@ def create_atlas(working_dir, resolution):
 
 if __name__ == "__main__":
     res = 20, 20, 20
-    home = str(Path.home())
     bg_root_dir = Path.home() / "brainglobe_workingdir"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
 

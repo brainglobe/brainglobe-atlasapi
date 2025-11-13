@@ -1,6 +1,6 @@
 """Package the BrainGlobe atlas for the Eurasian Blackcap."""
 
-__version__ = "2"
+__version__ = "4"
 
 import csv
 import os
@@ -55,18 +55,19 @@ def create_atlas(working_dir, resolution):
     ADDITIONAL_METADATA = {}
 
     gin_url = "https://gin.g-node.org/BrainGlobe/blackcap_materials/raw/master/blackcap_materials.zip"
-    atlas_path = pooch.retrieve(
+    atlas_materials_paths = pooch.retrieve(
         gin_url, known_hash=None, processor=pooch.Unzip(), progressbar=True
     )
 
-    # "combined_structures.csv"
-    hierarchy_path = atlas_path[1]
-    # "reference_res-25_hemi-right_IMAGE.nii.gz"
-    reference_file = atlas_path[0]
-    # "labels051224.txt"
-    structures_file = atlas_path[2]
-    # "annotations_051224.nii.gz"
-    annotations_file = atlas_path[3]
+    materials_folder = Path(atlas_materials_paths[0]).parent
+    hierarchy_path = materials_folder / "combined_structures_update_0825.csv"
+    reference_file = materials_folder / "blackcap_male_template.nii.gz"
+    structures_file = (
+        materials_folder / "merged_unique_labels_color-adjusted.txt"
+    )
+    annotations_file = (
+        materials_folder / "blackcap_male_smoothed_annotations.nii.gz"
+    )
     meshes_dir_path = Path.home() / "blackcap-meshes"
 
     try:
@@ -122,11 +123,6 @@ def create_atlas(working_dir, resolution):
     annotated_volume = load_nii(annotations_file, as_array=True).astype(
         np.uint16
     )
-    # Append a mirror image of the reference volume along axis 2
-    mirrored_volume = np.flip(annotated_volume, axis=2)
-    annotated_volume = np.concatenate(
-        (annotated_volume, mirrored_volume), axis=2
-    )
 
     # rescale reference volume into int16 range
     reference_volume = load_nii(reference_file, as_array=True)
@@ -136,11 +132,6 @@ def create_atlas(working_dir, resolution):
     dscale = (2**16 - 1) / drange
     reference_volume = (reference_volume - dmin) * dscale
     reference_volume = reference_volume.astype(np.uint16)
-    # Append a mirror image of the reference volume along axis 2
-    mirrored_volume = np.flip(reference_volume, axis=2)
-    reference_volume = np.concatenate(
-        (reference_volume, mirrored_volume), axis=2
-    )
 
     has_label = annotated_volume > 0
     reference_volume *= has_label
@@ -228,8 +219,6 @@ def create_atlas(working_dir, resolution):
 
 if __name__ == "__main__":
     res = 25, 25, 25
-    home = str(Path.home())
     bg_root_dir = Path.home() / "brainglobe_workingdir"
     bg_root_dir.mkdir(exist_ok=True, parents=True)
-
     create_atlas(bg_root_dir, res)

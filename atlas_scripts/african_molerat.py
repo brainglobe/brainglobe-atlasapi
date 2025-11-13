@@ -57,20 +57,21 @@ def create_atlas(working_dir, resolution):
         progressbar=True,
     )
 
-    hierarchy_path = (
-        Path(atlas_path[1]).parent / "annotation_table_20251023.xlsx"
-    )
+    materials_directory = Path(atlas_path[0]).parent
+    hierarchy_path = materials_directory / "annotation_table_20251023.xlsx"
+
     reference_file = (
-        Path(atlas_path[1]).parent / "Reference_mole-rat_brain_fullmap.tif"
+        materials_directory / "Reference_mole-rat_brain_fullmap.tif"
     )
+
     annotations_file = (
-        Path(atlas_path[1]).parent / "anotation_latest_cleaned_fullmap.tif"
+        materials_directory / "anotation_latest_cleaned_fullmap.tif"
     )
 
     print("Reading structures files")
     df = pd.read_excel(hierarchy_path, engine="openpyxl")
 
-    # Replace missing parent IDs with 999
+    # Replace missing parent IDs with root
     df["parent id"] = df["parent id"].fillna(999).astype(int)
 
     # Build the list of dictionaries
@@ -85,7 +86,8 @@ def create_atlas(working_dir, resolution):
         for _, row in df.iterrows()
     ]
 
-    # append root which doesn't have its own voxels and therefore not in itk file
+    # append root which doesn't have its own voxels and
+    # therefore not in itk file
     structure_data_list.append(
         {
             "id": 999,
@@ -112,9 +114,7 @@ def create_atlas(working_dir, resolution):
     # generate binary mask for mesh creation
     labels = np.unique(annotated_volume).astype(np.int_)
     for key, node in tree.nodes.items():
-        if (
-            key in labels or key == 1
-        ):  # Pallium == 1 needs mesh but has no own voxels
+        if key in labels:
             is_label = True
         else:
             is_label = False

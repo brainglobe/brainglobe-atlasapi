@@ -1,6 +1,6 @@
 """Package the BrainGlobe atlas for the African Molerat."""
 
-__version__ = "0"
+__version__ = "1"
 
 import time
 from pathlib import Path

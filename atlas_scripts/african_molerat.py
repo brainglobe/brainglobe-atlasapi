@@ -41,7 +41,7 @@ def create_atlas(working_dir, resolution):
         The path to the generated atlas file.
     """
     ATLAS_NAME = "african_molerat"
-    SPECIES = "Fukomys"
+    SPECIES = "Fukomys anselli"
     ATLAS_LINK = "https://www.malkemper-lab.com/"
     CITATION = "unpublished"
     ATLAS_FILE_URL = "https://gin.g-node.org/BrainGlobe/molerat_materials/raw/master/mole-rat_atlas_20251023.zip"

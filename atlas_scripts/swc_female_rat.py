@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
+import xmltodict
 from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
@@ -25,7 +25,7 @@ from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 # -------------------------------------------------------------------------
-# Path to the template and annotation files
+# Paths to the template, annotation and structures files
 # -------------------------------------------------------------------------
 
 
@@ -38,9 +38,9 @@ ANNOTATION_PATH = Path(
     "/50um/template_space/WaxholmLabels_cleaned.nii.gz"
 )
 
-STRUCTURES_CSV_PATH = Path(
+STRUCTURES_ILF_PATH = Path(
     "/ceph/akrami/_projects/rat_atlas/atlas/swc-female-rat-atlas_v2"
-    "/50um/template_space/structures.csv"
+    "/50um/template_space/WHS_SD_rat_atlas_v4.01_labels.ilf"
 )
 
 # -------------------------------------------------------------------------
@@ -58,38 +58,54 @@ ATLAS_PACKAGER = "Viktor Plattner, v.plattner@ucl.ac.uk"
 
 
 # -------------------------------------------------------------------------
-# Load structures from CSV
+# Load structures from XML
 # -------------------------------------------------------------------------
 
 
-def load_structures_from_csv(csv_path: Path):
-    """Load structures from CSV file."""
-    df = pd.read_csv(csv_path)
-    structures = []
+def _parse_structures_xml(node: dict, path=None, structures=None):
+    """Recursively parse the Waxholm ILF XML tree into a list of structures."""
+    structures = structures or []
+    path = path or []
 
-    for _, row in df.iterrows():
-        sid = int(row["id"])
+    # Colour in the ILF is stored as a hex string like "#RRGGBB"
+    rgb_triplet = tuple(int(node["@color"][i : i + 2], 16) for i in (1, 3, 5))
+    sid = int(node["@id"])
 
-        # Convert /10000/1000/.../1075/ → [10000,1000,...,1075]
-        path_str = row["structure_id_path"].strip("/")
-        structure_id_path = [int(x) for x in path_str.split("/")]
+    struct = {
+        "name": node["@name"],
+        "acronym": node["@abbreviation"],
+        "id": sid,
+        "structure_id_path": path + [sid],
+        "rgb_triplet": list(rgb_triplet),
+    }
+    structures.append(struct)
 
-        # BrainGlobe REQUIRES rgb_triplet for each structure.
-        # Deterministic pseudo-colours so they stay stable.
-        r = (sid * 123) % 255
-        g = (sid * 53) % 255
-        b = (sid * 211) % 255
+    # Recurse into children (labels)
+    if "label" in node:
+        if isinstance(node["label"], list):
+            for child in node["label"]:
+                _parse_structures_xml(
+                    child, path=path + [sid], structures=structures
+                )
+        else:
+            _parse_structures_xml(
+                node["label"], path=path + [sid], structures=structures
+            )
 
-        structures.append(
-            {
-                "name": row["name"],
-                "acronym": row["acronym"],
-                "id": sid,
-                "structure_id_path": structure_id_path,
-                "rgb_triplet": [r, g, b],
-            }
-        )
+    return structures
 
+
+def load_structures_from_ilf(ilf_path: Path, root_id: int):
+    """Parse the Waxholm .ilf file to extract region metadata."""
+    root = xmltodict.parse(ilf_path.read_text())["milf"]["structure"]
+
+    # Normalise the top node to a BrainGlobe-style root
+    root["@abbreviation"] = "root"
+    root["@color"] = "#ffffff"
+    root["@id"] = str(root_id)
+    root["@name"] = "Root"
+
+    structures = _parse_structures_xml(root)
     return structures
 
 
@@ -172,7 +188,7 @@ def create_atlas(
     working_dir: Path,
     template_path: Path = TEMPLATE_PATH,
     annotation_path: Path = ANNOTATION_PATH,
-    structures_csv_path: Path = STRUCTURES_CSV_PATH,
+    structures_ilf_path: Path = STRUCTURES_ILF_PATH,
 ):
     """Package the swc_female_rat atlas from local files."""
     assert (
@@ -185,7 +201,7 @@ def create_atlas(
     working_dir.mkdir(exist_ok=True, parents=True)
 
     # 1) Parse structure metadata (Waxholm hierarchy)
-    structures = load_structures_from_csv(structures_csv_path)
+    structures = load_structures_from_ilf(structures_ilf_path, ROOT_ID)
 
     # 2) Load volumes (template + annotations)
     annotation_stack = load_any(annotation_path, as_numpy=True).astype(

@@ -5,7 +5,7 @@ This version assumes:
 - annotation labels use the Waxholm IDs (same hierarchy)
 """
 
-__version__ = "1"
+__version__ = "2"
 
 import json
 import time
@@ -35,7 +35,7 @@ TEMPLATE_PATH = Path(
 )
 ANNOTATION_PATH = Path(
     "/ceph/akrami/_projects/rat_atlas/atlas/swc-female-rat-atlas_v2"
-    "/50um/template_space/WaxholmLabels_cleaned.nii.gz"
+    "/50um/template_space/WHS_SD_annotation_template_space_cleaned.nii.gz"
 )
 
 STRUCTURES_ILF_PATH = Path(

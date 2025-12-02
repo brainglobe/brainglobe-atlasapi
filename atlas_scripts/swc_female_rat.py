@@ -5,7 +5,7 @@ This version assumes:
 - annotation labels use the Waxholm IDs (same hierarchy)
 """
 
-__version__ = "2"
+__version__ = "0"
 
 import json
 import time

@@ -7,13 +7,13 @@ from treelib import Tree
 # TODO evaluate whether we want this as a method in StructureDict
 
 
-def child_ids(structure, structure_list):
+def child_ids(structure: int, structure_list: list) -> list[int]:
     """
     Return a list of IDs of the children of a given structure.
 
     Parameters
     ----------
-    structure : dict
+    structure : int
         The structure to find the children of.
     structure_list : list
         A list of structures to search within.
@@ -31,7 +31,7 @@ def child_ids(structure, structure_list):
     ]
 
 
-def get_structures_tree(structures_list):
+def get_structures_tree(structures_list: list) -> Tree:
     """
     Create a `tree` graph with the hierarchical organisation of all
     structures.

@@ -163,7 +163,12 @@ class Atlas:
                 )
         return self._hemispheres
 
-    def hemisphere_from_coords(self, coords, microns=False, as_string=False):
+    def hemisphere_from_coords(
+        self,
+        coords: tuple | list | np.ndarray,
+        microns: bool = False,
+        as_string: bool = False,
+    ) -> int | str:
         """Get the hemisphere from a coordinate triplet.
 
         Parameters
@@ -318,7 +323,7 @@ class Atlas:
 
         return tuple([int(c) for c in coords])
 
-    def get_structure_ancestors(self, structure):
+    def get_structure_ancestors(self, structure: str | int) -> list[str]:
         """Return a list of acronyms for all ancestors of a given structure.
 
         Parameters
@@ -338,7 +343,7 @@ class Atlas:
 
         return self._get_from_structure(ancestors_id, "acronym")
 
-    def get_structure_descendants(self, structure):
+    def get_structure_descendants(self, structure: str | int) -> list[str]:
         """Return a list of acronyms for all descendants of a given structure.
 
         Parameters

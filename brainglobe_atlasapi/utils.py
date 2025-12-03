@@ -10,6 +10,7 @@ from typing import Callable, Optional
 
 import requests
 import tifffile
+import numpy as np
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.progress import (
@@ -412,7 +413,7 @@ def conf_from_file(file_path: Path) -> configparser.ConfigParser:
 ### File I/O
 
 
-def read_json(path):
+def read_json(path: str | Path) -> dict:
     """Read a json file.
 
     Parameters
@@ -430,7 +431,7 @@ def read_json(path):
     return data
 
 
-def read_tiff(path):
+def read_tiff(path: str | Path) -> np.ndarray:
     """Read a tiff file.
 
     Parameters

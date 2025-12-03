@@ -1,8 +1,8 @@
 """Package the swc_female_rat rat brain atlas (50 µm) in BrainGlobe format.
 
-This version assumes:
-- template, annotation, and structures files are all local
-- annotation labels use the Waxholm IDs (same hierarchy)
+This version:
+- Downloads template, annotation, and structures files from remote URLs
+- Uses annotation labels with Waxholm IDs
 """
 
 __version__ = "0"
@@ -12,10 +12,12 @@ import time
 from pathlib import Path
 
 import numpy as np
+import pooch
 import xmltodict
 from brainglobe_utils.IO.image import load_any
 from rich.progress import track
 
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
     create_region_mesh,
@@ -23,25 +25,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-
-# -------------------------------------------------------------------------
-# Paths to the template, annotation and structures files
-# -------------------------------------------------------------------------
-
-
-TEMPLATE_PATH = Path(
-    "/ceph/akrami/_projects/rat_atlas/atlas/swc-female-rat-atlas_v2"
-    "/50um/template_space/template_sharpen_shapeupdate_orig-asr_aligned.nii.gz"
-)
-ANNOTATION_PATH = Path(
-    "/ceph/akrami/_projects/rat_atlas/atlas/swc-female-rat-atlas_v2"
-    "/50um/template_space/WHS_SD_annotation_template_space_cleaned.nii.gz"
-)
-
-STRUCTURES_ILF_PATH = Path(
-    "/ceph/akrami/_projects/rat_atlas/atlas/swc-female-rat-atlas_v2"
-    "/50um/template_space/WHS_SD_rat_atlas_v4.01_labels.ilf"
-)
 
 # -------------------------------------------------------------------------
 # Atlas metadata
@@ -56,9 +39,61 @@ RESOLUTION = (50, 50, 50)
 ROOT_ID = 10000  # Waxholm root
 ATLAS_PACKAGER = "Viktor Plattner, v.plattner@ucl.ac.uk"
 
+# File names on GIN.
+TEMPLATE_FILENAME = "template_sharpen_shapeupdate_orig-asr_aligned.nii.gz"
+ANNOTATION_FILENAME = "WHS_SD_annotation_template_space_cleaned.nii.gz"
+STRUCTURES_ILF_FILENAME = "WHS_SD_rat_atlas_v4.01_labels.ilf"
+
+# Links to the atlas files (GIN repository).
+TEMPLATE_URL = (
+    f"https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
+    f"raw/master/packaging/{RESOLUTION[1]}um/{TEMPLATE_FILENAME}"
+)
+ANNOTATION_URL = (
+    f"https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
+    f"raw/master/packaging/{RESOLUTION[1]}um/{ANNOTATION_FILENAME}"
+)
+STRUCTURES_ILF_URL = (
+    f"https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
+    f"raw/master/packaging/{RESOLUTION[1]}um/{STRUCTURES_ILF_FILENAME}"
+)
+
+# Hashes for the atlas files. Modify these if the files are updated.
+TEMPLATE_HASH = (
+    "7aed7300fdec07c601f376ffe7b77da059fcb6a46e568e99125e473e08e75c8a"
+)
+ANNOTATION_HASH = (
+    "bf7ace23df27a1037d494cac030d07e2a45bc26df5cf611b5563598a581116b8"
+)
+STRUCTURES_ILF_HASH = (
+    "dd0de0cfb3ae22a8e5666d11df846afa465aa5c5c2dd02af68720488633d2a65"
+)
 
 # -------------------------------------------------------------------------
-# Load structures from XML
+# Define function to download atlas files
+# -------------------------------------------------------------------------
+
+
+def download_atlas_files(
+    download_dir_path: Path,
+    atlas_file_url: str,
+    filename: str,
+    known_hash: str = None,
+):
+    """Download atlas files."""
+    utils.check_internet_connection()
+    file_path = pooch.retrieve(
+        url=atlas_file_url,
+        known_hash=known_hash,
+        path=download_dir_path,
+        fname=filename,
+        progressbar=True,
+    )
+    return Path(file_path)
+
+
+# -------------------------------------------------------------------------
+# Define function to load structures from XML
 # -------------------------------------------------------------------------
 
 
@@ -110,7 +145,7 @@ def load_structures_from_ilf(ilf_path: Path, root_id: int):
 
 
 # -------------------------------------------------------------------------
-# Create meshes
+# Define function to create meshes
 # -------------------------------------------------------------------------
 
 
@@ -180,17 +215,14 @@ def create_mesh_dict(structures, meshes_dir_path):
 
 
 # -------------------------------------------------------------------------
-# Create atlas
+# Define function to create atlas
 # -------------------------------------------------------------------------
 
 
 def create_atlas(
     working_dir: Path,
-    template_path: Path = TEMPLATE_PATH,
-    annotation_path: Path = ANNOTATION_PATH,
-    structures_ilf_path: Path = STRUCTURES_ILF_PATH,
 ):
-    """Package the swc_female_rat atlas from local files."""
+    """Package the swc_female_rat atlas."""
     assert (
         len(ORIENTATION) == 3
     ), f"Orientation is not 3 characters, got {ORIENTATION}"
@@ -200,16 +232,30 @@ def create_atlas(
 
     working_dir.mkdir(exist_ok=True, parents=True)
 
-    # 1) Parse structure metadata (Waxholm hierarchy)
+    # Download atlas files
+    template_path = download_atlas_files(
+        working_dir, TEMPLATE_URL, TEMPLATE_FILENAME, TEMPLATE_HASH
+    )
+    annotation_path = download_atlas_files(
+        working_dir, ANNOTATION_URL, ANNOTATION_FILENAME, ANNOTATION_HASH
+    )
+    structures_ilf_path = download_atlas_files(
+        working_dir,
+        STRUCTURES_ILF_URL,
+        STRUCTURES_ILF_FILENAME,
+        STRUCTURES_ILF_HASH,
+    )
+
+    # Parse structure metadata (Waxholm hierarchy)
     structures = load_structures_from_ilf(structures_ilf_path, ROOT_ID)
 
-    # 2) Load volumes (template + annotations)
+    # Load volumes (template + annotations)
     annotation_stack = load_any(annotation_path, as_numpy=True).astype(
         np.int64
     )
     reference_stack = load_any(template_path, as_numpy=True)
 
-    # 3) Filter structures to those that actually appear in annotations
+    # Filter structures to those that actually appear in annotations
     tree = get_structures_tree(structures)
     labels = set(np.unique(annotation_stack).astype(np.int32))
 
@@ -230,24 +276,28 @@ def create_atlas(
     structures = existing_structures
     tree = get_structures_tree(structures)
 
-    # 4) Mask reference to brain voxels only
+    # Mask reference to brain voxels only
     reference_stack *= annotation_stack > 0
 
     dmin = np.min(reference_stack)
     dmax = np.max(reference_stack)
     drange = dmax - dmin
-    dscale = (2**16 - 1) / drange  # Scale to full uint16 range (0-65535)
+    if drange == 0:
+        raise ValueError(
+            "Reference stack has zero range (all values are identical)"
+        )
+    dscale = (2**16 - 1) / drange  # Scale to full uint16 range
     reference_stack = (reference_stack - dmin) * dscale
     reference_stack = reference_stack.astype(np.uint16)
 
-    # 5) (Optional) Hemispheres stack
+    # Hemispheres stack
     hemispheres_stack = None
 
-    # 6) Save regions list json (for debugging / inspection)
+    # Save regions list json
     with open(working_dir / "structures.json", "w") as f:
         json.dump(structures, f, indent=2)
 
-    # 7) Create meshes
+    # Create meshes
     print(f"Saving atlas data at {working_dir}")
     meshes_dir_path = create_meshes(
         working_dir, tree, annotation_stack, labels, ROOT_ID
@@ -257,7 +307,7 @@ def create_atlas(
         structures, meshes_dir_path
     )
 
-    # 8) Wrap up into BrainGlobe atlas zip
+    # Wrap up into BrainGlobe atlas zip
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -282,6 +332,10 @@ def create_atlas(
 
     return output_filename
 
+
+# -------------------------------------------------------------------------
+# Main function
+# -------------------------------------------------------------------------
 
 if __name__ == "__main__":
     bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME

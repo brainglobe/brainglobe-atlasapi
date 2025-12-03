@@ -18,16 +18,17 @@ def get_downloaded_atlases():
     Returns
     -------
     list
-        A list of tuples with the locally available atlases and their version
+        A sorted list of locally available atlases.
     """
-    # Get brainglobe directory:
     brainglobe_dir = config.get_brainglobe_dir()
 
-    return [
+    atlas_names = {
         f.name.rsplit("_v", 1)[0]
         for f in brainglobe_dir.glob("*_*_*_v*")
         if f.is_dir()
-    ]
+    }
+
+    return sorted(atlas_names)
 
 
 def get_local_atlas_version(atlas_name):
@@ -69,28 +70,24 @@ def get_all_atlases_lastversions():
     else:
         print("Cannot fetch latest atlas versions from the server.")
         official_atlases = utils.conf_from_file(cache_path)
+
     try:
         custom_atlases = utils.conf_from_file(custom_path)
     except FileNotFoundError:
         return dict(official_atlases["atlases"])
+
     return {**official_atlases["atlases"], **custom_atlases["atlases"]}
 
 
 def get_atlases_lastversions():
     """
     Return a dictionary of atlas metadata for the latest versions of all
-    available atlases.
-
-    Returns
-    -------
-    dict
-        A dictionary with metadata about already installed atlases.
+    available atlases. Sorted alphabetically by atlas name.
     """
     available_atlases = get_all_atlases_lastversions()
 
-    # Get downloaded atlases looping over folders in brainglobe directory:
     atlases = {}
-    for name in get_downloaded_atlases():
+    for name in sorted(get_downloaded_atlases()):
         if name in available_atlases.keys():
             local_version = get_local_atlas_version(name)
             atlases[name] = dict(
@@ -100,7 +97,9 @@ def get_atlases_lastversions():
                 latest_version=str(available_atlases[name]),
                 updated=str(available_atlases[name]) == local_version,
             )
-    return atlases
+
+    # Return sorted dict
+    return {k: atlases[k] for k in sorted(atlases)}
 
 
 def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
@@ -119,7 +118,6 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
     Returns
     -------
     None
-
     """
     available_atlases = get_all_atlases_lastversions()
 
@@ -155,14 +153,14 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
     if show_local_path:
         table.add_column("Local path")
 
-    # Add downloaded atlases (sorted) to the table first
+    # Add downloaded atlases (alphabetically sorted)
     for atlas_name in sorted(downloaded_atlases.keys()):
         atlas = downloaded_atlases[atlas_name]
         table = add_atlas_to_row(
             atlas_name, atlas, table, show_local_path=show_local_path
         )
 
-    # Then add non-download atlases (sorted) to the table
+    # Add non-downloaded atlases (alphabetically sorted)
     for atlas_name in sorted(non_downloaded_atlases.keys()):
         atlas = non_downloaded_atlases[atlas_name]
         table = add_atlas_to_row(
@@ -182,34 +180,14 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
 def add_atlas_to_row(atlas, info, table, show_local_path=False):
     """
     Add information about each atlas to a row of the rich table.
-
-    Parameters
-    ----------
-    atlas : str
-        The name of the atlas.
-    info : dict
-        A dictionary containing information about the atlas.
-    table : rich.table.Table
-        The table to which the row will be added.
-    show_local_path : bool, optional
-        If True, includes the local path of the atlas
-        in the row (default is False).
-
-    Returns
-    -------
-    rich.table.Table
-        The updated table with the new row added.
-    -------
-
     """
     if info["downloaded"]:
         downloaded = "[green]:heavy_check_mark:[/green]"
-
-        if info["version"] == info["latest_version"]:
-            updated = "[green]:heavy_check_mark:[/green]"
-        else:
-            updated = "[red dim]x"
-
+        updated = (
+            "[green]:heavy_check_mark:[/green]"
+            if info["version"] == info["latest_version"]
+            else "[red dim]x"
+        )
     else:
         downloaded = ""
         updated = ""

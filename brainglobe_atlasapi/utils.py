@@ -8,9 +8,9 @@ from pathlib import Path
 from time import sleep
 from typing import Callable, Optional
 
+import numpy as np
 import requests
 import tifffile
-import numpy as np
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.progress import (

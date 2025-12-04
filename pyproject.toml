@@ -62,13 +62,13 @@ kocher_bumblebee = ["vtk"]
 
 atlasgen = [
     "brainglobe-utils",
+    "brainglobe-template-builder",
     "loguru",
     "PyMCubes",
     "SimpleITK",
     "tqdm>=4.46.1",
     "vedo",
     "xmltodict",
-    "brainglobe-utils",
     "pooch",
     "zarr"
 ]

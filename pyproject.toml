@@ -62,7 +62,6 @@ kocher_bumblebee = ["vtk"]
 
 atlasgen = [
     "brainglobe-utils",
-    "brainglobe-template-builder",
     "loguru",
     "PyMCubes",
     "SimpleITK",

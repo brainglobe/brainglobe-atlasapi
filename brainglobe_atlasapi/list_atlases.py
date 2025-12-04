@@ -181,7 +181,10 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
 
 
 def add_atlas_to_row(
-    atlas: str, info: Dict[str, Any], table: Table, show_local_path: bool = False
+    atlas: str,
+    info: Dict[str, Any],
+    table: Table,
+    show_local_path: bool = False,
 ) -> Table:
     """
     Add information about each atlas to a row of the rich table.

@@ -1,7 +1,7 @@
 """Test functions for listing and managing BrainGlobe atlases."""
 
-from unittest import mock
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from rich.console import Console
@@ -21,24 +21,23 @@ from brainglobe_atlasapi.list_atlases import (
 @pytest.fixture
 def mock_atlas_dir(tmp_path, mocker):
     """
-    Creates a mock atlas directory and patches get_brainglobe_dir
+    Create a mock atlas directory and patch get_brainglobe_dir
     to point to the temporary location.
     """
     # 1. Create the mock brainglobe directory structure
     bg_dir = tmp_path / ".brainglobe"
     bg_dir.mkdir()
-    
+
     # 2. Create the mock atlas directory with a version tag
     atlas_name_versioned = "example_mouse_100um_v1.0"
     atlas_dir = bg_dir / atlas_name_versioned
     atlas_dir.mkdir()
-    
+
     # 3. Patch the function that returns the brainglobe directory
     mocker.patch(
-        "brainglobe_atlasapi.config.get_brainglobe_dir",
-        return_value=bg_dir
+        "brainglobe_atlasapi.config.get_brainglobe_dir", return_value=bg_dir
     )
-    
+
     # Return the name of the atlas for use in tests
     return "example_mouse_100um"
 
@@ -58,7 +57,8 @@ def test_get_local_atlas_version_real_atlas(mock_atlas_dir):
 
 
 def test_get_local_atlas_version_missing_atlas(capsys):
-    """Test retrieving the version of a non-existent atlas.
+    """
+    Test retrieving the version of a non-existent atlas.
 
     Parameters
     ----------
@@ -73,10 +73,9 @@ def test_get_local_atlas_version_missing_atlas(capsys):
 
 def test_lastversions(mock_atlas_dir, mocker):
     """Test retrieving atlas versions from the online source."""
-    
     # Mock the remote/cached official versions to include our mock atlas
     mock_official_atlases = {"atlases": {mock_atlas_dir: "1.0"}}
-    
+
     # Patch utils.conf_from_url to return our mock data
     mocker.patch(
         "brainglobe_atlasapi.list_atlases.utils.conf_from_url",
@@ -88,9 +87,9 @@ def test_lastversions(mock_atlas_dir, mocker):
         side_effect=lambda file_path: (
             mock_official_atlases
             if file_path.name == "last_versions.conf"
-            # FIX APPLIED HERE: Return {} instead of FileNotFoundError 
-            # to avoid the AttributeError when the test tries to access the result.
-            else {} 
+            # Return {} instead of FileNotFoundError to avoid
+            # the AttributeError when the test tries to access the result.
+            else {}
         ),
     )
 
@@ -118,7 +117,8 @@ def test_get_all_atlases_lastversions():
 
 
 def test_get_all_atlases_custom_atlases(mocker):
-    """Check inclusion of available custom atlases in the list of all atlases.
+    """
+    Check inclusion of available custom atlases in the list of all atlases.
 
     Parameters
     ----------
@@ -222,7 +222,8 @@ def test_get_all_atlases_lastversions_gin_down():
     ],
 )
 def test_add_atlas_to_row(version, expected_print, capsys):
-    """Test correct print formatting when atlas versions match or mismatch.
+    """
+    Test correct print formatting when atlas versions match or mismatch.
 
     Parameters
     ----------
@@ -245,7 +246,8 @@ def test_add_atlas_to_row(version, expected_print, capsys):
 
 
 def test_empty_custom_config_no_crash(tmp_path: Path, mocker):
-    """Test that an empty custom_atlases.conf file does not cause a crash.
+    """
+    Test that an empty custom_atlases.conf file does not cause a crash.
 
     Parameters
     ----------
@@ -260,32 +262,33 @@ def test_empty_custom_config_no_crash(tmp_path: Path, mocker):
     empty_conf_file = bg_dir / "custom_atlases.conf"
     empty_conf_file.touch()
 
-    # Create a mock for the official atlases which are needed for the function to run
+    # Create a mock for the official atlases which are needed for
+    # the function to run
     mock_official_atlases = {"atlases": {"official_atlas": "1.0"}}
-    
+
     # Patch the function that reads the official atlases from URL/cache
     mocker.patch(
         "brainglobe_atlasapi.list_atlases.utils.conf_from_url",
-        return_value=mock_official_atlases
+        return_value=mock_official_atlases,
     )
     mocker.patch(
         "brainglobe_atlasapi.list_atlases.utils.conf_from_file",
         side_effect=lambda file_path: (
             mock_official_atlases
             if file_path.name == "last_versions.conf"
-            # Return an empty dict if the file path is the custom one (simulating empty content)
-            else {} 
+            # Return an empty dict if the file path is the custom one
+            # (simulating empty content)
+            else {}
         ),
     )
 
     # Patch the config.get_brainglobe_dir to point to the temp directory
     with mocker.patch(
-        "brainglobe_atlasapi.config.get_brainglobe_dir", 
-        return_value=bg_dir
+        "brainglobe_atlasapi.config.get_brainglobe_dir", return_value=bg_dir
     ):
         # The test passes if this call does not raise a KeyError
         last_versions = get_all_atlases_lastversions()
-        
+
         # Ensure the result is a dictionary and contains the official atlas
         assert isinstance(last_versions, dict)
         assert "official_atlas" in last_versions

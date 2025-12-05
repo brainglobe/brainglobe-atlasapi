@@ -76,7 +76,8 @@ def get_all_atlases_lastversions():
 
     # --- FIX APPLIED HERE ---
     # Safely get the custom atlases data. If the 'atlases' section does not
-    # exist (e.g., file is empty), .get("atlases", {}) returns {} instead of crashing.
+    # exist (e.g., file is empty), .get("atlases", {}) returns {} instead
+    # of crashing.
     custom_atlas_data = custom_atlases.get("atlases", {})
     return {**official_atlases["atlases"], **custom_atlas_data}
     # ------------------------

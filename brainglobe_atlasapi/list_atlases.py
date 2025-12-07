@@ -4,7 +4,6 @@ brainglobe atlases.
 """
 
 import re
-from typing import Any, Dict, List, Optional
 
 from rich import print as rprint
 from rich.panel import Panel
@@ -13,13 +12,13 @@ from rich.table import Table
 from brainglobe_atlasapi import config, descriptors, utils
 
 
-def get_downloaded_atlases() -> List[str]:
-    """Get a list of all the downloaded atlases.
+def get_downloaded_atlases():
+    """Get a list of all the downloaded atlases and their version.
 
     Returns
     -------
-    List[str]
-        A list of the locally available atlases.
+    list
+        A sorted list of locally available atlases.
     """
     brainglobe_dir = config.get_brainglobe_dir()
 
@@ -32,7 +31,7 @@ def get_downloaded_atlases() -> List[str]:
     return sorted(atlas_names)
 
 
-def get_local_atlas_version(atlas_name: str) -> Optional[str]:
+def get_local_atlas_version(atlas_name):
     """Get version of a downloaded available atlas.
 
     Arguments
@@ -57,7 +56,7 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
         return None
 
 
-def get_all_atlases_lastversions() -> Dict[str, Any]:
+def get_all_atlases_lastversions():
     """Read from URL or local cache all available last versions."""
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
     custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
@@ -68,7 +67,7 @@ def get_all_atlases_lastversions() -> Dict[str, Any]:
         official_atlases = utils.conf_from_url(
             descriptors.remote_url_base.format("last_versions.conf")
         )
-    else:
+    else: 
         print("Cannot fetch latest atlas versions from the server.")
         official_atlases = utils.conf_from_file(cache_path)
 
@@ -80,7 +79,7 @@ def get_all_atlases_lastversions() -> Dict[str, Any]:
     return {**official_atlases["atlases"], **custom_atlases["atlases"]}
 
 
-def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
+def get_atlases_lastversions():
     """
     Return a dictionary of atlas metadata for the latest versions of all
     available atlases. Sorted alphabetically by atlas name.
@@ -178,16 +177,10 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
     )
 
 
-def add_atlas_to_row(
-    atlas: str,
-    info: Dict[str, Any],
-    table: Table,
-    show_local_path: bool = False,
-) -> Table:
-    """
-    Add information about each atlas to a row of the rich table.
-
-    Parameters
+def add_atlas_to_row(atlas, info, table, show_local_path=False):
+    
+    """Add information about each atlas to a row of the rich table.
+     Parameters
     ----------
     atlas : str
         The name of the atlas.
@@ -198,14 +191,14 @@ def add_atlas_to_row(
     show_local_path : bool, optional
         If True, includes the local path of the atlas
         in the row (default is False).
-
     Returns
     -------
     rich.table.Table
         The updated table with the new row added.
     -------
-
     """
+
+    
     if info["downloaded"]:
         downloaded = "[green]:heavy_check_mark:[/green]"
         updated = (

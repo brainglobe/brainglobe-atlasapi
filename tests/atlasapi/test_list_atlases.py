@@ -22,8 +22,13 @@ def test_get_downloaded_atlases():
     available_atlases = get_downloaded_atlases()
 
     # Check that example is listed:
-    # Check that example is listed:
     assert "example_mouse_100um" in available_atlases
+
+
+def test_get_downloaded_atlases_sorted():
+    """Test that downloaded atlases are returned in alphabetical order."""
+    atlases = get_downloaded_atlases()
+    assert atlases == sorted(atlases)
 
 
 def test_get_local_atlas_version_real_atlas():
@@ -55,18 +60,23 @@ def test_lastversions():
 
     assert example_atlas["version"] == local_v
     assert all(
-        [
-            int(last) <= int(r)
-            for last, r in zip(
-                example_atlas["latest_version"].split("."), local_v.split(".")
-            )
-        ]
+        int(last) <= int(r)
+        for last, r in zip(
+            example_atlas["latest_version"].split("."), local_v.split(".")
+        )
     )
+
+
+def test_get_atlases_lastversions_sorted():
+    """Test that atlas last versions are returned in alphabetical order."""
+    last_versions = get_atlases_lastversions()
+    atlas_names = list(last_versions.keys())
+    assert atlas_names == sorted(atlas_names)
 
 
 def test_show_atlases():
     """Test displaying a table of available atlases."""
-    # TODO add more valid testing than just look for errors when running:
+    # TODO add more valid testing than just look for errors when running
     show_atlases(show_local_path=True)
 
 

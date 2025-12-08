@@ -223,7 +223,6 @@ def create_atlas(
             )
 
     structures = existing_structures
-    tree = get_structures_tree(structures)
 
     # Mask reference to brain voxels only
     reference_stack *= annotation_stack > 0

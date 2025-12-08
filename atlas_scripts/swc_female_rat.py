@@ -8,19 +8,16 @@ This version:
 __version__ = "0"
 
 import json
-import time
 from pathlib import Path
 
 import numpy as np
 import pooch
 import xmltodict
 from brainglobe_utils.IO.image import load_any
-from rich.progress import track
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    Region,
-    create_region_mesh,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -149,68 +146,20 @@ def load_structures_from_ilf(ilf_path: Path, root_id: int):
 # -------------------------------------------------------------------------
 
 
-def create_meshes(work_dir, tree, annotated_volume, labels, root_id):
+def create_meshes(work_dir, annotated_volume, structures):
     """Generate meshes for each brain region."""
-    meshes_dir_path = work_dir / "meshes"
-    meshes_dir_path.mkdir(exist_ok=True)
-
-    for key, node in tree.nodes.items():
-        node.data = Region(key in labels)
-
-    closing_n_iters = 2
-    decimate_fraction = 0.2
-    smooth = False  # smooth meshes after creation
-
-    start = time.time()
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
-        create_region_mesh(
-            (
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                annotated_volume,
-                root_id,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            )
-        )
-
-    print(
-        "Finished mesh extraction in:",
-        round((time.time() - start) / 60, 2),
-        "minutes",
+    meshes_dict = construct_meshes_from_annotation(
+        save_path=work_dir,
+        volume=annotated_volume,
+        structures_list=structures,
+        closing_n_iters=2,
+        decimate_fraction=0.2,
+        smooth=False,
     )
-    return meshes_dir_path
 
+    # Filter structures to only those with meshes
+    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
 
-def create_mesh_dict(structures, meshes_dir_path):
-    """Map structure IDs to their mesh file paths."""
-    meshes_dict = {}
-    structures_with_mesh = []
-
-    for s in structures:
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
-
-        if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it.")
-            continue
-        if mesh_path.stat().st_size < 512:
-            print(f"obj file for {s} is too small, ignoring it.")
-            continue
-
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
-
-    print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
-    )
     return meshes_dict, structures_with_mesh
 
 
@@ -299,12 +248,8 @@ def create_atlas(
 
     # Create meshes
     print(f"Saving atlas data at {working_dir}")
-    meshes_dir_path = create_meshes(
-        working_dir, tree, annotation_stack, labels, ROOT_ID
-    )
-
-    meshes_dict, structures_with_mesh = create_mesh_dict(
-        structures, meshes_dir_path
+    meshes_dict, structures_with_mesh = create_meshes(
+        working_dir, annotation_stack, structures
     )
 
     # Wrap up into BrainGlobe atlas zip

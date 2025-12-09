@@ -420,11 +420,11 @@ def test_get_structures_at_hierarchy_level(atlas):
 
 
 def test_get_structures_at_hierarchy_level_none(atlas):
-    """Test that hierarchy_level=None returns all structures in paths."""
+    """Test that hierarchy_level=None returns all structures in BFS order."""
     result = atlas.get_structures_at_hierarchy_level(
         "root", None, as_acronym=True
     )
-    assert set(result) == {"root", "grey", "CH"}
+    assert result == ["root", "grey", "CH"]
 
 
 def test_get_structures_at_hierarchy_level_invalid_structure(atlas):
@@ -449,3 +449,9 @@ def test_get_structures_at_hierarchy_level_too_deep(atlas):
     """Test error handling when hierarchy level exceeds structure depth."""
     with pytest.raises(ValueError, match=r"no descendants at hierarchy level"):
         atlas.get_structures_at_hierarchy_level("root", 10)
+
+def test_get_structures_at_hierarchy_level_leaf_node(atlas):
+    """Test that querying a leaf node with hierarchy_level=0 returns root."""
+    # CH is the deepest node in the test atlas
+    result = atlas.get_structures_at_hierarchy_level("CH", 0)
+    assert result == [997]  # root ID

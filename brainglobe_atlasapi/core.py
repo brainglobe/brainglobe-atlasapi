@@ -1,7 +1,7 @@
 """Module containing the core Atlas class."""
 
 import warnings
-from collections import UserDict
+from collections import UserDict, deque
 from pathlib import Path
 
 import numpy as np
@@ -366,8 +366,8 @@ class Atlas:
         self, structure, hierarchy_level=None, as_acronym=False
     ):
         """
-        Get structures at a specific hierarchy level within the descendants
-        of a given structure.
+        Get structures at a specific hierarchy level within the subgraph of nodes connected to
+        the given structure.
 
         For a given brain structure, this method finds all leaf nodes
         (terminal structures with no children) in its subtree, then extracts
@@ -379,7 +379,8 @@ class Atlas:
             Structure ID or acronym to query.
         hierarchy_level : int or None, optional
             The hierarchy level to extract (0-indexed, where 0 is root).
-            If None, returns all structures in the paths to all leaves.
+            If None, returns all structures in the paths to all leaves
+            in anatomical order (breadth-first traversal).
         as_acronym : bool, optional
             If True, return acronyms instead of IDs. Default is False.
 
@@ -428,51 +429,59 @@ class Atlas:
         except KeyError:
             raise KeyError(f"Structure '{structure}' not found in atlas")
 
-        # Get all leaf nodes (terminal descendants) of this structure
-        input_id_leaves = self.structures.tree.leaves(input_id)
-
-        # Handle empty leaves (structure has no descendants)
-        if not input_id_leaves:
-            return []
-
         if hierarchy_level is None:
-            # Get all structures in paths to leaves
-            conn_ids = set(
-                np.concatenate(
-                    [
-                        self.structures[leaf.identifier]["structure_id_path"][
-                            :
-                        ]
-                        for leaf in input_id_leaves
-                    ]
-                )
-            )
-            conn_acronyms = [
-                self.structures[sid]["acronym"] for sid in conn_ids
-            ]
+            # Return all ancestors + descendants in anatomical (BFS) order
+
+            # Start with ancestors (already ordered root → input_id)
+            ancestor_path = self.structures[input_id]["structure_id_path"]
+            result = list(ancestor_path)
+            seen = set(ancestor_path)
+
+            # BFS through descendants
+            queue = deque([input_id])
+            while queue:
+                current_id = queue.popleft()
+                children = self.structures.tree.children(current_id)
+                for child in children:
+                    child_id = child.identifier
+                    if child_id not in seen:
+                        result.append(child_id)
+                        seen.add(child_id)
+                        queue.append(child_id)
+
+            if as_acronym:
+                return [self.structures[sid]["acronym"] for sid in result]
+            return result
+
         else:
             # Get structures at specific hierarchy level
+            # Get all leaf nodes (terminal descendants) of this structure
+            input_id_leaves = self.structures.tree.leaves(input_id)
+
+            # If input_id is itself a leaf, use it as its own leaf
+            if not input_id_leaves:
+                input_id_leaves = [self.structures.tree.get_node(input_id)]
+
             try:
-                conn_ids = set(
-                    [
+                conn_ids = list(
+                    set(
                         self.structures[leaf.identifier]["structure_id_path"][
                             hierarchy_level
                         ]
                         for leaf in input_id_leaves
-                    ]
+                    )
                 )
-                conn_acronyms = [
-                    self.structures[sid]["acronym"] for sid in conn_ids
-                ]
             except IndexError:
                 raise ValueError(
                     f'Structure {self.structures[structure]["acronym"]} '
                     f"has no descendants at hierarchy level {hierarchy_level}"
                 )
 
-        if as_acronym:
-            return conn_acronyms
-        return list(conn_ids)
+            if as_acronym:
+                return [
+                    self.structures[sid]["acronym"] for sid in conn_ids
+                ]
+            return conn_ids
 
     def get_structure_mask(self, structure):
         """

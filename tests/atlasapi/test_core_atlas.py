@@ -450,6 +450,7 @@ def test_get_structures_at_hierarchy_level_too_deep(atlas):
     with pytest.raises(ValueError, match=r"no descendants at hierarchy level"):
         atlas.get_structures_at_hierarchy_level("root", 10)
 
+
 def test_get_structures_at_hierarchy_level_leaf_node(atlas):
     """Test that querying a leaf node with hierarchy_level=0 returns root."""
     # CH is the deepest node in the test atlas

@@ -478,9 +478,7 @@ class Atlas:
                 )
 
             if as_acronym:
-                return [
-                    self.structures[sid]["acronym"] for sid in conn_ids
-                ]
+                return [self.structures[sid]["acronym"] for sid in conn_ids]
             return conn_ids
 
     def get_structure_mask(self, structure):

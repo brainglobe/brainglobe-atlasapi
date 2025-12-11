@@ -16,6 +16,8 @@ from brainglobe_atlasapi.descriptors import (
     METADATA_FILENAME,
     REFERENCE_FILENAME,
     STRUCTURES_FILENAME,
+    V2_MESHES_DIRECTORY,
+    V2_STRUCTURES_NAME,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import read_json, read_tiff
@@ -34,18 +36,53 @@ class Atlas:
     right_hemisphere_value = 2
 
     def __init__(self, path):
-        self.root_dir = Path(path)
-        self.metadata = read_json(self.root_dir / METADATA_FILENAME)
+        atlas_path = Path(path)
+        # v1
+        if atlas_path.is_dir():
+            self.root_dir = atlas_path
+            self.metadata = read_json(self.root_dir / METADATA_FILENAME)
+            structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
+            meshes_dir = MESHES_DIRNAME
+            mesh_stub = "{}.obj"
+        # v2
+        elif atlas_path.suffix == ".json":
+            self.root_dir = atlas_path.parents[3]
+            self.metadata = read_json(atlas_path)
+            structures_path = (
+                self.root_dir
+                / self.metadata["terminology"]["location"][1:]
+                / V2_STRUCTURES_NAME
+            )
+            structures_df = pd.read_csv(
+                structures_path, dtype={"parent_identifier": pd.UInt16Dtype()}
+            )
+            rename_dict = {
+                "identifier": "id",
+                "parent_identifier": "parent_structure_id",
+                "abbreviation": "acronym",
+                "root_identifier_path": "structure_id_path",
+                "color_hex_triplet": "rgb_triplet",
+            }
+            structures_df = structures_df.rename(columns=rename_dict)
+            structures_list = structures_df.to_dict(orient="records")
+            meshes_dir = (
+                self.metadata["annotation_set"]["location"][1:]
+                + "/"
+                + V2_MESHES_DIRECTORY
+            )
+            mesh_stub = "{}"
+        else:
+            raise ValueError(
+                "Atlas path must be a folder (v1) or a .json file (v2)."
+            )
 
-        # Load structures list:
-        structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list
 
         # Add entry for file paths:
         for struct in structures_list:
             struct["mesh_filename"] = (
-                self.root_dir / MESHES_DIRNAME / "{}.obj".format(struct["id"])
+                self.root_dir / meshes_dir / mesh_stub.format(struct["id"])
             )
 
         self.structures = StructuresDict(structures_list)
@@ -60,10 +97,11 @@ class Atlas:
         self._reference = None
 
         try:
-            self.additional_references = AdditionalRefDict(
-                references_list=self.metadata["additional_references"],
-                data_path=self.root_dir,
-            )
+            if atlas_path.is_dir():
+                self.additional_references = AdditionalRefDict(
+                    references_list=self.metadata["additional_references"],
+                    data_path=self.root_dir,
+                )
         except KeyError:
             warnings.warn(
                 "This atlas seems to be outdated as no "

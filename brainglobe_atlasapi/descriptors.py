@@ -4,6 +4,7 @@ import numpy as np
 
 # Base url of the gin repository:
 remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
+remote_url_s3 = "s3://brainglobe/atlas/{}"
 
 # Major version of atlases used by current brainglobe-atlasapi release:
 ATLAS_MAJOR_V = 0
@@ -46,6 +47,18 @@ REFERENCE_FILENAME = "reference.tiff"
 ANNOTATION_FILENAME = "annotation.tiff"
 HEMISPHERES_FILENAME = "hemispheres.tiff"
 MESHES_DIRNAME = "meshes"
+
+# V2 file names
+V2_ATLAS_ROOTDIR = "atlases"
+V2_ANNOTATION_ROOTDIR = "annotation-sets"
+V2_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
+V2_TEMPLATE_ROOTDIR = "templates"
+V2_TERMINOLOGY_ROOTDIR = "terminologies"
+V2_TERMINOLOGY_NAME = "terminology.csv"
+V2_MESHES_DIRECTORY = "annotation.precomputed"
+V2_STRUCTURES_NAME = "terminology.csv"
+V2_TEMPLATE_NAME = "anatomical_template.ome.zarr"
+V2_ANNOTATION_NAME = "annotation.ome.zarr"
 
 # Types for the atlas stacks:
 REFERENCE_DTYPE = np.uint16

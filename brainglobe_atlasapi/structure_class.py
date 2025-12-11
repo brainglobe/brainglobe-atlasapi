@@ -44,7 +44,8 @@ class Structure(UserDict):
             The value associated with the given item.
         """
         if item == "mesh" and self.data[item] is None:
-            if self.data["mesh_filename"] is None:
+            file_name = self.data["mesh_filename"]
+            if file_name is None:
                 warnings.warn(
                     "No mesh filename for region {}".format(
                         self.data["acronym"]
@@ -52,7 +53,12 @@ class Structure(UserDict):
                 )
                 return None
             try:
-                self.data[item] = mio.read(self.data["mesh_filename"])
+                if file_name.suffix == ".obj":
+                    self.data[item] = mio.read(self.data["mesh_filename"])
+                else:
+                    self.data[item] = mio.read(
+                        self.data["mesh_filename"], file_format="neuroglancer"
+                    )
             except (TypeError, mio.ReadError):
                 raise mio.ReadError(
                     "No valid mesh for region: {}".format(self.data["acronym"])

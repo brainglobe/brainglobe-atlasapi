@@ -22,7 +22,10 @@ def test_get_downloaded_atlases():
     available_atlases = get_downloaded_atlases()
 
     # Check that example is listed:
-    assert "example_mouse_100um" in available_atlases
+    assert any(
+    name == "example_mouse_100um" for name, _ in available_atlases
+)
+
 
 
 def test_get_local_atlas_version_real_atlas():

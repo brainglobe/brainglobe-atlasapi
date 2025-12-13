@@ -448,11 +448,6 @@ class Atlas:
                         result.append(child_id)
                         seen.add(child_id)
                         queue.append(child_id)
-
-            if as_acronym:
-                return [self.structures[sid]["acronym"] for sid in result]
-            return result
-
         else:
             # Get structures at specific hierarchy level
             # Get all leaf nodes (terminal descendants) of this structure
@@ -463,7 +458,7 @@ class Atlas:
                 input_id_leaves = [self.structures.tree.get_node(input_id)]
 
             try:
-                conn_ids = list(
+                result = list(
                     set(
                         self.structures[leaf.identifier]["structure_id_path"][
                             hierarchy_level
@@ -477,9 +472,17 @@ class Atlas:
                     f"has no descendants at hierarchy level {hierarchy_level}"
                 )
 
+<<<<<<< HEAD
             if as_acronym:
                 return [self.structures[sid]["acronym"] for sid in conn_ids]
             return conn_ids
+=======
+        if as_acronym:
+            return [
+                self.structures[sid]["acronym"] for sid in result
+            ]
+        return result
+>>>>>>> 9af6bbb (Address review feedback: BFS ordering, fix leaf handling, split tests)
 
     def get_structure_mask(self, structure):
         """

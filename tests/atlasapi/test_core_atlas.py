@@ -394,29 +394,34 @@ def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
         core.read_tiff.assert_called_once()
 
 
-def test_get_structures_at_hierarchy_level(atlas):
-    """Test get_structures_at_hierarchy_level method."""
-    # Basic usage with acronyms and IDs
-    result = atlas.get_structures_at_hierarchy_level(
-        "root", 1, as_acronym=True
-    )
+def test_get_structures_at_hierarchy_level_as_acronym(atlas):
+    """Test basic usage returning acronyms."""
+    result = atlas.get_structures_at_hierarchy_level("root", 1, as_acronym=True)
     assert result == ["grey"]
 
-    result_ids = atlas.get_structures_at_hierarchy_level("root", 1)
-    assert result_ids == [8]
 
-    # Works with numeric structure IDs
-    assert atlas.get_structures_at_hierarchy_level(997, 1) == [8]
+def test_get_structures_at_hierarchy_level_as_id(atlas):
+    """Test basic usage returning IDs."""
+    result = atlas.get_structures_at_hierarchy_level("root", 1)
+    assert result == [8]
 
-    # Level 0 returns root
-    assert atlas.get_structures_at_hierarchy_level(
-        "root", 0, as_acronym=True
-    ) == ["root"]
 
-    # Query multiple levels
-    assert atlas.get_structures_at_hierarchy_level(
-        "root", 2, as_acronym=True
-    ) == ["CH"]
+def test_get_structures_at_hierarchy_level_numeric_input(atlas):
+    """Test that numeric structure IDs work."""
+    result = atlas.get_structures_at_hierarchy_level(997, 1)
+    assert result == [8]
+
+
+def test_get_structures_at_hierarchy_level_zero(atlas):
+    """Test that level 0 returns root."""
+    result = atlas.get_structures_at_hierarchy_level("root", 0, as_acronym=True)
+    assert result == ["root"]
+
+
+def test_get_structures_at_hierarchy_level_multiple_levels(atlas):
+    """Test querying at different hierarchy levels."""
+    result = atlas.get_structures_at_hierarchy_level("root", 2, as_acronym=True)
+    assert result == ["CH"]
 
 
 def test_get_structures_at_hierarchy_level_none(atlas):

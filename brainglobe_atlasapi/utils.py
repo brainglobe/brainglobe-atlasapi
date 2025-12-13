@@ -4,9 +4,10 @@ import configparser
 import json
 import logging
 import re
+from collections.abc import Callable
 from pathlib import Path
 from time import sleep
-from typing import Callable, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import requests
@@ -90,7 +91,7 @@ def atlas_repr_from_name(name):
     atlas_name = "_".join(parts)
 
     # For specified version:
-    if version_str:
+    if version_str is not None:
         major_vers, minor_vers = version_str[1:].split(".")
     else:
         major_vers, minor_vers = None, None
@@ -128,8 +129,8 @@ def atlas_name_from_repr(
 
 
 def check_internet_connection(
-    url="http://www.google.com/", timeout=5, raise_error=True
-):
+    url: str = "http://www.google.com/", timeout: int = 5, raise_error: bool = True
+) -> bool:
     """Check that there is an internet connection
     url : str
         url to use for testing (Default value = 'http://www.google.com/')
@@ -413,7 +414,7 @@ def conf_from_file(file_path: Path) -> configparser.ConfigParser:
 ### File I/O
 
 
-def read_json(path: str | Path) -> dict:
+def read_json(path: Union[str, Path]) -> Dict[str, Any]:
     """Read a json file.
 
     Parameters
@@ -431,7 +432,7 @@ def read_json(path: str | Path) -> dict:
     return data
 
 
-def read_tiff(path: str | Path) -> np.ndarray:
+def read_tiff(path: Union[str, Path]) -> np.ndarray:
     """Read a tiff file.
 
     Parameters

@@ -1,13 +1,15 @@
 """Utility functions for working with structure trees."""
 
 from collections import deque
+from collections.abc import Generator
+from typing import Dict, List, Union
 
-from treelib import Tree
+from treelib import Node, Tree
 
 # TODO evaluate whether we want this as a method in StructureDict
 
 
-def child_ids(structure: int, structure_list: list) -> list[int]:
+def child_ids(structure: int, structure_list: List[Dict]) -> List[int]:
     """
     Return a list of IDs of the children of a given structure.
 
@@ -31,7 +33,7 @@ def child_ids(structure: int, structure_list: list) -> list[int]:
     ]
 
 
-def get_structures_tree(structures_list: list) -> Tree:
+def get_structures_tree(structures_list: List[Dict]) -> Tree:
     """
     Create a `tree` graph with the hierarchical organisation of all
     structures.
@@ -78,7 +80,7 @@ def get_structures_tree(structures_list: list) -> Tree:
     return tree
 
 
-def preorder_depth_first_search(tree):
+def preorder_depth_first_search(tree: Tree) -> Generator[Node, None, None]:
     """Yield nodes in a pre-order depth first traversal of the tree."""
     root_node = tree.nodes[tree.root]
 

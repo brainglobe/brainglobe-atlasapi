@@ -3,7 +3,8 @@
 import tarfile
 from io import StringIO
 from pathlib import Path
-from typing import Callable, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import List, Optional, Tuple, Union
 
 import requests
 from rich import print as rprint
@@ -110,7 +111,6 @@ class BrainGlobeAtlas(core.Atlas):
         if full_name is None:
             return None
 
-        assert full_name is not None
         return _version_tuple_from_str(full_name.split("_v")[-1])
 
     @property
@@ -148,7 +148,7 @@ class BrainGlobeAtlas(core.Atlas):
             )
         # If no one exist, return None:
         elif len(candidate_dirs) == 0:
-            return
+            return None
         # Else, return actual name:
         else:
             return candidate_dirs[0].name
@@ -163,6 +163,8 @@ class BrainGlobeAtlas(core.Atlas):
             )
 
             return self._remote_url_base.format(name)
+        
+        return None
 
     def download_extract_file(self) -> None:
         """Download and extract atlas from remote url."""
@@ -208,7 +210,7 @@ class BrainGlobeAtlas(core.Atlas):
         remote_version = self.remote_version
         # If we are offline, return None
         if remote_version is None:
-            return
+            return None
 
         local = _version_str_from_tuple(self.local_version)
         online = _version_str_from_tuple(remote_version)

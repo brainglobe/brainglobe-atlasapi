@@ -396,7 +396,9 @@ def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
 
 def test_get_structures_at_hierarchy_level_as_acronym(atlas):
     """Test basic usage returning acronyms."""
-    result = atlas.get_structures_at_hierarchy_level("root", 1, as_acronym=True)
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", 1, as_acronym=True
+    )
     assert result == ["grey"]
 
 
@@ -414,13 +416,17 @@ def test_get_structures_at_hierarchy_level_numeric_input(atlas):
 
 def test_get_structures_at_hierarchy_level_zero(atlas):
     """Test that level 0 returns root."""
-    result = atlas.get_structures_at_hierarchy_level("root", 0, as_acronym=True)
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", 0, as_acronym=True
+    )
     assert result == ["root"]
 
 
 def test_get_structures_at_hierarchy_level_multiple_levels(atlas):
     """Test querying at different hierarchy levels."""
-    result = atlas.get_structures_at_hierarchy_level("root", 2, as_acronym=True)
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", 2, as_acronym=True
+    )
     assert result == ["CH"]
 
 

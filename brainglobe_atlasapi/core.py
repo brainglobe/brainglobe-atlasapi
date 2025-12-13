@@ -4,10 +4,7 @@ import warnings
 from collections import UserDict
 from pathlib import Path
 from typing import (
-    Any,
-    Dict,
     List,
-    Optional,
     Tuple,
     Union,
 )
@@ -331,9 +328,7 @@ class Atlas:
 
         return tuple([int(c) for c in coords])
 
-    def get_structure_ancestors(
-        self, structure: Union[str, int]
-    ) -> List[str]:
+    def get_structure_ancestors(self, structure: Union[str, int]) -> List[str]:
         """Return a list of acronyms for all ancestors of a given structure.
 
         Parameters

@@ -1,10 +1,10 @@
 """Defines the BrainGlobeAtlas class for accessing brain atlas data."""
 
 import tarfile
+from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
-from collections.abc import Callable
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import requests
 from rich import print as rprint
@@ -163,7 +163,7 @@ class BrainGlobeAtlas(core.Atlas):
             )
 
             return self._remote_url_base.format(name)
-        
+
         return None
 
     def download_extract_file(self) -> None:

@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import requests
@@ -129,7 +129,9 @@ def atlas_name_from_repr(
 
 
 def check_internet_connection(
-    url: str = "http://www.google.com/", timeout: int = 5, raise_error: bool = True
+    url: str = "http://www.google.com/",
+    timeout: int = 5,
+    raise_error: bool = True,
 ) -> bool:
     """Check that there is an internet connection
     url : str

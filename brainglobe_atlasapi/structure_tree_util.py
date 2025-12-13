@@ -2,7 +2,7 @@
 
 from collections import deque
 from collections.abc import Generator
-from typing import Dict, List, Union
+from typing import Dict, List
 
 from treelib import Node, Tree
 

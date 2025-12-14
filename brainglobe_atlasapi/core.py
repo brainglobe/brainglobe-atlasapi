@@ -366,7 +366,7 @@ class Atlas:
         self, structure, hierarchy_level=None, as_acronym=False
     ):
         """
-        Get structures at a specific hierarchy level within the subgraph 
+        Get structures at a specific hierarchy level within the subgraph
         of nodes connected to the given structure.
 
         For a given brain structure, this method finds all leaf nodes
@@ -473,9 +473,7 @@ class Atlas:
                 )
 
         if as_acronym:
-            return [
-                self.structures[sid]["acronym"] for sid in result
-            ]
+            return [self.structures[sid]["acronym"] for sid in result]
         return result
 
     def get_structure_mask(self, structure):

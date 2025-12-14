@@ -366,8 +366,8 @@ class Atlas:
         self, structure, hierarchy_level=None, as_acronym=False
     ):
         """
-        Get structures at a specific hierarchy level within the subgraph of nodes connected to
-        the given structure.
+        Get structures at a specific hierarchy level within the subgraph 
+        of nodes connected to the given structure.
 
         For a given brain structure, this method finds all leaf nodes
         (terminal structures with no children) in its subtree, then extracts
@@ -472,17 +472,11 @@ class Atlas:
                     f"has no descendants at hierarchy level {hierarchy_level}"
                 )
 
-<<<<<<< HEAD
-            if as_acronym:
-                return [self.structures[sid]["acronym"] for sid in conn_ids]
-            return conn_ids
-=======
         if as_acronym:
             return [
                 self.structures[sid]["acronym"] for sid in result
             ]
         return result
->>>>>>> 9af6bbb (Address review feedback: BFS ordering, fix leaf handling, split tests)
 
     def get_structure_mask(self, structure):
         """

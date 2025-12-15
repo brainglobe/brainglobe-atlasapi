@@ -1,7 +1,7 @@
 """Module containing the core Atlas class."""
 
 import warnings
-from collections import UserDict
+from collections import UserDict, deque
 from pathlib import Path
 
 import numpy as np
@@ -361,6 +361,120 @@ class Atlas:
                 descendants.append(self._get_from_structure(struc, "acronym"))
 
         return descendants
+
+    def get_structures_at_hierarchy_level(
+        self, structure, hierarchy_level=None, as_acronym=False
+    ):
+        """
+        Get structures at a specific hierarchy level within the subgraph
+        of nodes connected to the given structure.
+
+        For a given brain structure, this method finds all leaf nodes
+        (terminal structures with no children) in its subtree, then extracts
+        the structures at the specified hierarchy level from their paths.
+
+        Parameters
+        ----------
+        structure : str or int
+            Structure ID or acronym to query.
+        hierarchy_level : int or None, optional
+            The hierarchy level to extract (0-indexed, where 0 is root).
+            If None, returns all structures in the paths to all leaves
+            in anatomical order (breadth-first traversal).
+        as_acronym : bool, optional
+            If True, return acronyms instead of IDs. Default is False.
+
+        Returns
+        -------
+        list
+            List of structure IDs (if as_acronym=False) or acronyms
+            (if as_acronym=True) at the specified hierarchy level.
+
+        Raises
+        ------
+        ValueError
+            If hierarchy_level is not an integer or None.
+            If the structure has no descendants at the specified level.
+
+        Examples
+        --------
+        >>> atlas = BrainGlobeAtlas("allen_mouse_25um")
+        >>> # Get all level-3 structures under cortex
+        >>> ids = atlas.get_structures_at_hierarchy_level("CTX", 3)
+        >>> # Get as acronyms instead
+        >>> acronyms = atlas.get_structures_at_hierarchy_level(
+        ...     "CTX", 3, as_acronym=True
+        ... )
+        """
+        # Type validation
+        if not (
+            hierarchy_level is None
+            or (
+                isinstance(hierarchy_level, int)
+                and not isinstance(hierarchy_level, bool)
+            )
+        ):
+            raise ValueError(
+                f"hierarchy_level must be an int or None, "
+                f"got {type(hierarchy_level).__name__}"
+            )
+
+        # Validate non-negative hierarchy level
+        if hierarchy_level is not None and hierarchy_level < 0:
+            raise ValueError("hierarchy_level must be non-negative")
+
+        # Validate structure exists
+        try:
+            input_id = self.structures[structure]["id"]
+        except KeyError:
+            raise KeyError(f"Structure '{structure}' not found in atlas")
+
+        if hierarchy_level is None:
+            # Return all ancestors + descendants in anatomical (BFS) order
+
+            # Start with ancestors (already ordered root → input_id)
+            ancestor_path = self.structures[input_id]["structure_id_path"]
+            result = list(ancestor_path)
+            seen = set(ancestor_path)
+
+            # BFS through descendants
+            queue = deque([input_id])
+            while queue:
+                current_id = queue.popleft()
+                children = self.structures.tree.children(current_id)
+                for child in children:
+                    child_id = child.identifier
+                    if child_id not in seen:
+                        result.append(child_id)
+                        seen.add(child_id)
+                        queue.append(child_id)
+        else:
+            # Get structures at specific hierarchy level
+            # Get all leaf nodes (terminal descendants) of this structure
+            input_id_leaves = self.structures.tree.leaves(input_id)
+
+            # If input_id is itself a leaf, use it as its own leaf
+            if not input_id_leaves:
+                input_id_leaves = [self.structures.tree.get_node(input_id)]
+
+            try:
+                result = list(
+                    set(
+                        self.structures[leaf.identifier]["structure_id_path"][
+                            hierarchy_level
+                        ]
+                        for leaf in input_id_leaves
+                    )
+                )
+            except IndexError:
+                raise ValueError(
+                    f'Structure {self.structures[structure]["acronym"]} '
+                    f"has no descendants at hierarchy level {hierarchy_level}"
+                )
+
+        if as_acronym:
+            return [self.structures[sid]["acronym"] for sid in result]
+        return result
 
     def get_structure_mask(self, structure):
         """

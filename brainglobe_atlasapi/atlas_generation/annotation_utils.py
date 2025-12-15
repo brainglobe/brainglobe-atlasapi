@@ -32,7 +32,7 @@ def read_itk_labels(path: Path, acronym_length=1) -> dict:
             if not line.startswith("#"):
                 raw_values = line.split(maxsplit=7)
                 id = int(raw_values[0])
-                rgb = tuple((int(r) for r in raw_values[1:4]))
+                rgb = list((int(r) for r in raw_values[1:4]))
                 if raw_values[7][-1] == "\n":
                     raw_values[7] = raw_values[7][:-1]
                 label_text = raw_values[7][1:-1]

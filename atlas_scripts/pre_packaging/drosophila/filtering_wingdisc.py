@@ -6,10 +6,10 @@ improvement iterations.
 from pathlib import Path
 
 import numpy as np
-from brainglobe_template_builder.io import (
+from brainglobe_utils.io.image import (
+    load_nii,
     save_as_asr_nii,
 )
-from brainglobe_utils.IO.image import load_nii
 from skimage.filters.rank import modal
 from skimage.morphology import square
 

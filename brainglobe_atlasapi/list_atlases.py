@@ -4,7 +4,7 @@ brainglobe atlases.
 """
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from rich import print as rprint
 from rich.panel import Panel
@@ -13,22 +13,19 @@ from rich.table import Table
 from brainglobe_atlasapi import config, descriptors, utils
 
 
-def get_downloaded_atlases() -> List[Tuple[str, str]]:
-    """Get a list of all the downloaded atlases and their version.
+def get_downloaded_atlases() -> List[str]:
+    """Get a list of all the downloaded atlases.
 
     Returns
     -------
-    List[Tuple[str, str]]
-        A list of tuples with the locally available atlases and their version
+    List[str]
+        A list of the locally available atlases.
     """
     # Get brainglobe directory:
     brainglobe_dir = config.get_brainglobe_dir()
 
     return [
-        (
-            f.name.rsplit("_v", 1)[0],
-            re.search(r"_v(\d+\.\d+)$", f.name).group(1),
-        )
+        f.name.rsplit("_v", 1)[0]
         for f in brainglobe_dir.glob("*_*_*_v*")
         if f.is_dir()
     ]
@@ -94,8 +91,9 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
 
     # Get downloaded atlases looping over folders in brainglobe directory:
     atlases = {}
-    for name, local_version in get_downloaded_atlases():
+    for name in get_downloaded_atlases():
         if name in available_atlases.keys():
+            local_version = get_local_atlas_version(name)
             atlases[name] = dict(
                 downloaded=True,
                 local=name,

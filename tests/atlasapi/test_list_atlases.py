@@ -22,9 +22,8 @@ def test_get_downloaded_atlases():
     available_atlases = get_downloaded_atlases()
 
     # Check that example is listed:
-    assert any(
-    name == "example_mouse_100um" for name, _ in available_atlases
-)
+    # Check that example is listed:
+    assert "example_mouse_100um" in available_atlases
 
 
 

@@ -26,7 +26,6 @@ def test_get_downloaded_atlases():
     assert "example_mouse_100um" in available_atlases
 
 
-
 def test_get_local_atlas_version_real_atlas():
     """Test getting the version of a real, downloaded atlas."""
     v = get_local_atlas_version("example_mouse_100um")

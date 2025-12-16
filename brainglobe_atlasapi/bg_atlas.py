@@ -1,12 +1,13 @@
 """Defines the BrainGlobeAtlas class for accessing brain atlas data."""
 
+import shutil
 import tarfile
+import warnings
 from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
 from typing import Optional, Tuple, Union
-import shutil
-import warnings
+
 import requests
 from rich import print as rprint
 from rich.console import Console
@@ -118,7 +119,7 @@ class BrainGlobeAtlas(core.Atlas):
 
         if check_latest:
             self.check_latest_version()
-    
+
     @property
     def local_version(self) -> Optional[Tuple[int, ...]]:
         """If atlas is local, return actual version of the downloaded files;

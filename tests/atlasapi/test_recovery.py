@@ -1,10 +1,10 @@
+"""Tests for recovery behavior when atlas metadata is missing."""
+
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
-def test_recovers_missing_metadata(mocker):
-    """
-    Test that BrainGlobeAtlas recovers from missing metadata by re-downloading.
-    """
 
+def test_recovers_missing_metadata(mocker):
+    """Test recovery when atlas metadata is missing."""
     # Mock Atlas.__init__: fail once, succeed second time
     mock_atlas_init = mocker.patch(
         "brainglobe_atlasapi.core.Atlas.__init__",
@@ -27,9 +27,7 @@ def test_recovers_missing_metadata(mocker):
         "brainglobe_atlasapi.bg_atlas.BrainGlobeAtlas.check_latest_version"
     )
 
-    mock_rmtree = mocker.patch(
-        "brainglobe_atlasapi.bg_atlas.shutil.rmtree"
-    )
+    mocker.patch("brainglobe_atlasapi.bg_atlas.shutil.rmtree")
 
     # Act
     BrainGlobeAtlas("example_mouse_100um", check_latest=False)
@@ -37,5 +35,3 @@ def test_recovers_missing_metadata(mocker):
     # Assert
     assert mock_atlas_init.call_count == 2
     mock_download.assert_called_once()
-
-

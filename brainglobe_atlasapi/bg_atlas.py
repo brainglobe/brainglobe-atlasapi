@@ -5,7 +5,8 @@ from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
 from typing import Optional, Tuple, Union
-
+import shutil
+import warnings
 import requests
 from rich import print as rprint
 from rich.console import Console
@@ -96,11 +97,28 @@ class BrainGlobeAtlas(core.Atlas):
                 self.download_extract_file()
 
         # Instantiate after eventual download:
-        super().__init__(self.brainglobe_dir / self.local_full_name)
+        for attempt in (0, 1):
+            try:
+                super().__init__(self.brainglobe_dir / self.local_full_name)
+                break
+            except (FileNotFoundError, ValueError):
+                if attempt == 1:
+                    raise
+
+                atlas_path = self.brainglobe_dir / self.local_full_name
+                if atlas_path.exists() and atlas_path.is_dir():
+                    warnings.warn(
+                        "Atlas metadata appears corrupted or incomplete. "
+                        "Re-downloading atlas...",
+                        UserWarning,
+                    )
+                    shutil.rmtree(atlas_path)
+
+                self.download_extract_file()
 
         if check_latest:
             self.check_latest_version()
-
+    
     @property
     def local_version(self) -> Optional[Tuple[int, ...]]:
         """If atlas is local, return actual version of the downloaded files;
@@ -155,7 +173,7 @@ class BrainGlobeAtlas(core.Atlas):
 
     @property
     def remote_url(self) -> Optional[str]:
-        """Format complete url for download."""
+        """Format complete url for download, or None if unavailable."""
         if self.remote_version is not None:
             name = (
                 f"{self.atlas_name}_v{self.remote_version[0]}."

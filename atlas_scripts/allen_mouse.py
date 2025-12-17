@@ -65,7 +65,8 @@ def download_resources() -> None:
         if not annotation_path.exists():
             retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
     else:
-        annotation_url = f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
+        annotation_url = f"{ALLEN_BASE_URL}/annotation/ccf_2022/\
+            annotation_{RESOLUTION}.nrrd"
         annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
         if not annotation_path.exists():
             retrieve_over_http(annotation_url, annotation_path)
@@ -105,7 +106,8 @@ def retrieve_reference_and_annotation():
         annotation, _ = nrrd.read(annotation_path)
         annotation = downsample_alternating(annotation, [3, 2])
     else:
-        annotation_url = f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
+        annotation_url = f"{ALLEN_BASE_URL}/annotation/\
+            ccf_2022/annotation_{RESOLUTION}.nrrd"
         annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
         if not annotation_path.exists():
             retrieve_over_http(annotation_url, annotation_path)
@@ -173,8 +175,8 @@ def retrieve_structure_information():
 def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
     """Construct meshes from the annotation volume.
 
-    The Allen CCF 2022 release does not provide precomputed meshes for download,
-    so meshes are generated locally from the annotation volume.
+    The Allen CCF 2022 release does not provide precomputed meshes for
+    download, so meshes are generated locally from the annotation volume.
     """
     meshes_dict = construct_meshes_from_annotation(
         save_path=BG_ROOT_DIR,

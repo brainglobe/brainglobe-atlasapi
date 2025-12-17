@@ -219,9 +219,8 @@ def retrieve_structure_information(download_dir_path):
     )
 
     if possible_label_files:
-        print(
-            f"Found potential label files: {[f.name for f in possible_label_files]}"
-        )
+        file_names = [f.name for f in possible_label_files]
+        print(f"Found potential label files: {file_names}")
         # Try to parse the first label file
         label_file = possible_label_files[0]
         print(f"Attempting to parse: {label_file}")
@@ -284,12 +283,10 @@ def retrieve_structure_information(download_dir_path):
                                 except (ValueError, KeyError):
                                     continue
 
-                            if (
-                                len(structures) > 2
-                            ):  # More than just root + brain
-                                print(
-                                    f"Loaded {len(structures) - 2} structures from label file"
-                                )
+                            if len(structures) > 2:
+                                # More than just root + brain
+                                num_loaded = len(structures) - 2
+                                print(f"Loaded {num_loaded} structures")
                                 break
                 except Exception:
                     continue

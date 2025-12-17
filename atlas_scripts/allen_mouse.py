@@ -176,7 +176,7 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
         save_path=BG_ROOT_DIR,
         volume=annotated_volume,
         structures_list=structures,
-        closing_n_iters=20,
+        closing_n_iters=200,
         decimate_fraction=0.0001,
         smooth=True,
         num_threads=10,

@@ -1,140 +1,230 @@
 """Package the Allen Mouse Brain Atlas for BrainGlobe.
 
-This module provides functionality to download data from the Allen Institute
-and create a BrainGlobe-compatible atlas, including annotation and template
-volumes, as well as structural meshes.
+This script downloads data from the Allen Institute and creates a
+BrainGlobe-compatible atlas, including reference/annotation volumes,
+structures metadata, and meshes.
+
+This file follows the same function-based template as `example_mouse.py`.
 """
+import json
+from pathlib import Path
 
-__version__ = "2"
+import numpy as np
 
-from allensdk.api.queries.ontologies_api import OntologiesApi
-from allensdk.api.queries.reference_space_api import ReferenceSpaceApi
-from allensdk.core.reference_space_cache import ReferenceSpaceCache
-from requests import exceptions
-from tqdm import tqdm
-
-from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
+from brainglobe_atlasapi.utils import retrieve_over_http
+import nrrd
+
+# The minor version of the atlas in brainglobe_atlasapi (1.<minor>)
+__version__ = 3
 
 ATLAS_NAME = "allen_mouse"
+CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org"
-CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 ORIENTATION = "asr"
-RES_UM = 25
+ROOT_ID = 997
+RESOLUTION = 25
+
+BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
+ALLEN_ONTOLOGIES_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
+ALLEN_BASE_URL = "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf"
+ALLEN_TEMPLATE_URL = (
+    f"{ALLEN_BASE_URL}/average_template/average_template_{RESOLUTION}.nrrd"
+)
+ALLEN_ANNOTATION_10_URL = (
+    f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_10.nrrd"
+)
 
 
-def create_atlas(working_dir, resolution):
+def download_resources() -> None:
+    """Download resources required for atlas generation.
+
+    Downloads the reference/annotation NRRDs and the ontologies JSON.
     """
-    Create a BrainGlobe atlas from Allen Mouse Brain data.
+    download_dir_path = BG_ROOT_DIR / "downloading_path"
+    download_dir_path.mkdir(exist_ok=True, parents=True)
 
-    Downloads the annotation and template volumes, structure tree, and meshes
-    from the Allen Institute API, then wraps them into a BrainGlobe atlas
-    format.
+    ontology_path = download_dir_path / "ontologies_1.json"
+    if not ontology_path.exists():
+        retrieve_over_http(ALLEN_ONTOLOGIES_URL, ontology_path)
 
-    Parameters
-    ----------
-    working_dir : pathlib.Path
-        Path to the directory where temporary files and the final atlas
-        will be stored.
-    resolution : int
-        The resolution of the atlas in micrometers per voxel.
+    template_path = download_dir_path / f"average_template_{RESOLUTION}.nrrd"
+    if not template_path.exists():
+        retrieve_over_http(ALLEN_TEMPLATE_URL, template_path)
 
-    Returns
-    -------
-    str
-        The path to the generated atlas file.
+    # Allen CCF provides 10µm labels; for 25µm we downsample from 10µm.
+    if RESOLUTION == 25:
+        annotation_path = download_dir_path / "annotation_10.nrrd"
+        if not annotation_path.exists():
+            retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
+    else:
+        annotation_url = (
+            f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
+        )
+        annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
+        if not annotation_path.exists():
+            retrieve_over_http(annotation_url, annotation_path)
+
+
+def retrieve_reference_and_annotation():
+    """Retrieve the reference (template) and annotation volumes."""
+
+    def downsample_alternating(volume: np.ndarray, pattern: list[int]):
+        def make_indices(max_dim: int, pattern: list[int]):
+            idx = []
+            current = 0
+            i = 0
+            while current < max_dim:
+                idx.append(current)
+                current += pattern[i % len(pattern)]
+                i += 1
+            return np.array(idx)
+
+        idx_z = make_indices(volume.shape[0], pattern)
+        idx_y = make_indices(volume.shape[1], pattern)
+        idx_x = make_indices(volume.shape[2], pattern)
+        return volume[np.ix_(idx_z, idx_y, idx_x)]
+
+    download_dir_path = BG_ROOT_DIR / "downloading_path"
+    download_dir_path.mkdir(exist_ok=True, parents=True)
+
+    template_path = download_dir_path / f"average_template_{RESOLUTION}.nrrd"
+    if not template_path.exists():
+        retrieve_over_http(ALLEN_TEMPLATE_URL, template_path)
+    reference, _ = nrrd.read(template_path)
+
+    if RESOLUTION == 25:
+        annotation_path = download_dir_path / "annotation_10.nrrd"
+        if not annotation_path.exists():
+            retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
+        annotation, _ = nrrd.read(annotation_path)
+        annotation = downsample_alternating(annotation, [3, 2])
+    else:
+        annotation_url = (
+            f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
+        )
+        annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
+        if not annotation_path.exists():
+            retrieve_over_http(annotation_url, annotation_path)
+        annotation, _ = nrrd.read(annotation_path)
+
+    annotation = annotation.astype(np.int64, copy=False)
+    return reference, annotation
+
+
+def retrieve_hemisphere_map():
+    """Return the hemisphere map (None for symmetric atlases)."""
+    return None
+
+
+def retrieve_structure_information(
+):
+    """Retrieve structure metadata for the atlas."""
+    download_dir_path = BG_ROOT_DIR / "downloading_path"
+    download_dir_path.mkdir(exist_ok=True, parents=True)
+
+    ontology_path = download_dir_path / "ontologies_1.json"
+    if not ontology_path.exists():
+        retrieve_over_http(ALLEN_ONTOLOGIES_URL, ontology_path)
+
+    with open(ontology_path) as f:
+        payload = json.load(f)
+
+    structures_raw = payload.get("msg")
+    if not isinstance(structures_raw, list):
+        raise ValueError(
+            "Unexpected Allen ontology response format: missing `msg` list."
+        )
+
+    structures = []
+    for s in structures_raw:
+        # Allen returns e.g. "/997/8/567/".
+        path_string = s.get("structure_id_path")
+        structure_id_path = [int(p) for p in path_string.split("/") if p] if path_string else []
+        if not structure_id_path:
+            structure_id_path = [int(s["id"])]
+
+        hex_string = s.get("color_hex_triplet") or ""
+        hex_string = hex_string.strip().lstrip("#")
+        if len(hex_string) == 6:
+            rgb_triplet = [int(hex_string[i : i + 2], 16) for i in (0, 2, 4)]
+        else:
+            rgb_triplet = [255, 255, 255]
+
+        structures.append(
+            {
+                "id": int(s["id"]),
+                "name": s.get("name", ""),
+                "acronym": s.get("acronym", ""),
+                "structure_id_path": structure_id_path,
+                "rgb_triplet": rgb_triplet,
+            }
+        )
+
+    return structures
+
+
+def retrieve_or_construct_meshes(
+    annotated_volume: np.ndarray, structures
+):
+    """Construct meshes from the annotation volume.
+
+    The Allen CCF 2022 release does not provide precomputed meshes for download,
+    so meshes are generated locally from the annotation volume.
     """
-    # Temporary folder for nrrd files download:
-    download_dir_path = working_dir / "downloading_path"
-    download_dir_path.mkdir(exist_ok=True)
-
-    # Download annotated and template volume:
-    #########################################
-    spacecache = ReferenceSpaceCache(
-        manifest=download_dir_path / "manifest.json",
-        # downloaded files are stored relative to here
-        resolution=resolution,
-        reference_space_key="annotation/ccf_2017",
-        # use the latest version of the CCF
+    meshes_dict = construct_meshes_from_annotation(
+        save_path=BG_ROOT_DIR,
+        volume=annotated_volume,
+        structures_list=structures,
+        closing_n_iters=2,
+        decimate_fraction=0.2,
+        smooth=False,
     )
 
-    # Download
-    annotated_volume, _ = spacecache.get_annotation_volume()
-    template_volume, _ = spacecache.get_template_volume()
-    print("Download completed...")
+    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
+    return meshes_dict, structures_with_mesh
 
-    # Download structures tree and meshes:
-    ######################################
-    oapi = OntologiesApi()  # ontologies
-    struct_tree = spacecache.get_structure_tree()  # structures tree
 
-    # Find id of set of regions with mesh:
-    select_set = (
-        "Structures whose surfaces are represented by a precomputed mesh"
+def retrieve_additional_references():
+    """Return additional reference images (none for this atlas)."""
+    return {}
+
+
+if __name__ == "__main__":
+    BG_ROOT_DIR.mkdir(exist_ok=True)
+    download_resources()
+    reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    additional_references = retrieve_additional_references()
+    hemispheres_stack = retrieve_hemisphere_map()
+    structures = retrieve_structure_information()
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+        annotated_volume, structures
     )
 
-    mesh_set_ids = [
-        s["id"]
-        for s in oapi.get_structure_sets()
-        if s["description"] == select_set
-    ]
-
-    structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
-
-    # Directory for mesh saving:
-    meshes_dir = working_dir / descriptors.MESHES_DIRNAME
-
-    space = ReferenceSpaceApi()
-    meshes_dict = dict()
-    for s in tqdm(structs_with_mesh):
-        name = s["id"]
-        filename = meshes_dir / f"{name}.obj"
-        try:
-            space.download_structure_mesh(
-                structure_id=s["id"],
-                ccf_version="annotation/ccf_2017",
-                file_name=filename,
-            )
-            meshes_dict[name] = filename
-        except (exceptions.HTTPError, ConnectionError):
-            print(s)
-
-    # Loop over structures, remove entries not used:
-    for struct in structs_with_mesh:
-        [
-            struct.pop(k)
-            for k in ["graph_id", "structure_set_ids", "graph_order"]
-        ]
-
-    # Wrap up, compress, and remove file:0
-    print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(resolution,) * 3,
+        resolution=(RESOLUTION,) * 3,
         orientation=ORIENTATION,
-        root_id=997,
-        reference_stack=template_volume,
+        root_id=ROOT_ID,
+        reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=structs_with_mesh,
+        structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
-        working_dir=working_dir,
-        hemispheres_stack=None,
+        working_dir=BG_ROOT_DIR,
+        hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
+        scale_meshes=True,
+        additional_references=additional_references,
     )
 
-    return output_filename
-
-
-if __name__ == "__main__":
-    # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / ATLAS_NAME
-    bg_root_dir.mkdir(exist_ok=True)
-
-    create_atlas(bg_root_dir, RES_UM)
+    print(output_filename)

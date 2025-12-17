@@ -7,6 +7,7 @@ structures metadata, and meshes.
 This file follows the same function-based template as `example_mouse.py`.
 """
 
+import csv
 import json
 
 import nrrd
@@ -41,6 +42,10 @@ ALLEN_TEMPLATE_URL = (
 ALLEN_ANNOTATION_10_URL = (
     f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_10.nrrd"
 )
+ALLEN_VOXEL_DIFFS_URL = (
+    f"{ALLEN_BASE_URL}/annotation/ccf_2022/voxel_count_and_differences.csv"
+)
+ALLEN_2017_MESH_URL_TEMPLATE = f"{ALLEN_BASE_URL}/annotation/ccf_2017/structure_meshes/{{structure_id}}.obj"
 
 
 def download_resources() -> None:
@@ -64,6 +69,10 @@ def download_resources() -> None:
     annotation_path = download_dir_path / "annotation_10.nrrd"
     if not annotation_path.exists():
         retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
+
+    voxel_diffs_path = download_dir_path / "voxel_count_and_differences.csv"
+    if not voxel_diffs_path.exists():
+        retrieve_over_http(ALLEN_VOXEL_DIFFS_URL, voxel_diffs_path)
 
 
 def retrieve_reference_and_annotation():
@@ -169,22 +178,70 @@ def retrieve_structure_information():
 def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
     """Construct meshes from the annotation volume.
 
-    The Allen CCF 2022 release does not provide precomputed meshes for
-    download, so meshes are generated locally from the annotation volume.
+    Reuse Allen-provided 2017 meshes for unchanged structures (as reported
+    by the Allen voxel difference CSV) and generate meshes locally only for
+    structures that are new or changed in the 2022 annotation.
     """
-    meshes_dict = construct_meshes_from_annotation(
+    download_dir_path = BG_ROOT_DIR / "downloading_path"
+    download_dir_path.mkdir(exist_ok=True, parents=True)
+
+    voxel_diffs_path = download_dir_path / "voxel_count_and_differences.csv"
+    if not voxel_diffs_path.exists():
+        retrieve_over_http(ALLEN_VOXEL_DIFFS_URL, voxel_diffs_path)
+
+    unchanged_ids: set[int] = set()
+    with open(voxel_diffs_path, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                structure_id = int(row.get("id") or "")
+            except ValueError:
+                continue
+
+            try:
+                prev_only = int(row.get("previous_only_count") or "")
+                curr_only = int(row.get("current_only_count") or "")
+            except ValueError:
+                continue
+
+            if prev_only == 0 and curr_only == 0:
+                unchanged_ids.add(structure_id)
+
+    meshes_dir_path = BG_ROOT_DIR / "meshes"
+    meshes_dir_path.mkdir(exist_ok=True)
+
+    meshes_dict = {}
+
+    # Fetch 2017 meshes for structures that are unchanged in 2022.
+    for s in structures:
+        sid = int(s["id"])
+        if sid not in unchanged_ids:
+            continue
+        mesh_path = meshes_dir_path / f"{sid}.obj"
+        if not mesh_path.exists():
+            mesh_url = ALLEN_2017_MESH_URL_TEMPLATE.format(structure_id=sid)
+            retrieve_over_http(mesh_url, mesh_path)
+        meshes_dict[sid] = mesh_path
+
+    # Generate meshes using the full structure tree so parent regions include
+    # unchanged children, but skip regenerating meshes we fetched from 2017.
+    generated_meshes_dict = construct_meshes_from_annotation(
         save_path=BG_ROOT_DIR,
         volume=annotated_volume,
         structures_list=structures,
-        closing_n_iters=200,
+        closing_n_iters=10,
         # unclear whether this does anything as
         # 0.001 and 0.0001 appear the same
-        decimate_fraction=0.0001,
+        decimate_fraction=0.2,
         smooth=True,
         num_threads=10,
+        skip_structure_ids=unchanged_ids,
     )
+    meshes_dict.update(generated_meshes_dict)
 
-    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
+    structures_with_mesh = [
+        s for s in structures if int(s["id"]) in meshes_dict
+    ]
     return meshes_dict, structures_with_mesh
 
 

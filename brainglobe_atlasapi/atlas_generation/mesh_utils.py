@@ -180,13 +180,23 @@ def create_region_mesh(args):
     closing_n_iters = args[6]
     decimate_fraction = args[7]
     smooth = args[8]
-    verbosity = args[9] if len(args) > 9 else 0
+    skip_structure_ids = args[9] if len(args) > 9 else None
+    verbosity = args[10] if len(args) > 10 else 0
+
+    if skip_structure_ids is None:
+        skip_structure_ids = set()
+    elif not isinstance(skip_structure_ids, set):
+        skip_structure_ids = set(skip_structure_ids)
 
     if verbosity > 0:
         logger.debug(f"Creating mesh for region {args[1].identifier}")
 
     # Avoid overwriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
+    if node.identifier in skip_structure_ids:
+        if verbosity > 0:
+            logger.debug(f"Skipping mesh for region {node.identifier}")
+        return
     # if savepath.exists():
     #     logger.debug(f"Mesh file save path exists already, skipping.")
     #     return
@@ -247,6 +257,7 @@ def construct_meshes_from_annotation(
     smooth=False,
     parallel: bool = True,
     num_threads: int = -1,
+    skip_structure_ids=None,
     verbosity: int = 0,
 ):
     """
@@ -282,6 +293,8 @@ def construct_meshes_from_annotation(
         If > 0, uses that many threads.
     verbosity: int
         Level of verbosity for logging. 0 for no output, 1 for basic info.
+    skip_structure_ids: iterable of int or None
+        If provided, mesh generation for these structure IDs is skipped.
 
     Returns
     -------
@@ -334,6 +347,7 @@ def construct_meshes_from_annotation(
             closing_n_iters,
             decimate_fraction,
             smooth,
+            skip_structure_ids,
             verbosity,
         )
         for node in preorder_depth_first_search(tree)

@@ -176,9 +176,10 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
         save_path=BG_ROOT_DIR,
         volume=annotated_volume,
         structures_list=structures,
-        closing_n_iters=2,
-        decimate_fraction=0.2,
-        smooth=False,
+        closing_n_iters=5,
+        decimate_fraction=0.01,
+        smooth=True,
+        num_threads=10
     )
 
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]

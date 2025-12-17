@@ -8,7 +8,6 @@ multiple MRI contrasts and diffusion imaging data from 29 squirrel monkeys.
 __version__ = 0
 
 import time
-from pathlib import Path
 
 import numpy as np
 import pooch
@@ -143,10 +142,14 @@ def retrieve_reference_and_annotation(download_dir_path):
         # Try to find any label file
         label_files = list(download_dir_path.rglob("*label*.nii*"))
         if label_files:
-            annotation = load_any(label_files[0], as_numpy=True).astype(np.int64)
+            annotation = load_any(label_files[0], as_numpy=True).astype(
+                np.int64
+            )
             print(f"Loaded annotation from: {label_files[0]}")
         else:
-            print("Warning: No annotation file found. Creating basic annotation.")
+            print(
+                "Warning: No annotation file found. Creating basic annotation."
+            )
             annotation = np.zeros_like(reference, dtype=np.int64)
             annotation[reference > 0] = 1  # Simple binary mask
 
@@ -207,24 +210,29 @@ def retrieve_structure_information(download_dir_path):
     ]
 
     # Look for label definition files
-    possible_label_files = list(download_dir_path.rglob("*label*.txt")) + \
-                          list(download_dir_path.rglob("*label*.csv")) + \
-                          list(download_dir_path.rglob("*structure*.txt")) + \
-                          list(download_dir_path.rglob("*structure*.csv")) + \
-                          list(download_dir_path.rglob("*legend*.txt"))
+    possible_label_files = (
+        list(download_dir_path.rglob("*label*.txt"))
+        + list(download_dir_path.rglob("*label*.csv"))
+        + list(download_dir_path.rglob("*structure*.txt"))
+        + list(download_dir_path.rglob("*structure*.csv"))
+        + list(download_dir_path.rglob("*legend*.txt"))
+    )
 
     if possible_label_files:
-        print(f"Found potential label files: {[f.name for f in possible_label_files]}")
+        print(
+            f"Found potential label files: {[f.name for f in possible_label_files]}"
+        )
         # Try to parse the first label file
         label_file = possible_label_files[0]
         print(f"Attempting to parse: {label_file}")
 
         try:
             import pandas as pd
+
             # Try different delimiters
-            for sep in ['\t', ',', ' ', ';']:
+            for sep in ["\t", ",", " ", ";"]:
                 try:
-                    df = pd.read_csv(label_file, sep=sep, comment='#')
+                    df = pd.read_csv(label_file, sep=sep, comment="#")
                     if len(df.columns) >= 2:  # At least ID and name
                         print(f"Successfully parsed with separator: '{sep}'")
                         print(f"Columns: {df.columns.tolist()}")
@@ -235,9 +243,15 @@ def retrieve_structure_information(download_dir_path):
 
                         for col in df.columns:
                             col_lower = str(col).lower()
-                            if 'id' in col_lower and id_col is None:
+                            if "id" in col_lower and id_col is None:
                                 id_col = col
-                            elif any(x in col_lower for x in ['name', 'label', 'structure']) and name_col is None:
+                            elif (
+                                any(
+                                    x in col_lower
+                                    for x in ["name", "label", "structure"]
+                                )
+                                and name_col is None
+                            ):
                                 name_col = col
 
                         if id_col and name_col:
@@ -247,24 +261,37 @@ def retrieve_structure_information(download_dir_path):
                                     if struct_id == 0 or struct_id == ROOT_ID:
                                         continue
 
-                                    structures.append({
-                                        "id": struct_id,
-                                        "name": str(row[name_col]),
-                                        "acronym": str(row.get('acronym', row[name_col]))[:10],
-                                        "structure_id_path": [ROOT_ID, struct_id],
-                                        "rgb_triplet": [
-                                            int(row.get('r', 100)),
-                                            int(row.get('g', 100)),
-                                            int(row.get('b', 100))
-                                        ],
-                                    })
-                                except (ValueError, KeyError) as e:
+                                    structures.append(
+                                        {
+                                            "id": struct_id,
+                                            "name": str(row[name_col]),
+                                            "acronym": str(
+                                                row.get(
+                                                    "acronym", row[name_col]
+                                                )
+                                            )[:10],
+                                            "structure_id_path": [
+                                                ROOT_ID,
+                                                struct_id,
+                                            ],
+                                            "rgb_triplet": [
+                                                int(row.get("r", 100)),
+                                                int(row.get("g", 100)),
+                                                int(row.get("b", 100)),
+                                            ],
+                                        }
+                                    )
+                                except (ValueError, KeyError):
                                     continue
 
-                            if len(structures) > 2:  # More than just root + brain
-                                print(f"Loaded {len(structures) - 2} structures from label file")
+                            if (
+                                len(structures) > 2
+                            ):  # More than just root + brain
+                                print(
+                                    f"Loaded {len(structures) - 2} structures from label file"
+                                )
                                 break
-                except Exception as e:
+                except Exception:
                     continue
         except Exception as e:
             print(f"Error parsing label file: {e}")
@@ -407,7 +434,11 @@ def retrieve_additional_references(download_dir_path):
 
     # Define possible additional reference files
     reference_maps = {
-        "t2star": ["template_T2star.nii.gz", "template_T2star.nii", "T2star_template.nii.gz"],
+        "t2star": [
+            "template_T2star.nii.gz",
+            "template_T2star.nii",
+            "T2star_template.nii.gz",
+        ],
         "pd": ["template_PD.nii.gz", "template_PD.nii", "PD_template.nii.gz"],
         "fa": ["template_FA.nii.gz", "template_FA.nii", "FA_template.nii.gz"],
         "md": ["template_MD.nii.gz", "template_MD.nii", "MD_template.nii.gz"],
@@ -424,7 +455,9 @@ def retrieve_additional_references(download_dir_path):
             for file_path in possible_paths:
                 if file_path.exists():
                     try:
-                        additional_references[map_name] = load_any(file_path, as_numpy=True)
+                        additional_references[map_name] = load_any(
+                            file_path, as_numpy=True
+                        )
                         print(f"Loaded {map_name} from: {file_path}")
                         break
                     except Exception as e:

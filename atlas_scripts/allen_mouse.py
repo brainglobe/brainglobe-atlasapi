@@ -6,9 +6,10 @@ structures metadata, and meshes.
 
 This file follows the same function-based template as `example_mouse.py`.
 """
-import json
-from pathlib import Path
 
+import json
+
+import nrrd
 import numpy as np
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -17,7 +18,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.utils import retrieve_over_http
-import nrrd
 
 # The minor version of the atlas in brainglobe_atlasapi (1.<minor>)
 __version__ = 3
@@ -31,7 +31,9 @@ ROOT_ID = 997
 RESOLUTION = 25
 
 BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
-ALLEN_ONTOLOGIES_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
+ALLEN_ONTOLOGIES_URL = (
+    "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
+)
 ALLEN_BASE_URL = "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf"
 ALLEN_TEMPLATE_URL = (
     f"{ALLEN_BASE_URL}/average_template/average_template_{RESOLUTION}.nrrd"
@@ -63,9 +65,7 @@ def download_resources() -> None:
         if not annotation_path.exists():
             retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
     else:
-        annotation_url = (
-            f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
-        )
+        annotation_url = f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
         annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
         if not annotation_path.exists():
             retrieve_over_http(annotation_url, annotation_path)
@@ -105,9 +105,7 @@ def retrieve_reference_and_annotation():
         annotation, _ = nrrd.read(annotation_path)
         annotation = downsample_alternating(annotation, [3, 2])
     else:
-        annotation_url = (
-            f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
-        )
+        annotation_url = f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
         annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
         if not annotation_path.exists():
             retrieve_over_http(annotation_url, annotation_path)
@@ -122,8 +120,7 @@ def retrieve_hemisphere_map():
     return None
 
 
-def retrieve_structure_information(
-):
+def retrieve_structure_information():
     """Retrieve structure metadata for the atlas."""
     download_dir_path = BG_ROOT_DIR / "downloading_path"
     download_dir_path.mkdir(exist_ok=True, parents=True)
@@ -145,7 +142,11 @@ def retrieve_structure_information(
     for s in structures_raw:
         # Allen returns e.g. "/997/8/567/".
         path_string = s.get("structure_id_path")
-        structure_id_path = [int(p) for p in path_string.split("/") if p] if path_string else []
+        structure_id_path = (
+            [int(p) for p in path_string.split("/") if p]
+            if path_string
+            else []
+        )
         if not structure_id_path:
             structure_id_path = [int(s["id"])]
 
@@ -169,9 +170,7 @@ def retrieve_structure_information(
     return structures
 
 
-def retrieve_or_construct_meshes(
-    annotated_volume: np.ndarray, structures
-):
+def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
     """Construct meshes from the annotation volume.
 
     The Allen CCF 2022 release does not provide precomputed meshes for download,

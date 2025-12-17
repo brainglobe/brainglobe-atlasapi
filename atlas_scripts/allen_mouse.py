@@ -31,16 +31,14 @@ ROOT_ID = 997
 RESOLUTION = 25
 
 BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
-ALLEN_ONTOLOGIES_URL = (
-    "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
+ALLEN_ONTOLOGIES_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
+ALLEN_BASE_URL = (
+    "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf"
 )
-ALLEN_BASE_URL = "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf"
 ALLEN_TEMPLATE_URL = (
     f"{ALLEN_BASE_URL}/average_template/average_template_{RESOLUTION}.nrrd"
 )
-ALLEN_ANNOTATION_10_URL = (
-    f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_10.nrrd"
-)
+ALLEN_ANNOTATION_10_URL = f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_10.nrrd"
 
 
 def download_resources() -> None:
@@ -65,7 +63,9 @@ def download_resources() -> None:
         if not annotation_path.exists():
             retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
     else:
-        annotation_url = f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
+        annotation_url = (
+            f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
+        )
         annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
         if not annotation_path.exists():
             retrieve_over_http(annotation_url, annotation_path)
@@ -105,7 +105,9 @@ def retrieve_reference_and_annotation():
         annotation, _ = nrrd.read(annotation_path)
         annotation = downsample_alternating(annotation, [3, 2])
     else:
-        annotation_url = f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
+        annotation_url = (
+            f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_{RESOLUTION}.nrrd"
+        )
         annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
         if not annotation_path.exists():
             retrieve_over_http(annotation_url, annotation_path)
@@ -143,9 +145,7 @@ def retrieve_structure_information():
         # Allen returns e.g. "/997/8/567/".
         path_string = s.get("structure_id_path")
         structure_id_path = (
-            [int(p) for p in path_string.split("/") if p]
-            if path_string
-            else []
+            [int(p) for p in path_string.split("/") if p] if path_string else []
         )
         if not structure_id_path:
             structure_id_path = [int(s["id"])]

@@ -80,11 +80,6 @@ def extract_mesh_from_mask(
         What fraction of the original number of vertices is to be kept.
         EG .5 means that 50% of the vertices are kept,
         the others are removed.
-    tol: float
-        parameter for decimation, with larger values corresponding
-        to more aggressive decimation.
-        EG 0.02 -> points that are closer than 2% of the size of the mesh's
-        bounding box are identified and removed (only one is kept).
     extract_largest: bool
         If True only the largest region are extracted. It can cause issues for
         bilateral regions as only one will remain

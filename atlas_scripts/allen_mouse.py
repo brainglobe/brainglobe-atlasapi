@@ -28,7 +28,7 @@ SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org"
 ORIENTATION = "asr"
 ROOT_ID = 997
-RESOLUTION = 25
+RESOLUTION = 10
 
 BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
 ALLEN_ONTOLOGIES_URL = (
@@ -41,7 +41,6 @@ ALLEN_TEMPLATE_URL = (
 ALLEN_ANNOTATION_10_URL = (
     f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_10.nrrd"
 )
-
 
 def download_resources() -> None:
     """Download resources required for atlas generation.
@@ -60,16 +59,11 @@ def download_resources() -> None:
         retrieve_over_http(ALLEN_TEMPLATE_URL, template_path)
 
     # Allen CCF provides 10µm labels; for 25µm we downsample from 10µm.
-    if RESOLUTION == 25:
-        annotation_path = download_dir_path / "annotation_10.nrrd"
-        if not annotation_path.exists():
-            retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
-    else:
-        annotation_url = f"{ALLEN_BASE_URL}/annotation/ccf_2022/\
-            annotation_{RESOLUTION}.nrrd"
-        annotation_path = download_dir_path / f"annotation_{RESOLUTION}.nrrd"
-        if not annotation_path.exists():
-            retrieve_over_http(annotation_url, annotation_path)
+
+    annotation_path = download_dir_path / "annotation_10.nrrd"
+    if not annotation_path.exists():
+        retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
+
 
 
 def retrieve_reference_and_annotation():

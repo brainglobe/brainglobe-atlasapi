@@ -42,6 +42,7 @@ ALLEN_ANNOTATION_10_URL = (
     f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_10.nrrd"
 )
 
+
 def download_resources() -> None:
     """Download resources required for atlas generation.
 
@@ -63,7 +64,6 @@ def download_resources() -> None:
     annotation_path = download_dir_path / "annotation_10.nrrd"
     if not annotation_path.exists():
         retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
-
 
 
 def retrieve_reference_and_annotation():

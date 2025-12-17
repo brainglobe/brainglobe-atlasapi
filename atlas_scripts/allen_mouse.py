@@ -177,6 +177,8 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
         volume=annotated_volume,
         structures_list=structures,
         closing_n_iters=200,
+        # unclear whether this does anything as
+        # 0.001 and 0.0001 appear the same
         decimate_fraction=0.0001,
         smooth=True,
         num_threads=10,

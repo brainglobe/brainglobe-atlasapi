@@ -179,7 +179,7 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
         closing_n_iters=20,
         decimate_fraction=0.0001,
         smooth=True,
-        num_threads=10
+        num_threads=10,
     )
 
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]

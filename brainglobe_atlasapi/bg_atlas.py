@@ -180,11 +180,20 @@ class BrainGlobeAtlas(core.Atlas):
         )
 
         # Uncompress in brainglobe path:
-        tar = tarfile.open(destination_path)
-        tar.extractall(path=self.brainglobe_dir)
-        tar.close()
+        try:
+            tar = tarfile.open(destination_path)
+            tar.extractall(path=self.brainglobe_dir)
+            tar.close()
+        except (tarfile.ReadError, tarfile.CompressionError, EOFError) as e:
+            # Delete corrupted file so we can try again later
+            destination_path.unlink(missing_ok=True)
+            raise tarfile.ReadError(
+                f"Atlas download was interrupted or corrupted. "
+                f"Please try again. Details: {e}"
+            ) from e
 
-        destination_path.unlink()
+        # Also delete the compressed file after successful extraction
+        destination_path.unlink(missing_ok=True)
 
     def check_latest_version(
         self, print_warning: bool = True

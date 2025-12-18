@@ -148,13 +148,24 @@ def extract_mesh_from_mask(
     return mesh
 
 
-def create_region_mesh(args):
+def new_create_region_mesh(
+    meshes_dir_path: Path,
+    node,
+    tree,
+    labels,
+    annotated_volume,
+    ROOT_ID: int,
+    closing_n_iters,
+    decimate_fraction: float,
+    smooth: bool,
+    skip_structure_ids=None,
+    verbosity: int = 0,
+):
     """
     Automate the creation of a region's mesh. Given a volume of annotations
     and a structures tree, it takes the volume's region corresponding to the
     region of interest and all of its children's labels and creates a mesh.
-    It takes a tuple of arguments to facilitate parallel processing with
-    multiprocessing.pool.map.
+
 
     Note, by default it avoids overwriting a structure's mesh if the
     .obj file exists already.
@@ -170,26 +181,15 @@ def create_region_mesh(args):
     ROOT_ID: int,
     id of root structure (mesh creation is a bit more refined for that)
     """
-    # Split arguments
-    meshes_dir_path = args[0]
-    node = args[1]
-    tree = args[2]
-    labels = args[3]
-    annotated_volume = args[4]
-    ROOT_ID = args[5]
-    closing_n_iters = args[6]
-    decimate_fraction = args[7]
-    smooth = args[8]
-    skip_structure_ids = args[9] if len(args) > 9 else None
-    verbosity = args[10] if len(args) > 10 else 0
-
     if skip_structure_ids is None:
         skip_structure_ids = set()
+    elif isinstance(skip_structure_ids, (int, np.integer)):
+        skip_structure_ids = {int(skip_structure_ids)}
     elif not isinstance(skip_structure_ids, set):
         skip_structure_ids = set(skip_structure_ids)
 
     if verbosity > 0:
-        logger.debug(f"Creating mesh for region {args[1].identifier}")
+        logger.debug(f"Creating mesh for region {node.identifier}")
 
     # Avoid overwriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
@@ -246,6 +246,18 @@ def create_region_mesh(args):
                     closing_n_iters=closing_n_iters,
                     decimate_fraction=decimate_fraction,
                 )
+
+
+def create_region_mesh(args):
+    """
+    wrapper for new_create_region_mesh which facilitates
+    multiprocessing.
+    """
+    if not isinstance(args, (tuple, list)):
+        raise TypeError("args must be a tuple or list")
+
+    return new_create_region_mesh(*args)
+
 
 
 def construct_meshes_from_annotation(
@@ -377,7 +389,7 @@ def construct_meshes_from_annotation(
         for args in track(
             args_list, total=len(args_list), description="Creating meshes"
         ):
-            create_region_mesh(args)
+            new_create_region_mesh(*args)
 
     meshes_dict = {}
     structures_with_mesh = []

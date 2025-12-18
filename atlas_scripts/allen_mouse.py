@@ -29,7 +29,7 @@ SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org"
 ORIENTATION = "asr"
 ROOT_ID = 997
-RESOLUTION = 10
+RESOLUTION = 25
 
 BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
 ALLEN_ONTOLOGIES_URL = (
@@ -216,8 +216,9 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
     # the root is also unchanged but treated as if its not
     # bc of course some of its children are.
     unchanged_ids.add(ROOT_ID)
-    # The 545 mesh on the allen server is empty!!
-    unchanged_ids.remove(545)
+    # The 545 mesh on the allen server is empty... but this only exists in 10um
+    if RESOLUTION == 10:
+        unchanged_ids.remove(545)
     # Fetch 2017 meshes for structures that are unchanged in 2022.
     for s in structures:
         sid = int(s["id"])
@@ -238,7 +239,7 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
         closing_n_iters=10,
         decimate_fraction=0.2,
         smooth=False,
-        num_threads=10,
+        num_threads=1,
         skip_structure_ids=unchanged_ids,
     )
     meshes_dict.update(generated_meshes_dict)

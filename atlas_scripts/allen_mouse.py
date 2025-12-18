@@ -211,6 +211,9 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
     meshes_dir_path.mkdir(exist_ok=True)
 
     meshes_dict = {}
+    # the root is also unchanged but treated as if its not
+    # bc of course some of its children are.
+    unchanged_ids.add(ROOT_ID)
 
     # Fetch 2017 meshes for structures that are unchanged in 2022.
     for s in structures:
@@ -229,11 +232,9 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
         save_path=BG_ROOT_DIR,
         volume=annotated_volume,
         structures_list=structures,
-        closing_n_iters=10,
-        # unclear whether this does anything as
-        # 0.001 and 0.0001 appear the same
+        closing_n_iters=3,
         decimate_fraction=0.2,
-        smooth=True,
+        smooth=False,
         num_threads=10,
         skip_structure_ids=unchanged_ids,
     )

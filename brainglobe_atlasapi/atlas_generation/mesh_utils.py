@@ -268,8 +268,8 @@ def construct_meshes_from_annotation(
     smooth=False,
     parallel: bool = True,
     num_threads: int = -1,
-    skip_structure_ids=None,
     verbosity: int = 0,
+    skip_structure_ids=None,
 ):
     """
     Retrieve or construct atlas region meshes for a given annotation volume.

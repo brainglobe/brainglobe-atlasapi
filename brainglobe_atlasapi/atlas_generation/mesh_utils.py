@@ -158,8 +158,8 @@ def new_create_region_mesh(
     closing_n_iters,
     decimate_fraction: float,
     smooth: bool,
-    skip_structure_ids=None,
     verbosity: int = 0,
+    skip_structure_ids=None,
 ):
     """
     Automate the creation of a region's mesh. Given a volume of annotations
@@ -358,8 +358,8 @@ def construct_meshes_from_annotation(
             closing_n_iters,
             decimate_fraction,
             smooth,
-            skip_structure_ids,
             verbosity,
+            skip_structure_ids,
         )
         for node in preorder_depth_first_search(tree)
     ]

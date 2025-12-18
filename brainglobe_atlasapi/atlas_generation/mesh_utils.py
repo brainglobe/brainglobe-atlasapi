@@ -250,14 +250,13 @@ def new_create_region_mesh(
 
 def create_region_mesh(args):
     """
-    wrapper for new_create_region_mesh which facilitates
+    Wrapper for new_create_region_mesh which facilitates
     multiprocessing.
     """
     if not isinstance(args, (tuple, list)):
         raise TypeError("args must be a tuple or list")
 
     return new_create_region_mesh(*args)
-
 
 
 def construct_meshes_from_annotation(

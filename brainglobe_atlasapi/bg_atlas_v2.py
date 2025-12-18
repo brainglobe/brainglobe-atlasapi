@@ -1,6 +1,7 @@
 """Defines the BrainGlobe Atlas API v2 classes and functions."""
 
 import re
+from io import StringIO
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -8,10 +9,14 @@ import ngff_zarr
 import ngff_zarr as nz
 import numpy.typing as npt
 import s3fs
+from rich import print as rprint
+from rich.console import Console
 from typing_extensions import deprecated
 
-from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
-from brainglobe_atlasapi.bg_atlas import _version_tuple_from_str
+from brainglobe_atlasapi import core
+from brainglobe_atlasapi.bg_atlas import (
+    _version_tuple_from_str,
+)
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
     REFERENCE_DTYPE,
@@ -21,14 +26,18 @@ from brainglobe_atlasapi.descriptors import (
     V2_TEMPLATE_NAME,
     remote_url_s3,
 )
-from brainglobe_atlasapi.utils import check_internet_connection, read_json
+from brainglobe_atlasapi.utils import (
+    _rich_atlas_metadata,
+    check_internet_connection,
+    read_json,
+)
 
 
 def _version_str_from_tuple(version_tuple):
     return "_".join(str(num) for num in version_tuple)
 
 
-class BrainGlobeAtlasV2(BrainGlobeAtlas):
+class BrainGlobeAtlas(core.Atlas):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
 
@@ -71,10 +80,18 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
             _version_tuple_from_str(version) if version else None
         )
         self._shape = None
-        self._pyramid_level = None
         self.fs = s3fs.S3FileSystem(anon=True)
 
         super().__init__(atlas_name, **kwargs)
+
+        template_location = self.metadata["annotation_set"]["template"][
+            "location"
+        ][1:]
+        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
+
+        multiscale = nz.from_ngff_zarr(template_path)
+        self._determine_pyramid_level(multiscale)
+        self.additional_references.pyramid_level = self._pyramid_level
 
     @property
     def local_full_name(self):
@@ -85,7 +102,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         if self._local_full_name is not None:
             return self._local_full_name
 
-        (self.brainglobe_dir / descriptors.V2_ATLAS_ROOTDIR).mkdir(
+        (self.brainglobe_dir / V2_ATLAS_ROOTDIR).mkdir(
             parents=True, exist_ok=True
         )
 
@@ -93,18 +110,16 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
             self._requested_version = self._requested_version.replace(".", "_")
 
             pattern = (
-                f"{descriptors.V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
+                f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
                 f"v{self._requested_version}/manifest.json"
             )
         else:
             pattern = (
-                rf"{descriptors.V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
+                rf"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
                 rf"\d+(?:_\d+)?/manifest.json"
             )
 
-        glob_pattern = (
-            f"{descriptors.V2_ATLAS_ROOTDIR}/{self.atlas_name}/*/manifest.json"
-        )
+        glob_pattern = f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/*/manifest.json"
 
         available_versions: List[tuple[int, ...]] = [
             p.parent.name
@@ -118,7 +133,7 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         available_versions.sort(reverse=True)
 
         self._local_full_name = (
-            f"{descriptors.V2_ATLAS_ROOTDIR}/"
+            f"{V2_ATLAS_ROOTDIR}/"
             f"{self.atlas_name}/"
             f"{available_versions[0]}/"
             f"manifest.json"
@@ -194,10 +209,6 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
 
         multiscale = nz.from_ngff_zarr(template_path)
-
-        if self._pyramid_level is None:
-            self._determine_pyramid_level(multiscale)
-
         resolution_path = template_path / str(self._pyramid_level)
 
         if not (resolution_path / "c").exists():
@@ -229,10 +240,6 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
         )
 
         multiscale = nz.from_ngff_zarr(annotation_path)
-
-        if self._pyramid_level is None:
-            self._determine_pyramid_level(multiscale)
-
         resolution_path = annotation_path / str(self._pyramid_level)
 
         if not (resolution_path / "c").exists():
@@ -380,3 +387,74 @@ class BrainGlobeAtlasV2(BrainGlobeAtlas):
             self.fs.get(remote_mesh_path, local_mesh_path)
 
         return
+
+    def check_latest_version(
+        self, print_warning: bool = True
+    ) -> Optional[bool]:
+        """
+        Check if the local version is the latest available
+        and prompts the user to update if not.
+
+        Parameters
+        ----------
+        print_warning : bool, optional
+            If True, prints a message if the local version is not the latest,
+            by default True. Useful to turn off, e.g. when the user is updating
+            the atlas
+
+        Returns
+        -------
+        Optional[bool]
+            Returns False if the local version is not the latest,
+            True if it is, and None if we are offline.
+        """
+        # Cache remote version to avoid multiple requests
+        remote_version = self.remote_version
+        # If we are offline, return None
+        if remote_version is None:
+            return
+
+        local = _version_str_from_tuple(self.local_version)
+        online = _version_str_from_tuple(remote_version)
+
+        if local != online:
+            if print_warning:
+                rprint(
+                    "[b][magenta2]brainglobe_atlasapi[/b]: "
+                    f"[b]{self.atlas_name}[/b] version [b]{local}[/b] "
+                    f"is not the latest available ([b]{online}[/b]). "
+                    "To update the atlas run in the terminal:[/magenta2]\n"
+                    f" [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
+                )
+            return False
+        return True
+
+    def __repr__(self):
+        """Fancy print providing atlas information."""
+        name_split = self.atlas_name.split("_")
+        res = f" (res. {name_split.pop()})"
+        pretty_name = f"{' '.join(name_split)} atlas{res}"
+        return pretty_name
+
+    def __str__(self):
+        """
+        If the atlas metadata are to be printed
+        with the built-in print function instead of rich's, then
+        print the rich panel as a string.
+
+        It will miss the colors.
+
+        """
+        buf = StringIO()
+        _console = Console(file=buf, force_jupyter=False)
+        _console.print(self)
+
+        return buf.getvalue()
+
+    def __rich_console__(self, *args):
+        """
+        Use rich API's console protocol.
+        Prints the atlas metadata as a table nested in a panel.
+        """
+        panel = _rich_atlas_metadata(self.atlas_name, self.metadata)
+        yield panel

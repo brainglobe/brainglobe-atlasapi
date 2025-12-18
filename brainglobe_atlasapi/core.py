@@ -4,8 +4,10 @@ import warnings
 from collections import UserDict
 from pathlib import Path
 
+import ngff_zarr as nz
 import numpy as np
 import pandas as pd
+import s3fs
 from brainglobe_space import AnatomicalSpace
 
 from brainglobe_atlasapi.descriptors import (
@@ -18,6 +20,8 @@ from brainglobe_atlasapi.descriptors import (
     STRUCTURES_FILENAME,
     V2_MESHES_DIRECTORY,
     V2_STRUCTURES_NAME,
+    V2_TEMPLATE_NAME,
+    remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import read_json, read_tiff
@@ -100,6 +104,14 @@ class Atlas:
             if atlas_path.is_dir():
                 self.additional_references = AdditionalRefDict(
                     references_list=self.metadata["additional_references"],
+                    data_path=self.root_dir,
+                )
+            elif atlas_path.suffix == ".json":
+                additional_references = self.metadata.get(
+                    "additional_references", []
+                )
+                self.additional_references = AdditionalRefDict(
+                    references_list=additional_references,
                     data_path=self.root_dir,
                 )
         except KeyError:
@@ -440,10 +452,21 @@ class AdditionalRefDict(UserDict):
     def __init__(self, references_list, data_path, *args, **kwargs):
         self.data_path = data_path
         self.references_list = references_list
+        self.references_names = (
+            references_list
+            if isinstance(references_list[0], str)
+            else [ref["name"] for ref in references_list]
+        )
+        self.references_dict = {
+            ref["name"]: ref
+            for ref in references_list
+            if not isinstance(ref, str)
+        }
+        self.pyramid_level = 0
 
         super().__init__(*args, **kwargs)
 
-        for ref_name in self.references_list:
+        for ref_name in self.references_names:
             self.data[ref_name] = None
 
     def __getitem__(self, ref_name):
@@ -470,16 +493,34 @@ class AdditionalRefDict(UserDict):
         ------
             KeyError: If the ref_name is not found.
         """
-        if ref_name not in self.references_list:
+        if ref_name not in self.references_names:
             warnings.warn(
                 f"No reference named {ref_name} "
-                f"(available: {self.references_list})"
+                f"(available: {self.references_names})"
             )
             return None
 
         if self.data[ref_name] is None:
-            self.data[ref_name] = read_tiff(
-                self.data_path / f"{ref_name}.tiff"
-            )
+            additional_ref_data = self.references_dict[ref_name]
+            if isinstance(additional_ref_data, dict):
+                additional_ref_location = additional_ref_data["location"][1:]
+                local_path: Path = self.data_path / additional_ref_location
+
+                multiscale = nz.from_ngff_zarr(local_path.parent)
+
+                if not (local_path / "c").exists():
+                    print("Downloading template...")
+                    remote_path = remote_url_s3.format(
+                        f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{self.pyramid_level}/"
+                    )
+                    fs = s3fs.S3FileSystem(anon=True)
+                    fs.get(remote_path, local_path, recursive=True)
+                self.data[ref_name] = multiscale.images[
+                    int(local_path.name)
+                ].data.compute()
+            else:
+                self.data[ref_name] = read_tiff(
+                    self.data_path / f"{ref_name}.tiff"
+                )
 
         return self.data[ref_name]

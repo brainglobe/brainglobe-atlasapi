@@ -214,7 +214,8 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
     # the root is also unchanged but treated as if its not
     # bc of course some of its children are.
     unchanged_ids.add(ROOT_ID)
-
+    #The 545 mesh on the allen server is empty!!
+    unchanged_ids.remove(545)
     # Fetch 2017 meshes for structures that are unchanged in 2022.
     for s in structures:
         sid = int(s["id"])
@@ -232,7 +233,7 @@ def retrieve_or_construct_meshes(annotated_volume: np.ndarray, structures):
         save_path=BG_ROOT_DIR,
         volume=annotated_volume,
         structures_list=structures,
-        closing_n_iters=3,
+        closing_n_iters=10,
         decimate_fraction=0.2,
         smooth=False,
         num_threads=10,

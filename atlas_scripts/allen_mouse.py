@@ -35,7 +35,8 @@ BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
 ALLEN_ONTOLOGIES_URL = (
     "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
 )
-ALLEN_BASE_URL = "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf"
+ALLEN_BASE_URL = "https://download.alleninstitute.org/informatics-archive/\
+            current-release/mouse_ccf"
 ALLEN_TEMPLATE_URL = (
     f"{ALLEN_BASE_URL}/average_template/average_template_{RESOLUTION}.nrrd"
 )
@@ -45,7 +46,8 @@ ALLEN_ANNOTATION_10_URL = (
 ALLEN_VOXEL_DIFFS_URL = (
     f"{ALLEN_BASE_URL}/annotation/ccf_2022/voxel_count_and_differences.csv"
 )
-ALLEN_2017_MESH_URL_TEMPLATE = f"{ALLEN_BASE_URL}/annotation/ccf_2017/structure_meshes/{{structure_id}}.obj"
+ALLEN_2017_MESH_URL_TEMPLATE = f"{ALLEN_BASE_URL}/annotation/ccf_2017/\
+            structure_meshes/{{structure_id}}.obj"
 
 
 def download_resources() -> None:

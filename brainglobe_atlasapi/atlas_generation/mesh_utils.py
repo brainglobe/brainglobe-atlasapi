@@ -250,7 +250,7 @@ def new_create_region_mesh(
 
 def create_region_mesh(args):
     """
-    Wrapper for new_create_region_mesh which facilitates
+    Wrap new_create_region_mesh which facilitates
     multiprocessing.
     """
     if not isinstance(args, (tuple, list)):

@@ -1,9 +1,10 @@
 """Defines the BrainGlobeAtlas class for accessing brain atlas data."""
 
 import tarfile
+from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 import requests
 from rich import print as rprint
@@ -19,11 +20,11 @@ from brainglobe_atlasapi.utils import (
 COMPRESSED_FILENAME = "atlas.tar.gz"
 
 
-def _version_tuple_from_str(version_str):
+def _version_tuple_from_str(version_str: str) -> Tuple[int, ...]:
     return tuple([int(n) for n in version_str.split(".")])
 
 
-def _version_str_from_tuple(version_tuple):
+def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return f"{version_tuple[0]}.{version_tuple[1]}"
 
 
@@ -56,12 +57,12 @@ class BrainGlobeAtlas(core.Atlas):
 
     def __init__(
         self,
-        atlas_name,
-        brainglobe_dir=None,
-        interm_download_dir=None,
-        check_latest=True,
-        config_dir=None,
-        fn_update=None,
+        atlas_name: str,
+        brainglobe_dir: Optional[Union[str, Path]] = None,
+        interm_download_dir: Optional[Union[str, Path]] = None,
+        check_latest: bool = True,
+        config_dir: Optional[Union[str, Path]] = None,
+        fn_update: Optional[Callable] = None,
     ):
         self.atlas_name = atlas_name
         self.fn_update = fn_update
@@ -101,7 +102,7 @@ class BrainGlobeAtlas(core.Atlas):
             self.check_latest_version()
 
     @property
-    def local_version(self):
+    def local_version(self) -> Optional[Tuple[int, ...]]:
         """If atlas is local, return actual version of the downloaded files;
         Else, return none.
         """
@@ -113,7 +114,7 @@ class BrainGlobeAtlas(core.Atlas):
         return _version_tuple_from_str(full_name.split("_v")[-1])
 
     @property
-    def remote_version(self):
+    def remote_version(self) -> Optional[Tuple[int, ...]]:
         """Remote version read from GIN conf file. If we are offline, return
         None.
         """
@@ -126,14 +127,13 @@ class BrainGlobeAtlas(core.Atlas):
             return None
 
         try:
-            return _version_tuple_from_str(
-                versions_conf["atlases"][self.atlas_name]
-            )
+            version_str = versions_conf["atlases"][self.atlas_name]
+            return _version_tuple_from_str(version_str)
         except KeyError:
             return None
 
     @property
-    def local_full_name(self):
+    def local_full_name(self) -> Optional[str]:
         """As we can't know the local version a priori, search candidate dirs
         using name and not version number. If none is found, return None.
         """
@@ -148,13 +148,13 @@ class BrainGlobeAtlas(core.Atlas):
             )
         # If no one exist, return None:
         elif len(candidate_dirs) == 0:
-            return
+            return None
         # Else, return actual name:
         else:
             return candidate_dirs[0].name
 
     @property
-    def remote_url(self):
+    def remote_url(self) -> Optional[str]:
         """Format complete url for download."""
         if self.remote_version is not None:
             name = (
@@ -164,7 +164,9 @@ class BrainGlobeAtlas(core.Atlas):
 
             return self._remote_url_base.format(name)
 
-    def download_extract_file(self):
+        return None
+
+    def download_extract_file(self) -> None:
         """Download and extract atlas from remote url."""
         check_internet_connection()
         check_gin_status()
@@ -208,7 +210,7 @@ class BrainGlobeAtlas(core.Atlas):
         remote_version = self.remote_version
         # If we are offline, return None
         if remote_version is None:
-            return
+            return None
 
         local = _version_str_from_tuple(self.local_version)
         online = _version_str_from_tuple(remote_version)
@@ -225,14 +227,14 @@ class BrainGlobeAtlas(core.Atlas):
             return False
         return True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Fancy print providing atlas information."""
         name_split = self.atlas_name.split("_")
         res = f" (res. {name_split.pop()})"
         pretty_name = f"{' '.join(name_split)} atlas{res}"
         return pretty_name
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         If the atlas metadata are to be printed
         with the built in print function instead of rich's, then

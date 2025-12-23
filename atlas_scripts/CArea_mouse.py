@@ -72,6 +72,8 @@ ANNOTATION_FNAME = "whole_segmentations.nrrd"
 LABELS_FNAME = "careas.label"
 
 ATLAS_PACKAGER = "Harry Carey"
+
+
 def download_resources():
     """Download the necessary resources for the atlas (with Pooch)."""
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
@@ -324,5 +326,5 @@ if __name__ == "__main__":
         working_dir=bg_root_dir,
         hemispheres_stack=hemispheres_stack,
         additional_references=additional_references,
-        atlas_packager=ATLAS_PACKAGER
+        atlas_packager=ATLAS_PACKAGER,
     )

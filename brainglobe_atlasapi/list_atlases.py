@@ -67,7 +67,7 @@ def get_all_atlases_lastversions():
         official_atlases = utils.conf_from_url(
             descriptors.remote_url_base.format("last_versions.conf")
         )
-    else: 
+    else:
         print("Cannot fetch latest atlas versions from the server.")
         official_atlases = utils.conf_from_file(cache_path)
 
@@ -178,9 +178,9 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
 
 
 def add_atlas_to_row(atlas, info, table, show_local_path=False):
-    
     """Add information about each atlas to a row of the rich table.
-     Parameters
+
+    Parameters
     ----------
     atlas : str
         The name of the atlas.
@@ -191,14 +191,13 @@ def add_atlas_to_row(atlas, info, table, show_local_path=False):
     show_local_path : bool, optional
         If True, includes the local path of the atlas
         in the row (default is False).
+
     Returns
     -------
     rich.table.Table
         The updated table with the new row added.
     -------
     """
-
-    
     if info["downloaded"]:
         downloaded = "[green]:heavy_check_mark:[/green]"
         updated = (

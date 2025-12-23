@@ -194,8 +194,6 @@ def retrieve_structure_information(annotation_volume: np.ndarray):
     # Filter structures to those actually present.
     present_ids = set(map(int, np.unique(annotation_volume)))
 
-
-
     # ITK-SNAP label file format:
     # IDX   -R-  -G-  -B-  -A--  VIS MSH  "LABEL"
     # Use regex parsing to avoid pandas whitespace/quoting edge-cases.
@@ -303,7 +301,6 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information(annotated_volume)
-
 
     meshes_dict = retrieve_or_construct_meshes(
         annotated_volume=annotated_volume,

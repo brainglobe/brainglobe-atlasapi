@@ -308,7 +308,7 @@ if __name__ == "__main__":
         working_dir=bg_root_dir,
     )
 
-    output_filename = wrapup_atlas_from_data(
+    wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

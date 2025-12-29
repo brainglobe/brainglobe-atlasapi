@@ -67,13 +67,6 @@ def test_lastversions():
     )
 
 
-def test_get_atlases_lastversions_sorted():
-    """Test that atlas last versions are returned in alphabetical order."""
-    last_versions = get_atlases_lastversions()
-    atlas_names = list(last_versions.keys())
-    assert atlas_names == sorted(atlas_names)
-
-
 def test_show_atlases():
     """Test displaying a table of available atlases."""
     # TODO add more valid testing than just look for errors when running

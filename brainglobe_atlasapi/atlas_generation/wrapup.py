@@ -182,7 +182,8 @@ def wrapup_atlas_from_data(
             shutil.rmtree(dest_dir)
         else:
             raise FileExistsError(
-                f"Atlas output already exists at {dest_dir}. Try setting overwrite=True"
+                f"Atlas output already exists at {dest_dir}. "
+                "Try setting overwrite=True"
             )
 
     # exist_ok would be more permissive but error-prone here as there might

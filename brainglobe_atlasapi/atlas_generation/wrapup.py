@@ -102,6 +102,7 @@ def wrapup_atlas_from_data(
     resolution_mapping=None,
     additional_references={},
     additional_metadata={},
+    overwrite=False,
 ):
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -163,7 +164,30 @@ def wrapup_atlas_from_data(
     additional_metadata: dict, optional
         (Default value = empty dict).
         Additional metadata to write to metadata.json
+    overwrite : bool, optional
+        (Default value = False).
+        If True, will overwrite existing atlas directory.
+        If False and atlas directory exists, raises FileExistsError.
     """
+    atlas_dir_name = atlas_name_from_repr(
+        atlas_name, resolution[0], ATLAS_VERSION, atlas_minor_version
+    )
+
+    dest_dir = Path(working_dir) / atlas_dir_name
+    if dest_dir.exists():
+        if overwrite:
+            print(f"Atlas directory already exists, overwriting: {dest_dir}")
+            shutil.rmtree(dest_dir)
+        else:
+            raise FileExistsError(
+                f"Atlas output already exists at {dest_dir}. "
+                "Try setting overwrite=True"
+            )
+
+    # exist_ok would be more permissive but error-prone here as there might
+    # be old files
+    dest_dir.mkdir()
+
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
     if isinstance(annotation_stack, str) or isinstance(annotation_stack, Path):
@@ -180,16 +204,6 @@ def wrapup_atlas_from_data(
 
     # Check consistency of structures .json file:
     check_struct_consistency(structures_list)
-
-    atlas_dir_name = atlas_name_from_repr(
-        atlas_name, resolution[0], ATLAS_VERSION, atlas_minor_version
-    )
-
-    dest_dir = Path(working_dir) / atlas_dir_name
-
-    # exist_ok would be more permissive but error-prone here as there might
-    # be old files
-    dest_dir.mkdir()
 
     stack_list = [reference_stack, annotation_stack]
     saving_fun_list = [save_reference, save_annotation]

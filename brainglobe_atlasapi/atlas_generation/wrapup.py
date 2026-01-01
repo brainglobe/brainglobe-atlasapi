@@ -176,9 +176,7 @@ def wrapup_atlas_from_data(
     dest_dir = Path(working_dir) / atlas_dir_name
     if dest_dir.exists():
         if overwrite:
-            print(
-                f"Atlas directory already exists, overwriting: {dest_dir}"
-            )
+            print(f"Atlas directory already exists, overwriting: {dest_dir}")
             shutil.rmtree(dest_dir)
         else:
             raise FileExistsError(

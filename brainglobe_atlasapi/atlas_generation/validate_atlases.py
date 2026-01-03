@@ -453,9 +453,9 @@ def validate_unique_acronyms(atlas: BrainGlobeAtlas):
     duplicates = [acr for acr in acronyms if acronyms.count(acr) > 1]
     unique_duplicates = list(set(duplicates))
 
-    assert len(acronyms) == len(set(acronyms)), (
-        f"Duplicate acronyms found in atlas structures: {unique_duplicates}"
-    )
+    assert len(acronyms) == len(
+        set(acronyms)
+    ), f"Duplicate acronyms found in atlas structures: {unique_duplicates}"
     return True
 
 

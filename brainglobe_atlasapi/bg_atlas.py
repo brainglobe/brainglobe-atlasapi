@@ -81,7 +81,6 @@ class BrainGlobeAtlas(core.Atlas):
         check_latest=True,
         config_dir=None,
         fn_update=None,
-        **kwargs,
     ):
         self._remote_version = None
         self._local_full_name = None
@@ -130,6 +129,9 @@ class BrainGlobeAtlas(core.Atlas):
                 )
 
         super().__init__(self.brainglobe_dir / self.local_full_name)
+
+        if check_latest:
+            self.check_latest_version()
 
     @property
     def local_full_name(self):
@@ -406,8 +408,10 @@ class BrainGlobeAtlas(core.Atlas):
             if print_warning:
                 rprint(
                     "[b][magenta2]brainglobe_atlasapi[/b]: "
-                    f"[b]{self.atlas_name}[/b] version [b]{local}[/b] "
-                    f"is not the latest available ([b]{online}[/b]). "
+                    f"[b]{self.atlas_name}[/b] version "
+                    f"[b]{local.replace('_', '.')}[/b] "
+                    f"is not the latest available "
+                    f"([b]{online.replace('_', '.')}[/b]). "
                     "To update the atlas run in the terminal:[/magenta2]\n"
                     f" [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
                 )

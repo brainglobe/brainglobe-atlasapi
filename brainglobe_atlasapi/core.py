@@ -3,21 +3,26 @@
 import warnings
 from collections import UserDict
 from pathlib import Path
+from typing import Tuple
 
+import ngff_zarr
 import ngff_zarr as nz
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import s3fs
 from brainglobe_space import AnatomicalSpace
+from typing_extensions import deprecated
 
 from brainglobe_atlasapi.descriptors import (
-    ANNOTATION_FILENAME,
+    ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
     HEMISPHERES_FILENAME,
     MESHES_DIRNAME,
     METADATA_FILENAME,
-    REFERENCE_FILENAME,
+    REFERENCE_DTYPE,
     STRUCTURES_FILENAME,
+    V2_ANNOTATION_NAME,
     V2_MESHES_DIRECTORY,
     V2_STRUCTURES_NAME,
     V2_TEMPLATE_NAME,
@@ -25,6 +30,19 @@ from brainglobe_atlasapi.descriptors import (
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import read_json, read_tiff
+
+
+def _determine_pyramid_level(
+    multiscale: ngff_zarr.Multiscales, resolution: Tuple[float, float, float]
+):
+    for metadata in multiscale.metadata.datasets:
+        scales = metadata.coordinateTransformations[0].scale
+        if all(
+            (res / 1000) == scale for res, scale in zip(resolution, scales)
+        ):
+            return int(metadata.path)
+
+    raise ValueError(f"Requested resolution {resolution} um is invalid.")
 
 
 class Atlas:
@@ -40,6 +58,9 @@ class Atlas:
     right_hemisphere_value = 2
 
     def __init__(self, path):
+        self.fs = s3fs.S3FileSystem(anon=True)
+        self._pyramid_level = 0
+
         atlas_path = Path(path)
         # v1
         if atlas_path.is_dir():
@@ -75,6 +96,18 @@ class Atlas:
                 + V2_MESHES_DIRECTORY
             )
             mesh_stub = "{}"
+
+            template_location = self.metadata["annotation_set"]["template"][
+                "location"
+            ][1:]
+            template_path = (
+                self.root_dir / template_location / V2_TEMPLATE_NAME
+            )
+
+            multiscale = nz.from_ngff_zarr(template_path)
+            self._pyramid_level = _determine_pyramid_level(
+                multiscale, self.resolution
+            )
         else:
             raise ValueError(
                 "Atlas path must be a folder (v1) or a .json file (v2)."
@@ -114,6 +147,7 @@ class Atlas:
                     references_list=additional_references,
                     data_path=self.root_dir,
                 )
+            self.additional_references.resolution = self.resolution
         except KeyError:
             warnings.warn(
                 "This atlas seems to be outdated as no "
@@ -122,6 +156,7 @@ class Atlas:
             )
 
         self._annotation = None
+        self._template = None
         self._hemispheres = None
         self._lookup = None
 
@@ -164,20 +199,62 @@ class Atlas:
         return self._lookup
 
     @property
-    def reference(self):
-        """Return the reference image data. Loads it if not already loaded."""
-        if self._reference is None:
-            self._reference = read_tiff(self.root_dir / REFERENCE_FILENAME)
-        return self._reference
+    def template(self) -> npt.NDArray[REFERENCE_DTYPE]:
+        """Return the template image data. Loads it if not already loaded."""
+        if self._template is not None:
+            return self._template
+
+        template_location = self.metadata["annotation_set"]["template"][
+            "location"
+        ][1:]
+
+        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
+
+        multiscale = nz.from_ngff_zarr(template_path)
+        resolution_path = template_path / str(self._pyramid_level)
+
+        if not (resolution_path / "c").exists():
+            print("Downloading template...")
+            remote_path = remote_url_s3.format(
+                f"{template_location}/{V2_TEMPLATE_NAME}/{self._pyramid_level}/"
+            )
+            self.fs.get(remote_path, resolution_path, recursive=True)
+
+        self._template = multiscale.images[self._pyramid_level].data.compute()
+
+        return self._template
 
     @property
-    def annotation(self):
-        """
-        Return the annotation image data.
-        Loads it if not already loaded.
-        """
-        if self._annotation is None:
-            self._annotation = read_tiff(self.root_dir / ANNOTATION_FILENAME)
+    @deprecated("Use the 'template' property instead.")
+    def reference(self):
+        """Deprecated: use 'template' property instead."""
+        return self.template
+
+    @property
+    def annotation(self) -> npt.NDArray[ANNOTATION_DTYPE]:
+        """Return the annotation image data. Loads it if not already loaded."""
+        if self._annotation is not None:
+            return self._annotation
+
+        annotation_location = self.metadata["annotation_set"]["location"][1:]
+        annotation_path = (
+            self.root_dir / annotation_location / V2_ANNOTATION_NAME
+        )
+
+        multiscale = nz.from_ngff_zarr(annotation_path)
+        resolution_path = annotation_path / str(self._pyramid_level)
+
+        if not (resolution_path / "c").exists():
+            print("Downloading annotations...")
+            remote_path = remote_url_s3.format(
+                f"{annotation_location}/{V2_ANNOTATION_NAME}/{self._pyramid_level}/"
+            )
+            self.fs.get(remote_path, resolution_path, recursive=True)
+
+        self._annotation = multiscale.images[
+            self._pyramid_level
+        ].data.compute()
+
         return self._annotation
 
     @property
@@ -452,24 +529,23 @@ class AdditionalRefDict(UserDict):
     def __init__(self, references_list, data_path, *args, **kwargs):
         self.data_path = data_path
         self.references_list = references_list
-        self.references_names = (
-            references_list
-            if isinstance(references_list[0], str)
-            else [ref["name"] for ref in references_list]
-        )
+        self.references_names = [
+            ref["name"] if not isinstance(ref, str) else ref
+            for ref in references_list
+        ]
         self.references_dict = {
             ref["name"]: ref
             for ref in references_list
             if not isinstance(ref, str)
         }
-        self.pyramid_level = 0
+        self.resolution = tuple([1.0, 1.0, 1.0])
 
         super().__init__(*args, **kwargs)
 
         for ref_name in self.references_names:
             self.data[ref_name] = None
 
-    def __getitem__(self, ref_name):
+    def __getitem__(self, key):
         """Retrieve an item from the dictionary using the reference name
         as key.
 
@@ -480,7 +556,7 @@ class AdditionalRefDict(UserDict):
 
         Parameters
         ----------
-        ref_name : str
+        key : str
             The name of the reference image to retrieve (e.g., "aba").
 
         Returns
@@ -493,34 +569,41 @@ class AdditionalRefDict(UserDict):
         ------
             KeyError: If the ref_name is not found.
         """
-        if ref_name not in self.references_names:
+        if key not in self.references_names:
             warnings.warn(
-                f"No reference named {ref_name} "
+                f"No reference named {key} "
                 f"(available: {self.references_names})"
             )
             return None
 
-        if self.data[ref_name] is None:
-            additional_ref_data = self.references_dict[ref_name]
+        if self.data[key] is None:
+            additional_ref_data = self.references_dict[key]
             if isinstance(additional_ref_data, dict):
+                # V2
                 additional_ref_location = additional_ref_data["location"][1:]
-                local_path: Path = self.data_path / additional_ref_location
+                local_path: Path = (
+                    self.data_path / additional_ref_location / V2_TEMPLATE_NAME
+                )
 
-                multiscale = nz.from_ngff_zarr(local_path.parent)
+                multiscale = nz.from_ngff_zarr(local_path)
+                pyramid_level = _determine_pyramid_level(
+                    multiscale, self.resolution
+                )
 
-                if not (local_path / "c").exists():
+                resolution_path = local_path / str(pyramid_level)
+
+                if not (resolution_path / "c").exists():
                     print("Downloading template...")
                     remote_path = remote_url_s3.format(
-                        f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{self.pyramid_level}/"
+                        f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{pyramid_level}/"
                     )
                     fs = s3fs.S3FileSystem(anon=True)
                     fs.get(remote_path, local_path, recursive=True)
-                self.data[ref_name] = multiscale.images[
-                    int(local_path.name)
+                self.data[key] = multiscale.images[
+                    pyramid_level
                 ].data.compute()
             else:
-                self.data[ref_name] = read_tiff(
-                    self.data_path / f"{ref_name}.tiff"
-                )
+                # V1
+                self.data[key] = read_tiff(self.data_path / f"{key}.tiff")
 
-        return self.data[ref_name]
+        return self.data[key]

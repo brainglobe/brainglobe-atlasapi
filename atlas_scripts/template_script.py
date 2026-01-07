@@ -157,14 +157,14 @@ def retrieve_additional_references():
 if __name__ == "__main__":
     if RESOLUTION is None:
         raise ValueError("RESOLUTION must be set before running this script.")
-    
+
     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
     bg_root_dir.mkdir(parents=True, exist_ok=True)
 
     # Fail early if any version of this atlas already exists
     atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
     existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
-    
+
     if existing:
         raise FileExistsError(
             f"Atlas output already exists in {bg_root_dir}. "

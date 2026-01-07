@@ -12,6 +12,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import (
     wrapup_atlas_from_data,
 )
 
+
 def _minimal_valid_inputs(tmp_path):
     """
     Return a minimal set of valid inputs required to run wrapup

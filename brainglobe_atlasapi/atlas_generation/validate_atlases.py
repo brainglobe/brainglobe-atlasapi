@@ -459,7 +459,7 @@ def validate_unique_acronyms(atlas: BrainGlobeAtlas):
 
     assert (
         len(duplicates) == 0
-    ), f"Duplicate acronyms found in atlas structures: {duplicates}"
+    ), f"Duplicate acronyms found in atlas structures: {sorted(duplicates)}"
     return True
 
 

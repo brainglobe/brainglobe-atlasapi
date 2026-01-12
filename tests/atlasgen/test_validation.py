@@ -479,8 +479,10 @@ def test_validate_unique_acronyms_fail(mocker, atlas):
     }
     mocker.patch.object(atlas, "structures", structures_with_duplicates)
 
-    with pytest.raises(
-        AssertionError,
-        match=r"Duplicate acronyms found in atlas structures: \['brain'\]",
-    ):
+    with pytest.raises(AssertionError) as exc_info:
         validate_unique_acronyms(atlas)
+
+    # Verify error contains the duplicate acronym and its name
+    error_message = str(exc_info.value)
+    assert "brain" in error_message
+    assert "Brain Duplicate" in error_message

@@ -446,16 +446,20 @@ def validate_unique_acronyms(atlas: BrainGlobeAtlas):
     AssertionError
         If any duplicate acronyms are found in the atlas structures.
     """
-    acronyms = [
-        atlas.structures[structure]["acronym"]
-        for structure in atlas.structures
-    ]
-    duplicates = [acr for acr in acronyms if acronyms.count(acr) > 1]
-    unique_duplicates = list(set(duplicates))
+    seen = set()
+    duplicates = []
 
-    assert len(acronyms) == len(
-        set(acronyms)
-    ), f"Duplicate acronyms found in atlas structures: {unique_duplicates}"
+    for structure in atlas.structures:
+        acronym = atlas.structures[structure]["acronym"]
+        if acronym in seen:
+            name = atlas.structures[structure]["name"]
+            duplicates.append((acronym, name))
+        else:
+            seen.add(acronym)
+
+    assert (
+        len(duplicates) == 0
+    ), f"Duplicate acronyms found in atlas structures: {duplicates}"
     return True
 
 

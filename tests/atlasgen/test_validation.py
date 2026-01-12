@@ -21,6 +21,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_mesh_matches_image_extents,
     validate_metadata,
     validate_reference_image_pixels,
+    validate_unique_acronyms,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
@@ -457,3 +458,31 @@ def test_validate_metadata(atlas, metadata, expected_output, error_message):
             validate_metadata(atlas)
     else:
         assert validate_metadata(atlas) == expected_output
+
+
+def test_validate_unique_acronyms_fail(mocker, atlas):
+    """Check that an atlas with duplicate acronyms fails validation.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    """
+    # Create structures with duplicate acronyms
+    structures_with_duplicates = {
+        1: {"acronym": "root", "name": "Root"},
+        2: {"acronym": "brain", "name": "Brain"},
+        3: {"acronym": "brain", "name": "Brain Duplicate"},  # Duplicate!
+        4: {"acronym": "cortex", "name": "Cortex"},
+    }
+    mocker.patch.object(atlas, "structures", structures_with_duplicates)
+
+    with pytest.raises(AssertionError) as exc_info:
+        validate_unique_acronyms(atlas)
+
+    # Verify error contains the duplicate acronym and its name
+    error_message = str(exc_info.value)
+    assert "brain" in error_message
+    assert "Brain Duplicate" in error_message

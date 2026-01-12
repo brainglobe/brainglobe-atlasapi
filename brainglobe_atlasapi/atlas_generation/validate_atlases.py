@@ -424,6 +424,45 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
     return True
 
 
+def validate_unique_acronyms(atlas: BrainGlobeAtlas):
+    """Validate that all structure acronyms in the atlas are unique.
+
+    Duplicate acronyms are incompatible with the current implementation
+    of brainglobe-atlasapi as the acronym is used as a primary key to
+    fetch details for a region.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if all acronyms are unique.
+
+    Raises
+    ------
+    AssertionError
+        If any duplicate acronyms are found in the atlas structures.
+    """
+    seen = set()
+    duplicates = []
+
+    for structure in atlas.structures:
+        acronym = atlas.structures[structure]["acronym"]
+        if acronym in seen:
+            name = atlas.structures[structure]["name"]
+            duplicates.append((acronym, name))
+        else:
+            seen.add(acronym)
+
+    assert (
+        len(duplicates) == 0
+    ), f"Duplicate acronyms found in atlas structures: {sorted(duplicates)}"
+    return True
+
+
 def validate_atlas_name(atlas: BrainGlobeAtlas):
     """Validate the naming convention of the atlas.
 
@@ -523,6 +562,7 @@ def get_all_validation_functions():
         catch_missing_structures,
         validate_reference_image_pixels,
         validate_annotation_symmetry,
+        validate_unique_acronyms,
         validate_atlas_name,
     ]
 
@@ -588,6 +628,7 @@ if __name__ == "__main__":
         catch_missing_structures,
         validate_reference_image_pixels,
         validate_annotation_symmetry,
+        validate_unique_acronyms,
         validate_atlas_name,
     ]
 

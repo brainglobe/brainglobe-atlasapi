@@ -16,7 +16,7 @@ from brainglobe_atlasapi.atlas_generation.annotation_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_meshes_from_annotated_volume,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import (
@@ -68,7 +68,12 @@ def create_atlas(working_dir, resolution):
     annotations_file = (
         materials_folder / "blackcap_male_smoothed_annotations.nii.gz"
     )
-    meshes_dir_path = Path.home() / "blackcap-meshes"
+
+    mc_annotations_file = (
+        Path.home() / "data/blackcap/add-MC/annotations_MC.nii"
+    )
+
+    meshes_dir_path = Path.home() / "blackcap-meshes/meshes"
 
     try:
         os.mkdir(meshes_dir_path)
@@ -112,6 +117,17 @@ def create_atlas(working_dir, resolution):
         }
     )
 
+    # hackily add MC (region 61)to the structure data list
+    structure_data_list.append(
+        {
+            "id": 61,
+            "name": "Caudal Mesopallium",
+            "acronym": "MC",
+            "structure_id_path": [999, 1, 60, 61],
+            "rgb_triplet": [255, 0, 4],
+        }
+    )
+
     tree = get_structures_tree(structure_data_list)
     print(
         f"Number of brain regions: {tree.size()}, "
@@ -123,6 +139,18 @@ def create_atlas(working_dir, resolution):
     annotated_volume = load_nii(annotations_file, as_array=True).astype(
         np.uint16
     )
+
+    # hackily add MC (region 61) to the annotated volume
+    mc_annotations = load_nii(mc_annotations_file, as_array=True).astype(
+        np.uint16
+    )
+    print(annotated_volume.shape, mc_annotations.shape)
+    mirrored_mc_annotations = np.flip(mc_annotations, axis=2)
+    mc_annotations = np.concatenate(
+        (mc_annotations, mirrored_mc_annotations), axis=2
+    )
+    annotated_volume[mc_annotations == 61] = 61
+    assert np.any(annotated_volume == 61)
 
     # rescale reference volume into int16 range
     reference_volume = load_nii(reference_file, as_array=True)
@@ -155,10 +183,10 @@ def create_atlas(working_dir, resolution):
 
     start = time.time()
 
-    create_meshes_from_annotated_volume(
-        meshes_dir_path,
-        tree,
+    construct_meshes_from_annotation(
+        meshes_dir_path.parent,
         annotated_volume,
+        structure_data_list,
         closing_n_iters=closing_n_iters,
         decimate_fraction=decimate_fraction,
         smooth=smooth,

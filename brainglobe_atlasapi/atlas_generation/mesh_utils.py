@@ -301,6 +301,7 @@ def construct_meshes_from_annotation(
 
     tree = get_structures_tree(structures_list)
     labels = np.unique(volume).astype(np.int32)
+    labels = np.concatenate((labels, np.ones((1))))
 
     # Only used for parallel processing
     ann_path = save_path / "temp_annotations.zarr"

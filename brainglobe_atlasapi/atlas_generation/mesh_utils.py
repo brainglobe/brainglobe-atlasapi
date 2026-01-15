@@ -301,7 +301,6 @@ def construct_meshes_from_annotation(
 
     tree = get_structures_tree(structures_list)
     labels = np.unique(volume).astype(np.int32)
-    labels = np.concatenate((labels, np.ones((1))))
 
     # Only used for parallel processing
     ann_path = save_path / "temp_annotations.zarr"
@@ -386,10 +385,8 @@ def construct_meshes_from_annotation(
         meshes_dict[s["id"]] = mesh_path
 
     print(
-        (
-            f"In the end, {len(structures_with_mesh)}",
-            "structures with mesh are kept",
-        )
+        f"In the end, {len(structures_with_mesh)}"
+        " structures with mesh are kept",
     )
     return meshes_dict
 

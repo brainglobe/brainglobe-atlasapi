@@ -385,10 +385,8 @@ def construct_meshes_from_annotation(
         meshes_dict[s["id"]] = mesh_path
 
     print(
-        (
-            f"In the end, {len(structures_with_mesh)}",
-            "structures with mesh are kept",
-        )
+        f"In the end, {len(structures_with_mesh)}"
+        " structures with mesh are kept",
     )
     return meshes_dict
 

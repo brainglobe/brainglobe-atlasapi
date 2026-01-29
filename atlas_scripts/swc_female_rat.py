@@ -52,7 +52,7 @@ ANNOTATION_URL = (
 )
 STRUCTURES_ILF_URL = (
     f"https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
-    f"raw/master/packaging/{RESOLUTION[1]}um/{STRUCTURES_ILF_FILENAME}"
+    f"raw/master/packaging/{STRUCTURES_ILF_FILENAME}"
 )
 
 # Hashes for the atlas files. Modify these if the files are updated.

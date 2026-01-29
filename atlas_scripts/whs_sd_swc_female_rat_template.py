@@ -44,18 +44,18 @@ ORIENTATION = "pir"
 REFERENCE_FILENAME = "T2W_warped.nii.gz"
 REFERENCE_URL = (
     "https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
-    "raw/master/packaging/50um/Waxholm_space/T2W_warped.nii.gz"
+    "raw/master/packaging/Waxholm_space_39um/T2W_warped.nii.gz"
 )
 ANNOTATION_FILENAME = "WHS_SD_annotation_waxholm_space_cleaned.nii.gz"
 ANNOTATION_URL = (
     "https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
-    "raw/master/packaging/50um/Waxholm_space/"
+    "raw/master/packaging/Waxholm_space_39um/"
     "WHS_SD_annotation_waxholm_space_cleaned.nii.gz"
 )
 STRUCTURES_ILF_FILENAME = "WHS_SD_rat_atlas_v4.01_labels.ilf"
 STRUCTURES_ILF_URL = (
     "https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
-    "raw/master/packaging/50um/WHS_SD_rat_atlas_v4.01_labels.ilf"
+    "raw/master/packaging/WHS_SD_rat_atlas_v4.01_labels.ilf"
 )
 
 # Known hashes for downloaded files
@@ -67,9 +67,7 @@ ANNOTATION_HASH = (
 )
 STRUCTURES_ILF_HASH = None
 
-ATLAS_PACKAGER = (
-    "Harry Carey, University of Oslo, Norway, harry.carey@medisin.uio.no"
-)
+ATLAS_PACKAGER = "Viktor Plattner, v.plattner@ucl.ac.uk"
 
 
 def download_swc_template_file(

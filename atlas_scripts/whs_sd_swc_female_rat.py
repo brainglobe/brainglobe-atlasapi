@@ -1,14 +1,19 @@
-"""Package the WHS_SD_Rat rat brain atlas.
+"""Package the WHS_SD_Rat atlas using the SWC female rat template.
 
-Downloads the necessary files from the NITRC repository, processes them,
-creates meshes, and packages the atlas in the BrainGlobe format.
+This script builds a Waxholm Space (WHS) SD rat atlas using the SWC female rat
+template as the reference image and Waxholm annotations (filtered to only
+include regions that are present in the template).
 
-Downloads zip archives from the NITRC repository and extracts zip files
-containing the MBAT_WHS_SD_rat_atlas data. Uses the original Waxholm Space
-(WHS) SD rat atlas files.
+Downloads individual files (.nii.gz, .ilf) from the SWC template repository on
+GIN (gin.g-node.org/BrainGlobe/swc_rat_atlas_materials). Files are downloaded
+directly without extraction. Uses pre-processed annotation and reference files
+aligned to Waxholm space.
+
+The script processes the files, creates meshes, and packages the atlas in the
+BrainGlobe format.
 """
 
-__version__ = "2"
+__version__ = "0"
 
 import json
 from pathlib import Path
@@ -27,70 +32,82 @@ from brainglobe_atlasapi.atlas_generation.wrapup import (
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-ATLAS_NAME = "whs_sd_rat"
+ATLAS_NAME = "whs_sd_swc_female_rat"
 SPECIES = "Rattus norvegicus"
 ATLAS_LINK = "https://www.nitrc.org/projects/whs-sd-atlas"
 CITATION = "Kleven et al 2023, https://doi.org/10.1038/s41592-023-02034-3"
 
 RESOLUTION = (39, 39, 39)
 ROOT_ID = 10000
-ORIENTATION = "lpi"
+ORIENTATION = "pir"
 
-REFERENCE_FILENAME = "MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+REFERENCE_FILENAME = "T2W_warped.nii.gz"
 REFERENCE_URL = (
-    "https://www.nitrc.org/frs/download.php/12263/"
-    "MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+    "https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
+    "raw/master/packaging/Waxholm_space_39um/T2W_warped.nii.gz"
 )
-ANNOTATION_FILENAME = "MBAT_WHS_SD_rat_atlas_v4.01.zip"
+ANNOTATION_FILENAME = "WHS_SD_annotation_waxholm_space_cleaned.nii.gz"
 ANNOTATION_URL = (
-    "https://www.nitrc.org/frs/download.php/13400/"
-    "MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
+    "https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
+    "raw/master/packaging/Waxholm_space_39um/"
+    "WHS_SD_annotation_waxholm_space_cleaned.nii.gz"
+)
+STRUCTURES_ILF_FILENAME = "WHS_SD_rat_atlas_v4.01_labels.ilf"
+STRUCTURES_ILF_URL = (
+    "https://gin.g-node.org/BrainGlobe/swc_rat_atlas_materials/"
+    "raw/master/packaging/WHS_SD_rat_atlas_v4.01_labels.ilf"
 )
 
-
-ATLAS_PACKAGER = (
-    "Harry Carey, University of Oslo, Norway, harry.carey@medisin.uio.no"
+# Known hashes for downloaded files
+REFERENCE_HASH = (
+    "926e6e27e18c5d5edd7787299429b36137e1d0070b4f67e1e2982c8398181940"
 )
+ANNOTATION_HASH = (
+    "5ebc835c3220a84d061b03fb5d49d7c33f74348e2fb13d4d34668272d898d4f1"
+)
+STRUCTURES_ILF_HASH = None
+
+ATLAS_PACKAGER = "Viktor Plattner, v.plattner@ucl.ac.uk"
 
 
-def download_waxholm_atlas_files(
-    download_dir_path, atlas_file_url, ATLAS_NAME
+def download_swc_template_file(
+    download_dir_path, file_url, filename, known_hash=None
 ):
-    """Download and extract atlas files from a zip archive.
+    """Download a single file from the SWC template repository.
 
-    Downloads zip archives from the Waxholm/NITRC repository and extracts them.
+    Downloads individual files (e.g., .nii.gz, .ilf) from the SWC template
+    repository on GIN.
 
     Parameters
     ----------
     download_dir_path : pathlib.Path
-        The directory where the atlas files will be downloaded and extracted.
-    atlas_file_url : str
-        The URL of the atlas zip file.
-    ATLAS_NAME : str
-        The name of the atlas, used for naming the downloaded file.
+        The directory where the file will be downloaded.
+    file_url : str
+        The URL of the file to download.
+    filename : str
+        The filename to save the downloaded file as.
+    known_hash : str, optional
+        The SHA256 hash of the file for verification. If None, the file
+        will be downloaded without hash verification.
 
     Returns
     -------
     pathlib.Path
-        The download directory path where files were extracted.
+        The path to the downloaded file.
 
     Raises
     ------
     requests.exceptions.ConnectionError
         If there is no internet connection.
     """
-    download_name = ATLAS_NAME + "_atlas.zip"
-
-    pooch.retrieve(
-        url=atlas_file_url,
-        known_hash=None,
+    file_path = pooch.retrieve(
+        url=file_url,
+        known_hash=known_hash,
         path=download_dir_path,
-        fname=download_name,
+        fname=filename,
         progressbar=True,
-        processor=pooch.Unzip(extract_dir=""),
     )
-
-    return download_dir_path
+    return Path(file_path)
 
 
 def parse_structures_xml(root, path=None, structures=None):
@@ -200,19 +217,22 @@ def create_meshes(download_dir_path, annotated_volume, structures):
 
 
 def create_atlas(working_dir):
-    """Package the WHS_SD_Rat atlas.
+    """Package the WHS_SD_Rat atlas using the SWC female rat template.
 
-    Downloads the necessary raw data from the NITRC repository, processes the
-    annotation and reference volumes, creates meshes for each brain region, and
-    wraps up the data into the BrainGlobe atlas format.
+    Downloads the necessary raw data from the SWC template repository,
+    processes the annotation and reference volumes, creates meshes for each
+    brain region,
+    and wraps up the data into the BrainGlobe atlas format.
 
-    Downloads and extracts zip archives from the Waxholm/NITRC repository
-    containing the MBAT_WHS_SD_rat_atlas data.
+    Uses the SWC female rat template as the reference image and Waxholm
+    annotations filtered to only include regions present in the template.
 
     Parameters
     ----------
     working_dir : pathlib.Path
         The directory where temporary and final atlas files will be stored.
+        This can be the same working directory as the original WHS SD rat atlas
+        script, as they generate separate atlas files.
 
     Returns
     -------
@@ -224,9 +244,11 @@ def create_atlas(working_dir):
     AssertionError
         If `ORIENTATION` or `RESOLUTION` are not correctly defined, or
         if `REFERENCE_URL` is missing.
+    ValueError
+        If the reference stack has zero range (all values are identical).
     """
     assert len(ORIENTATION) == 3, (
-        "Orientation is not 3 characters, Got " + ORIENTATION
+        "Orientation is not 3 characters, Got" + ORIENTATION
     )
     assert len(RESOLUTION) == 3, "Resolution is not correct, Got " + str(
         RESOLUTION
@@ -241,29 +263,34 @@ def create_atlas(working_dir):
     download_dir_path = working_dir / "downloads"
     download_dir_path.mkdir(exist_ok=True)
 
-    # Download and extract zip archives from Waxholm/NITRC
-    download_waxholm_atlas_files(download_dir_path, REFERENCE_URL, ATLAS_NAME)
-    atlas_files_dir = download_dir_path / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
-
-    download_waxholm_atlas_files(
-        download_dir_path, ANNOTATION_URL, ATLAS_NAME + "_annotation"
+    # Download individual files from SWC template repository
+    reference_path = download_swc_template_file(
+        download_dir_path,
+        REFERENCE_URL,
+        REFERENCE_FILENAME,
+        REFERENCE_HASH,
     )
-    annotation_files_dir = (
-        download_dir_path / "MBAT_WHS_SD_rat_atlas_v4.01/Data"
+    annotation_path = download_swc_template_file(
+        download_dir_path,
+        ANNOTATION_URL,
+        ANNOTATION_FILENAME,
+        ANNOTATION_HASH,
+    )
+    structures_ilf_path = download_swc_template_file(
+        download_dir_path,
+        STRUCTURES_ILF_URL,
+        STRUCTURES_ILF_FILENAME,
+        STRUCTURES_ILF_HASH,
     )
 
     # Parse structure metadata
-    structures = parse_structures(
-        annotation_files_dir / "WHS_SD_rat_atlas_v4.01_labels.ilf"
-    )
+    structures = parse_structures(structures_ilf_path)
 
     # Load files
-    annotation_file = annotation_files_dir / "WHS_SD_rat_atlas_v4.01.nii.gz"
-    annotation_stack = load_any(annotation_file, as_numpy=True).astype(
+    annotation_stack = load_any(annotation_path, as_numpy=True).astype(
         np.int64
     )
-    reference_file = atlas_files_dir / "WHS_SD_rat_T2star_v1.01.nii.gz"
-    reference_stack = load_any(reference_file, as_numpy=True)
+    reference_stack = load_any(reference_path, as_numpy=True)
 
     # Remove structures with missing annotations
     tree = get_structures_tree(structures)
@@ -285,6 +312,18 @@ def create_atlas(working_dir):
 
     # Clean junk from reference file
     reference_stack *= annotation_stack > 0
+
+    # Normalize reference stack to uint16 range
+    dmin = np.min(reference_stack)
+    dmax = np.max(reference_stack)
+    drange = dmax - dmin
+    if drange == 0:
+        raise ValueError(
+            "Reference stack has zero range (all values are identical)"
+        )
+    dscale = (2**16 - 1) / drange  # Scale to full uint16 range
+    reference_stack = (reference_stack - dmin) * dscale
+    reference_stack = reference_stack.astype(np.uint16)
 
     # Create hemispheres stack
     hemispheres_stack = np.full(reference_stack.shape, 2, dtype=np.uint8)

@@ -318,6 +318,7 @@ if __name__ == "__main__":
         species=SPECIES,
         resolution=(RESOLUTION,) * 3,
         orientation=ORIENTATION,
+        scale_meshes=True,
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,

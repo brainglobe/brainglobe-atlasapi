@@ -28,11 +28,15 @@ TEST = False
 ATLAS_NAME = "allen_cord"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://data.mendeley.com/datasets/4rrggzv5d5/1"
-CITATION = "Fiederling et al. 2021, https://doi.org/10.1101/2021.05.06.443008"
+CITATION = (
+    "Fiederling et al. 2021, https://doi.org/10.1016/j.crmeth.2021.100074"
+)
 ORIENTATION = "asr"
 RESOLUTION = (20, 10, 10)
 ROOT_ID = 250
-ATLAS_FILE_URL = "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/4rrggzv5d5-1.zip"
+ATLAS_FILE_URL = (
+    "https://data.mendeley.com/public-api/zip/4rrggzv5d5/download/1"
+)
 ATLAS_PACKAGER = "MetaCell LLC, Ltd."
 
 

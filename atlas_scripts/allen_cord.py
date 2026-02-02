@@ -1,6 +1,6 @@
 """Script to package the Allen Cord Atlas."""
 
-__version__ = "1"
+__version__ = "2"
 
 import json
 import time

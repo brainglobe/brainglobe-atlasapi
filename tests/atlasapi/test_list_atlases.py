@@ -1,12 +1,14 @@
 """Test functions for listing and managing BrainGlobe atlases."""
 
+from typing import get_args
 from unittest import mock
 
 import pytest
 from rich.console import Console
 from rich.table import Table
 
-from brainglobe_atlasapi import config
+from brainglobe_atlasapi import config, utils
+from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.list_atlases import (
     add_atlas_to_row,
     get_all_atlases_lastversions,
@@ -77,6 +79,21 @@ def test_get_all_atlases_lastversions():
     assert "example_mouse_100um" in last_versions
     assert "osten_mouse_50um" in last_versions
     assert "allen_mouse_25um" in last_versions
+
+
+def test_atlas_name_matches_lastversions():
+    """Ensure atlas name list matches last_versions.conf keys exactly."""
+    atlas_name_values = list(get_args(AtlasName))
+    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    if not cache_path.exists():
+        pytest.skip("last_versions.conf not available")
+    # we read the file directly as using lastversion() includes cusom atlases.
+    last_versions = utils.conf_from_file(cache_path)["atlases"]
+    last_version_names = list(last_versions.keys())
+
+    assert len(atlas_name_values) == len(set(atlas_name_values))
+    assert len(last_version_names) == len(set(last_version_names))
+    assert set(atlas_name_values) == set(last_version_names)
 
 
 def test_get_all_atlases_custom_atlases(mocker):

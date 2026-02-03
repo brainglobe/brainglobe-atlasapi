@@ -51,7 +51,7 @@ AtlasName: TypeAlias = Literal[
     "kim_dev_mouse_e18-5_mri-adc_40um",
     "kim_dev_mouse_e18-5_mri-dwi_40um",
     "kim_dev_mouse_e18-5_mri-fa_40um",
-    "kim_dev_mouse_e18-5_mri-T2_40um",
+    "kim_dev_mouse_e18-5_mri-t2_40um",
     "kim_dev_mouse_p04_lsfm_20um",
     "kim_dev_mouse_p04_mri-adc_50um",
     "kim_dev_mouse_p04_mri-dwi_50um",

@@ -11,6 +11,7 @@ from rich import print as rprint
 from rich.console import Console
 
 from brainglobe_atlasapi import config, core, descriptors, utils
+from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
     check_gin_status,
@@ -57,7 +58,7 @@ class BrainGlobeAtlas(core.Atlas):
 
     def __init__(
         self,
-        atlas_name: str,
+        atlas_name: AtlasName,
         brainglobe_dir: Optional[Union[str, Path]] = None,
         interm_download_dir: Optional[Union[str, Path]] = None,
         check_latest: bool = True,

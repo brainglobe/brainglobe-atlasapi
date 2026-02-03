@@ -27,7 +27,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 # if this is the first time this atlas has been added the value should be 0
 # (minor version is the first number after the decimal point, ie the minor
 # version of 1.2 is 2)
-__version__ = 0
+__version__ = 1
 
 # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
 # Institution_SpeciesCommonName, e.g. allen_mouse.
@@ -36,7 +36,7 @@ ATLAS_NAME = "carea_mouse"
 # DOI of the most relevant citable document
 # DOI or URL of the most relevant citable document.
 # If no paper/DOI exists, use "unpublished".
-CITATION = "unpublished"
+CITATION = "https://doi.org/10.64898/2026.01.20.700446"
 
 # The scientific name of the species, ie; Rattus norvegicus
 SPECIES = "Mus musculus"

@@ -107,14 +107,12 @@ def test_get_all_atlases_lastversions_offline():
 
     if not cache_path.exists():
         cache_path.touch()
-        cache_path.write_text(
-            """
+        cache_path.write_text("""
             [atlases]
             example_mouse_100um = 1.0
             osten_mouse_50um = 1.0
             allen_mouse_25um = 1.0
-            """
-        )
+            """)
         cleanup_cache = True
 
     with mock.patch(
@@ -138,14 +136,12 @@ def test_get_all_atlases_lastversions_gin_down():
 
     if not cache_path.exists():
         cache_path.touch()
-        cache_path.write_text(
-            """
+        cache_path.write_text("""
             [atlases]
             example_mouse_100um = 1.0
             osten_mouse_50um = 1.0
             allen_mouse_25um = 1.0
-            """
-        )
+            """)
         cleanup_cache = True
 
     with mock.patch(

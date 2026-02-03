@@ -87,7 +87,7 @@ def test_atlas_name_matches_lastversions():
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
     if not cache_path.exists():
         pytest.skip("last_versions.conf not available")
-    # we read the file directly as using lastversion() includes custom atlases.
+    # we read the file directly, using lastversions() includes custom atlases.
     last_versions = utils.conf_from_file(cache_path)["atlases"]
     last_version_names = list(last_versions.keys())
 

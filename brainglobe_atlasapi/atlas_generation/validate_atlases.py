@@ -4,10 +4,12 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import get_args
 
 import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
+from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
@@ -507,6 +509,31 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
     return True
 
 
+def validate_atlas_name_listed(atlas: BrainGlobeAtlas):
+    """Validate that the atlas name is listed in atlas_name.py.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the atlas name is listed in atlas_name.py.
+
+    Raises
+    ------
+    AssertionError
+        If the atlas name is not listed in atlas_name.py.
+    """
+    name = atlas.atlas_name
+    assert name in get_args(
+        AtlasName
+    ), f"Atlas name {name} is not listed in atlas_name.py"
+    return True
+
+
 def validate_metadata(atlas: BrainGlobeAtlas):
     """Validate the atlas metadata.
 
@@ -564,6 +591,7 @@ def get_all_validation_functions():
         validate_annotation_symmetry,
         validate_unique_acronyms,
         validate_atlas_name,
+        validate_atlas_name_listed,
     ]
 
 
@@ -630,6 +658,7 @@ if __name__ == "__main__":
         validate_annotation_symmetry,
         validate_unique_acronyms,
         validate_atlas_name,
+        validate_atlas_name_listed,
     ]
 
     valid_atlases = []

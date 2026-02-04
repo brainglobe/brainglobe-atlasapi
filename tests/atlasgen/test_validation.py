@@ -17,6 +17,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_annotation_symmetry,
     validate_atlas_files,
     validate_atlas_name,
+    validate_atlas_name_listed,
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
     validate_metadata,
@@ -214,6 +215,27 @@ def test_invalid_atlas_path(atlas_with_bad_reference_file):
     """
     with pytest.raises(AssertionError, match="Expected file not found"):
         validate_atlas_files(atlas_with_bad_reference_file)
+
+
+def test_validate_atlas_name_not_listed():
+    """Verify `validate_atlas_name_listed` fails for names not in
+    atlas_name.py.
+    """
+
+    class DummyAtlas:
+        atlas_name = "unlisted_atlas_1um"
+
+    with pytest.raises(AssertionError, match="not listed in atlas_name.py"):
+        validate_atlas_name_listed(DummyAtlas())
+
+
+def test_validate_atlas_name_listed_passes():
+    """Verify `validate_atlas_name_listed` passes for listed atlas names."""
+
+    class DummyAtlas:
+        atlas_name = "example_mouse_100um"
+
+    assert validate_atlas_name_listed(DummyAtlas())
 
 
 def test_assert_close():

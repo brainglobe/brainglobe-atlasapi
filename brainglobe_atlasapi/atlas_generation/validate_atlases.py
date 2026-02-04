@@ -645,21 +645,7 @@ def validate_atlas(atlas_name, version, validation_functions):
 if __name__ == "__main__":
     """Main execution block for running atlas validations."""
     # list to store the validation functions
-    all_validation_functions = [
-        validate_atlas_files,
-        validate_mesh_matches_image_extents,
-        open_for_visual_check,
-        validate_checksum,
-        validate_image_dimensions,
-        validate_additional_references,
-        catch_missing_mesh_files,
-        catch_missing_structures,
-        validate_reference_image_pixels,
-        validate_annotation_symmetry,
-        validate_unique_acronyms,
-        validate_atlas_name,
-        validate_atlas_name_listed,
-    ]
+    all_validation_functions = get_all_validation_functions()
 
     valid_atlases = []
     invalid_atlases = []

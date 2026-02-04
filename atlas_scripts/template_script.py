@@ -22,7 +22,8 @@ __version__ = 0
 
 # The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
 # Institution_SpeciesCommonName, e.g. allen_mouse.
-# remember to add {ATLAS_NAME}_{RESOLUTION}um to brainglobe_atlasapi/atlas_names.py
+# remember to add {ATLAS_NAME}_{RESOLUTION}um to:
+# brainglobe_atlasapi/atlas_names.py
 ATLAS_NAME = "example_mouse"
 
 # DOI of the most relevant citable document

@@ -53,7 +53,7 @@ A number of atlases are in development, but those available currently are:
 | [DeMBA Developmental Mouse Brain Atlas](https://doi.org/10.1038/s41467-025-63177-9) | 10, 20, and 25 micron | every day from P04 to P56  | MRI, STPT, LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#demba-developmental-mouse-brain-atlas) |
 | Drosophila wing disc instar3 atlas| 2 micron | 3rd Instar Larvae | Confocal | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#drosophila-wing-disc-instar3-atlas) |
 | [Dorr MRI Mouse Atlas](https://doi.org/10.1016/j.neuroimage.2008.03.037) | 32 micron | 12 week old | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#dorr-mri-mouse-atlas) |
-| [CArea Mouse Atlas](https://doi.org/10.64898/2026.01.20.700446 ) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#carea-mouse-atlas)       
+| [CArea Mouse Atlas](https://doi.org/10.64898/2026.01.20.700446 ) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#carea-mouse-atlas)
 
 **Acronyms:**
 - **dpf**: Days Post Fertilisation

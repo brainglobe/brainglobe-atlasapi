@@ -11,6 +11,7 @@ from rich import print as rprint
 from rich.console import Console
 
 from brainglobe_atlasapi import config, core, descriptors, utils
+from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
     check_gin_status,
@@ -57,7 +58,7 @@ class BrainGlobeAtlas(core.Atlas):
 
     def __init__(
         self,
-        atlas_name: str,
+        atlas_name: AtlasName,
         brainglobe_dir: Optional[Union[str, Path]] = None,
         interm_download_dir: Optional[Union[str, Path]] = None,
         check_latest: bool = True,
@@ -180,11 +181,20 @@ class BrainGlobeAtlas(core.Atlas):
         )
 
         # Uncompress in brainglobe path:
-        tar = tarfile.open(destination_path)
-        tar.extractall(path=self.brainglobe_dir)
-        tar.close()
+        try:
+            tar = tarfile.open(destination_path)
+            tar.extractall(path=self.brainglobe_dir)
+            tar.close()
+        except (tarfile.ReadError, tarfile.CompressionError, EOFError) as e:
+            # Delete corrupted file so we can try again later
+            destination_path.unlink(missing_ok=True)
+            raise tarfile.ReadError(
+                f"Atlas download was interrupted or corrupted. "
+                f"Please try again. Details: {e}"
+            ) from e
 
-        destination_path.unlink()
+        # Also delete the compressed file after successful extraction
+        destination_path.unlink(missing_ok=True)
 
     def check_latest_version(
         self, print_warning: bool = True

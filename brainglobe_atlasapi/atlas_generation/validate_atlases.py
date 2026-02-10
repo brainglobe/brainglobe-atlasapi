@@ -4,10 +4,12 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import get_args
 
 import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
+from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
@@ -507,6 +509,31 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
     return True
 
 
+def validate_atlas_name_listed(atlas: BrainGlobeAtlas):
+    """Validate that the atlas name is listed in atlas_name.py.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the atlas name is listed in atlas_name.py.
+
+    Raises
+    ------
+    AssertionError
+        If the atlas name is not listed in atlas_name.py.
+    """
+    name = atlas.atlas_name
+    assert name in get_args(
+        AtlasName
+    ), f"Atlas name {name} is not listed in atlas_name.py"
+    return True
+
+
 def validate_metadata(atlas: BrainGlobeAtlas):
     """Validate the atlas metadata.
 
@@ -564,6 +591,7 @@ def get_all_validation_functions():
         validate_annotation_symmetry,
         validate_unique_acronyms,
         validate_atlas_name,
+        validate_atlas_name_listed,
     ]
 
 
@@ -617,20 +645,7 @@ def validate_atlas(atlas_name, version, validation_functions):
 if __name__ == "__main__":
     """Main execution block for running atlas validations."""
     # list to store the validation functions
-    all_validation_functions = [
-        validate_atlas_files,
-        validate_mesh_matches_image_extents,
-        open_for_visual_check,
-        validate_checksum,
-        validate_image_dimensions,
-        validate_additional_references,
-        catch_missing_mesh_files,
-        catch_missing_structures,
-        validate_reference_image_pixels,
-        validate_annotation_symmetry,
-        validate_unique_acronyms,
-        validate_atlas_name,
-    ]
+    all_validation_functions = get_all_validation_functions()
 
     valid_atlases = []
     invalid_atlases = []

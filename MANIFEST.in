@@ -10,4 +10,5 @@ graft brainglobe_atlasapi *.py
 
 prune atlas_scripts
 prune tests
+prune tools
 prune tutorials

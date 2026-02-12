@@ -8,7 +8,10 @@ Usage: python tools/update_atlas_table.py.
 import urllib.request
 
 # Where to get the table from
-url = "https://raw.githubusercontent.com/brainglobe/brainglobe.github.io/main/docs/source/documentation/brainglobe-atlasapi/_atlas_table.md"
+url = (
+    "https://raw.githubusercontent.com/brainglobe/brainglobe.github.io/"
+    "main/docs/source/documentation/brainglobe-atlasapi/_atlas_table.md"
+)
 
 # Markers in README.md
 start_marker = "<!-- BEGIN_ATLAS_TABLE -->"

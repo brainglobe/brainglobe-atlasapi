@@ -69,7 +69,8 @@ atlasgen = [
     "vedo",
     "xmltodict",
     "pooch",
-    "zarr"
+    "zarr",
+    "vtk<9.6.0"
 ]
 
 [project.scripts]

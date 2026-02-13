@@ -79,7 +79,13 @@ class Atlas:
                 / V2_STRUCTURES_NAME
             )
             structures_df = pd.read_csv(
-                structures_path, dtype={"parent_identifier": pd.UInt16Dtype()}
+                structures_path,
+                dtype={"parent_identifier": pd.UInt16Dtype()},
+                converters={
+                    "root_identifier_path": lambda x: np.fromstring(
+                        x.strip("[]"), sep=",", dtype=np.uint32
+                    ).tolist()
+                },
             )
             rename_dict = {
                 "identifier": "id",

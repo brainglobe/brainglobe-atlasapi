@@ -59,6 +59,7 @@ V2_MESHES_DIRECTORY = "annotation.precomputed"
 V2_STRUCTURES_NAME = "terminology.csv"
 V2_TEMPLATE_NAME = "anatomical_template.ome.zarr"
 V2_ANNOTATION_NAME = "annotation.ome.zarr"
+V2_HEMISPHERES_NAME = "hemispheres.ome.zarr"
 
 # Types for the atlas stacks:
 REFERENCE_DTYPE = np.uint16

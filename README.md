@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/pypi/pyversions/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
 [![PyPI](https://img.shields.io/pypi/v/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi/)
-[![Anaconda version](https://anaconda.org/conda-forge/brainglobe-segmentation/badges/version.svg)](https://anaconda.org/conda-forge/brainglobe-segmentation)
+[![Anaconda version](https://anaconda.org/conda-forge/brainglobe-atlasapi/badges/version.svg)](https://anaconda.org/conda-forge/brainglobe-atlasapi)
 [![Wheel](https://img.shields.io/pypi/wheel/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
 [![Development Status](https://img.shields.io/pypi/status/brainatlas-api.svg)](https://github.com/SainsburyWellcomeCentre/brainatlas-api)
 [![Downloads](https://pepy.tech/badge/brainglobe-atlasapi)](https://pepy.tech/project/brainglobe-atlasapi)

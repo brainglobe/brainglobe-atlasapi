@@ -4,7 +4,6 @@ brainglobe atlases.
 """
 
 import re
-from typing import Any, Dict, List, Optional
 
 from rich import print as rprint
 from rich.panel import Panel
@@ -13,25 +12,26 @@ from rich.table import Table
 from brainglobe_atlasapi import config, descriptors, utils
 
 
-def get_downloaded_atlases() -> List[str]:
-    """Get a list of all the downloaded atlases.
+def get_downloaded_atlases():
+    """Get a list of all the downloaded atlases and their version.
 
     Returns
     -------
-    List[str]
-        A list of the locally available atlases.
+    list
+        A sorted list of locally available atlases.
     """
-    # Get brainglobe directory:
     brainglobe_dir = config.get_brainglobe_dir()
 
-    return [
+    atlas_names = {
         f.name.rsplit("_v", 1)[0]
         for f in brainglobe_dir.glob("*_*_*_v*")
         if f.is_dir()
-    ]
+    }
+
+    return sorted(atlas_names)
 
 
-def get_local_atlas_version(atlas_name: str) -> Optional[str]:
+def get_local_atlas_version(atlas_name):
     """Get version of a downloaded available atlas.
 
     Arguments
@@ -56,7 +56,7 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
         return None
 
 
-def get_all_atlases_lastversions() -> Dict[str, Any]:
+def get_all_atlases_lastversions():
     """Read from URL or local cache all available last versions."""
     cache_path = config.get_brainglobe_dir() / "last_versions.conf"
     custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
@@ -70,28 +70,24 @@ def get_all_atlases_lastversions() -> Dict[str, Any]:
     else:
         print("Cannot fetch latest atlas versions from the server.")
         official_atlases = utils.conf_from_file(cache_path)
+
     try:
         custom_atlases = utils.conf_from_file(custom_path)
     except FileNotFoundError:
         return dict(official_atlases["atlases"])
+
     return {**official_atlases["atlases"], **custom_atlases["atlases"]}
 
 
-def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
+def get_atlases_lastversions():
     """
     Return a dictionary of atlas metadata for the latest versions of all
-    available atlases.
-
-    Returns
-    -------
-    dict
-        A dictionary with metadata about already installed atlases.
+    available atlases. Sorted alphabetically by atlas name.
     """
     available_atlases = get_all_atlases_lastversions()
 
-    # Get downloaded atlases looping over folders in brainglobe directory:
     atlases = {}
-    for name in get_downloaded_atlases():
+    for name in sorted(get_downloaded_atlases()):
         if name in available_atlases.keys():
             local_version = get_local_atlas_version(name)
             atlases[name] = dict(
@@ -101,7 +97,9 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
                 latest_version=str(available_atlases[name]),
                 updated=str(available_atlases[name]) == local_version,
             )
-    return atlases
+
+    # Return sorted dict
+    return {k: atlases[k] for k in sorted(atlases)}
 
 
 def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
@@ -120,7 +118,6 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
     Returns
     -------
     None
-
     """
     available_atlases = get_all_atlases_lastversions()
 
@@ -156,14 +153,14 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
     if show_local_path:
         table.add_column("Local path")
 
-    # Add downloaded atlases (sorted) to the table first
+    # Add downloaded atlases (alphabetically sorted)
     for atlas_name in sorted(downloaded_atlases.keys()):
         atlas = downloaded_atlases[atlas_name]
         table = add_atlas_to_row(
             atlas_name, atlas, table, show_local_path=show_local_path
         )
 
-    # Then add non-download atlases (sorted) to the table
+    # Add non-downloaded atlases (alphabetically sorted)
     for atlas_name in sorted(non_downloaded_atlases.keys()):
         atlas = non_downloaded_atlases[atlas_name]
         table = add_atlas_to_row(
@@ -180,14 +177,8 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
     )
 
 
-def add_atlas_to_row(
-    atlas: str,
-    info: Dict[str, Any],
-    table: Table,
-    show_local_path: bool = False,
-) -> Table:
-    """
-    Add information about each atlas to a row of the rich table.
+def add_atlas_to_row(atlas, info, table, show_local_path=False):
+    """Add information about each atlas to a row of the rich table.
 
     Parameters
     ----------
@@ -206,16 +197,14 @@ def add_atlas_to_row(
     rich.table.Table
         The updated table with the new row added.
     -------
-
     """
     if info["downloaded"]:
         downloaded = "[green]:heavy_check_mark:[/green]"
-
-        if info["version"] == info["latest_version"]:
-            updated = "[green]:heavy_check_mark:[/green]"
-        else:
-            updated = "[red dim]x"
-
+        updated = (
+            "[green]:heavy_check_mark:[/green]"
+            if info["version"] == info["latest_version"]
+            else "[red dim]x"
+        )
     else:
         downloaded = ""
         updated = ""

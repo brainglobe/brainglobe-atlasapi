@@ -80,11 +80,6 @@ def extract_mesh_from_mask(
         What fraction of the original number of vertices is to be kept.
         EG .5 means that 50% of the vertices are kept,
         the others are removed.
-    tol: float
-        parameter for decimation, with larger values corresponding
-        to more aggressive decimation.
-        EG 0.02 -> points that are closer than 2% of the size of the mesh's
-        bounding box are identified and removed (only one is kept).
     extract_largest: bool
         If True only the largest region are extracted. It can cause issues for
         bilateral regions as only one will remain
@@ -153,13 +148,24 @@ def extract_mesh_from_mask(
     return mesh
 
 
-def create_region_mesh(args):
+def new_create_region_mesh(
+    meshes_dir_path: Path,
+    node,
+    tree,
+    labels,
+    annotated_volume,
+    ROOT_ID: int,
+    closing_n_iters,
+    decimate_fraction: float,
+    smooth: bool,
+    verbosity: int = 0,
+    skip_structure_ids=None,
+):
     """
     Automate the creation of a region's mesh. Given a volume of annotations
     and a structures tree, it takes the volume's region corresponding to the
     region of interest and all of its children's labels and creates a mesh.
-    It takes a tuple of arguments to facilitate parallel processing with
-    multiprocessing.pool.map.
+
 
     Note, by default it avoids overwriting a structure's mesh if the
     .obj file exists already.
@@ -175,23 +181,22 @@ def create_region_mesh(args):
     ROOT_ID: int,
     id of root structure (mesh creation is a bit more refined for that)
     """
-    # Split arguments
-    meshes_dir_path = args[0]
-    node = args[1]
-    tree = args[2]
-    labels = args[3]
-    annotated_volume = args[4]
-    ROOT_ID = args[5]
-    closing_n_iters = args[6]
-    decimate_fraction = args[7]
-    smooth = args[8]
-    verbosity = args[9] if len(args) > 9 else 0
+    if skip_structure_ids is None:
+        skip_structure_ids = set()
+    elif isinstance(skip_structure_ids, (int, np.integer)):
+        skip_structure_ids = {int(skip_structure_ids)}
+    elif not isinstance(skip_structure_ids, set):
+        skip_structure_ids = set(skip_structure_ids)
 
     if verbosity > 0:
-        logger.debug(f"Creating mesh for region {args[1].identifier}")
+        logger.debug(f"Creating mesh for region {node.identifier}")
 
     # Avoid overwriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
+    if node.identifier in skip_structure_ids:
+        if verbosity > 0:
+            logger.debug(f"Skipping mesh for region {node.identifier}")
+        return
     # if savepath.exists():
     #     logger.debug(f"Mesh file save path exists already, skipping.")
     #     return
@@ -243,6 +248,17 @@ def create_region_mesh(args):
                 )
 
 
+def create_region_mesh(args):
+    """
+    Wrap new_create_region_mesh which facilitates
+    multiprocessing.
+    """
+    if not isinstance(args, (tuple, list)):
+        raise TypeError("args must be a tuple or list")
+
+    return new_create_region_mesh(*args)
+
+
 def construct_meshes_from_annotation(
     save_path: Path,
     volume: np.ndarray,
@@ -253,6 +269,7 @@ def construct_meshes_from_annotation(
     parallel: bool = True,
     num_threads: int = -1,
     verbosity: int = 0,
+    skip_structure_ids=None,
 ):
     """
     Retrieve or construct atlas region meshes for a given annotation volume.
@@ -287,6 +304,8 @@ def construct_meshes_from_annotation(
         If > 0, uses that many threads.
     verbosity: int
         Level of verbosity for logging. 0 for no output, 1 for basic info.
+    skip_structure_ids: iterable of int or None
+        If provided, mesh generation for these structure IDs is skipped.
 
     Returns
     -------
@@ -340,6 +359,7 @@ def construct_meshes_from_annotation(
             decimate_fraction,
             smooth,
             verbosity,
+            skip_structure_ids,
         )
         for node in preorder_depth_first_search(tree)
     ]
@@ -368,7 +388,7 @@ def construct_meshes_from_annotation(
         for args in track(
             args_list, total=len(args_list), description="Creating meshes"
         ):
-            create_region_mesh(args)
+            new_create_region_mesh(*args)
 
     meshes_dict = {}
     structures_with_mesh = []

@@ -17,12 +17,12 @@ from typing_extensions import deprecated
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
-    HEMISPHERES_FILENAME,
     MESHES_DIRNAME,
     METADATA_FILENAME,
     REFERENCE_DTYPE,
     STRUCTURES_FILENAME,
     V2_ANNOTATION_NAME,
+    V2_HEMISPHERES_NAME,
     V2_MESHES_DIRECTORY,
     V2_STRUCTURES_NAME,
     V2_TEMPLATE_NAME,
@@ -59,7 +59,8 @@ class Atlas:
 
     def __init__(self, path):
         self.fs = s3fs.S3FileSystem(anon=True)
-        self._pyramid_level = 0
+        self._template_pyramid_level = 0
+        self._annotation_pyramid_level = 0
 
         atlas_path = Path(path)
         # v1
@@ -111,7 +112,17 @@ class Atlas:
             )
 
             multiscale = nz.from_ngff_zarr(template_path)
-            self._pyramid_level = _determine_pyramid_level(
+            self._template_pyramid_level = _determine_pyramid_level(
+                multiscale, self.resolution
+            )
+            annotation_location = self.metadata["annotation_set"]["location"][
+                1:
+            ]
+            annotation_path = (
+                self.root_dir / annotation_location / V2_ANNOTATION_NAME
+            )
+            multiscale = nz.from_ngff_zarr(annotation_path)
+            self._annotation_pyramid_level = _determine_pyramid_level(
                 multiscale, self.resolution
             )
         else:
@@ -217,16 +228,18 @@ class Atlas:
         template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
 
         multiscale = nz.from_ngff_zarr(template_path)
-        resolution_path = template_path / str(self._pyramid_level)
+        resolution_path = template_path / str(self._template_pyramid_level)
 
         if not (resolution_path / "c").exists():
             print("Downloading template...")
             remote_path = remote_url_s3.format(
-                f"{template_location}/{V2_TEMPLATE_NAME}/{self._pyramid_level}/"
+                f"{template_location}/{V2_TEMPLATE_NAME}/{self._template_pyramid_level}/"
             )
             self.fs.get(remote_path, resolution_path, recursive=True)
 
-        self._template = multiscale.images[self._pyramid_level].data.compute()
+        self._template = multiscale.images[
+            self._template_pyramid_level
+        ].data.compute()
 
         return self._template
 
@@ -248,17 +261,17 @@ class Atlas:
         )
 
         multiscale = nz.from_ngff_zarr(annotation_path)
-        resolution_path = annotation_path / str(self._pyramid_level)
+        resolution_path = annotation_path / str(self._annotation_pyramid_level)
 
         if not (resolution_path / "c").exists():
             print("Downloading annotations...")
             remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V2_ANNOTATION_NAME}/{self._pyramid_level}/"
+                f"{annotation_location}/{V2_ANNOTATION_NAME}/{self._annotation_pyramid_level}/"
             )
             self.fs.get(remote_path, resolution_path, recursive=True)
 
         self._annotation = multiscale.images[
-            self._pyramid_level
+            self._annotation_pyramid_level
         ].data.compute()
 
         return self._annotation
@@ -291,9 +304,29 @@ class Atlas:
 
                 self._hemispheres = stack
             else:
-                self._hemispheres = read_tiff(
-                    self.root_dir / HEMISPHERES_FILENAME
+                annotation_location = self.metadata["annotation_set"][
+                    "location"
+                ][1:]
+                hemispheres_path = (
+                    self.root_dir / annotation_location / V2_HEMISPHERES_NAME
                 )
+
+                multiscale = nz.from_ngff_zarr(hemispheres_path)
+                resolution_path = hemispheres_path / str(
+                    self._annotation_pyramid_level
+                )
+
+                if not (resolution_path / "c").exists():
+                    print("Downloading hemispheres...")
+                    remote_path = remote_url_s3.format(
+                        f"{annotation_location}/{V2_HEMISPHERES_NAME}/{self._annotation_pyramid_level}/"
+                    )
+                    self.fs.get(remote_path, resolution_path, recursive=True)
+
+                self._hemispheres = multiscale.images[
+                    self._annotation_pyramid_level
+                ].data.compute()
+
         return self._hemispheres
 
     def hemisphere_from_coords(self, coords, microns=False, as_string=False):

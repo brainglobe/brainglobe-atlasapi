@@ -84,7 +84,9 @@ class BrainGlobeAtlas(core.Atlas):
     ):
         self._remote_version = None
         self._local_full_name = None
-        self._requested_version = version
+        self._requested_version = (
+            version.replace(".", "_") if version else None
+        )
         self._local_version = (
             _version_tuple_from_str(version) if version else None
         )
@@ -147,11 +149,9 @@ class BrainGlobeAtlas(core.Atlas):
         )
 
         if self._requested_version is not None:
-            self._requested_version = self._requested_version.replace(".", "_")
-
             pattern = (
                 f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
-                f"v{self._requested_version}/manifest.json"
+                f"{self._requested_version}/manifest.json"
             )
         else:
             pattern = (
@@ -170,7 +170,9 @@ class BrainGlobeAtlas(core.Atlas):
         if len(available_versions) == 0:
             return None
 
-        available_versions.sort(reverse=True)
+        available_versions.sort(
+            key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
+        )
 
         self._local_full_name = (
             f"{V2_ATLAS_ROOTDIR}/"
@@ -217,13 +219,15 @@ class BrainGlobeAtlas(core.Atlas):
             available_versions: List[str] = [
                 path_str.split("/")[-1] for path_str in versions_path
             ]
-            available_versions.sort(reverse=True)
+            available_versions.sort(
+                key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
+            )
 
             self._remote_version = _version_tuple_from_str(
                 available_versions[0].replace("_", ".")
             )
         else:
-            requested_path = f"{bucket_path}/v{self._requested_version}"
+            requested_path = f"{bucket_path}/{self._requested_version}"
             if not self.fs.exists(requested_path):
                 raise ValueError(
                     f"Requested version {self._requested_version} for atlas "
@@ -348,10 +352,6 @@ class BrainGlobeAtlas(core.Atlas):
         structure : str or int
             Name of the mesh file.
 
-        Returns
-        -------
-        bool
-            True if the mesh is cached, False otherwise.
         """
         mesh_path = Path(self._get_from_structure(structure, "mesh_filename"))
 
@@ -372,8 +372,6 @@ class BrainGlobeAtlas(core.Atlas):
             remote_mesh_path = remote_url_s3.format(f"{meshes_root}/{mesh_id}")
             local_mesh_path = self.brainglobe_dir / meshes_root / f"{mesh_id}"
             self.fs.get(remote_mesh_path, local_mesh_path)
-
-        return
 
     def check_latest_version(
         self, print_warning: bool = True

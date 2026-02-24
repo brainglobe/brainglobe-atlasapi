@@ -38,7 +38,8 @@ def _determine_pyramid_level(
     for metadata in multiscale.metadata.datasets:
         scales = metadata.coordinateTransformations[0].scale
         if all(
-            (res / 1000) == scale for res, scale in zip(resolution, scales)
+            np.isclose(res / 1000, scale)
+            for res, scale in zip(resolution, scales)
         ):
             return int(metadata.path)
 

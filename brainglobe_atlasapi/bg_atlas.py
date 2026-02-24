@@ -241,7 +241,12 @@ class BrainGlobeAtlas(core.Atlas):
         return self._remote_version
 
     def download(self):
-        """Download and extract the atlas files from remote storage."""
+        """Download and extract the atlas files from remote storage.
+
+        The manifest file is written last so that a failed mid-download is
+        detected on the next run: local_full_name returns None when the
+        manifest is absent, triggering a fresh download.
+        """
         check_internet_connection()
 
         remote_version_str = _version_str_from_tuple(self.remote_version)
@@ -253,73 +258,64 @@ class BrainGlobeAtlas(core.Atlas):
         local_path = self.brainglobe_dir / key_name
         remote_path = remote_url_s3.format(key_name)
 
+        local_path.parent.mkdir(parents=True, exist_ok=True)
         self.fs.get(remote_path, local_path)
         self.metadata = read_json(local_path)
 
-        # Download terminology file
-        terminology_location = self.metadata["terminology"]["location"][1:]
-        local_terminology_path = self.brainglobe_dir / terminology_location
-        if not local_terminology_path.exists():
-            remote_terminology_path = remote_url_s3.format(
-                terminology_location
-            )
-            self.fs.get(
-                remote_terminology_path, local_terminology_path, recursive=True
-            )
+        try:
+            # Download terminology file
+            terminology_location = self.metadata["terminology"]["location"][1:]
+            local_terminology_path = self.brainglobe_dir / terminology_location
+            if not local_terminology_path.exists():
+                remote_terminology_path = remote_url_s3.format(
+                    terminology_location
+                )
+                self.fs.get(
+                    remote_terminology_path,
+                    local_terminology_path,
+                    recursive=True,
+                )
 
-        # Download coordinate space files
-        coordspace_location = self.metadata["coordinate_space"]["location"][1:]
-        local_coordspace_path = self.brainglobe_dir / coordspace_location
-        if not local_coordspace_path.exists():
-            remote_coordspace_path = remote_url_s3.format(coordspace_location)
-            self.fs.get(
-                remote_coordspace_path, local_coordspace_path, recursive=True
-            )
+            # Download coordinate space files
+            coordspace_location = self.metadata["coordinate_space"][
+                "location"
+            ][1:]
+            local_coordspace_path = self.brainglobe_dir / coordspace_location
+            if not local_coordspace_path.exists():
+                remote_coordspace_path = remote_url_s3.format(
+                    coordspace_location
+                )
+                self.fs.get(
+                    remote_coordspace_path,
+                    local_coordspace_path,
+                    recursive=True,
+                )
 
-        # Download annotation metadata files
-        annotation_location = self.metadata["annotation_set"]["location"][1:]
-        local_annotation_path = self.brainglobe_dir / annotation_location
-        if not local_annotation_path.exists():
-            root_metadata_path = (
-                annotation_location + f"/{V2_ANNOTATION_NAME}/**/*.json"
-            )
-            remote_root_metadata_path = remote_url_s3.format(
-                root_metadata_path
-            )
+            # Download annotation metadata files
+            annotation_location = self.metadata["annotation_set"]["location"][
+                1:
+            ]
+            local_annotation_path = self.brainglobe_dir / annotation_location
+            if not local_annotation_path.exists():
+                root_metadata_path = (
+                    annotation_location + f"/{V2_ANNOTATION_NAME}/**/*.json"
+                )
+                remote_root_metadata_path = remote_url_s3.format(
+                    root_metadata_path
+                )
 
-            self.fs.get(
-                remote_root_metadata_path,
-                local_annotation_path / V2_ANNOTATION_NAME,
-            )
-            mesh_path = local_annotation_path / V2_MESHES_DIRECTORY
-            mesh_path.mkdir(exist_ok=True)
+                self.fs.get(
+                    remote_root_metadata_path,
+                    local_annotation_path / V2_ANNOTATION_NAME,
+                )
+                mesh_path = local_annotation_path / V2_MESHES_DIRECTORY
+                mesh_path.mkdir(exist_ok=True)
 
-        # Download template metadata files
-        template_location = self.metadata["annotation_set"]["template"][
-            "location"
-        ][1:]
-        local_template_path = self.brainglobe_dir / template_location
-        if not local_template_path.exists():
-            root_metadata_path = (
-                template_location + f"/{V2_TEMPLATE_NAME}/**/*.json"
-            )
-            remote_root_metadata_path = remote_url_s3.format(
-                root_metadata_path
-            )
-
-            self.fs.get(
-                remote_root_metadata_path,
-                local_template_path / V2_TEMPLATE_NAME,
-            )
-
-        additional_reference_names = self.metadata.get(
-            "additional_references", []
-        )
-
-        for ref in additional_reference_names:
-            template_location = ref["location"][1:]
+            # Download template metadata files
+            template_location = self.metadata["annotation_set"]["template"][
+                "location"
+            ][1:]
             local_template_path = self.brainglobe_dir / template_location
-
             if not local_template_path.exists():
                 root_metadata_path = (
                     template_location + f"/{V2_TEMPLATE_NAME}/**/*.json"
@@ -332,6 +328,33 @@ class BrainGlobeAtlas(core.Atlas):
                     remote_root_metadata_path,
                     local_template_path / V2_TEMPLATE_NAME,
                 )
+
+            additional_reference_names = self.metadata.get(
+                "additional_references", []
+            )
+
+            for ref in additional_reference_names:
+                template_location = ref["location"][1:]
+                local_template_path = self.brainglobe_dir / template_location
+
+                if not local_template_path.exists():
+                    root_metadata_path = (
+                        template_location + f"/{V2_TEMPLATE_NAME}/**/*.json"
+                    )
+                    remote_root_metadata_path = remote_url_s3.format(
+                        root_metadata_path
+                    )
+
+                    self.fs.get(
+                        remote_root_metadata_path,
+                        local_template_path / V2_TEMPLATE_NAME,
+                    )
+
+        except Exception:
+            # Remove the manifest so the next run detects the incomplete
+            # download and retries rather than finding partial files.
+            local_path.unlink(missing_ok=True)
+            raise
 
     def _get_from_structure(self, structure, key):
         if key == "mesh":

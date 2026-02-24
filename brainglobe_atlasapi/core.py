@@ -5,7 +5,6 @@ from collections import UserDict
 from pathlib import Path
 from typing import Tuple
 
-import ngff_zarr
 import ngff_zarr as nz
 import numpy as np
 import numpy.typing as npt
@@ -33,7 +32,7 @@ from brainglobe_atlasapi.utils import read_json, read_tiff
 
 
 def _determine_pyramid_level(
-    multiscale: ngff_zarr.Multiscales, resolution: Tuple[float, float, float]
+    multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
 ):
     for metadata in multiscale.metadata.datasets:
         scales = metadata.coordinateTransformations[0].scale
@@ -59,7 +58,6 @@ class Atlas:
     right_hemisphere_value = 2
 
     def __init__(self, path):
-        self.fs = s3fs.S3FileSystem(anon=True)
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
 

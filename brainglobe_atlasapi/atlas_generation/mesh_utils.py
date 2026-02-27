@@ -159,7 +159,6 @@ def new_create_region_mesh(
     decimate_fraction: float,
     smooth: bool,
     verbosity: int = 0,
-    skip_structure_ids=None,
 ):
     """
     Automate the creation of a region's mesh. Given a volume of annotations
@@ -180,22 +179,11 @@ def new_create_region_mesh(
     ROOT_ID: int,
     id of root structure (mesh creation is a bit more refined for that)
     """
-    if skip_structure_ids is None:
-        skip_structure_ids = set()
-    elif isinstance(skip_structure_ids, (int, np.integer)):
-        skip_structure_ids = {int(skip_structure_ids)}
-    elif not isinstance(skip_structure_ids, set):
-        skip_structure_ids = set(skip_structure_ids)
-
     if verbosity > 0:
         logger.debug(f"Creating mesh for region {node.identifier}")
 
     # Avoid overwriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
-    if node.identifier in skip_structure_ids:
-        if verbosity > 0:
-            logger.debug(f"Skipping mesh for region {node.identifier}")
-        return
     # if savepath.exists():
     #     logger.debug(f"Mesh file save path exists already, skipping.")
     #     return
@@ -345,7 +333,16 @@ def construct_meshes_from_annotation(
         volume = ann_path
 
     root_id = tree.root
-    # Create a list of arguments for each region's mesh creation
+
+    # Normalise skip set so filtering is a simple membership check
+    if skip_structure_ids is None:
+        skip_structure_ids = set()
+    elif not isinstance(skip_structure_ids, set):
+        skip_structure_ids = set(skip_structure_ids)
+
+    # Create a list of arguments for each region's mesh creation,
+    # filtering out structures that should be skipped upstream to
+    # avoid unnecessary inter-process communication.
     args_list = [
         (
             meshes_dir_path,
@@ -358,9 +355,9 @@ def construct_meshes_from_annotation(
             decimate_fraction,
             smooth,
             verbosity,
-            skip_structure_ids,
         )
         for node in preorder_depth_first_search(tree)
+        if node.identifier not in skip_structure_ids
     ]
 
     if parallel:

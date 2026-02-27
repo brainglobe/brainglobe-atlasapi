@@ -243,6 +243,9 @@ def wrapup_atlas_from_data(
     for mesh_id, meshfile in meshes_dict.items():
         mesh = mio.read(meshfile)
 
+        if len(mesh.points) == 0:
+            continue
+
         if scale_meshes:
             # Scale the mesh to the desired resolution, BEFORE transforming:
             # Note that this transformation happens in original space,

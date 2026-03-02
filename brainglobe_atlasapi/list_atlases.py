@@ -3,8 +3,6 @@ Functionality to list all available and downloaded
 brainglobe atlases.
 """
 
-import re
-
 from rich import print as rprint
 from rich.panel import Panel
 from rich.table import Table
@@ -13,21 +11,26 @@ from brainglobe_atlasapi import config, descriptors, utils
 
 
 def get_downloaded_atlases():
-    """Get a list of all the downloaded atlases and their version.
+    """Get a list of all the downloaded atlases.
 
     Returns
     -------
     list
-        A list of tuples with the locally available atlases and their version
+        A list of the locally available atlases
     """
     # Get brainglobe directory:
     brainglobe_dir = config.get_brainglobe_dir()
+    atlases_dir = brainglobe_dir / "atlases"
 
-    return [
-        f.name.rsplit("_v", 1)[0]
-        for f in brainglobe_dir.glob("*_*_*_v*")
-        if f.is_dir()
-    ]
+    downloaded_atlases = []
+
+    for f in atlases_dir.iterdir():
+        if f.is_dir():
+            downloaded_atlases.append(f.name)
+
+    sorted_atlases = sorted(downloaded_atlases)
+
+    return sorted_atlases
 
 
 def get_local_atlas_version(atlas_name):
@@ -44,13 +47,14 @@ def get_local_atlas_version(atlas_name):
         Version of atlas.
     """
     brainglobe_dir = config.get_brainglobe_dir()
+    atlas_dir = brainglobe_dir / "atlases" / atlas_name
+
     try:
-        return [
-            re.search(r"_v(\d+\.\d+)$", f.name).group(1)
-            for f in brainglobe_dir.glob(f"*{atlas_name}*")
-            if f.is_dir() and re.search(r"_v(\d+\.\d+)$", f.name)
-        ][0]
-    except IndexError:
+        available_versions = [
+            p.name for p in atlas_dir.iterdir() if p.is_dir()
+        ]
+        return available_versions[0]
+    except (IndexError, FileNotFoundError):
         print(f"No atlas found with the name: {atlas_name}")
         return None
 
@@ -72,7 +76,7 @@ def get_all_atlases_lastversions():
     try:
         custom_atlases = utils.conf_from_file(custom_path)
     except FileNotFoundError:
-        return dict(official_atlases["atlases"])
+        return dict(official_atlases)
     return {**official_atlases["atlases"], **custom_atlases["atlases"]}
 
 

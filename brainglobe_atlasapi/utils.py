@@ -168,6 +168,28 @@ def check_internet_connection(
     return False
 
 
+def check_s3_status(timeout=5, raise_error=True):
+    """
+    Check that the S3 BrainGlobe bucket is accessible.
+
+    timeout : int
+        timeout to wait for [in seconds] (Default value = 5).
+    raise_error : bool
+        if false, warning but no error.
+    """
+    url = descriptors.remote_url_s3_http.format("")
+
+    try:
+        _ = requests.head(url, timeout=timeout)
+        return True
+    except (requests.ConnectionError, requests.exceptions.Timeout) as e:
+        error_message = "S3 BrainGlobe bucket is not accessible."
+        if not raise_error:
+            print(error_message)
+        else:
+            raise ConnectionError(error_message) from e
+
+
 def check_gin_status(timeout=5, raise_error=True):
     """Check that the GIN server is up.
 

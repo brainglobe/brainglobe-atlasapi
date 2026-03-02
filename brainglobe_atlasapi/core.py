@@ -84,8 +84,13 @@ class Atlas:
                 converters={
                     "root_identifier_path": lambda x: np.fromstring(
                         x.strip("[]"), sep=",", dtype=np.uint32
-                    ).tolist()
+                    ).tolist(),
+                    "color_hex_triplet": lambda x: [
+                        int(x.strip("#")[i : i + 2], 16) for i in (0, 2, 4)
+                    ],
                 },
+                keep_default_na=False,
+                na_values=["", "NaN", "NULL", "nan", "N/A", "na", "null"],
             )
             rename_dict = {
                 "identifier": "id",

@@ -1,6 +1,7 @@
 """Defines the BrainGlobe Atlas API v2 classes and functions."""
 
 import re
+import warnings
 from io import StringIO
 from pathlib import Path
 from typing import List, Optional, Union
@@ -32,7 +33,40 @@ def _version_str_from_tuple(version_tuple):
     return "_".join(str(num) for num in version_tuple)
 
 
-class BrainGlobeAtlas(core.Atlas):
+class _FallbackToLegacyMeta(type):
+    """Metaclass that transparently falls back to BrainGlobeAtlasLegacy.
+
+    Intercepts class instantiation so that:
+    - ``legacy=True`` explicitly returns a ``BrainGlobeAtlasLegacy`` instance.
+    - Any ``ValueError`` raised during v2 initialisation (e.g. the atlas is
+      not available in the v2 format) silently retries with the legacy class
+      after emitting a warning.
+    - ``isinstance(obj, BrainGlobeAtlas)`` returns ``True`` for legacy
+      instances returned by the fallback, so downstream code needs no changes.
+    """
+
+    def __call__(cls, atlas_name, *args, **kwargs):
+        if kwargs.pop("legacy", False):
+            return BrainGlobeAtlasLegacy(atlas_name, **kwargs)
+
+        try:
+            return super().__call__(atlas_name, *args, **kwargs)
+        except ValueError as e:
+            warnings.warn(
+                f"Could not load '{atlas_name}' as a v2 atlas ({e}). "
+                "Falling back to legacy atlas format.",
+                stacklevel=2,
+            )
+            legacy_kwargs = {k: v for k, v in kwargs.items() if k != "version"}
+            return BrainGlobeAtlasLegacy(atlas_name, **legacy_kwargs)
+
+    def __instancecheck__(cls, instance):
+        return type.__instancecheck__(cls, instance) or isinstance(
+            instance, BrainGlobeAtlasLegacy
+        )
+
+
+class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
 
@@ -40,8 +74,6 @@ class BrainGlobeAtlas(core.Atlas):
     ----------
     atlas_name : str
         Name of the atlas to be used.
-    resolution : int or float
-        Desired isotropic resolution in microns.
     version : str (optional)
         Desired version of the atlas. If None, the latest version will be used.
     brainglobe_dir : str or Path object
@@ -52,25 +84,10 @@ class BrainGlobeAtlas(core.Atlas):
         If true, check if we have the most recent atlas (default=True). Set
         this to False to avoid waiting for remote server response on atlas
         instantiation and to suppress warnings.
-    print_authors : bool (optional)
-        If true, disable default listing of the atlas reference.
     fn_update : Callable
         Handler function to update during download. Takes completed and total
         bytes.
     """
-
-    def __new__(cls, *args, **kwargs):
-        """
-        Delegate to BrainGlobeAtlasLegacy if requested.
-
-        If legacy=True is passed as kwarg, instantiate a
-        BrainGlobeAtlasLegacy object instead.
-        """
-        if "legacy" in kwargs and kwargs["legacy"]:
-            kwargs.pop("legacy")
-            return BrainGlobeAtlasLegacy(*args, **kwargs)
-
-        return super().__new__(cls)
 
     def __init__(
         self,

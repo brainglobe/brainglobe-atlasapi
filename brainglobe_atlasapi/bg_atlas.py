@@ -133,7 +133,6 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
             self.brainglobe_dir = Path(brainglobe_dir)
 
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
-        self.interm_download_dir.mkdir(parents=True, exist_ok=True)
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
@@ -206,9 +205,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
 
     @property
     def local_version(self) -> Optional[Tuple[int, ...]]:
-        """If atlas is local, return actual version of the downloaded files;
-        Else, return none.
-        """
+        """If atlas is local, return actual version of the downloaded files."""
         if self._local_version is not None:
             return self._local_version
 

@@ -193,6 +193,8 @@ def check_s3_status(timeout=5, raise_error=True):
         else:
             raise ConnectionError(error_message) from e
 
+    return False
+
 
 def check_gin_status(timeout=5, raise_error=True):
     """Check that the GIN server is up.

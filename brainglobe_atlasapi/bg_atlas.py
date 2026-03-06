@@ -138,7 +138,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
             if self.remote_version is None:
                 check_internet_connection(raise_error=True)
 
-                # If internet and GIN are up, then the atlas name was invalid
+                # If internet is up, then the atlas name was invalid
                 raise ValueError(f"{atlas_name} is not a valid atlas name!")
             else:
                 self.download()

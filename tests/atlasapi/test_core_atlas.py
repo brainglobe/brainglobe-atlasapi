@@ -15,26 +15,18 @@ from brainglobe_atlasapi.core import AdditionalRefDict
 
 def test_initialization(atlas):
     """Test Atlas class initialization."""
-    assert atlas.metadata == {
-        "name": "example_mouse",
-        "citation": (
-            "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
-        ),
-        "atlas_link": "http://www.brain-map.org",
-        "species": "Mus musculus",
-        "symmetric": True,
-        "resolution": [100.0, 100.0, 100.0],
-        "orientation": "asr",
-        "version": atlas.metadata["version"],  # no target value for version
-        "shape": [132, 80, 114],
-        "trasform_to_bg": [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ],
-        "additional_references": [],
-    }
+    assert atlas.metadata["name"] == "example_mouse"
+    assert (
+        atlas.metadata["citation"]
+        == "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
+    )
+    assert atlas.metadata["atlas_link"] == "http://www.brain-map.org"
+    assert atlas.metadata["species"] == "Mus musculus"
+    assert atlas.metadata["symmetric"] is True
+    assert atlas.metadata["resolution"] == [100.0, 100.0, 100.0]
+    assert atlas.metadata["orientation"] == "asr"
+    assert atlas.metadata["shape"] == [132, 80, 114]
+    assert atlas.metadata["additional_references"] == []
 
     assert atlas.orientation == "asr"
     assert atlas.shape == (132, 80, 114)

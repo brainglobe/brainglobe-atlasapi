@@ -746,7 +746,7 @@ class AdditionalRefDict(UserDict):
             return None
 
         if self.data[key] is None:
-            additional_ref_data = self.references_dict[key]
+            additional_ref_data = self.references_dict.get(key, key)
             if isinstance(additional_ref_data, dict):
                 # V2
                 additional_ref_location = additional_ref_data["location"][1:]

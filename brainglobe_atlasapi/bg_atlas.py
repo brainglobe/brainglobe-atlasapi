@@ -27,6 +27,7 @@ from brainglobe_atlasapi.descriptors import (
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
     check_internet_connection,
+    check_s3_status,
     read_json,
 )
 
@@ -35,14 +36,22 @@ def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return "_".join(str(num) for num in version_tuple)
 
 
+class AtlasNotAvailableAsV2(ValueError):
+    """Raised when an atlas is not available in v2 format.
+
+    Caught by ``_FallbackToLegacyMeta`` to trigger a transparent retry with
+    ``BrainGlobeAtlasLegacy``. Subclasses ``ValueError`` for backward
+    compatibility with callers that catch ``ValueError``.
+    """
+
+
 class _FallbackToLegacyMeta(type):
     """Metaclass that transparently falls back to BrainGlobeAtlasLegacy.
 
     Intercepts class instantiation so that:
     - ``legacy=True`` explicitly returns a ``BrainGlobeAtlasLegacy`` instance.
-    - Any ``ValueError`` raised during v2 initialisation (e.g. the atlas is
-      not available in the v2 format) silently retries with the legacy class
-      after emitting a warning.
+    - Any ``AtlasNotAvailableAsV2`` raised during v2 initialisation silently
+      retries with the legacy class after emitting a warning.
     - ``isinstance(obj, BrainGlobeAtlas)`` returns ``True`` for legacy
       instances returned by the fallback, so downstream code needs no changes.
     """
@@ -53,7 +62,7 @@ class _FallbackToLegacyMeta(type):
 
         try:
             return super().__call__(atlas_name, *args, **kwargs)
-        except ValueError as e:
+        except AtlasNotAvailableAsV2 as e:
             warnings.warn(
                 f"Could not load '{atlas_name}' as a v2 atlas ({e}). "
                 "Falling back to legacy atlas format.",
@@ -80,8 +89,6 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         Desired version of the atlas. If None, the latest version will be used.
     brainglobe_dir : str or Path object
         Default folder for brainglobe downloads.
-    interm_download_dir : str or Path object
-        Folder to download the compressed file for extraction.
     check_latest : bool (optional)
         If true, check if we have the most recent atlas (default=True). Set
         this to False to avoid waiting for remote server response on atlas
@@ -96,7 +103,6 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         atlas_name: AtlasName,
         version: Optional[str] = None,
         brainglobe_dir: Optional[Union[str, Path]] = None,
-        interm_download_dir: Optional[Union[str, Path]] = None,
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
@@ -107,9 +113,10 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
             version.replace(".", "_") if version else None
         )
         self._local_version = (
-            _version_tuple_from_str(version) if version else None
+            _version_tuple_from_str(version.replace("_", "."))
+            if version
+            else None
         )
-        self._shape = None
         self.fs = s3fs.S3FileSystem(anon=True)
 
         self.atlas_name = atlas_name
@@ -125,13 +132,6 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         else:
             self.brainglobe_dir = Path(brainglobe_dir)
 
-        if interm_download_dir is None:
-            self.interm_download_dir = Path(
-                conf["default_dirs"]["interm_download_dir"]
-            )
-        else:
-            self.interm_download_dir = Path(interm_download_dir)
-
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
         self.interm_download_dir.mkdir(parents=True, exist_ok=True)
 
@@ -141,7 +141,9 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
                 check_internet_connection(raise_error=True)
 
                 # If internet is up, then the atlas name was invalid
-                raise ValueError(f"{atlas_name} is not a valid atlas name!")
+                raise AtlasNotAvailableAsV2(
+                    f"{atlas_name} is not a valid atlas name!"
+                )
             else:
                 self.download()
                 assert self.local_full_name is not None, (
@@ -227,7 +229,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         if self._remote_version is not None:
             return self._remote_version
 
-        if not check_internet_connection(raise_error=False):
+        if not check_s3_status(raise_error=False):
             return None
 
         bucket_path = remote_url_s3.format(f"atlases/{self.atlas_name}")
@@ -265,7 +267,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         detected on the next run: local_full_name returns None when the
         manifest is absent, triggering a fresh download.
         """
-        check_internet_connection()
+        check_s3_status()
 
         remote_version_str = _version_str_from_tuple(self.remote_version)
         key_name = (
@@ -438,7 +440,6 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         remote_version = self.remote_version
         # If we are offline, return None
         if remote_version is None:
-            return None
             return None
 
         local = _version_str_from_tuple(self.local_version)

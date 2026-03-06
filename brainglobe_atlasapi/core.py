@@ -64,6 +64,7 @@ class Atlas:
     def __init__(self, path):
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
+        self.fs = s3fs.S3FileSystem(anon=True)
 
         atlas_path = Path(path)
         # v1

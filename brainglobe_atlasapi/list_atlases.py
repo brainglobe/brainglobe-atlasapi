@@ -55,8 +55,11 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
         available_versions = [
             p.name for p in atlas_dir.iterdir() if p.is_dir()
         ]
+        available_versions.sort(
+            key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
+        )
         return available_versions[0]
-    except (IndexError, FileNotFoundError):
+    except (IndexError, FileNotFoundError, ValueError):
         print(f"No atlas found with the name: {atlas_name}")
         return None
 
@@ -105,7 +108,8 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
                 local=name,
                 version=local_version,
                 latest_version=str(available_atlases[name]),
-                updated=str(available_atlases[name]) == local_version,
+                updated=str(available_atlases[name]).replace(".", "_")
+                == local_version,
             )
     return atlases
 

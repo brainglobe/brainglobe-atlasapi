@@ -23,7 +23,7 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
-from brainglobe_atlasapi import config, descriptors
+from brainglobe_atlasapi import descriptors
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -344,7 +344,7 @@ def get_download_size(url: str) -> int:
         raise IndexError("Improperly formatted URL")
 
 
-def conf_from_url(url) -> configparser.ConfigParser:
+def conf_from_url(url, cache_path) -> configparser.ConfigParser:
     """Read conf file from a URL and
     cache a copy of the configuration file in the brainglobe directory.
 
@@ -353,6 +353,8 @@ def conf_from_url(url) -> configparser.ConfigParser:
     url : str
         URL of the configuration file. Ensure it's the raw URL for repository
         files (e.g., from GIN raw content).
+    cache_path : Path
+        The path where the configuration file will be cached.
 
     Returns
     -------
@@ -360,8 +362,6 @@ def conf_from_url(url) -> configparser.ConfigParser:
         A ConfigParser object containing the configuration data.
 
     """
-    cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
-
     max_tries = 5
     sleep_time = 0.5
     status_code = 418  # teapot status code

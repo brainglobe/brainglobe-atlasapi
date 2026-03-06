@@ -68,7 +68,9 @@ def test_config_edit(tmp_path):
         config.write_config_value("brainglobe_dir", str(new_atlas_dir))
         config_post = config.read_config()
 
-        assert config_post["default_dirs"]["brainglobe_dir"] == str(new_atlas_dir)
+        assert config_post["default_dirs"]["brainglobe_dir"] == str(
+            new_atlas_dir
+        )
 
         atlas = bg_atlas.BrainGlobeAtlas(atlas_name="example_mouse_100um")
         assert atlas.root_dir.parent == new_atlas_dir

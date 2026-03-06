@@ -4,10 +4,12 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import get_args
 
 import numpy as np
 
 from brainglobe_atlasapi import BrainGlobeAtlas
+from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
 from brainglobe_atlasapi.list_atlases import (
@@ -424,6 +426,45 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
     return True
 
 
+def validate_unique_acronyms(atlas: BrainGlobeAtlas):
+    """Validate that all structure acronyms in the atlas are unique.
+
+    Duplicate acronyms are incompatible with the current implementation
+    of brainglobe-atlasapi as the acronym is used as a primary key to
+    fetch details for a region.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if all acronyms are unique.
+
+    Raises
+    ------
+    AssertionError
+        If any duplicate acronyms are found in the atlas structures.
+    """
+    seen = set()
+    duplicates = []
+
+    for structure in atlas.structures:
+        acronym = atlas.structures[structure]["acronym"]
+        if acronym in seen:
+            name = atlas.structures[structure]["name"]
+            duplicates.append((acronym, name))
+        else:
+            seen.add(acronym)
+
+    assert (
+        len(duplicates) == 0
+    ), f"Duplicate acronyms found in atlas structures: {sorted(duplicates)}"
+    return True
+
+
 def validate_atlas_name(atlas: BrainGlobeAtlas):
     """Validate the naming convention of the atlas.
 
@@ -465,6 +506,31 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
         "(e.g., 5um, 1.5mm)."
     )
 
+    return True
+
+
+def validate_atlas_name_listed(atlas: BrainGlobeAtlas):
+    """Validate that the atlas name is listed in atlas_name.py.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the atlas name is listed in atlas_name.py.
+
+    Raises
+    ------
+    AssertionError
+        If the atlas name is not listed in atlas_name.py.
+    """
+    name = atlas.atlas_name
+    assert name in get_args(
+        AtlasName
+    ), f"Atlas name {name} is not listed in atlas_name.py"
     return True
 
 
@@ -523,7 +589,9 @@ def get_all_validation_functions():
         catch_missing_structures,
         validate_reference_image_pixels,
         validate_annotation_symmetry,
+        validate_unique_acronyms,
         validate_atlas_name,
+        validate_atlas_name_listed,
     ]
 
 
@@ -577,19 +645,7 @@ def validate_atlas(atlas_name, version, validation_functions):
 if __name__ == "__main__":
     """Main execution block for running atlas validations."""
     # list to store the validation functions
-    all_validation_functions = [
-        validate_atlas_files,
-        validate_mesh_matches_image_extents,
-        open_for_visual_check,
-        validate_checksum,
-        validate_image_dimensions,
-        validate_additional_references,
-        catch_missing_mesh_files,
-        catch_missing_structures,
-        validate_reference_image_pixels,
-        validate_annotation_symmetry,
-        validate_atlas_name,
-    ]
+    all_validation_functions = get_all_validation_functions()
 
     valid_atlases = []
     invalid_atlases = []

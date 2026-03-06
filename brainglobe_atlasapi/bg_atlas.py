@@ -2,15 +2,17 @@
 
 import re
 import warnings
+from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import s3fs
 from rich import print as rprint
 from rich.console import Console
 
 from brainglobe_atlasapi import config, core
+from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.bg_atlas_legacy import (
     BrainGlobeAtlasLegacy,
     _version_tuple_from_str,
@@ -29,7 +31,7 @@ from brainglobe_atlasapi.utils import (
 )
 
 
-def _version_str_from_tuple(version_tuple):
+def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return "_".join(str(num) for num in version_tuple)
 
 
@@ -91,13 +93,13 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
 
     def __init__(
         self,
-        atlas_name: str,
+        atlas_name: AtlasName,
         version: Optional[str] = None,
-        brainglobe_dir=None,
-        interm_download_dir=None,
-        check_latest=True,
-        config_dir=None,
-        fn_update=None,
+        brainglobe_dir: Optional[Union[str, Path]] = None,
+        interm_download_dir: Optional[Union[str, Path]] = None,
+        check_latest: bool = True,
+        config_dir: Optional[Union[str, Path]] = None,
+        fn_update: Optional[Callable] = None,
     ):
         self._remote_version = None
         self._local_full_name = None
@@ -201,9 +203,8 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         return self._local_full_name
 
     @property
-    def local_version(self):
-        """
-        If atlas is local, return actual version of the downloaded files.
+    def local_version(self) -> Optional[Tuple[int, ...]]:
+        """If atlas is local, return actual version of the downloaded files;
         Else, return none.
         """
         if self._local_version is not None:
@@ -438,6 +439,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         # If we are offline, return None
         if remote_version is None:
             return None
+            return None
 
         local = _version_str_from_tuple(self.local_version)
         online = _version_str_from_tuple(remote_version)
@@ -456,14 +458,14 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
             return False
         return True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Fancy print providing atlas information."""
         name_split = self.atlas_name.split("_")
         res = f" (res. {name_split.pop()})"
         pretty_name = f"{' '.join(name_split)} atlas{res}"
         return pretty_name
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         If the atlas metadata are to be printed
         with the built-in print function instead of rich's, then

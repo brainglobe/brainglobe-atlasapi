@@ -392,3 +392,78 @@ def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
         core.read_tiff.assert_not_called()
     elif atlas.metadata["symmetric"] is False:
         core.read_tiff.assert_called_once()
+
+
+def test_get_structures_at_hierarchy_level_as_acronym(atlas):
+    """Test basic usage returning acronyms."""
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", 1, as_acronym=True
+    )
+    assert result == ["grey"]
+
+
+def test_get_structures_at_hierarchy_level_as_id(atlas):
+    """Test basic usage returning IDs."""
+    result = atlas.get_structures_at_hierarchy_level("root", 1)
+    assert result == [8]
+
+
+def test_get_structures_at_hierarchy_level_numeric_input(atlas):
+    """Test that numeric structure IDs work."""
+    result = atlas.get_structures_at_hierarchy_level(997, 1)
+    assert result == [8]
+
+
+def test_get_structures_at_hierarchy_level_zero(atlas):
+    """Test that level 0 returns root."""
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", 0, as_acronym=True
+    )
+    assert result == ["root"]
+
+
+def test_get_structures_at_hierarchy_level_multiple_levels(atlas):
+    """Test querying at different hierarchy levels."""
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", 2, as_acronym=True
+    )
+    assert result == ["CH"]
+
+
+def test_get_structures_at_hierarchy_level_none(atlas):
+    """Test that hierarchy_level=None returns all structures in BFS order."""
+    result = atlas.get_structures_at_hierarchy_level(
+        "root", None, as_acronym=True
+    )
+    assert result == ["root", "grey", "CH"]
+
+
+def test_get_structures_at_hierarchy_level_invalid_structure(atlas):
+    """Test error handling for invalid structure."""
+    with pytest.raises(KeyError, match=r"not found"):
+        atlas.get_structures_at_hierarchy_level("INVALID", 1)
+
+
+def test_get_structures_at_hierarchy_level_negative_level(atlas):
+    """Test error handling for negative hierarchy level."""
+    with pytest.raises(ValueError, match=r"must be non-negative"):
+        atlas.get_structures_at_hierarchy_level("root", -1)
+
+
+def test_get_structures_at_hierarchy_level_wrong_type(atlas):
+    """Test error handling for wrong hierarchy_level type."""
+    with pytest.raises(ValueError, match=r"must be an int or None"):
+        atlas.get_structures_at_hierarchy_level("root", "2")
+
+
+def test_get_structures_at_hierarchy_level_too_deep(atlas):
+    """Test error handling when hierarchy level exceeds structure depth."""
+    with pytest.raises(ValueError, match=r"no descendants at hierarchy level"):
+        atlas.get_structures_at_hierarchy_level("root", 10)
+
+
+def test_get_structures_at_hierarchy_level_leaf_node(atlas):
+    """Test that querying a leaf node with hierarchy_level=0 returns root."""
+    # CH is the deepest node in the test atlas
+    result = atlas.get_structures_at_hierarchy_level("CH", 0)
+    assert result == [997]  # root ID

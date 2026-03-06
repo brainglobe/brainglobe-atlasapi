@@ -139,3 +139,111 @@ def test_local_search(tmpdir):
             "example_mouse_100um", brainglobe_dir=temp_brainglobe_dir
         )
     assert "Multiple versions of atlas" in str(error)
+
+
+def test_download_corrupted_file(tmp_path):
+    """Ensure corrupted downloads are caught and cleaned up."""
+    import tarfile
+    from unittest.mock import PropertyMock, patch
+
+    from brainglobe_atlasapi import utils
+
+    # Setup directories
+    brainglobe_dir = tmp_path / "brainglobe"
+    download_dir = tmp_path / "download"
+    brainglobe_dir.mkdir()
+    download_dir.mkdir()
+
+    # Create atlas with mocked paths
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.atlas_name = "mouse_100um"
+    atlas.brainglobe_dir = brainglobe_dir
+    atlas.interm_download_dir = download_dir
+    atlas.fn_update = None
+
+    def mock_corrupted_download(url, dest, update_fn):
+        """Write a file with a gzip header but truncated data."""
+        with open(dest, "wb") as f:
+            f.write(b"\x1f\x8b\x08\x00\x00\x00\x00\x00")  # gzip magic bytes
+            f.write(b"truncated_data")
+
+    # Mock dependencies
+    with (
+        patch.object(
+            utils, "retrieve_over_http", side_effect=mock_corrupted_download
+        ),
+        patch.object(utils, "check_internet_connection", return_value=True),
+        patch.object(utils, "check_gin_status", return_value=True),
+        patch.object(
+            BrainGlobeAtlas,
+            "remote_url",
+            new_callable=PropertyMock,
+            return_value="http://fake.url/atlas.tar.gz",
+        ),
+    ):
+
+        # Should raise ReadError due to corruption
+        with pytest.raises(
+            tarfile.ReadError,
+            match="Atlas download was interrupted or corrupted",
+        ):
+            atlas.download_extract_file()
+
+        # Corrupted file should be deleted
+        assert not (
+            download_dir / "atlas.tar.gz"
+        ).exists(), "Corrupted file was not cleaned up"
+
+
+def test_download_valid_file(tmp_path):
+    """Ensure valid downloads are extracted and preserved."""
+    import io
+    import tarfile
+    from unittest.mock import PropertyMock, patch
+
+    from brainglobe_atlasapi import utils
+
+    brainglobe_dir = tmp_path / "brainglobe"
+    download_dir = tmp_path / "download"
+    brainglobe_dir.mkdir()
+    download_dir.mkdir()
+
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.atlas_name = "mouse_100um"
+    atlas.brainglobe_dir = brainglobe_dir
+    atlas.interm_download_dir = download_dir
+    atlas.fn_update = None
+
+    def mock_valid_download(url, dest, update_fn):
+        """Create a valid tar.gz file."""
+        with tarfile.open(dest, "w:gz") as tar:
+            data = b"some content"
+            info = tarfile.TarInfo(name="test.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+    with (
+        patch.object(
+            utils, "retrieve_over_http", side_effect=mock_valid_download
+        ),
+        patch.object(utils, "check_internet_connection", return_value=True),
+        patch.object(utils, "check_gin_status", return_value=True),
+        patch.object(
+            BrainGlobeAtlas,
+            "remote_url",
+            new_callable=PropertyMock,
+            return_value="http://fake.url/atlas.tar.gz",
+        ),
+    ):
+
+        atlas.download_extract_file()
+
+        # Archive should not exist after successful extraction
+        assert not (
+            download_dir / "atlas.tar.gz"
+        ).exists(), "Archive should be cleaned up"
+
+        # Content should be extracted
+        assert (
+            brainglobe_dir / "test.txt"
+        ).exists(), "Archive content was not extracted"

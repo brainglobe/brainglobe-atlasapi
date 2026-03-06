@@ -266,11 +266,11 @@ def retrieve_or_construct_meshes(download_path, annotated_volume, structures):
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / NAME
     bg_root_dir.mkdir(exist_ok=True)
-    # download_resources(
-    #     download_dir_path=bg_root_dir,
-    #     atlas_name=NAME,
-    #     atlas_file_url=ATLAS_LINK,
-    # )
+    download_resources(
+        download_dir_path=bg_root_dir,
+        atlas_name=NAME,
+        atlas_file_url=ATLAS_LINK,
+    )
     for resolution in [10, 25]:
         reference_volume, annotated_volume = retrieve_reference_and_annotation(
             bg_root_dir, resolution=resolution

@@ -1,9 +1,8 @@
 """Package the BrainGlobe atlas for the Eurasian Blackcap."""
 
-__version__ = "4"
+__version__ = "5"
 
 import csv
-import os
 import time
 from pathlib import Path
 
@@ -12,11 +11,11 @@ import pooch
 from brainglobe_utils.IO.image import load_nii
 
 from brainglobe_atlasapi.atlas_generation.annotation_utils import (
+    apply_modal_filter,
     read_itk_labels,
 )
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    Region,
-    create_meshes_from_annotated_volume,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import (
@@ -68,12 +67,8 @@ def create_atlas(working_dir, resolution):
     annotations_file = (
         materials_folder / "blackcap_male_smoothed_annotations.nii.gz"
     )
-    meshes_dir_path = Path.home() / "blackcap-meshes"
 
-    try:
-        os.mkdir(meshes_dir_path)
-    except FileExistsError:
-        "mesh folder already exists"
+    mc_annotations_file = materials_folder / "annotations_MC.nii"
 
     print("Reading structures files")
     structure_to_parent_map = {}
@@ -112,6 +107,17 @@ def create_atlas(working_dir, resolution):
         }
     )
 
+    # hackily add MC (region 61)to the structure data list
+    structure_data_list.append(
+        {
+            "id": 61,
+            "name": "Caudal Mesopallium",
+            "acronym": "MC",
+            "structure_id_path": [999, 1, 60, 61],
+            "rgb_triplet": [255, 0, 4],
+        }
+    )
+
     tree = get_structures_tree(structure_data_list)
     print(
         f"Number of brain regions: {tree.size()}, "
@@ -123,6 +129,20 @@ def create_atlas(working_dir, resolution):
     annotated_volume = load_nii(annotations_file, as_array=True).astype(
         np.uint16
     )
+
+    # hackily add MC (region 61) to the annotated volume
+    mc_annotations = load_nii(mc_annotations_file, as_array=True).astype(
+        np.uint16
+    )
+    mirrored_mc_annotations = np.flip(mc_annotations, axis=2)
+    mc_annotations = np.concatenate(
+        (mc_annotations, mirrored_mc_annotations), axis=2
+    )
+
+    # region 61 is a child of region 60, so only overwrite pixels with value 60
+    mc_annotations = apply_modal_filter(mc_annotations)
+    annotated_volume[(mc_annotations == 61) & (annotated_volume == 60)] = 61
+    assert np.any(annotated_volume == 61)
 
     # rescale reference volume into int16 range
     reference_volume = load_nii(reference_file, as_array=True)
@@ -136,18 +156,6 @@ def create_atlas(working_dir, resolution):
     has_label = annotated_volume > 0
     reference_volume *= has_label
 
-    # generate binary mask for mesh creation
-    labels = np.unique(annotated_volume).astype(np.int_)
-    for key, node in tree.nodes.items():
-        if (
-            key in labels or key == 1
-        ):  # Pallium == 1 needs mesh but has no own voxels
-            is_label = True
-        else:
-            is_label = False
-
-        node.data = Region(is_label)
-
     # mesh creation
     closing_n_iters = 1
     decimate_fraction = 0.6  # higher = more triangles
@@ -155,10 +163,11 @@ def create_atlas(working_dir, resolution):
 
     start = time.time()
 
-    create_meshes_from_annotated_volume(
+    meshes_dir_path = Path.home() / "blackcap-meshes"
+    meshes_dict = construct_meshes_from_annotation(
         meshes_dir_path,
-        tree,
         annotated_volume,
+        structure_data_list,
         closing_n_iters=closing_n_iters,
         decimate_fraction=decimate_fraction,
         smooth=smooth,
@@ -168,28 +177,6 @@ def create_atlas(working_dir, resolution):
         "Finished mesh extraction in : ",
         round((time.time() - start) / 60, 2),
         " minutes",
-    )
-
-    # create meshes dict
-    meshes_dict = dict()
-    structures_with_mesh = []
-    for s in structure_data_list:
-        # check if a mesh was created
-        mesh_path = meshes_dir_path / f"{s['id']}.obj"
-        if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it.")
-            continue
-        else:
-            # check that the mesh actually exists and isn't empty
-            if mesh_path.stat().st_size < 512:
-                print(f"obj file for {s} is too small, ignoring it.")
-                continue
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
-
-    print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
     )
 
     output_filename = wrapup_atlas_from_data(

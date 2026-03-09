@@ -78,6 +78,11 @@ class Structure(UserDict):
         root_path = "/".join(str(file_name).split("/")[-5:])
         remote_mesh_path = remote_url_s3.format(root_path)
         fs = s3fs.S3FileSystem(anon=True)
+        if not fs.exists(remote_mesh_path):
+            raise FileNotFoundError(
+                f"Mesh file {file_name} not found locally or remotely."
+            )
+
         fs.get(remote_mesh_path, file_name)
 
 

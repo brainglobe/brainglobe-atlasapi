@@ -32,7 +32,11 @@ from brainglobe_atlasapi.descriptors import (
     remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
-from brainglobe_atlasapi.utils import read_json, read_tiff
+from brainglobe_atlasapi.utils import (
+    load_structures_from_csv,
+    read_json,
+    read_tiff,
+)
 
 
 def _determine_pyramid_level(
@@ -83,29 +87,7 @@ class Atlas:
                 / self.metadata["terminology"]["location"][1:]
                 / V2_STRUCTURES_NAME
             )
-            structures_df = pd.read_csv(
-                structures_path,
-                dtype={"parent_identifier": pd.UInt16Dtype()},
-                converters={
-                    "root_identifier_path": lambda x: np.fromstring(
-                        x.strip("[]"), sep=",", dtype=np.uint32
-                    ).tolist(),
-                    "color_hex_triplet": lambda x: [
-                        int(x.strip("#")[i : i + 2], 16) for i in (0, 2, 4)
-                    ],
-                },
-                keep_default_na=False,
-                na_values=["", "NaN", "NULL", "nan", "N/A", "na", "null"],
-            )
-            rename_dict = {
-                "identifier": "id",
-                "parent_identifier": "parent_structure_id",
-                "abbreviation": "acronym",
-                "root_identifier_path": "structure_id_path",
-                "color_hex_triplet": "rgb_triplet",
-            }
-            structures_df = structures_df.rename(columns=rename_dict)
-            structures_list = structures_df.to_dict(orient="records")
+            structures_list = load_structures_from_csv(structures_path)
             meshes_dir = (
                 self.metadata["annotation_set"]["location"][1:]
                 + "/"

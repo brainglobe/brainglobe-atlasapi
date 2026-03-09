@@ -10,6 +10,7 @@ from time import sleep
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
+import pandas as pd
 import requests
 import tifffile
 from rich.panel import Panel
@@ -456,6 +457,49 @@ def read_json(path: Union[str, Path]) -> Dict[str, Any]:
     with open(path, "r") as f:
         data = json.load(f)
     return data
+
+
+def load_structures_from_csv(structures_path):
+    """
+    Load structures information from a CSV file.
+
+    Parameters
+    ----------
+    structures_path : Path
+        Path to the CSV file containing structures information.
+
+    Returns
+    -------
+    list of dict
+        A list of dictionaries, where each dictionary contains information
+        about a structure, such as its acronym, id, name, structure_id_path,
+        rgb_triplet, and mesh_filename.
+    """
+    structures_df = pd.read_csv(
+        structures_path,
+        dtype={"parent_identifier": pd.UInt16Dtype()},
+        converters={
+            "root_identifier_path": lambda x: np.fromstring(
+                x.strip("[]"), sep=",", dtype=np.uint32
+            ).tolist(),
+            "color_hex_triplet": lambda x: [
+                int(x.strip("#")[i : i + 2], 16) for i in (0, 2, 4)
+            ],
+        },
+        keep_default_na=False,
+        na_values=["", "NaN", "NULL", "nan", "N/A", "na", "null"],
+    )
+    rename_dict = {
+        "identifier": "id",
+        "parent_identifier": "parent_structure_id",
+        "abbreviation": "acronym",
+        "root_identifier_path": "structure_id_path",
+        "color_hex_triplet": "rgb_triplet",
+    }
+    structures_df = structures_df.rename(columns=rename_dict)
+    structures_list = structures_df.to_dict(orient="records")
+
+    return structures_list
 
 
 def read_tiff(path: Union[str, Path]) -> np.ndarray:

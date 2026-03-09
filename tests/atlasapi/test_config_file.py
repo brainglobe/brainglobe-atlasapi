@@ -64,16 +64,18 @@ def test_config_edit(tmp_path):
 
     new_atlas_dir = tmp_path / "new_brainglobe_dir"
     new_atlas_dir.mkdir()
+    try:
+        config.write_config_value("brainglobe_dir", str(new_atlas_dir))
+        config_post = config.read_config()
 
-    config.write_config_value("brainglobe_dir", str(new_atlas_dir))
-    config_post = config.read_config()
+        assert config_post["default_dirs"]["brainglobe_dir"] == str(
+            new_atlas_dir
+        )
 
-    assert config_post["default_dirs"]["brainglobe_dir"] == str(new_atlas_dir)
-
-    atlas = bg_atlas.BrainGlobeAtlas(atlas_name="example_mouse_100um")
-    assert atlas.root_dir == new_atlas_dir
-
-    config.write_config_value("brainglobe_dir", original_bg_folder)
+        atlas = bg_atlas.BrainGlobeAtlas(atlas_name="example_mouse_100um")
+        assert atlas.root_dir == new_atlas_dir
+    finally:
+        config.write_config_value("brainglobe_dir", original_bg_folder)
 
 
 @pytest.mark.parametrize(

@@ -102,7 +102,9 @@ def test_get_all_atlases_custom_atlases(mocker):
     mocker : pytest_mock.plugin.MockerFixture
         The mocker fixture.
     """
-    custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
+    custom_path = (
+        config.get_brainglobe_dir() / "atlases" / "custom_atlases.conf"
+    )
     mock_custom_atlas = {"atlases": {"mock_custom_atlas": "1.1"}}
 
     with mocker.patch(

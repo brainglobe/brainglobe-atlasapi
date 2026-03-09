@@ -20,6 +20,7 @@ from brainglobe_atlasapi.bg_atlas_legacy import (
 from brainglobe_atlasapi.descriptors import (
     V2_ANNOTATION_NAME,
     V2_ATLAS_ROOTDIR,
+    V2_HEMISPHERES_NAME,
     V2_MESHES_DIRECTORY,
     V2_TEMPLATE_NAME,
     remote_url_s3,
@@ -328,6 +329,19 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
                 mesh_path = local_annotation_path / V2_MESHES_DIRECTORY
                 mesh_path.mkdir(exist_ok=True)
 
+                if not self.metadata["symmetric"]:
+                    root_hemisphere_path = (
+                        annotation_location
+                        + f"/{V2_HEMISPHERES_NAME}/**/*.json"
+                    )
+                    remote_root_hemisphere_path = remote_url_s3.format(
+                        root_hemisphere_path
+                    )
+                    self.fs.get(
+                        remote_root_hemisphere_path,
+                        local_annotation_path / V2_HEMISPHERES_NAME,
+                    )
+
             # Download template metadata files
             template_location = self.metadata["annotation_set"]["template"][
                 "location"
@@ -372,46 +386,6 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
             # download and retries rather than finding partial files.
             local_path.unlink(missing_ok=True)
             raise
-
-    def _get_from_structure(self, structure, key):
-        if key == "mesh":
-            if isinstance(structure, list) or isinstance(structure, tuple):
-                for s in structure:
-                    self._check_mesh_cached(s)
-            else:
-                self._check_mesh_cached(structure)
-
-        return super()._get_from_structure(structure, key)
-
-    def _check_mesh_cached(self, structure: Union[str, int]):
-        """Check if the mesh is cached in the local directory.
-        Download from the remote if not cached.
-
-        Parameters
-        ----------
-        structure : str or int
-            Name of the mesh file.
-
-        """
-        mesh_path = Path(self._get_from_structure(structure, "mesh_filename"))
-
-        try:
-            mesh_id = int(structure)
-        except ValueError:
-            mesh_id = int(self.structures.acronym_to_id_map[structure])
-
-        # Check if the mesh is cached
-        if not mesh_path.exists():
-            # If not cached, download it
-            structure_name = self.structures[mesh_id]["acronym"]
-            print(f"Downloading mesh for {structure_name}...")
-            meshes_root = (
-                self.metadata["annotation_set"]["location"][1:]
-                + f"/{V2_MESHES_DIRECTORY}"
-            )
-            remote_mesh_path = remote_url_s3.format(f"{meshes_root}/{mesh_id}")
-            local_mesh_path = self.brainglobe_dir / meshes_root / f"{mesh_id}"
-            self.fs.get(remote_mesh_path, local_mesh_path)
 
     def check_latest_version(
         self, print_warning: bool = True

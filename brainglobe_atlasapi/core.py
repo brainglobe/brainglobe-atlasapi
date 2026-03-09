@@ -295,46 +295,48 @@ class Atlas:
         If the reference has an odd number of voxels along the frontal axis,
         the middle plane is assigned to the left hemisphere.
         """
-        if self._hemispheres is None:
-            # If reference is symmetric generate hemispheres block:
-            if self.metadata["symmetric"]:
-                # initialize empty stack:
-                stack = np.full(self.metadata["shape"], 2, dtype=np.uint8)
+        if self._hemispheres is not None:
+            return self._hemispheres
 
-                # Use bgspace description to fill out with hemisphere values:
-                front_ax_idx = self.space.axes_order.index("frontal")
+        # If reference is symmetric generate hemispheres block:
+        if self.metadata["symmetric"]:
+            # initialize empty stack:
+            stack = np.full(self.metadata["shape"], 2, dtype=np.uint8)
 
-                # Fill out with 2s the right hemisphere:
-                slices = [slice(None) for _ in range(3)]
-                slices[front_ax_idx] = slice(
-                    round(stack.shape[front_ax_idx] / 2), None
+            # Use bgspace description to fill out with hemisphere values:
+            front_ax_idx = self.space.axes_order.index("frontal")
+
+            # Fill out with 2s the right hemisphere:
+            slices = [slice(None) for _ in range(3)]
+            slices[front_ax_idx] = slice(
+                round(stack.shape[front_ax_idx] / 2), None
+            )
+            stack[tuple(slices)] = 1
+
+            self._hemispheres = stack
+        else:
+            annotation_location = self.metadata["annotation_set"]["location"][
+                1:
+            ]
+            hemispheres_path = (
+                self.root_dir / annotation_location / V2_HEMISPHERES_NAME
+            )
+
+            multiscale = nz.from_ngff_zarr(hemispheres_path)
+            resolution_path = hemispheres_path / str(
+                self._annotation_pyramid_level
+            )
+
+            if not (resolution_path / "c").exists():
+                print("Downloading hemispheres...")
+                remote_path = remote_url_s3.format(
+                    f"{annotation_location}/{V2_HEMISPHERES_NAME}/{self._annotation_pyramid_level}/"
                 )
-                stack[tuple(slices)] = 1
+                self.fs.get(remote_path, resolution_path, recursive=True)
 
-                self._hemispheres = stack
-            else:
-                annotation_location = self.metadata["annotation_set"][
-                    "location"
-                ][1:]
-                hemispheres_path = (
-                    self.root_dir / annotation_location / V2_HEMISPHERES_NAME
-                )
-
-                multiscale = nz.from_ngff_zarr(hemispheres_path)
-                resolution_path = hemispheres_path / str(
-                    self._annotation_pyramid_level
-                )
-
-                if not (resolution_path / "c").exists():
-                    print("Downloading hemispheres...")
-                    remote_path = remote_url_s3.format(
-                        f"{annotation_location}/{V2_HEMISPHERES_NAME}/{self._annotation_pyramid_level}/"
-                    )
-                    self.fs.get(remote_path, resolution_path, recursive=True)
-
-                self._hemispheres = multiscale.images[
-                    self._annotation_pyramid_level
-                ].data.compute()
+            self._hemispheres = multiscale.images[
+                self._annotation_pyramid_level
+            ].data.compute()
 
         return self._hemispheres
 

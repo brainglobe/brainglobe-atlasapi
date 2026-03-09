@@ -1,9 +1,9 @@
 """Test the core Atlas class."""
 
 import contextlib
-import warnings
 from io import StringIO
 
+import ngff_zarr as nz
 import numpy as np
 import pandas as pd
 import pytest
@@ -68,7 +68,7 @@ def test_addition_ref_dict_keys_only(temp_path):
 @pytest.mark.parametrize(
     "stack_name, val",
     [
-        ("reference", [[[155, 146], [157, 153]], [[151, 148], [154, 153]]]),
+        ("template", [[[155, 146], [157, 153]], [[151, 148], [154, 153]]]),
         ("annotation", [[[59, 59], [59, 59]], [[59, 59], [59, 59]]]),
         ("hemispheres", [[[2, 1], [2, 1]], [[2, 1], [2, 1]]]),
     ],
@@ -175,11 +175,13 @@ def test_meshfile_from_id(atlas):
     atlas : brainglobe_atlasapi.core.Atlas
         The atlas fixture.
     """
-    assert (
-        atlas.meshfile_from_structure("CH")
-        == atlas.root_dir / "meshes/567.obj"
+    mesh_rooth_path = (
+        atlas.root_dir
+        / atlas.metadata["annotation_set"]["location"][1:]
+        / "annotation.precomputed"
     )
-    assert atlas.root_meshfile() == atlas.root_dir / "meshes/997.obj"
+    assert atlas.meshfile_from_structure("CH") == mesh_rooth_path / "567"
+    assert atlas.root_meshfile() == mesh_rooth_path / "997"
 
 
 def test_mesh_from_id(atlas):
@@ -330,34 +332,6 @@ def test_get_structure_mask(atlas):
     ), "Values in grey_structure_mask should be either 0 or 7"
 
 
-def test_key_error_for_additional_references(atlas, mocker):
-    """Warn if metadata lacks 'additional_references'.
-
-    Parameters
-    ----------
-    atlas : brainglobe_atlasapi.core.Atlas
-        The atlas fixture.
-    mocker : pytest_mock.plugin.MockerFixture
-        The mocker fixture.
-    """
-    atlas.metadata.pop("additional_references")
-    mock_metadata = atlas.metadata
-    structures_list = atlas.structures_list
-    mocker.patch(
-        "brainglobe_atlasapi.core.read_json",
-        side_effect=[
-            mock_metadata,
-            structures_list,
-        ],
-    )
-    mocker.patch("warnings.warn")
-    atlas.__init__("example_mouse_100um")
-    warnings.warn.assert_called_once_with(
-        "This atlas seems to be outdated as no additional_references list "
-        "is found in metadata!"
-    )
-
-
 @pytest.mark.parametrize(
     "atlas_fixture",
     [
@@ -378,12 +352,19 @@ def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
         The mocker fixture.
     """
     atlas = request.getfixturevalue(atlas_fixture)
-    mocker.patch("brainglobe_atlasapi.core.read_tiff")
+    mock_hemispheres = np.zeros(atlas.metadata["shape"], dtype=np.uint8)
+    mock_hemispheres_multiscale = nz.to_multiscales(
+        mock_hemispheres, scale_factors=1
+    )
+    mocker.patch(
+        "brainglobe_atlasapi.core.nz.from_ngff_zarr",
+        return_value=mock_hemispheres_multiscale,
+    )
     _ = atlas.hemispheres
     if atlas.metadata["symmetric"]:
-        core.read_tiff.assert_not_called()
+        core.nz.from_ngff_zarr.assert_not_called()
     elif atlas.metadata["symmetric"] is False:
-        core.read_tiff.assert_called_once()
+        core.nz.from_ngff_zarr.assert_called_once()
 
 
 def test_get_structures_at_hierarchy_level_as_acronym(atlas):

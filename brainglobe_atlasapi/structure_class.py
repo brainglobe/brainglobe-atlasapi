@@ -5,9 +5,12 @@ such as brain regions in an atlas.
 
 import warnings
 from collections import UserDict
+from pathlib import Path
 
 import meshio as mio
+import s3fs
 
+from brainglobe_atlasapi.descriptors import remote_url_s3
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -54,17 +57,28 @@ class Structure(UserDict):
                 return None
             try:
                 if file_name.suffix == ".obj":
-                    self.data[item] = mio.read(self.data["mesh_filename"])
+                    self.data[item] = mio.read(file_name)
                 else:
+                    self._check_mesh_cached(file_name)
                     self.data[item] = mio.read(
-                        self.data["mesh_filename"], file_format="neuroglancer"
+                        file_name, file_format="neuroglancer"
                     )
-            except (TypeError, mio.ReadError):
+            except (TypeError, mio.ReadError, FileNotFoundError):
                 raise mio.ReadError(
                     "No valid mesh for region: {}".format(self.data["acronym"])
                 )
 
         return self.data[item]
+
+    def _check_mesh_cached(self, file_name: Path):
+        """Check if the mesh is cached, and if not, attempt to load it."""
+        if file_name.exists():
+            return
+
+        root_path = "/".join(str(file_name).split("/")[-5:])
+        remote_mesh_path = remote_url_s3.format(root_path)
+        fs = s3fs.S3FileSystem(anon=True)
+        fs.get(remote_mesh_path, file_name)
 
 
 class StructuresDict(UserDict):

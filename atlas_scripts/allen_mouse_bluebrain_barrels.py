@@ -268,6 +268,7 @@ def create_atlas(working_dir, resolution):
 
     # Add list of dicts to structs_with_mesh
     structs_with_mesh = structs_with_mesh + dict_to_add
+    barrel_structure_ids = {d["id"] for d in dict_to_add}
 
     # Directory for mesh saving:
     meshes_dir = (
@@ -285,6 +286,11 @@ def create_atlas(working_dir, resolution):
     for s in tqdm(structs_with_mesh):
         name = s["id"]
         filename = meshes_dir / f"{name}.obj"
+
+        # Barrel structures are custom additions and are not available through
+        # Allen's precomputed mesh download endpoint.
+        if name in barrel_structure_ids:
+            continue
 
         if filename.exists():
             meshes_dict[name] = filename
@@ -328,6 +334,27 @@ def create_atlas(working_dir, resolution):
 
         # Check if mesh already exists
         file_name = meshes_dir / f"{node.identifier}.obj"
+
+        # Barrel meshes are generated from annotation volume and then scaled
+        # below. Force regeneration every run to avoid cumulative re-scaling
+        # when this script is executed multiple times in the same workdir.
+        if node.identifier in barrel_structure_ids:
+            create_region_mesh(
+                (
+                    meshes_dir,
+                    node,
+                    tree,
+                    labels,
+                    annotated_volume,
+                    ROOT_ID,
+                    CLOSING_N_ITERS,
+                    DECIMATE_FRACTION,
+                    SMOOTH,
+                )
+            )
+            meshes_dict[node.identifier] = file_name
+            continue
+
         if file_name.exists():
             meshes_dict[node.identifier] = file_name
             continue
@@ -357,7 +384,7 @@ def create_atlas(working_dir, resolution):
     # Once mesh creation is over, rescale
     for mesh_id, meshfile in meshes_dict.items():
         # Check if mesh is barrel-related
-        if mesh_id in [s["id"] for s in dict_to_add]:
+        if mesh_id in barrel_structure_ids:
 
             try:
                 mesh = mio.read(meshfile)

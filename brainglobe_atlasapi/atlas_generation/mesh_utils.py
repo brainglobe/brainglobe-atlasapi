@@ -155,7 +155,7 @@ def new_create_region_mesh(
     labels,
     annotated_volume,
     ROOT_ID: int,
-    closing_n_iters,
+    closing_n_iters: int,
     decimate_fraction: float,
     smooth: bool,
     verbosity: int = 0,
@@ -171,13 +171,14 @@ def new_create_region_mesh(
     Parameters
     ----------
     meshes_dir_path: pathlib Path object with folder where meshes are saved
-    tree: treelib.Tree with hierarchical structures information
     node: tree's node corresponding to the region whose mesh is being created
+    tree: treelib.Tree with hierarchical structures information
     labels: list of unique label annotations in annotated volume,
     (list(np.unique(annotated_volume)))
     annotated_volume: 3d numpy array path to a zarr store with annotations
-    ROOT_ID: int,
-    id of root structure (mesh creation is a bit more refined for that)
+    ROOT_ID: id of root structure (mesh creation is a bit more refined for
+    that)
+
     """
     if verbosity > 0:
         logger.debug(f"Creating mesh for region {node.identifier}")

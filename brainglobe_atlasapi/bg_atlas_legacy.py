@@ -156,7 +156,7 @@ class BrainGlobeAtlasLegacy(core.Atlas):
             )
         # If no one exist, return None:
         elif len(candidate_dirs) == 0:
-            return
+            return None
         # Else, return actual name:
         else:
             return candidate_dirs[0].name
@@ -171,6 +171,8 @@ class BrainGlobeAtlasLegacy(core.Atlas):
             )
 
             return self._remote_url_base.format(name)
+        else:
+            return None
 
     @property
     def reference(self):
@@ -271,7 +273,7 @@ class BrainGlobeAtlasLegacy(core.Atlas):
         remote_version = self.remote_version
         # If we are offline, return None
         if remote_version is None:
-            return
+            return None
 
         local = _version_str_from_tuple(self.local_version)
         online = _version_str_from_tuple(remote_version)

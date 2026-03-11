@@ -15,7 +15,6 @@ import numpy.typing as npt
 import pandas as pd
 import s3fs
 from brainglobe_space import AnatomicalSpace
-from typing_extensions import deprecated
 
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
@@ -235,9 +234,16 @@ class Atlas:
         return self._template
 
     @property
-    @deprecated("Use the 'template' property instead.")
     def reference(self):
-        """Deprecated: use 'template' property instead."""
+        """Return the template image data.
+
+        Warning: this is a deprecated alias for template, and will be removed
+        in future versions. Use atlas.template instead.
+        """
+        print(
+            "Warning: atlas.reference is a deprecated alias for "
+            "atlas.template, and will be removed in future versions."
+        )
         return self.template
 
     @property

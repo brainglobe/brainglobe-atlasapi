@@ -185,7 +185,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         available_versions: List[str] = [
             p.parent.name
             for p in self.brainglobe_dir.glob(glob_pattern)
-            if re.search(pattern, str(p))
+            if re.search(pattern, p.as_posix())
         ]
 
         if len(available_versions) == 0:

@@ -22,11 +22,13 @@ dependencies = [
     "brainglobe-space >= 1.0.0",
     "click",
     "meshio",
+    "ngff-zarr",
     "numpy",
     "pandas",
     "pyarrow",
     "requests",
     "rich >= 9.0.0",
+    "s3fs",
     "tifffile>=2018.11.6",
     "treelib",
 ]

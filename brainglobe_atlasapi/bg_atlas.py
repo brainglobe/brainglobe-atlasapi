@@ -232,6 +232,11 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
 
         bucket_path = remote_url_s3.format(f"atlases/{self.atlas_name}")
 
+        if self.fs.exists(bucket_path) is False:
+            raise AtlasNotAvailableAsV2(
+                f"Atlas {self.atlas_name} not found in remote."
+            )
+
         if self._requested_version is None:
             versions_path = self.fs.ls(bucket_path)
             available_versions: List[str] = [
@@ -247,7 +252,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         else:
             requested_path = f"{bucket_path}/{self._requested_version}"
             if not self.fs.exists(requested_path):
-                raise ValueError(
+                raise AtlasNotAvailableAsV2(
                     f"Requested version {self._requested_version} for atlas "
                     f"{self.atlas_name} not found in remote."
                 )

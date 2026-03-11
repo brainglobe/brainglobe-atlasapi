@@ -125,10 +125,11 @@ class BrainGlobeAtlasLegacy(core.Atlas):
         None.
         """
         remote_url = self._remote_url_base.format("last_versions.conf")
+        cache_path = self.brainglobe_dir / "last_versions.conf"
 
         try:
             # Grasp remote version
-            versions_conf = utils.conf_from_url(remote_url)
+            versions_conf = utils.conf_from_url(remote_url, cache_path)
         except requests.ConnectionError:
             return None
 

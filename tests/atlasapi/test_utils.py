@@ -197,16 +197,14 @@ def test_conf_from_url_read_only(temp_path, mocker):
         Mocker fixture for patching.
     """
     # Test with a valid URL and a non-existing parent folder
-    mocker.patch(
-        "brainglobe_atlasapi.utils.config.get_brainglobe_dir"
-    ).return_value = temp_path
+    cache_path = temp_path / "last_versions.conf"
     mock_print = mocker.patch("builtins.print")
     # Save the current permissions
     curr_mode = oct(os.stat(temp_path).st_mode)[-3:]
 
     # Change the permissions to read-only
     temp_path.chmod(0o444)
-    utils.conf_from_url(conf_url)
+    utils.conf_from_url(conf_url, cache_path)
 
     mock_print.assert_called_once_with(
         f"Could not update the latest atlas versions cache: [Errno 13] "
@@ -229,10 +227,7 @@ def test_conf_from_url_gin_200(temp_path, mocker):
     mocker : pytest_mock.plugin.MockerFixture
         Mocker fixture for patching.
     """
-    mocker.patch(
-        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
-        return_value=temp_path,
-    )
+    cache_path = temp_path / "last_versions.conf"
     mock_response = mock.patch("requests.Response", autospec=True)
     mock_response.status_code = 200
     mock_response.text = (
@@ -244,7 +239,7 @@ def test_conf_from_url_gin_200(temp_path, mocker):
     with mock.patch(
         "requests.get", autospec=True, return_value=mock_response
     ) as mock_request:
-        config = utils.conf_from_url(conf_url)
+        config = utils.conf_from_url(conf_url, cache_path)
         mock_request.assert_called_once_with(conf_url)
         assert dict(config["atlases"]) == {
             "example_mouse_100um": "1.2",
@@ -277,14 +272,13 @@ def test_conf_from_url_wrong_status_with_cache(temp_path, mocker):
             "allen_mouse_10um = 1.2\n"
             "allen_mouse_25um = 1.2"
         )
-    mocker.patch(
-        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
-        return_value=temp_path,
-    )
+
+    cache_path = temp_path / "last_versions.conf"
+
     with mock.patch(
         "requests.get", autospec=True, return_value=mock_response
     ) as mock_request:
-        config = utils.conf_from_url(conf_url)
+        config = utils.conf_from_url(conf_url, cache_path)
         mock_request.assert_called_with(conf_url)
         assert dict(config["atlases"]) == {
             "example_mouse_100um": "1.2",
@@ -314,13 +308,11 @@ def test_conf_from_url_no_connection_with_cache(temp_path, mocker):
             "allen_mouse_10um = 1.2\n"
             "allen_mouse_25um = 1.2"
         )
-    mocker.patch(
-        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
-        return_value=temp_path,
-    )
+
+    cache_path = temp_path / "last_versions.conf"
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_request.side_effect = requests.ConnectionError()
-        config = utils.conf_from_url(conf_url)
+        config = utils.conf_from_url(conf_url, cache_path)
         assert dict(config["atlases"]) == {
             "example_mouse_100um": "1.2",
             "allen_mouse_10um": "1.2",
@@ -342,15 +334,12 @@ def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
     mocker : pytest_mock.plugin.MockerFixture
         Mocker fixture for patching.
     """
-    mocker.patch(
-        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
-        return_value=temp_path,
-    )
+    cache_path = temp_path / "last_versions.conf"
     mocker.patch("brainglobe_atlasapi.utils.sleep")
     with mock.patch("requests.get", autospec=True) as mock_request:
         mock_request.side_effect = requests.ConnectionError()
         with pytest.raises(FileNotFoundError) as e:
-            utils.conf_from_url(conf_url)
+            utils.conf_from_url(conf_url, cache_path)
         assert "Last versions cache file not found." == str(e.value)
 
 
@@ -572,11 +561,8 @@ def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
     mocker : pytest_mock.plugin.MockerFixture
         Mocker fixture for patching.
     """
-    mock_cache_path = tmp_path / "parent" / "file"
-    mocker.patch(
-        "brainglobe_atlasapi.utils.config.get_brainglobe_dir",
-        return_value=mock_cache_path,
-    )
+    mock_cache_path = tmp_path / "parent" / "file" / "last_versions.conf"
+
     assert not mock_cache_path.exists()
-    utils.conf_from_url(conf_url)
+    utils.conf_from_url(conf_url, cache_path=mock_cache_path)
     assert mock_cache_path.parent.exists()

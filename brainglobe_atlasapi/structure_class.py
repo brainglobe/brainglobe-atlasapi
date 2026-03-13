@@ -3,6 +3,7 @@ Provide a class for representing hierarchical structures,
 such as brain regions in an atlas.
 """
 
+import os
 import warnings
 from collections import UserDict
 from pathlib import Path
@@ -76,7 +77,7 @@ class Structure(UserDict):
         if file_name.exists():
             return
 
-        root_path = "/".join(str(file_name).split("/")[-5:])
+        root_path = "/".join(str(file_name).split(os.sep)[-5:])
         remote_mesh_path = remote_url_s3.format(root_path)
         fs = s3fs.S3FileSystem(anon=True)
         if not fs.exists(remote_mesh_path):

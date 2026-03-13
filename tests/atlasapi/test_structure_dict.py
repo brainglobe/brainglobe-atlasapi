@@ -76,7 +76,7 @@ def test_mesh_loading(atlas_path):
         / "terminologies"
         / "example_mouse-terminology"
         / "1_2"
-        / descriptors.V2_STRUCTURES_NAME
+        / descriptors.V2_TERMINOLOGY_NAME
     )
 
     mesh_root_path = (

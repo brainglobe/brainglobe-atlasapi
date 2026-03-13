@@ -15,6 +15,7 @@ import numpy.typing as npt
 import pandas as pd
 import s3fs
 from brainglobe_space import AnatomicalSpace
+from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
@@ -26,8 +27,8 @@ from brainglobe_atlasapi.descriptors import (
     V2_ANNOTATION_NAME,
     V2_HEMISPHERES_NAME,
     V2_MESHES_DIRECTORY,
-    V2_STRUCTURES_NAME,
     V2_TEMPLATE_NAME,
+    V2_TERMINOLOGY_NAME,
     remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
@@ -84,7 +85,7 @@ class Atlas:
             structures_path = (
                 self.root_dir
                 / self.metadata["terminology"]["location"][1:]
-                / V2_STRUCTURES_NAME
+                / V2_TERMINOLOGY_NAME
             )
             structures_list = load_structures_from_csv(structures_path)
             meshes_dir = (
@@ -225,7 +226,12 @@ class Atlas:
             remote_path = remote_url_s3.format(
                 f"{template_location}/{V2_TEMPLATE_NAME}/{self._template_pyramid_level}/"
             )
-            self.fs.get(remote_path, resolution_path, recursive=True)
+            self.fs.get(
+                remote_path,
+                resolution_path,
+                recursive=True,
+                callback=TqdmCallback(),
+            )
 
         self._template = multiscale.images[
             self._template_pyramid_level
@@ -265,7 +271,12 @@ class Atlas:
             remote_path = remote_url_s3.format(
                 f"{annotation_location}/{V2_ANNOTATION_NAME}/{self._annotation_pyramid_level}/"
             )
-            self.fs.get(remote_path, resolution_path, recursive=True)
+            self.fs.get(
+                remote_path,
+                resolution_path,
+                recursive=True,
+                callback=TqdmCallback(),
+            )
 
         self._annotation = multiscale.images[
             self._annotation_pyramid_level
@@ -320,7 +331,12 @@ class Atlas:
                 remote_path = remote_url_s3.format(
                     f"{annotation_location}/{V2_HEMISPHERES_NAME}/{self._annotation_pyramid_level}/"
                 )
-                self.fs.get(remote_path, resolution_path, recursive=True)
+                self.fs.get(
+                    remote_path,
+                    resolution_path,
+                    recursive=True,
+                    callback=TqdmCallback(),
+                )
 
             self._hemispheres = multiscale.images[
                 self._annotation_pyramid_level
@@ -757,7 +773,12 @@ class AdditionalRefDict(UserDict):
                         f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{pyramid_level}/"
                     )
                     fs = s3fs.S3FileSystem(anon=True)
-                    fs.get(remote_path, local_path, recursive=True)
+                    fs.get(
+                        remote_path,
+                        local_path,
+                        recursive=True,
+                        callback=TqdmCallback(),
+                    )
                 self.data[key] = multiscale.images[
                     pyramid_level
                 ].data.compute()

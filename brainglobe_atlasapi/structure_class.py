@@ -9,6 +9,7 @@ from pathlib import Path
 
 import meshio as mio
 import s3fs
+from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import remote_url_s3
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
@@ -83,7 +84,7 @@ class Structure(UserDict):
                 f"Mesh file {file_name} not found locally or remotely."
             )
 
-        fs.get(remote_mesh_path, file_name)
+        fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
 
 
 class StructuresDict(UserDict):

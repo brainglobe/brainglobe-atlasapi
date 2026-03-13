@@ -266,9 +266,8 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
     def download(self):
         """Download and extract the atlas files from remote storage.
 
-        The manifest file is written last so that a failed mid-download is
-        detected on the next run: local_full_name returns None when the
-        manifest is absent, triggering a fresh download.
+        The manifest file is removed if any error occurs during the
+        download to ensure that incomplete downloads are retried.
         """
         check_s3_status()
 
@@ -385,6 +384,8 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
                         remote_root_metadata_path,
                         local_template_path / V2_TEMPLATE_NAME,
                     )
+            # Reset local_full_name to ensure it is updated with new location
+            self._local_full_name = None
 
         except Exception:
             # Remove the manifest so the next run detects the incomplete

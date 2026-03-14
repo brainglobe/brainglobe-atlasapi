@@ -36,7 +36,7 @@ RESOLUTION = 4
 
 
 def _parse_rgb_triplet(value):
-    """parse slash-separated RGB values ."""
+    """Parse slash-separated RGB values ."""
     try:
         rgb_triplet = list(map(int, value.split("/")))
     except (ValueError, AttributeError):

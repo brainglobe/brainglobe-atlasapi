@@ -510,7 +510,8 @@ def test_validate_unique_acronyms_fail(mocker, atlas):
     error_message = str(exc_info.value)
     assert "brain" in error_message
     assert "Brain Duplicate" in error_message
-    
+
+
 def test_parse_rgb_triplet_keeps_out_of_range_values():
     """Generic parser should not hide out-of-range channel values."""
     assert _parse_rgb_triplet("15/2/2003") == [15, 2, 2003]
@@ -548,4 +549,3 @@ def test_validate_rgb_triplets_fail():
 
     with pytest.raises(AssertionError, match="Invalid rgb_triplet values"):
         validate_rgb_triplets(atlas)
-

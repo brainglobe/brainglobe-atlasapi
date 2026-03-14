@@ -48,6 +48,19 @@ def _parse_rgb_triplet(value):
     return [min(255, max(0, channel)) for channel in rgb_triplet]
 
 
+def _get_rgb_triplet(structure):
+    """Return RGB triplet, applying known AZBA data corrections first."""
+    # Upstream CSV typo for Cgus (id 18): 15/2/2003 should be 155/2/3.
+    if (
+        structure.get("id") == 18
+        and structure.get("acronym") == "Cgus"
+        and structure.get("rgb_triplet") == "15/2/2003"
+    ):
+        return [155, 2, 3]
+
+    return _parse_rgb_triplet(structure.get("rgb_triplet"))
+
+
 def create_atlas(working_dir, resolution):
     """
     Create the Adult Zebrafish Brain Atlas (AZBA) in Brainglobe format.
@@ -112,9 +125,7 @@ def create_atlas(working_dir, resolution):
         hierarchy[i]["structure_id_path"] = list(
             map(int, hierarchy[i]["structure_id_path"].split("/"))
         )
-        hierarchy[i]["rgb_triplet"] = _parse_rgb_triplet(
-            hierarchy[i]["rgb_triplet"]
-        )
+        hierarchy[i]["rgb_triplet"] = _get_rgb_triplet(hierarchy[i])
 
     # remove clear label (id 0) from hierarchy.
     # ITK-Snap uses this to label unlabeled areas,

@@ -335,24 +335,37 @@ def create_atlas(working_dir, resolution):
         # Check if mesh already exists
         file_name = meshes_dir / f"{node.identifier}.obj"
 
-        # Barrel meshes are generated from annotation volume and then scaled
-        # below. Force regeneration every run to avoid cumulative re-scaling
-        # when this script is executed multiple times in the same workdir.
+        # Barrel meshes are generated in voxel units and need scaling once.
+        # Cache the scaled output under a suffix to avoid re-scaling in place.
         if node.identifier in barrel_structure_ids:
-            create_region_mesh(
-                (
-                    meshes_dir,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    CLOSING_N_ITERS,
-                    DECIMATE_FRACTION,
-                    SMOOTH,
+            scaled_file_name = meshes_dir / f"{node.identifier}_scaled.obj"
+
+            if scaled_file_name.exists():
+                meshes_dict[node.identifier] = scaled_file_name
+                continue
+
+            if not file_name.exists():
+                create_region_mesh(
+                    (
+                        meshes_dir,
+                        node,
+                        tree,
+                        labels,
+                        annotated_volume,
+                        ROOT_ID,
+                        CLOSING_N_ITERS,
+                        DECIMATE_FRACTION,
+                        SMOOTH,
+                    )
                 )
-            )
-            meshes_dict[node.identifier] = file_name
+
+            try:
+                mesh = mio.read(file_name)
+                mesh.points *= resolution
+                mio.write(scaled_file_name, mesh)
+                meshes_dict[node.identifier] = scaled_file_name
+            except mio._exceptions.ReadError:
+                print(f"Mesh file {file_name} not found.")
             continue
 
         if file_name.exists():
@@ -380,18 +393,6 @@ def create_atlas(working_dir, resolution):
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-
-    # Once mesh creation is over, rescale
-    for mesh_id, meshfile in meshes_dict.items():
-        # Check if mesh is barrel-related
-        if mesh_id in barrel_structure_ids:
-
-            try:
-                mesh = mio.read(meshfile)
-                mesh.points *= resolution
-                mio.write(meshfile, mesh)
-            except mio._exceptions.ReadError:
-                print(f"Mesh file {meshfile} not found.")
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:

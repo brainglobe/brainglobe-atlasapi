@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import tifffile
 
+from atlas_scripts.azba_zfish import _get_rgb_triplet, _parse_rgb_triplet
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     _assert_close,
@@ -508,3 +509,20 @@ def test_validate_unique_acronyms_fail(mocker, atlas):
     error_message = str(exc_info.value)
     assert "brain" in error_message
     assert "Brain Duplicate" in error_message
+    
+def test_parse_rgb_triplet_clips_out_of_range_values():
+    """Generic parser should clip out-of-range channels to valid bounds."""
+    assert _parse_rgb_triplet("15/2/2003") == [15, 2, 255]
+
+
+def test_get_rgb_triplet_applies_cgus_typo_correction():
+    """Known Cgus typo should be corrected to the viewer/source value."""
+    cgus = {"id": 18, "acronym": "Cgus", "rgb_triplet": "15/2/2003"}
+    assert _get_rgb_triplet(cgus) == [155, 2, 3]
+
+
+def test_get_rgb_triplet_uses_generic_parser_for_other_structures():
+    """Structures other than Cgus should still use generic RGB parsing."""
+    other = {"id": 19, "acronym": "Other", "rgb_triplet": "15/2/2003"}
+    assert _get_rgb_triplet(other) == [15, 2, 255]
+

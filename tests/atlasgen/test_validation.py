@@ -23,6 +23,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_mesh_matches_image_extents,
     validate_metadata,
     validate_reference_image_pixels,
+    validate_rgb_triplets,
     validate_unique_acronyms,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
@@ -510,9 +511,9 @@ def test_validate_unique_acronyms_fail(mocker, atlas):
     assert "brain" in error_message
     assert "Brain Duplicate" in error_message
     
-def test_parse_rgb_triplet_clips_out_of_range_values():
-    """Generic parser should clip out-of-range channels to valid bounds."""
-    assert _parse_rgb_triplet("15/2/2003") == [15, 2, 255]
+def test_parse_rgb_triplet_keeps_out_of_range_values():
+    """Generic parser should not hide out-of-range channel values."""
+    assert _parse_rgb_triplet("15/2/2003") == [15, 2, 2003]
 
 
 def test_get_rgb_triplet_applies_cgus_typo_correction():
@@ -524,5 +525,27 @@ def test_get_rgb_triplet_applies_cgus_typo_correction():
 def test_get_rgb_triplet_uses_generic_parser_for_other_structures():
     """Structures other than Cgus should still use generic RGB parsing."""
     other = {"id": 19, "acronym": "Other", "rgb_triplet": "15/2/2003"}
-    assert _get_rgb_triplet(other) == [15, 2, 255]
+    assert _get_rgb_triplet(other) == [15, 2, 2003]
+
+
+def test_validate_rgb_triplets_pass():
+    """Check that valid RGB triplets pass validation."""
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.structures = {
+        1: {"acronym": "root", "rgb_triplet": [255, 255, 255]},
+        2: {"acronym": "region", "rgb_triplet": [15, 2, 203]},
+    }
+    assert validate_rgb_triplets(atlas)
+
+
+def test_validate_rgb_triplets_fail():
+    """Check that out-of-range RGB triplets fail validation."""
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.structures = {
+        1: {"acronym": "root", "rgb_triplet": [255, 255, 255]},
+        18: {"acronym": "Cgus", "rgb_triplet": [15, 2, 2003]},
+    }
+
+    with pytest.raises(AssertionError, match="Invalid rgb_triplet values"):
+        validate_rgb_triplets(atlas)
 

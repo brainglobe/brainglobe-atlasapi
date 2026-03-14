@@ -36,7 +36,7 @@ RESOLUTION = 4
 
 
 def _parse_rgb_triplet(value):
-    """Parse slash-separated RGB values and clip each channel to [0, 255]."""
+    """parse slash-separated RGB values ."""
     try:
         rgb_triplet = list(map(int, value.split("/")))
     except (ValueError, AttributeError):
@@ -45,7 +45,7 @@ def _parse_rgb_triplet(value):
     if len(rgb_triplet) != 3:
         return [255, 255, 255]
 
-    return [min(255, max(0, channel)) for channel in rgb_triplet]
+    return rgb_triplet
 
 
 def _get_rgb_triplet(structure):

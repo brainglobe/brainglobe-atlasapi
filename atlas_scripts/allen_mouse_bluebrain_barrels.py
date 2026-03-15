@@ -287,8 +287,8 @@ def create_atlas(working_dir, resolution):
         name = s["id"]
         filename = meshes_dir / f"{name}.obj"
 
-        # Barrel structures are custom additions and are not available through
-        # Allen's precomputed mesh download endpoint.
+        # barrel structures are custom additions and are not available through
+        #precomputed mesh download endpoint.
         if name in barrel_structure_ids:
             continue
 
@@ -335,8 +335,8 @@ def create_atlas(working_dir, resolution):
         # Check if mesh already exists
         file_name = meshes_dir / f"{node.identifier}.obj"
 
-        # Barrel meshes are generated in voxel units and need scaling once.
-        # Cache the scaled output under a suffix to avoid re-scaling in place.
+        # this Barrel meshes are generated in voxel units and need scaling once.
+        # cache the SCALED output under a suffix to avoid re-scaling .
         if node.identifier in barrel_structure_ids:
             scaled_file_name = meshes_dir / f"{node.identifier}_scaled.obj"
 

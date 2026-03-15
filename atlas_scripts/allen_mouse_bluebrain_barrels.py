@@ -335,8 +335,8 @@ def create_atlas(working_dir, resolution):
         # Check if mesh already exists
         file_name = meshes_dir / f"{node.identifier}.obj"
 
-        # this Barrel meshes are generated in voxel units and need scaling once.
-        # cache the SCALED output under a suffix to avoid re-scaling .
+        # this Barrel meshes are generated in voxel units & need scaling once.
+        # cache the SCALED output under a suffix to avoid re-scaling
         if node.identifier in barrel_structure_ids:
             scaled_file_name = meshes_dir / f"{node.identifier}_scaled.obj"
 

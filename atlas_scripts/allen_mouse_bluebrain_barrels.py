@@ -288,7 +288,7 @@ def create_atlas(working_dir, resolution):
         filename = meshes_dir / f"{name}.obj"
 
         # barrel structures are custom additions and are not available through
-        #precomputed mesh download endpoint.
+        # precomputed mesh download endpoint.
         if name in barrel_structure_ids:
             continue
 

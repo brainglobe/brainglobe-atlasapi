@@ -6,7 +6,7 @@ atlas. It downloads necessary files, processes annotation volumes, generates
 region meshes, and wraps up the data into a BrainGlobe-compatible atlas.
 """
 
-__version__ = "0"
+__version__ = "1.1"
 
 import json
 import os.path

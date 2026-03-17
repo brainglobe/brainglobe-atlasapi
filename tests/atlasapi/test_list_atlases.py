@@ -115,23 +115,20 @@ def test_get_all_atlases_custom_atlases(mocker):
         assert last_versions["mock_custom_atlas"] == "1.1"
 
 
-def test_get_all_atlases_lastversions_empty_custom_atlases():
+def test_get_all_atlases_lastversions_empty_custom_atlases(tmp_path):
     """Test retrieving atlas versions when custom_atlases.conf is empty."""
-    cleanup_custom = False
-    custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
+    custom_path = tmp_path / "custom_atlases.conf"
+    custom_path.touch()
 
-    if not custom_path.exists():
-        custom_path.touch()
-        cleanup_custom = True
+    with mock.patch(
+        "brainglobe_atlasapi.list_atlases.config.get_brainglobe_dir",
+        return_value=tmp_path,
+    ):
+        last_versions = get_all_atlases_lastversions()
 
-    last_versions = get_all_atlases_lastversions()
-
-    assert "example_mouse_100um" in last_versions
-    assert "osten_mouse_50um" in last_versions
-    assert "allen_mouse_25um" in last_versions
-
-    if cleanup_custom:
-        custom_path.unlink()
+        assert "example_mouse_100um" in last_versions
+        assert "osten_mouse_50um" in last_versions
+        assert "allen_mouse_25um" in last_versions
 
 
 def test_get_all_atlases_lastversions_offline():

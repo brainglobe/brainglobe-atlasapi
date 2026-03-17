@@ -129,7 +129,7 @@ def list_content_keys(path: Optional[Path] = None) -> list:
             continue
         keys.extend(sect_dict.keys())
     return keys
-    
+
 def get_brainglobe_dir(): -> Path:
     """Return brainglobe default directory.
 
@@ -182,5 +182,5 @@ def _print_config() -> str:
         lines.append(f"[{sect_name}]")
         for k, val in sect_content.items():
             lines.append(f"\t{k}: {val}")
-    
+
     return "\n".join(lines)

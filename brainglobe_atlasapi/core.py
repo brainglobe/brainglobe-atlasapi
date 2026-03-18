@@ -4,6 +4,7 @@ import warnings
 from collections import UserDict, deque
 from pathlib import Path
 from typing import (
+    Dict,
     List,
     Tuple,
     Union,
@@ -20,10 +21,7 @@ from fsspec.callbacks import TqdmCallback
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
-    MESHES_DIRNAME,
-    METADATA_FILENAME,
     REFERENCE_DTYPE,
-    STRUCTURES_FILENAME,
     V2_ANNOTATION_NAME,
     V2_HEMISPHERES_NAME,
     V2_MESHES_DIRECTORY,
@@ -35,7 +33,6 @@ from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import (
     load_structures_from_csv,
     read_json,
-    read_tiff,
 )
 
 
@@ -71,64 +68,44 @@ class Atlas:
         self.fs = s3fs.S3FileSystem(anon=True)
 
         atlas_path = Path(path)
-        # v1
-        if atlas_path.is_dir():
-            self.root_dir = atlas_path
-            self.metadata = read_json(self.root_dir / METADATA_FILENAME)
-            structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
-            meshes_dir = MESHES_DIRNAME
-            mesh_stub = "{}.obj"
-        # v2
-        elif atlas_path.suffix == ".json":
-            self.root_dir = atlas_path.parents[3]
-            self.metadata = read_json(atlas_path)
-            structures_path = (
-                self.root_dir
-                / self.metadata["terminology"]["location"][1:]
-                / V2_TERMINOLOGY_NAME
-            )
-            structures_list = load_structures_from_csv(structures_path)
-            meshes_dir = (
-                self.metadata["annotation_set"]["location"][1:]
-                + "/"
-                + V2_MESHES_DIRECTORY
-            )
-            mesh_stub = "{}"
+        self.root_dir = atlas_path.parents[3]
+        self.metadata = read_json(atlas_path)
+        structures_path = (
+            self.root_dir
+            / self.metadata["terminology"]["location"][1:]
+            / V2_TERMINOLOGY_NAME
+        )
+        structures_list = load_structures_from_csv(structures_path)
+        meshes_dir = (
+            self.metadata["annotation_set"]["location"][1:]
+            + "/"
+            + V2_MESHES_DIRECTORY
+        )
 
-            template_location = self.metadata["annotation_set"]["template"][
-                "location"
-            ][1:]
-            template_path = (
-                self.root_dir / template_location / V2_TEMPLATE_NAME
-            )
+        template_location = self.metadata["annotation_set"]["template"][
+            "location"
+        ][1:]
+        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
 
-            multiscale = nz.from_ngff_zarr(template_path)
-            self._template_pyramid_level = _determine_pyramid_level(
-                multiscale, self.resolution
-            )
-            annotation_location = self.metadata["annotation_set"]["location"][
-                1:
-            ]
-            annotation_path = (
-                self.root_dir / annotation_location / V2_ANNOTATION_NAME
-            )
-            multiscale = nz.from_ngff_zarr(annotation_path)
-            self._annotation_pyramid_level = _determine_pyramid_level(
-                multiscale, self.resolution
-            )
-        else:
-            raise ValueError(
-                "Atlas path must be a folder (v1) or a .json file (v2)."
-            )
+        multiscale = nz.from_ngff_zarr(template_path)
+        self._template_pyramid_level = _determine_pyramid_level(
+            multiscale, self.resolution
+        )
+        annotation_location = self.metadata["annotation_set"]["location"][1:]
+        annotation_path = (
+            self.root_dir / annotation_location / V2_ANNOTATION_NAME
+        )
+        multiscale = nz.from_ngff_zarr(annotation_path)
+        self._annotation_pyramid_level = _determine_pyramid_level(
+            multiscale, self.resolution
+        )
 
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = (
-                self.root_dir / meshes_dir / mesh_stub.format(struct["id"])
-            )
+            struct["mesh_filename"] = self.root_dir / meshes_dir / struct["id"]
 
         self.structures = StructuresDict(structures_list)
 
@@ -701,18 +678,13 @@ class AdditionalRefDict(UserDict):
     if the dictionary is queried for it.
     """
 
-    def __init__(self, references_list, data_path, *args, **kwargs):
+    def __init__(
+        self, references_list: List[Dict[str, str]], data_path, *args, **kwargs
+    ):
         self.data_path = data_path
         self.references_list = references_list
-        self.references_names = [
-            ref["name"] if not isinstance(ref, str) else ref
-            for ref in references_list
-        ]
-        self.references_dict = {
-            ref["name"]: ref
-            for ref in references_list
-            if not isinstance(ref, str)
-        }
+        self.references_names = [ref["name"] for ref in references_list]
+        self.references_dict = {ref["name"]: ref for ref in references_list}
         self.resolution = tuple([1.0, 1.0, 1.0])
 
         super().__init__(*args, **kwargs)
@@ -753,37 +725,31 @@ class AdditionalRefDict(UserDict):
 
         if self.data[key] is None:
             additional_ref_data = self.references_dict.get(key, key)
-            if isinstance(additional_ref_data, dict):
-                # V2
-                additional_ref_location = additional_ref_data["location"][1:]
-                local_path: Path = (
-                    self.data_path / additional_ref_location / V2_TEMPLATE_NAME
+            # V2
+            additional_ref_location = additional_ref_data["location"][1:]
+            local_path: Path = (
+                self.data_path / additional_ref_location / V2_TEMPLATE_NAME
+            )
+
+            multiscale = nz.from_ngff_zarr(local_path)
+            pyramid_level = _determine_pyramid_level(
+                multiscale, self.resolution
+            )
+
+            resolution_path = local_path / str(pyramid_level)
+
+            if not (resolution_path / "c").exists():
+                print("Downloading template...")
+                remote_path = remote_url_s3.format(
+                    f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{pyramid_level}/"
                 )
-
-                multiscale = nz.from_ngff_zarr(local_path)
-                pyramid_level = _determine_pyramid_level(
-                    multiscale, self.resolution
+                fs = s3fs.S3FileSystem(anon=True)
+                fs.get(
+                    remote_path,
+                    local_path,
+                    recursive=True,
+                    callback=TqdmCallback(),
                 )
-
-                resolution_path = local_path / str(pyramid_level)
-
-                if not (resolution_path / "c").exists():
-                    print("Downloading template...")
-                    remote_path = remote_url_s3.format(
-                        f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{pyramid_level}/"
-                    )
-                    fs = s3fs.S3FileSystem(anon=True)
-                    fs.get(
-                        remote_path,
-                        local_path,
-                        recursive=True,
-                        callback=TqdmCallback(),
-                    )
-                self.data[key] = multiscale.images[
-                    pyramid_level
-                ].data.compute()
-            else:
-                # V1
-                self.data[key] = read_tiff(self.data_path / f"{key}.tiff")
+            self.data[key] = multiscale.images[pyramid_level].data.compute()
 
         return self.data[key]

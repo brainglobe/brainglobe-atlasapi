@@ -58,13 +58,10 @@ class Structure(UserDict):
                 )
                 return None
             try:
-                if file_name.suffix == ".obj":
-                    self.data[item] = mio.read(file_name)
-                else:
-                    self._check_mesh_cached(file_name)
-                    self.data[item] = mio.read(
-                        file_name, file_format="neuroglancer"
-                    )
+                self._check_mesh_cached(file_name)
+                self.data[item] = mio.read(
+                    file_name, file_format="neuroglancer"
+                )
             except (TypeError, mio.ReadError, FileNotFoundError):
                 raise mio.ReadError(
                     "No valid mesh for region: {}".format(self.data["acronym"])

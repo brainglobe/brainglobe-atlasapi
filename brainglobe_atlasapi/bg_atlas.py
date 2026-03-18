@@ -1,7 +1,6 @@
 """Defines the BrainGlobe Atlas API v2 classes and functions."""
 
 import re
-import warnings
 from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
@@ -13,10 +12,6 @@ from rich.console import Console
 
 from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
-from brainglobe_atlasapi.bg_atlas_legacy import (
-    BrainGlobeAtlasLegacy,
-    _version_tuple_from_str,
-)
 from brainglobe_atlasapi.descriptors import (
     V2_ANNOTATION_NAME,
     V2_ATLAS_ROOTDIR,
@@ -33,52 +28,15 @@ from brainglobe_atlasapi.utils import (
 )
 
 
+def _version_tuple_from_str(version_str):
+    return tuple([int(n) for n in version_str.split(".")])
+
+
 def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return "_".join(str(num) for num in version_tuple)
 
 
-class AtlasNotAvailableAsV2(ValueError):
-    """Raised when an atlas is not available in v2 format.
-
-    Caught by ``_FallbackToLegacyMeta`` to trigger a transparent retry with
-    ``BrainGlobeAtlasLegacy``. Subclasses ``ValueError`` for backward
-    compatibility with callers that catch ``ValueError``.
-    """
-
-
-class _FallbackToLegacyMeta(type):
-    """Metaclass that transparently falls back to BrainGlobeAtlasLegacy.
-
-    Intercepts class instantiation so that:
-    - ``legacy=True`` explicitly returns a ``BrainGlobeAtlasLegacy`` instance.
-    - Any ``AtlasNotAvailableAsV2`` raised during v2 initialisation silently
-      retries with the legacy class after emitting a warning.
-    - ``isinstance(obj, BrainGlobeAtlas)`` returns ``True`` for legacy
-      instances returned by the fallback, so downstream code needs no changes.
-    """
-
-    def __call__(cls, atlas_name, *args, **kwargs):
-        if kwargs.pop("legacy", False):
-            return BrainGlobeAtlasLegacy(atlas_name, **kwargs)
-
-        try:
-            return super().__call__(atlas_name, *args, **kwargs)
-        except AtlasNotAvailableAsV2 as e:
-            warnings.warn(
-                f"Could not load '{atlas_name}' as a v2 atlas ({e}). "
-                "Falling back to legacy atlas format.",
-                stacklevel=2,
-            )
-            legacy_kwargs = {k: v for k, v in kwargs.items() if k != "version"}
-            return BrainGlobeAtlasLegacy(atlas_name, **legacy_kwargs)
-
-    def __instancecheck__(cls, instance):
-        return type.__instancecheck__(cls, instance) or isinstance(
-            instance, BrainGlobeAtlasLegacy
-        )
-
-
-class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
+class BrainGlobeAtlas(core.Atlas):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
 
@@ -141,9 +99,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
                 check_internet_connection(raise_error=True)
 
                 # If internet is up, then the atlas name was invalid
-                raise AtlasNotAvailableAsV2(
-                    f"{atlas_name} is not a valid atlas name!"
-                )
+                raise ValueError(f"{atlas_name} is not a valid atlas name!")
             else:
                 self.download()
                 assert self.local_full_name is not None, (
@@ -233,7 +189,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         bucket_path = remote_url_s3.format(f"atlases/{self.atlas_name}")
 
         if self.fs.exists(bucket_path) is False:
-            raise AtlasNotAvailableAsV2(
+            raise FileNotFoundError(
                 f"Atlas {self.atlas_name} not found in remote."
             )
 
@@ -252,7 +208,7 @@ class BrainGlobeAtlas(core.Atlas, metaclass=_FallbackToLegacyMeta):
         else:
             requested_path = f"{bucket_path}/{self._requested_version}"
             if not self.fs.exists(requested_path):
-                raise AtlasNotAvailableAsV2(
+                raise FileNotFoundError(
                     f"Requested version {self._requested_version} for atlas "
                     f"{self.atlas_name} not found in remote."
                 )

@@ -105,7 +105,9 @@ class Atlas:
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = self.root_dir / meshes_dir / struct["id"]
+            struct["mesh_filename"] = (
+                self.root_dir / meshes_dir / str(struct["id"])
+            )
 
         self.structures = StructuresDict(structures_list)
 
@@ -119,20 +121,14 @@ class Atlas:
         self._reference = None
 
         try:
-            if atlas_path.is_dir():
-                self.additional_references = AdditionalRefDict(
-                    references_list=self.metadata["additional_references"],
-                    data_path=self.root_dir,
-                )
-            elif atlas_path.suffix == ".json":
-                additional_references = self.metadata.get(
-                    "additional_references", []
-                )
-                self.additional_references = AdditionalRefDict(
-                    references_list=additional_references,
-                    data_path=self.root_dir,
-                )
-            self.additional_references.resolution = self.resolution
+            additional_references = self.metadata.get(
+                "additional_references", []
+            )
+            self.additional_references = AdditionalRefDict(
+                references_list=additional_references,
+                data_path=self.root_dir,
+                resolution=self.resolution,
+            )
         except KeyError:
             warnings.warn(
                 "This atlas seems to be outdated as no "
@@ -679,13 +675,17 @@ class AdditionalRefDict(UserDict):
     """
 
     def __init__(
-        self, references_list: List[Dict[str, str]], data_path, *args, **kwargs
+        self,
+        references_list: List[Dict[str, str]],
+        data_path,
+        resolution: Tuple[float, float, float],
+        *args,
+        **kwargs,
     ):
         self.data_path = data_path
-        self.references_list = references_list
         self.references_names = [ref["name"] for ref in references_list]
         self.references_dict = {ref["name"]: ref for ref in references_list}
-        self.resolution = tuple([1.0, 1.0, 1.0])
+        self.resolution = resolution
 
         super().__init__(*args, **kwargs)
 
@@ -725,7 +725,7 @@ class AdditionalRefDict(UserDict):
 
         if self.data[key] is None:
             additional_ref_data = self.references_dict.get(key, key)
-            # V2
+
             additional_ref_location = additional_ref_data["location"][1:]
             local_path: Path = (
                 self.data_path / additional_ref_location / V2_TEMPLATE_NAME

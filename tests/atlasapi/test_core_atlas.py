@@ -7,9 +7,9 @@ import ngff_zarr as nz
 import numpy as np
 import pandas as pd
 import pytest
-import tifffile
 
 from brainglobe_atlasapi import core
+from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
 
 
@@ -34,18 +34,25 @@ def test_initialization(atlas):
     assert atlas.shape_um == (13200.0, 8000.0, 11400.0)
 
 
-def test_additional_ref_dict(temp_path):
+def test_additional_ref_dict(atlas):
     """Test AdditionalRefDict class functionality."""
-    fake_data = dict()
-    for k in ["1", "2"]:
-        stack = np.ones((10, 20, 30)) * int(k)
-        fake_data[k] = stack
-        tifffile.imwrite(temp_path / f"{k}.tiff", stack)
+    fake_data = [
+        {
+            "name": "allen-adult-mouse-stpt-template",
+            "version": "2015",
+            "location": "/templates/allen-adult-mouse-stpt-template/2015",
+        }
+    ]
 
-    add_ref_dict = AdditionalRefDict(fake_data.keys(), temp_path)
+    data_path = get_brainglobe_dir()
+    add_ref_dict = AdditionalRefDict(
+        fake_data, data_path, resolution=(100.0, 100.0, 100.0)
+    )
 
-    for k, stack in add_ref_dict.items():
-        assert np.all(add_ref_dict[k] == stack)
+    assert list(add_ref_dict) == ["allen-adult-mouse-stpt-template"]
+    assert np.all(
+        add_ref_dict["allen-adult-mouse-stpt-template"] == atlas.template
+    )
 
     with pytest.warns(UserWarning, match="No reference named 3"):
         assert add_ref_dict["3"] is None
@@ -59,10 +66,26 @@ def test_addition_ref_dict_keys_only(temp_path):
     temp_path : Path
         Temporary path for test files.
     """
-    fake_data = ["1", "2"]
-    add_ref_dict = AdditionalRefDict(fake_data, temp_path)
+    fake_data = [
+        {
+            "name": "allen-adult-mouse-stpt-template",
+            "version": "2015",
+            "location": "/templates/allen-adult-mouse-stpt-template/2015",
+        },
+        {
+            "name": "another-template",
+            "version": "2020",
+            "location": "/templates/another-template/2020",
+        },
+    ]
+    add_ref_dict = AdditionalRefDict(
+        fake_data, temp_path, resolution=(100.0, 100.0, 100.0)
+    )
 
-    assert list(add_ref_dict) == fake_data
+    assert list(add_ref_dict) == [
+        "allen-adult-mouse-stpt-template",
+        "another-template",
+    ]
 
 
 @pytest.mark.parametrize(

@@ -190,7 +190,7 @@ class BrainGlobeAtlas(core.Atlas):
 
         if self.fs.exists(bucket_path) is False:
             raise FileNotFoundError(
-                f"Atlas {self.atlas_name} not found in remote."
+                f"{self.atlas_name} is not a valid atlas name!"
             )
 
         if self._requested_version is None:

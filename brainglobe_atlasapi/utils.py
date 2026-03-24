@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -349,6 +349,26 @@ def get_download_size(url: str) -> int:
         raise ValueError("File size information not found in the response.")
     except IndexError:
         raise IndexError("Improperly formatted URL")
+
+
+def get_latest_version(available_versions: List[str]) -> str:
+    """
+    Get the latest version from a list of version strings.
+
+    Parameters
+    ----------
+    available_versions : list of str
+        List of version strings.
+
+    Returns
+    -------
+    str
+        The latest version string.
+    """
+    available_versions.sort(
+        key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
+    )
+    return available_versions[0]
 
 
 def conf_from_url(url, cache_path) -> configparser.ConfigParser:

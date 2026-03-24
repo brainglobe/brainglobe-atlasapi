@@ -24,6 +24,7 @@ from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
     check_internet_connection,
     check_s3_status,
+    get_latest_version,
     read_json,
 )
 
@@ -34,13 +35,6 @@ def _version_tuple_from_str(version_str):
 
 def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return "_".join(str(num) for num in version_tuple)
-
-
-def _get_latest_version(available_versions):
-    available_versions.sort(
-        key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
-    )
-    return available_versions[0]
 
 
 class BrainGlobeAtlas(core.Atlas):
@@ -158,7 +152,7 @@ class BrainGlobeAtlas(core.Atlas):
         if len(available_versions) == 0:
             return None
 
-        latest_version = _get_latest_version(available_versions)
+        latest_version = get_latest_version(available_versions)
 
         self._local_full_name = (
             f"{V2_ATLAS_ROOTDIR}/"
@@ -207,7 +201,7 @@ class BrainGlobeAtlas(core.Atlas):
             available_versions: List[str] = [
                 path_str.split("/")[-1] for path_str in versions_path
             ]
-            latest_version = _get_latest_version(available_versions)
+            latest_version = get_latest_version(available_versions)
             self._remote_version = _version_tuple_from_str(
                 latest_version.replace("_", ".")
             )

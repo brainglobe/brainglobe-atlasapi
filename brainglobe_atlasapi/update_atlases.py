@@ -33,9 +33,9 @@ def update_atlas(atlas_name, force=False, fn_update=None):
 
     if force and is_latest_version:
         # Delete atlas folder to force update
-        fld = (atlas.brainglobe_dir / atlas.local_full_name).parent
-        shutil.rmtree(fld)
-        if fld.exists():
+        atlas_folder = (atlas.brainglobe_dir / atlas.local_full_name).parent
+        shutil.rmtree(atlas_folder)
+        if atlas_folder.exists():
             raise ValueError(
                 "Something went wrong while trying to delete the old "
                 "version of the atlas, aborting."

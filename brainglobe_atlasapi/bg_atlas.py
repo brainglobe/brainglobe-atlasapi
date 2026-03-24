@@ -92,6 +92,8 @@ class BrainGlobeAtlas(core.Atlas):
         else:
             self.brainglobe_dir = Path(brainglobe_dir)
 
+        self.brainglobe_dir = self.brainglobe_dir / "brainglobe-atlasapi"
+
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
         # Look for this atlas in local brainglobe folder:

@@ -44,7 +44,7 @@ def test_additional_ref_dict(atlas):
         }
     ]
 
-    data_path = get_brainglobe_dir()
+    data_path = get_brainglobe_dir() / "brainglobe-atlasapi"
     add_ref_dict = AdditionalRefDict(
         fake_data, data_path, resolution=(100.0, 100.0, 100.0)
     )

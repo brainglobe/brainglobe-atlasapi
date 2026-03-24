@@ -76,10 +76,10 @@ class Atlas:
             / V2_TERMINOLOGY_NAME
         )
         structures_list = load_structures_from_csv(structures_path)
-        meshes_dir = (
-            self.metadata["annotation_set"]["location"][1:]
-            + "/"
-            + V2_MESHES_DIRECTORY
+        meshes_path = (
+            self.root_dir
+            / self.metadata["annotation_set"]["location"][1:]
+            / V2_MESHES_DIRECTORY
         )
 
         template_location = self.metadata["annotation_set"]["template"][
@@ -105,9 +105,7 @@ class Atlas:
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = (
-                self.root_dir / meshes_dir / str(struct["id"])
-            )
+            struct["mesh_filename"] = meshes_path / str(struct["id"])
 
         self.structures = StructuresDict(structures_list)
 

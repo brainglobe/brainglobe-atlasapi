@@ -84,7 +84,12 @@ def test_get_all_atlases_lastversions():
 def test_atlas_name_matches_lastversions():
     """Ensure atlas name list matches last_versions.conf keys exactly."""
     atlas_name_values = list(get_args(AtlasName))
-    cache_path = config.get_brainglobe_dir() / "atlases" / "last_versions.conf"
+    cache_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / "atlases"
+        / "last_versions.conf"
+    )
     # we read the file directly, using lastversions() includes custom atlases.
     last_versions = utils.conf_from_file(cache_path)["atlases"]
     last_version_names = list(last_versions.keys())
@@ -103,7 +108,10 @@ def test_get_all_atlases_custom_atlases(mocker):
         The mocker fixture.
     """
     custom_path = (
-        config.get_brainglobe_dir() / "atlases" / "custom_atlases.conf"
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / "atlases"
+        / "custom_atlases.conf"
     )
     mock_custom_atlas = {"atlases": {"mock_custom_atlas": "1.1"}}
 
@@ -120,7 +128,12 @@ def test_get_all_atlases_custom_atlases(mocker):
 def test_get_all_atlases_lastversions_offline():
     """Test retrieving atlas versions from cache when offline."""
     cleanup_cache = False
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    cache_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / "atlases"
+        / "last_versions.conf"
+    )
 
     if not cache_path.exists():
         cache_path.touch()
@@ -149,7 +162,12 @@ def test_get_all_atlases_lastversions_offline():
 def test_get_all_atlases_lastversions_gin_down():
     """Test retrieving atlas versions from cache when GIN is down."""
     cleanup_cache = False
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    cache_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / "atlases"
+        / "last_versions.conf"
+    )
 
     if not cache_path.exists():
         cache_path.touch()

@@ -22,7 +22,9 @@ def get_downloaded_atlases() -> List[str]:
     """
     # Get brainglobe directory:
     brainglobe_dir = config.get_brainglobe_dir()
-    atlases_dir = brainglobe_dir / descriptors.V2_ATLAS_ROOTDIR
+    atlases_dir = (
+        brainglobe_dir / "brainglobe-atlasapi" / descriptors.V2_ATLAS_ROOTDIR
+    )
 
     downloaded_atlases = []
 
@@ -52,7 +54,12 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
         Version of atlas.
     """
     brainglobe_dir = config.get_brainglobe_dir()
-    atlas_dir = brainglobe_dir / descriptors.V2_ATLAS_ROOTDIR / atlas_name
+    atlas_dir = (
+        brainglobe_dir
+        / "brainglobe-atlasapi"
+        / descriptors.V2_ATLAS_ROOTDIR
+        / atlas_name
+    )
     atlas_dir.parent.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -69,8 +76,18 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
 def get_all_atlases_lastversions() -> Dict[str, Any]:
     """Read from URL or local cache all available last versions."""
     v2_dir = descriptors.V2_ATLAS_ROOTDIR
-    cache_path = config.get_brainglobe_dir() / v2_dir / "last_versions.conf"
-    custom_path = config.get_brainglobe_dir() / v2_dir / "custom_atlases.conf"
+    cache_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / v2_dir
+        / "last_versions.conf"
+    )
+    custom_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / v2_dir
+        / "custom_atlases.conf"
+    )
 
     if utils.check_internet_connection(raise_error=False):
         official_atlases = utils.conf_from_url(

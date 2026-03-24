@@ -746,7 +746,7 @@ class AdditionalRefDict(UserDict):
                 fs = s3fs.S3FileSystem(anon=True)
                 fs.get(
                     remote_path,
-                    local_path,
+                    resolution_path,
                     recursive=True,
                     callback=TqdmCallback(),
                 )

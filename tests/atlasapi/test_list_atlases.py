@@ -84,7 +84,7 @@ def test_get_all_atlases_lastversions():
 def test_atlas_name_matches_lastversions():
     """Ensure atlas name list matches last_versions.conf keys exactly."""
     atlas_name_values = list(get_args(AtlasName))
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    cache_path = config.get_brainglobe_dir() / "atlases" / "last_versions.conf"
     # we read the file directly, using lastversions() includes custom atlases.
     last_versions = utils.conf_from_file(cache_path)["atlases"]
     last_version_names = list(last_versions.keys())

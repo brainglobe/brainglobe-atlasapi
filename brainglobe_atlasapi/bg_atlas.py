@@ -116,6 +116,10 @@ class BrainGlobeAtlas(core.Atlas):
     def local_full_name(self):
         """
         Returns the local full path to the manifest.json file of the atlas.
+
+        This will return either the path to the requested version if it is
+        found locally, or the latest version found locally.
+
         If not found, returns None.
         """
         if self._local_full_name is not None:

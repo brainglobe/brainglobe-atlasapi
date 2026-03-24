@@ -198,13 +198,13 @@ def test_meshfile_from_id(atlas):
     atlas : brainglobe_atlasapi.core.Atlas
         The atlas fixture.
     """
-    mesh_rooth_path = (
+    mesh_root_path = (
         atlas.root_dir
         / atlas.metadata["annotation_set"]["location"][1:]
         / "annotation.precomputed"
     )
-    assert atlas.meshfile_from_structure("CH") == mesh_rooth_path / "567"
-    assert atlas.root_meshfile() == mesh_rooth_path / "997"
+    assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567"
+    assert atlas.root_meshfile() == mesh_root_path / "997"
 
 
 def test_mesh_from_id(atlas):

@@ -36,6 +36,13 @@ def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return "_".join(str(num) for num in version_tuple)
 
 
+def _get_latest_version(available_versions):
+    available_versions.sort(
+        key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
+    )
+    return available_versions[0]
+
+
 class BrainGlobeAtlas(core.Atlas):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
@@ -151,14 +158,12 @@ class BrainGlobeAtlas(core.Atlas):
         if len(available_versions) == 0:
             return None
 
-        available_versions.sort(
-            key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
-        )
+        latest_version = _get_latest_version(available_versions)
 
         self._local_full_name = (
             f"{V2_ATLAS_ROOTDIR}/"
             f"{self.atlas_name}/"
-            f"{available_versions[0]}/"
+            f"{latest_version}/"
             f"manifest.json"
         )
 
@@ -202,12 +207,9 @@ class BrainGlobeAtlas(core.Atlas):
             available_versions: List[str] = [
                 path_str.split("/")[-1] for path_str in versions_path
             ]
-            available_versions.sort(
-                key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
-            )
-
+            latest_version = _get_latest_version(available_versions)
             self._remote_version = _version_tuple_from_str(
-                available_versions[0].replace("_", ".")
+                latest_version.replace("_", ".")
             )
         else:
             requested_path = f"{bucket_path}/{self._requested_version}"

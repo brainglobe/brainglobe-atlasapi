@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import s3fs
+from fsspec.callbacks import TqdmCallback
 from rich import print as rprint
 from rich.console import Console
 
@@ -239,7 +240,11 @@ class BrainGlobeAtlas(core.Atlas):
         remote_path = remote_url_s3.format(key_name)
 
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        self.fs.get(remote_path, local_path)
+        print(
+            f"Downloading {self.atlas_name} atlas "
+            f"v{remote_version_str.replace('_', '.')} manifest:"
+        )
+        self.fs.get(remote_path, local_path, callback=TqdmCallback())
         self.metadata = read_json(local_path)
 
         try:
@@ -250,10 +255,15 @@ class BrainGlobeAtlas(core.Atlas):
                 remote_terminology_path = remote_url_s3.format(
                     terminology_location
                 )
+                print(
+                    f"Downloading terminology metadata "
+                    f"for {self.metadata['terminology']['name']}:"
+                )
                 self.fs.get(
                     remote_terminology_path,
                     local_terminology_path,
                     recursive=True,
+                    callback=TqdmCallback(),
                 )
 
             # Download coordinate space files
@@ -265,10 +275,15 @@ class BrainGlobeAtlas(core.Atlas):
                 remote_coordspace_path = remote_url_s3.format(
                     coordspace_location
                 )
+                print(
+                    f"Downloading coordinate space metadata "
+                    f"for {self.metadata['coordinate_space']['name']}:"
+                )
                 self.fs.get(
                     remote_coordspace_path,
                     local_coordspace_path,
                     recursive=True,
+                    callback=TqdmCallback(),
                 )
 
             # Download annotation metadata files
@@ -283,10 +298,14 @@ class BrainGlobeAtlas(core.Atlas):
                 remote_root_metadata_path = remote_url_s3.format(
                     root_metadata_path
                 )
-
+                print(
+                    f"Downloading annotation metadata "
+                    f"for {self.metadata['annotation_set']['name']}:"
+                )
                 self.fs.get(
                     remote_root_metadata_path,
                     local_annotation_path / V2_ANNOTATION_NAME,
+                    callback=TqdmCallback(),
                 )
                 mesh_path = local_annotation_path / V2_MESHES_DIRECTORY
                 mesh_path.mkdir(exist_ok=True)
@@ -317,9 +336,14 @@ class BrainGlobeAtlas(core.Atlas):
                     root_metadata_path
                 )
 
+                print(
+                    f"Downloading template metadata "
+                    f"for {self.metadata['template']['name']}:"
+                )
                 self.fs.get(
                     remote_root_metadata_path,
                     local_template_path / V2_TEMPLATE_NAME,
+                    callback=TqdmCallback(),
                 )
 
             additional_reference_names = self.metadata.get(
@@ -337,10 +361,14 @@ class BrainGlobeAtlas(core.Atlas):
                     remote_root_metadata_path = remote_url_s3.format(
                         root_metadata_path
                     )
-
+                    print(
+                        f"Downloading template metadata "
+                        f"for {self.metadata['template']['name']}:"
+                    )
                     self.fs.get(
                         remote_root_metadata_path,
                         local_template_path / V2_TEMPLATE_NAME,
+                        callback=TqdmCallback(),
                     )
             # Reset local_full_name to ensure it is updated with new location
             self._local_full_name = None

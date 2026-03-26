@@ -241,7 +241,7 @@ def add_atlas_to_row(
     if info["downloaded"]:
         downloaded = "[green]:heavy_check_mark:[/green]"
 
-        if info["version"] == info["latest_version"]:
+        if info["updated"]:
             updated = "[green]:heavy_check_mark:[/green]"
         else:
             updated = "[red dim]x"
@@ -254,7 +254,11 @@ def add_atlas_to_row(
         "[bold]" + atlas,
         downloaded,
         updated,
-        ("[#c4c4c4]" + info["version"] if "-" not in info["version"] else ""),
+        (
+            "[#c4c4c4]" + info["version"].replace("_", ".")
+            if "-" not in info["version"]
+            else ""
+        ),
         "[#c4c4c4]" + info["latest_version"],
     ]
 

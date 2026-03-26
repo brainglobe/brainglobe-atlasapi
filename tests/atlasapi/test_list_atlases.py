@@ -200,6 +200,7 @@ def test_get_all_atlases_lastversions_gin_down():
             {
                 "version": "1",
                 "latest_version": "2",
+                "updated": False,
             },
             "│ awesome_name │ ✔ │ x │ 1 │ 2 │",
             id="version != latest_version",
@@ -208,6 +209,7 @@ def test_get_all_atlases_lastversions_gin_down():
             {
                 "version": "1",
                 "latest_version": "1",
+                "updated": True,
             },
             "│ awesome_name │ ✔ │ ✔ │ 1 │ 1 │",
             id="version == latest_version",
@@ -230,6 +232,7 @@ def test_add_atlas_to_row(version, expected_print, capsys):
         "downloaded": True,
         "version": version["version"],
         "latest_version": version["latest_version"],
+        "updated": version["updated"],
     }
     table = add_atlas_to_row(atlas="awesome_name", info=info, table=Table())
     Console().print(table)

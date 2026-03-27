@@ -113,7 +113,7 @@ def test_local_search(tmpdir):
     assert atlas.atlas_name in atlas.local_full_name
 
     # Make a copy:
-    new_version = "2_5"
+    new_version = "4_5"
     old_version = "_".join(str(v) for v in atlas.local_version)
     atlas_path = atlas.local_full_name.split("/")
     atlas_root = "/".join(atlas_path[:-2])

@@ -3,7 +3,6 @@ Functionality to list all available and downloaded
 brainglobe atlases.
 """
 
-import re
 from typing import Any, Dict, List, Optional
 
 from rich import print as rprint
@@ -23,12 +22,22 @@ def get_downloaded_atlases() -> List[str]:
     """
     # Get brainglobe directory:
     brainglobe_dir = config.get_brainglobe_dir()
+    atlases_dir = (
+        brainglobe_dir / "brainglobe-atlasapi" / descriptors.V2_ATLAS_ROOTDIR
+    )
 
-    return [
-        f.name.rsplit("_v", 1)[0]
-        for f in brainglobe_dir.glob("*_*_*_v*")
-        if f.is_dir()
-    ]
+    downloaded_atlases = []
+
+    if not atlases_dir.exists():
+        return downloaded_atlases
+
+    for f in atlases_dir.iterdir():
+        if f.is_dir():
+            downloaded_atlases.append(f.name)
+
+    sorted_atlases = sorted(downloaded_atlases)
+
+    return sorted_atlases
 
 
 def get_local_atlas_version(atlas_name: str) -> Optional[str]:
@@ -45,27 +54,47 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
         Version of atlas.
     """
     brainglobe_dir = config.get_brainglobe_dir()
+    atlas_dir = (
+        brainglobe_dir
+        / "brainglobe-atlasapi"
+        / descriptors.V2_ATLAS_ROOTDIR
+        / atlas_name
+    )
+    atlas_dir.parent.mkdir(parents=True, exist_ok=True)
+
     try:
-        return [
-            re.search(r"_v(\d+\.\d+)$", f.name).group(1)
-            for f in brainglobe_dir.glob(f"*{atlas_name}*")
-            if f.is_dir() and re.search(r"_v(\d+\.\d+)$", f.name)
-        ][0]
-    except IndexError:
+        available_versions = [
+            p.name for p in atlas_dir.iterdir() if p.is_dir()
+        ]
+        latest_version = utils.get_latest_version(available_versions)
+        return latest_version
+    except (IndexError, FileNotFoundError, ValueError):
         print(f"No atlas found with the name: {atlas_name}")
         return None
 
 
 def get_all_atlases_lastversions() -> Dict[str, Any]:
     """Read from URL or local cache all available last versions."""
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
-    custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
+    v2_dir = descriptors.V2_ATLAS_ROOTDIR
+    cache_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / v2_dir
+        / "last_versions.conf"
+    )
+    custom_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / v2_dir
+        / "custom_atlases.conf"
+    )
 
-    if utils.check_internet_connection(
-        raise_error=False
-    ) and utils.check_gin_status(raise_error=False):
+    if utils.check_internet_connection(raise_error=False):
         official_atlases = utils.conf_from_url(
-            descriptors.remote_url_base.format("last_versions.conf")
+            descriptors.remote_url_s3_http.format(
+                f"{v2_dir}/last_versions.conf"
+            ),
+            cache_path,
         )
     else:
         print("Cannot fetch latest atlas versions from the server.")
@@ -99,7 +128,8 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
                 local=name,
                 version=local_version,
                 latest_version=str(available_atlases[name]),
-                updated=str(available_atlases[name]) == local_version,
+                updated=str(available_atlases[name]).replace(".", "_")
+                == local_version,
             )
     return atlases
 
@@ -211,7 +241,7 @@ def add_atlas_to_row(
     if info["downloaded"]:
         downloaded = "[green]:heavy_check_mark:[/green]"
 
-        if info["version"] == info["latest_version"]:
+        if info["updated"]:
             updated = "[green]:heavy_check_mark:[/green]"
         else:
             updated = "[red dim]x"
@@ -224,7 +254,11 @@ def add_atlas_to_row(
         "[bold]" + atlas,
         downloaded,
         updated,
-        ("[#c4c4c4]" + info["version"] if "-" not in info["version"] else ""),
+        (
+            "[#c4c4c4]" + info["version"].replace("_", ".")
+            if "-" not in info["version"]
+            else ""
+        ),
         "[#c4c4c4]" + info["latest_version"],
     ]
 

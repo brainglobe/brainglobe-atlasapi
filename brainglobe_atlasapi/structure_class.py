@@ -3,11 +3,16 @@ Provide a class for representing hierarchical structures,
 such as brain regions in an atlas.
 """
 
+import os
 import warnings
 from collections import UserDict
+from pathlib import Path
 
 import meshio as mio
+import s3fs
+from fsspec.callbacks import TqdmCallback
 
+from brainglobe_atlasapi.descriptors import remote_url_s3
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -44,7 +49,8 @@ class Structure(UserDict):
             The value associated with the given item.
         """
         if item == "mesh" and self.data[item] is None:
-            if self.data["mesh_filename"] is None:
+            file_name = self.data["mesh_filename"]
+            if file_name is None:
                 warnings.warn(
                     "No mesh filename for region {}".format(
                         self.data["acronym"]
@@ -52,13 +58,31 @@ class Structure(UserDict):
                 )
                 return None
             try:
-                self.data[item] = mio.read(self.data["mesh_filename"])
-            except (TypeError, mio.ReadError):
+                self._check_mesh_cached(file_name)
+                self.data[item] = mio.read(
+                    file_name, file_format="neuroglancer"
+                )
+            except (TypeError, mio.ReadError, FileNotFoundError):
                 raise mio.ReadError(
                     "No valid mesh for region: {}".format(self.data["acronym"])
                 )
 
         return self.data[item]
+
+    def _check_mesh_cached(self, file_name: Path):
+        """Check if the mesh is cached, and if not, attempt to load it."""
+        if file_name.exists():
+            return
+
+        root_path = "/".join(str(file_name).split(os.sep)[-5:])
+        remote_mesh_path = remote_url_s3.format(root_path)
+        fs = s3fs.S3FileSystem(anon=True)
+        if not fs.exists(remote_mesh_path):
+            raise FileNotFoundError(
+                f"Mesh file {file_name} not found locally or remotely."
+            )
+
+        fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
 
 
 class StructuresDict(UserDict):

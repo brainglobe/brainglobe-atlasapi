@@ -5,7 +5,7 @@ import pytest
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.structure_class import StructuresDict
-from brainglobe_atlasapi.utils import read_json
+from brainglobe_atlasapi.utils import load_structures_from_csv
 
 structures_list = [
     {
@@ -35,8 +35,8 @@ structures_list = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore:No mesh filename for region root")
-def test_structure_indexing():
+@pytest.mark.filterwarnings("ignore:No valid mesh for region root")
+def test_structure_indexing(atlas_path):
     """Test various indexing methods for StructuresDict.
 
     Verify that structures can be accessed by integer ID, float ID,
@@ -49,7 +49,15 @@ def test_structure_indexing():
     assert structures_dict["997"] == structures_dict["root"]
 
     with pytest.raises(mio.ReadError) as error:
-        structures_dict["997"]["mesh_filename"] = "wrong_filename.smtg"
+        bad_path = (
+            atlas_path
+            / "annotation-sets"
+            / "example_mouse-annotation"
+            / "1_2"
+            / "meshes"
+            / "998"
+        )
+        structures_dict["root"]["mesh_filename"] = bad_path
         _ = structures_dict["997"]["mesh"]
     print(str(error))
     assert "" in str(error)
@@ -63,17 +71,25 @@ def test_mesh_loading(atlas_path):
     atlas_path : Path
         Path to the test atlas directory.
     """
-    structures_list_real = read_json(
-        atlas_path / descriptors.STRUCTURES_FILENAME
+    structures_list_real = load_structures_from_csv(
+        atlas_path
+        / "terminologies"
+        / "example_mouse-terminology"
+        / "1_2"
+        / descriptors.V2_TERMINOLOGY_NAME
+    )
+
+    mesh_root_path = (
+        atlas_path
+        / "annotation-sets"
+        / "example_mouse-annotation"
+        / "1_2"
+        / descriptors.V2_MESHES_DIRECTORY
     )
 
     # Add entry for file paths:
     for struct in structures_list_real:
-        struct["mesh_filename"] = (
-            atlas_path
-            / descriptors.MESHES_DIRNAME
-            / "{}.obj".format(struct["id"])
-        )
+        struct["mesh_filename"] = mesh_root_path / f"{struct['id']}"
 
     struct_dict = StructuresDict(structures_list_real)
     assert isinstance(struct_dict["997"]["mesh"], mio.Mesh)

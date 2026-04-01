@@ -1,16 +1,7 @@
-"""Template script for generating a BrainGlobe atlas.
-
-Use this script as a starting point to package a new BrainGlobe atlas by
-filling in the required functions and metadata.
-"""
-
 from pathlib import Path
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
-
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
 
 ### Metadata ###
 

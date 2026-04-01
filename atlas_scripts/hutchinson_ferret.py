@@ -15,29 +15,49 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "example_mouse"
+ATLAS_NAME = "hutchinson_ferret"
 
 # DOI of the most relevant citable document
-CITATION = None
+CITATION = "https://doi.org/10.1016/j.neuroimage.2017.03.009"
 
 # The scientific name of the species, ie; Rattus norvegicus
-SPECIES = None
+SPECIES = "Mustela putorius furo"
 
 # The URL for the data files
-ATLAS_LINK = None
+ATLAS_LINK = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evT2_template.nii.gz"
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "asr"
+ORIENTATION = "asr" #CHECK LATER
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
 # hierarchical
-ROOT_ID = None
+ROOT_ID = None #CHECK LATER
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
 RESOLUTION = None
+
+# --- Script toggles (no CLI args) ---
+# If True, do not re-download files that already exist on disk.
+SKIP_DOWNLOADS_IF_PRESENT = True
+TEMPLATE_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evT2_template.nii.gz"
+ANNOTATION_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evDTI_SEGMENTATION.nii.gz"
+LABELS_URL = "https://scalablebrainatlas.incf.org/services/labelmapper.php?template=HSRetal17&to=all&format=json"
+
+WHOLE_BRAIN_MESH_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/wholebrain.x3d"
+
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
+
+TEMPLATE_FNAME = "evT2_template.nii.gz"
+ANNOTATION_FNAME = "evDTI_SEGMENTATION.nii.gz"
+LABELS_FNAME = "labelmapper.json"
+
+WHOLE_BRAIN_MESH_FNAME = "wholebrain.x3d"
+
+ATLAS_PACKAGER = "Jung Woo Kim"
 
 
 def download_resources():

@@ -12,6 +12,13 @@ from rich.table import Table
 from brainglobe_atlasapi import config, descriptors, utils
 
 
+def folder_version_to_dotted(version: Optional[str]) -> Optional[str]:
+    """Convert on-disk version folder names (e.g. 3_0) to dotted form (3.0)."""
+    if version is None:
+        return None
+    return version.replace("_", ".")
+
+
 def get_downloaded_atlases() -> List[str]:
     """Get a list of all the downloaded atlases.
 
@@ -114,7 +121,9 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
     Returns
     -------
     dict
-        A dictionary with metadata about already installed atlases.
+        A dictionary with metadata about already installed atlases. The
+        ``version`` and ``latest_version`` fields use the same dotted form
+        (e.g. ``3.0``), matching ``last_versions.conf``.
     """
     available_atlases = get_all_atlases_lastversions()
 
@@ -123,13 +132,13 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
     for name in get_downloaded_atlases():
         if name in available_atlases.keys():
             local_version = get_local_atlas_version(name)
+            latest = str(available_atlases[name])
             atlases[name] = dict(
                 downloaded=True,
                 local=name,
-                version=local_version,
-                latest_version=str(available_atlases[name]),
-                updated=str(available_atlases[name]).replace(".", "_")
-                == local_version,
+                version=folder_version_to_dotted(local_version),
+                latest_version=latest,
+                updated=latest.replace(".", "_") == local_version,
             )
     return atlases
 
@@ -255,8 +264,8 @@ def add_atlas_to_row(
         downloaded,
         updated,
         (
-            "[#c4c4c4]" + info["version"].replace("_", ".")
-            if "-" not in info["version"]
+            "[#c4c4c4]" + info["version"]
+            if info["version"] and "-" not in info["version"]
             else ""
         ),
         "[#c4c4c4]" + info["latest_version"],

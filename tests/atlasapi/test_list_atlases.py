@@ -11,12 +11,20 @@ from brainglobe_atlasapi import config, utils
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.list_atlases import (
     add_atlas_to_row,
+    folder_version_to_dotted,
     get_all_atlases_lastversions,
     get_atlases_lastversions,
     get_downloaded_atlases,
     get_local_atlas_version,
     show_atlases,
 )
+
+
+def test_folder_version_to_dotted():
+    """Test conversion from folder-style version to dotted version."""
+    assert folder_version_to_dotted("3_0") == "3.0"
+    assert folder_version_to_dotted("5_2") == "5.2"
+    assert folder_version_to_dotted(None) is None
 
 
 def test_get_downloaded_atlases():
@@ -55,12 +63,13 @@ def test_lastversions():
 
     local_v = get_local_atlas_version("example_mouse_100um")
 
-    assert example_atlas["version"] == local_v
+    assert example_atlas["version"] == local_v.replace("_", ".")
     assert all(
         [
             int(last) <= int(r)
             for last, r in zip(
-                example_atlas["latest_version"].split("."), local_v.split(".")
+                example_atlas["latest_version"].split("."),
+                local_v.replace("_", ".").split("."),
             )
         ]
     )

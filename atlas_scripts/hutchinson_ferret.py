@@ -28,12 +28,12 @@ ATLAS_LINK = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evT
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "asr" #CHECK LATER
+ORIENTATION = "asr"  # CHECK LATER
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
 # hierarchical
-ROOT_ID = None #CHECK LATER
+ROOT_ID = None  # CHECK LATER
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
@@ -46,7 +46,9 @@ TEMPLATE_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/e
 ANNOTATION_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evDTI_SEGMENTATION.nii.gz"
 LABELS_URL = "https://scalablebrainatlas.incf.org/services/labelmapper.php?template=HSRetal17&to=all&format=json"
 
-WHOLE_BRAIN_MESH_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/wholebrain.x3d"
+WHOLE_BRAIN_MESH_URL = (
+    "https://scalablebrainatlas.incf.org/templates/HSRetal17/wholebrain.x3d"
+)
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"

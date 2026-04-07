@@ -2,6 +2,8 @@ from pathlib import Path
 
 import numpy as np
 import pooch
+import xmltodict # IS THIS IN REQUIREMENTS?
+from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
@@ -51,14 +53,14 @@ RESOLUTION = 25
 SKIP_DOWNLOADS_IF_PRESENT = True
 TEMPLATE_URL = "https://figshare.com/ndownloader/files/42485103"
 ANNOTATION_URL = "https://figshare.com/ndownloader/files/51181751"
-LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
+LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 TEMPLATE_FNAME = "PRA.tif"
 ANNOTATION_FNAME = "PRA_WHS_v4_anns.tif"
-LABELS_FNAME = "WHS_SD_rat_atlas_v4_labels.ilf"
+LABELS_FNAME = "WHS_SD_rat_atlas_v4.01_labels.ilf"
 
 ATLAS_PACKAGER = "Jung Woo Kim"
 
@@ -93,7 +95,7 @@ def download_waxholm_atlas_files(
 
     pooch.retrieve(
         url=atlas_file_url,
-        known_hash=None,
+        known_hash="2adeffb6816ee1ace68c1c0383cd484f9eccf436375ebd502890990e26621ae1",
         path=download_dir_path,
         fname=download_name,
         progressbar=True,
@@ -225,8 +227,11 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference = None
-    annotation = None
+    reference_file = DOWNLOAD_DIR_PATH / TEMPLATE_FNAME
+    annotation_file = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    
+    reference = load_any(reference_file, as_numpy=True)
+    annotation = load_any(annotation_file, as_numpy=True)
     return reference, annotation
 
 
@@ -275,7 +280,7 @@ def retrieve_structure_information(annotation):
     """
     # Download and extract zip archives from Waxholm/NITRC
     download_waxholm_atlas_files(DOWNLOAD_DIR_PATH, LABELS_URL, ATLAS_NAME)
-    labels_files_dir = DOWNLOAD_DIR_PATH / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
+    labels_files_dir = DOWNLOAD_DIR_PATH / "MBAT_WHS_SD_rat_atlas_v4.01/Data"
 
     # Parse structure metadata
     structures = parse_structures(labels_files_dir / LABELS_FNAME)

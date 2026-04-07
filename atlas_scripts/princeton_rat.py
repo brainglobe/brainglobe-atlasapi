@@ -184,9 +184,8 @@ def download_resources():
     template_path = DOWNLOAD_DIR_PATH / TEMPLATE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
 
-    needs_download = (
-        (not template_path.exists())
-        or (not annotation_path.exists())
+    needs_download = (not template_path.exists()) or (
+        not annotation_path.exists()
     )
     if needs_download:
         utils.check_internet_connection()

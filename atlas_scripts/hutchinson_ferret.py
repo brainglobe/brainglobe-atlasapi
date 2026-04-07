@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import pooch
 import json
-import SimpleITK as sitk
 
 from pyarrow import csv
 
@@ -42,12 +41,12 @@ ATLAS_LINK = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evT
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "lpi" #CHECK LATER
+ORIENTATION = "lpi" 
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
 # hierarchical
-ROOT_ID = None  # CHECK LATER
+ROOT_ID = 999 
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
@@ -208,7 +207,7 @@ def retrieve_structure_information(annotation_volume: np.ndarray):
     """
     labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
     
-    # Filter structures to those actually present.
+    # Filter structures to those actually present
     present_ids = set(map(int, np.unique(annotation_volume)))
     
     structures_by_id: dict[int, dict] = {
@@ -223,26 +222,26 @@ def retrieve_structure_information(annotation_volume: np.ndarray):
     
     with open(labels_path) as f:
         labels_data = json.load(f)
-
-    for label in labels_data:
-        if label[0] not in present_ids:
-            continue
-        if label[0] == 0 or label[2] == "Clear Label":
-            continue
-        id = label[0]
-        hex_colour = label[1]
-        acronym = label[2]
-        name = label[3]
-        rgb_colour = hex_to_rgb(hex_colour)
-        if id not in structures_by_id:
-            structures_by_id[id] = {
-                "id": id,
-                "name": name,
-                "acronym": acronym,
-                "structure_id_path": [ROOT_ID, id],
-                "rgb_triplet": rgb_colour,
-            }
+        for key, label in labels_data.items():
+            if label[0] not in present_ids:
+                continue
+            if label[0] == 0 or label[2] == "Clear Label":
+                continue
+            id = label[0]
+            hex_colour = label[1]
+            acronym = label[2]
+            name = label[3]
+            rgb_colour = hex_to_rgb(hex_colour)
+            if id not in structures_by_id:
+                structures_by_id[id] = {
+                    "id": id,
+                    "name": name,
+                    "acronym": acronym,
+                    "structure_id_path": [ROOT_ID, id],
+                    "rgb_triplet": rgb_colour,
+                }
     
+    # Return root_id alongside structures.
     # Sort structures by depth of hierarchy, then ID. 
     structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))

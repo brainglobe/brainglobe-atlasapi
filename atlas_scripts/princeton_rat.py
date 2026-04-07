@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pooch
-import xmltodict # IS THIS IN REQUIREMENTS?
+import xmltodict  # IS THIS IN REQUIREMENTS?
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
@@ -228,7 +228,7 @@ def retrieve_reference_and_annotation():
     """
     reference_file = DOWNLOAD_DIR_PATH / TEMPLATE_FNAME
     annotation_file = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
-    
+
     reference = load_any(reference_file, as_numpy=True)
     annotation = load_any(annotation_file, as_numpy=True)
     return reference, annotation

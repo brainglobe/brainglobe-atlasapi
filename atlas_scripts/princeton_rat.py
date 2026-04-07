@@ -56,7 +56,7 @@ RESOLUTION = 25
 SKIP_DOWNLOADS_IF_PRESENT = True
 TEMPLATE_URL = "https://figshare.com/ndownloader/files/42485103"
 ANNOTATION_URL = "https://figshare.com/ndownloader/files/51181751"
-LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
+LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4_pack.zip"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
@@ -181,9 +181,40 @@ def download_resources():
     """
     Download the necessary resources for the atlas (with Pooch).
     """
-     
-    
-    pass
+    BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
+    DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
+
+    template_path = DOWNLOAD_DIR_PATH / TEMPLATE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+
+    needs_download = (
+        (not template_path.exists())
+        or (not annotation_path.exists())
+    )
+    if needs_download:
+        utils.check_internet_connection()
+
+    def should_fetch(path: Path) -> bool:
+        if not path.exists():
+            return True
+        return not SKIP_DOWNLOADS_IF_PRESENT
+
+    if should_fetch(template_path):
+        pooch.retrieve(
+            TEMPLATE_URL,
+            path=DOWNLOAD_DIR_PATH,
+            fname=TEMPLATE_FNAME,
+            known_hash="c764a7a15aa1e4b54fb5277057a7d4af1169cb00864feceb2a0103dc9b74fa7e",
+            progressbar=True,
+        )
+    if should_fetch(annotation_path):
+        pooch.retrieve(
+            ANNOTATION_URL,
+            path=DOWNLOAD_DIR_PATH,
+            fname=ANNOTATION_FNAME,
+            known_hash="cb8087e4c108a63d1350411d5cbafb394314b43c55afb831e15810c9cfaf0726",
+            progressbar=True,
+        )
 
 
 def retrieve_reference_and_annotation():
@@ -219,7 +250,7 @@ def retrieve_hemisphere_map():
     return None
 
 
-def retrieve_structure_information(working_dir, annotation):
+def retrieve_structure_information(annotation):
     """
     Return a list of dictionaries with information about the atlas.
 
@@ -245,16 +276,9 @@ def retrieve_structure_information(working_dir, annotation):
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
-    # Generated atlas path:
-    working_dir.mkdir(exist_ok=True, parents=True)
-
-    download_dir_path = working_dir / "downloads"
-    download_dir_path.mkdir(exist_ok=True)
-
     # Download and extract zip archives from Waxholm/NITRC
-    download_waxholm_atlas_files(download_dir_path, LABELS_URL, ATLAS_NAME)
-    labels_files_dir = download_dir_path / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
+    download_waxholm_atlas_files(DOWNLOAD_DIR_PATH, LABELS_URL, ATLAS_NAME)
+    labels_files_dir = DOWNLOAD_DIR_PATH / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 
     # Parse structure metadata
     structures = parse_structures(
@@ -323,7 +347,7 @@ if __name__ == "__main__":
     if RESOLUTION is None:
         raise ValueError("RESOLUTION must be set before running this script.")
 
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+    bg_root_dir = BG_ROOT_DIR
     bg_root_dir.mkdir(parents=True, exist_ok=True)
 
     # Fail early if any version of this atlas already exists
@@ -338,7 +362,7 @@ if __name__ == "__main__":
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information(bg_root_dir, annotated_volume)
+    structures = retrieve_structure_information(annotated_volume)
     meshes_dict = retrieve_or_construct_meshes()
 
     output_filename = wrapup_atlas_from_data(

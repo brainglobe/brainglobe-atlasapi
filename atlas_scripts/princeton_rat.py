@@ -1,13 +1,16 @@
-"""Template script for generating a BrainGlobe atlas.
-
-Use this script as a starting point to package a new BrainGlobe atlas by
-filling in the required functions and metadata.
-"""
-
 from pathlib import Path
 
+import numpy as np
+import pooch
+from brainglobe_utils.IO.image import load_any
+
+from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
@@ -24,37 +27,162 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "example_mouse"
+ATLAS_NAME = "princeton_rat"
 
 # DOI of the most relevant citable document
-CITATION = None
+CITATION = "https://doi.org/10.21769/BioProtoc.4854"
 
 # The scientific name of the species, ie; Rattus norvegicus
-SPECIES = None
+SPECIES = "Rattus norvegicus"
 
 # The URL for the data files
-ATLAS_LINK = None
+ATLAS_LINK = "https://figshare.com/ndownloader/files/42485103"
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "asr"
+ORIENTATION = "rai"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
 # hierarchical
-ROOT_ID = None
+ROOT_ID = 10000
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
-RESOLUTION = None
+RESOLUTION = 25
 
+# --- Script toggles (no CLI args) ---
+# If True, do not re-download files that already exist on disk.
+SKIP_DOWNLOADS_IF_PRESENT = True
+TEMPLATE_URL = "https://figshare.com/ndownloader/files/42485103"
+ANNOTATION_URL = "https://figshare.com/ndownloader/files/51181751"
+LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
+
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
+
+TEMPLATE_FNAME = "PRA.tif"
+ANNOTATION_FNAME = "PRA_WHS_v4_anns.tif"
+LABELS_FNAME = "WHS_SD_rat_atlas_v4_labels.ilf"
+
+ATLAS_PACKAGER = "Jung Woo Kim"
+
+def download_waxholm_atlas_files(
+    download_dir_path, atlas_file_url, ATLAS_NAME
+):
+    """Download and extract atlas files from a zip archive.
+
+    Downloads zip archives from the Waxholm/NITRC repository and extracts them.
+
+    Parameters
+    ----------
+    download_dir_path : pathlib.Path
+        The directory where the atlas files will be downloaded and extracted.
+    atlas_file_url : str
+        The URL of the atlas zip file.
+    ATLAS_NAME : str
+        The name of the atlas, used for naming the downloaded file.
+
+    Returns
+    -------
+    pathlib.Path
+        The download directory path where files were extracted.
+
+    Raises
+    ------
+    requests.exceptions.ConnectionError
+        If there is no internet connection.
+    """
+    download_name = ATLAS_NAME + "_atlas.zip"
+
+    pooch.retrieve(
+        url=atlas_file_url,
+        known_hash=None,
+        path=download_dir_path,
+        fname=download_name,
+        progressbar=True,
+        processor=pooch.Unzip(extract_dir=""),
+    )
+
+    return download_dir_path
+
+
+def parse_structures_xml(root, path=None, structures=None):
+    """Recursively parse the XML structure definition.
+
+    Parameters
+    ----------
+    root : dict
+        The current root element of the XML structure.
+    path : list, optional
+        The current path of structure IDs, by default None.
+    structures : list, optional
+        A list to accumulate parsed structures, by default None.
+
+    Returns
+    -------
+    list
+        A list of dictionaries, where each dictionary represents a structure
+        with its name, acronym, ID, path, and RGB triplet.
+    """
+    structures = structures or []
+    path = path or []
+
+    rgb_triplet = [int(root["@color"][i : i + 2], 16) for i in (1, 3, 5)]
+    id = int(root["@id"])
+    struct = {
+        "name": root["@name"],
+        "acronym": root["@abbreviation"],
+        "id": int(root["@id"]),
+        "structure_id_path": path + [id],
+        "rgb_triplet": rgb_triplet,
+    }
+    structures.append(struct)
+
+    if "label" in root:
+        if isinstance(root["label"], list):
+            for label in root["label"]:
+                parse_structures_xml(
+                    label, path=path + [id], structures=structures
+                )
+        else:
+            parse_structures_xml(
+                root["label"], path=path + [id], structures=structures
+            )
+
+    return structures
+
+
+def parse_structures(structures_file: Path):
+    """Parse the structures XML file to extract atlas region metadata.
+
+    Parameters
+    ----------
+    structures_file : pathlib.Path
+        The path to the .ilf XML file containing structure definitions.
+
+    Returns
+    -------
+    list
+        A list of dictionaries, where each dictionary represents a structure
+        with its name, acronym, ID, path, and RGB triplet.
+    """
+    parsed_xml = xmltodict.parse(structures_file.read_text())
+    root = parsed_xml["milf"]["structure"]
+    root["@abbreviation"] = "root"
+    root["@color"] = "#ffffff"
+    root["@id"] = "10000"
+    root["@name"] = "Root"
+
+    structures = parse_structures_xml(root)
+    return structures
 
 def download_resources():
     """
-    Download the necessary resources for the atlas.
-
-    If possible, please use the Pooch library to retrieve any resources.
+    Download the necessary resources for the atlas (with Pooch).
     """
+     
+    
     pass
 
 
@@ -91,7 +219,7 @@ def retrieve_hemisphere_map():
     return None
 
 
-def retrieve_structure_information():
+def retrieve_structure_information(working_dir, annotation):
     """
     Return a list of dictionaries with information about the atlas.
 
@@ -117,7 +245,42 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    return None
+    
+    # Generated atlas path:
+    working_dir.mkdir(exist_ok=True, parents=True)
+
+    download_dir_path = working_dir / "downloads"
+    download_dir_path.mkdir(exist_ok=True)
+
+    # Download and extract zip archives from Waxholm/NITRC
+    download_waxholm_atlas_files(download_dir_path, LABELS_URL, ATLAS_NAME)
+    labels_files_dir = download_dir_path / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
+
+    # Parse structure metadata
+    structures = parse_structures(
+        labels_files_dir / LABELS_FNAME
+    )
+
+
+    # Remove structures with missing annotations
+    tree = get_structures_tree(structures)
+    labels = set(np.unique(annotation).astype(np.int32))
+    existing_structures = []
+    for structure in structures:
+        stree = tree.subtree(structure["id"])
+        ids = set(stree.nodes.keys())
+        matched_labels = ids & labels
+        if matched_labels:
+            existing_structures.append(structure)
+        else:
+            node = tree.nodes[structure["id"]]
+            print(
+                f"{node.tag} not found in annotation volume, "
+                "removing from list of structures..."
+            )
+    structures = existing_structures
+    
+    return structures
 
 
 def retrieve_or_construct_meshes():
@@ -175,7 +338,7 @@ if __name__ == "__main__":
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information()
+    structures = retrieve_structure_information(bg_root_dir, annotated_volume)
     meshes_dict = retrieve_or_construct_meshes()
 
     output_filename = wrapup_atlas_from_data(

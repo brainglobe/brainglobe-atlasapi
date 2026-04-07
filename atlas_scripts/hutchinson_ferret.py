@@ -3,11 +3,6 @@ from pathlib import Path
 
 import numpy as np
 import pooch
-import json
-
-from pyarrow import csv
-
-from brainglobe_atlasapi import utils
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
@@ -42,12 +37,12 @@ ATLAS_LINK = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evT
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "lpi" 
+ORIENTATION = "lpi"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
 # hierarchical
-ROOT_ID = 999 
+ROOT_ID = 999
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
@@ -243,9 +238,9 @@ def retrieve_structure_information(annotation_volume: np.ndarray):
                     "structure_id_path": [ROOT_ID, id],
                     "rgb_triplet": rgb_colour,
                 }
-    
+
     # Return root_id alongside structures.
-    # Sort structures by depth of hierarchy, then ID. 
+    # Sort structures by depth of hierarchy, then ID.
     structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures

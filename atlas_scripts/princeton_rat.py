@@ -2,15 +2,10 @@ from pathlib import Path
 
 import numpy as np
 import pooch
-from brainglobe_utils.IO.image import load_any
 
-from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    construct_meshes_from_annotation,
-)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.utils import atlas_name_from_repr
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
@@ -66,6 +61,7 @@ ANNOTATION_FNAME = "PRA_WHS_v4_anns.tif"
 LABELS_FNAME = "WHS_SD_rat_atlas_v4_labels.ilf"
 
 ATLAS_PACKAGER = "Jung Woo Kim"
+
 
 def download_waxholm_atlas_files(
     download_dir_path, atlas_file_url, ATLAS_NAME
@@ -177,12 +173,11 @@ def parse_structures(structures_file: Path):
     structures = parse_structures_xml(root)
     return structures
 
+
 def download_resources():
     """
     Download the necessary resources for the atlas (with Pooch).
     """
-     
-    
     pass
 
 
@@ -245,7 +240,6 @@ def retrieve_structure_information(working_dir, annotation):
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
     # Generated atlas path:
     working_dir.mkdir(exist_ok=True, parents=True)
 
@@ -257,10 +251,7 @@ def retrieve_structure_information(working_dir, annotation):
     labels_files_dir = download_dir_path / "MBAT_WHS_SD_rat_atlas_v4_pack/Data"
 
     # Parse structure metadata
-    structures = parse_structures(
-        labels_files_dir / LABELS_FNAME
-    )
-
+    structures = parse_structures(labels_files_dir / LABELS_FNAME)
 
     # Remove structures with missing annotations
     tree = get_structures_tree(structures)
@@ -279,7 +270,7 @@ def retrieve_structure_information(working_dir, annotation):
                 "removing from list of structures..."
             )
     structures = existing_structures
-    
+
     return structures
 
 

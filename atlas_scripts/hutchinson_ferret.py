@@ -1,4 +1,4 @@
-import re
+import json
 from pathlib import Path
 
 import numpy as np
@@ -10,10 +10,11 @@ from pyarrow import csv
 from brainglobe_atlasapi import utils
 from brainglobe_utils.IO.image import load_any
 
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 ### Metadata ###
@@ -74,6 +75,7 @@ WHOLE_BRAIN_MESH_FNAME = "wholebrain.x3d"
 
 ATLAS_PACKAGER = "Jung Woo Kim"
 
+
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
 
@@ -93,6 +95,7 @@ def hex_to_rgb(hex):
         rgb.append(intvalue)
 
     return rgb
+
 
 def download_resources():
     """Download the necessary resources for the atlas (with Pooch)."""
@@ -155,10 +158,10 @@ def retrieve_reference_and_annotation():
     """
     template_path = DOWNLOAD_DIR_PATH / TEMPLATE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
-    
+
     reference = load_any(template_path, as_numpy=True)
     annotation = load_any(annotation_path, as_numpy=True)
-    
+
     return reference, annotation
 
 
@@ -206,10 +209,10 @@ def retrieve_structure_information(annotation_volume: np.ndarray):
         atlas structure.
     """
     labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
-    
-    # Filter structures to those actually present
+
+    # Filter structures to those actually present.
     present_ids = set(map(int, np.unique(annotation_volume)))
-    
+
     structures_by_id: dict[int, dict] = {
         ROOT_ID: {
             "id": ROOT_ID,
@@ -219,7 +222,7 @@ def retrieve_structure_information(annotation_volume: np.ndarray):
             "rgb_triplet": [255, 255, 255],
         }
     }
-    
+
     with open(labels_path) as f:
         labels_data = json.load(f)
         for key, label in labels_data.items():
@@ -289,7 +292,6 @@ def retrieve_additional_references():
     dict
         A dictionary mapping reference image names to their image stack data.
     """
-    
     # ADD DEC AND OTHER IMAGES AVAILABLE ON THE WEBSITE
     additional_references = {}
     return additional_references

@@ -148,7 +148,7 @@ def extract_mesh_from_mask(
     return mesh
 
 
-def new_create_region_mesh(
+def _create_region_mesh(
     meshes_dir_path: Path,
     node,
     tree,
@@ -161,24 +161,56 @@ def new_create_region_mesh(
     verbosity: int = 0,
 ):
     """
-    Automate the creation of a region's mesh. Given a volume of annotations
-    and a structures tree, it takes the volume's region corresponding to the
-    region of interest and all of its children's labels and creates a mesh.
+    Create and save an `.obj` mesh for a region and its descendants.
 
-    Note, by default it avoids overwriting a structure's mesh if the
-    .obj file exists already.
+    The mesh is generated from a binary mask built from `node.identifier` and
+    the identifiers of all child nodes in `tree`. Only labels present in
+    `annotated_volume` are considered. If no matching labels are found, or the
+    resulting mask is empty, no mesh is written.
+
+    `annotated_volume` may be provided as an in-memory NumPy array or as a
+    path to a zarr store, which will be opened in read mode.
+
+    For the root region (`node.identifier == ROOT_ID`), mesh extraction skips
+    the `closing_n_iters` argument. For all other regions, that parameter is
+    passed through to `extract_mesh_from_mask`.
 
     Parameters
     ----------
-    meshes_dir_path: pathlib Path object with folder where meshes are saved
-    node: tree's node corresponding to the region whose mesh is being created
-    tree: treelib.Tree with hierarchical structures information
-    labels: list of unique label annotations in annotated volume,
-    (list(np.unique(annotated_volume)))
-    annotated_volume: 3d numpy array path to a zarr store with annotations
-    ROOT_ID: id of root structure (mesh creation is a bit more refined for
-    that)
+    meshes_dir_path : Path
+        Directory where mesh `.obj` files are written.
+    node
+        Tree node corresponding to the region whose mesh should be created.
+    tree
+        Structure hierarchy containing `node` and its descendants.
+    labels
+        Unique annotation labels present in `annotated_volume`, typically
+        `list(np.unique(annotated_volume))`.
+    annotated_volume : numpy.ndarray or str or Path
+        Annotation volume as a 3D array, or a path to a zarr store containing
+        the annotations.
+    ROOT_ID : int
+        Identifier of the root structure.
+    closing_n_iters : int
+        Number of morphological closing iterations to apply for non-root
+        regions during mesh extraction.
+    decimate_fraction : float
+        Fraction used to decimate the extracted mesh.
+    smooth : bool
+        Whether to smooth the extracted mesh.
+    verbosity : int, optional
+        Verbosity level used for debug output.
 
+    Raises
+    ------
+    TypeError
+        If `annotated_volume` is neither a NumPy array nor a path to a zarr
+        store.
+
+    Returns
+    -------
+    None
+        Mesh data is written to disk when extraction succeeds.
     """
     if verbosity > 0:
         logger.debug(f"Creating mesh for region {node.identifier}")
@@ -238,13 +270,13 @@ def new_create_region_mesh(
 
 def create_region_mesh(args):
     """
-    Wrap new_create_region_mesh which facilitates
+    Wrap _create_region_mesh which facilitates
     multiprocessing.
     """
     if not isinstance(args, (tuple, list)):
         raise TypeError("args must be a tuple or list")
 
-    return new_create_region_mesh(*args)
+    return _create_region_mesh(*args)
 
 
 def construct_meshes_from_annotation(
@@ -385,7 +417,7 @@ def construct_meshes_from_annotation(
         for args in track(
             args_list, total=len(args_list), description="Creating meshes"
         ):
-            new_create_region_mesh(*args)
+            _create_region_mesh(*args)
 
     meshes_dict = {}
     structures_with_mesh = []

@@ -31,8 +31,9 @@ ATLAS_LINK = "http://www.brain-map.org"
 ORIENTATION = "asr"
 ROOT_ID = 997
 RESOLUTION = 10
-
+DEFAULT_WORKDIR.mkdir(exist_ok=True)
 BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
+
 ALLEN_ONTOLOGIES_URL = (
     "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
 )

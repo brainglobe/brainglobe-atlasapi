@@ -1,8 +1,7 @@
 # %% Imports
 
 from pathlib import Path
-import numpy as np
-import pandas as pd
+
 import pooch
 
 # %% Metadata
@@ -21,7 +20,10 @@ ATLAS_PACKAGER = ""
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR = BG_ROOT_DIR / "downloads"
 
-NMT_SYM_URL = "https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/NMT_v2.0_sym.tgz"
+NMT_SYM_URL = (
+    "https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/NMT_v2.0_sym.tgz"
+)
+
 
 def download_resources():
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -34,7 +36,6 @@ def download_resources():
         processor=pooch.Untar(extract_dir="NMT_v2.0_sym"),
         progressbar=True,
     )
-
 
     return {
         "nmt_dir": DOWNLOAD_DIR / "NMT_v2.0_sym",

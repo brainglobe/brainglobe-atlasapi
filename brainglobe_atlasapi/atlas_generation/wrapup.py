@@ -28,7 +28,12 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
 from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
 )
+from brainglobe_atlasapi.atlas_generation.validate_atlases import (
+    get_all_validation_functions,
+)
+from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas
 # structure:
@@ -237,9 +242,11 @@ def wrapup_atlas_from_data(
     atlas_version = f"{ATLAS_VERSION}.{atlas_minor_version}"
     atlas_version_underscore = atlas_version.replace(".", "_")
 
+    atlas_name_with_res = f"{atlas_name}_{resolution[0]}um"
+
     atlas_location = (
         f"/{descriptors.V2_ATLAS_ROOTDIR}/"
-        f"{atlas_name}/{atlas_version_underscore}"
+        f"{atlas_name_with_res}/{atlas_version_underscore}"
     )
     atlas_dir = Path(working_dir) / atlas_location.strip("/")
 
@@ -542,54 +549,52 @@ def wrapup_atlas_from_data(
     with open(atlas_dir / "manifest.json", "w") as f:
         json.dump(metadata_dict, f, indent=4)
 
-    # atlas_name_for_validation = atlas_name_from_repr(
-    #     atlas_name, resolution[0]
-    # )
+    atlas_name_for_validation = atlas_name_from_repr(atlas_name, resolution[0])
 
-    # # creating BrainGlobe object from local folder (working_dir)
-    # atlas_to_validate = BrainGlobeAtlas(
-    #     atlas_name=atlas_name_for_validation,
-    #     brainglobe_dir=working_dir,
-    #     check_latest=False,
-    # )
+    # creating BrainGlobe object from local folder (working_dir)
+    atlas_to_validate = BrainGlobeAtlas(
+        atlas_name=atlas_name_for_validation,
+        brainglobe_dir=working_dir.parent,
+        check_latest=False,
+    )
 
-    # # Run validation functions
-    # print(f"Running atlas validation on {atlas_dir_name}")
+    # Run validation functions
+    print(f"Running atlas validation on {atlas_location}")
 
-    # validation_results = {}
+    validation_results = {}
 
-    # for func in get_all_validation_functions():
-    #     try:
-    #         func(atlas_to_validate)
-    #         validation_results[func.__name__] = "Pass"
-    #     except AssertionError as e:
-    #         validation_results[func.__name__] = f"Fail: {str(e)}"
+    for func in get_all_validation_functions():
+        try:
+            func(atlas_to_validate)
+            validation_results[func.__name__] = "Pass"
+        except AssertionError as e:
+            validation_results[func.__name__] = f"Fail: {str(e)}"
 
-    # def _check_validations(validation_results):
-    #     # Helper function to check if all validations passed
-    #     all_passed = all(
-    #         result == "Pass" for result in validation_results.values()
-    #     )
+    def _check_validations(validation_results):
+        # Helper function to check if all validations passed
+        all_passed = all(
+            result == "Pass" for result in validation_results.values()
+        )
 
-    #     if all_passed:
-    #         print("This atlas is valid")
-    #     else:
-    #         failed_functions = [
-    #             func
-    #             for func, result in validation_results.items()
-    #             if result != "Pass"
-    #         ]
-    #         error_messages = [
-    #             result.split(": ")[1]
-    #             for result in validation_results.values()
-    #             if result != "Pass"
-    #         ]
+        if all_passed:
+            print("This atlas is valid")
+        else:
+            failed_functions = [
+                func
+                for func, result in validation_results.items()
+                if result != "Pass"
+            ]
+            error_messages = [
+                result.split(": ")[1]
+                for result in validation_results.values()
+                if result != "Pass"
+            ]
 
-    #         print("These validation functions have failed:")
-    #         for func, error in zip(failed_functions, error_messages):
-    #             print(f"- {func}: {error}")
+            print("These validation functions have failed:")
+            for func, error in zip(failed_functions, error_messages):
+                print(f"- {func}: {error}")
 
-    # _check_validations(validation_results)
+    _check_validations(validation_results)
 
     # Cleanup if required:
     if cleanup_files:

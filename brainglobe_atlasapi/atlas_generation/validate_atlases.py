@@ -204,7 +204,7 @@ def validate_checksum(atlas: BrainGlobeAtlas):
 
 
 def validate_image_dimensions(atlas: BrainGlobeAtlas):
-    """Check that annotation and reference images have identical dimensions.
+    """Check that annotation and template images have identical dimensions.
 
     Parameters
     ----------
@@ -219,12 +219,12 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
     Raises
     ------
     AssertionError
-        If the `annotation` and `reference` image arrays have different shapes.
+        If the `annotation` and `template` image arrays have different shapes.
     """
-    assert atlas.annotation.shape == atlas.reference.shape, (
-        "Annotation and reference image have different dimensions. \n"
+    assert atlas.annotation.shape == atlas.template.shape, (
+        "Annotation and template image have different dimensions. \n"
         f"Annotation image has dimension: {atlas.annotation.shape}, "
-        f"while reference image has dimension {atlas.reference.shape}."
+        f"while template image has dimension {atlas.template.shape}."
     )
     return True
 
@@ -359,10 +359,10 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
-    """Validate that the reference image was correctly rescaled.
+def validate_template_image_pixels(atlas: BrainGlobeAtlas):
+    """Validate that the template image was correctly rescaled.
 
-    This check aims to catch issues where a float64 reference image (e.g., from
+    This check aims to catch issues where a float64 template image (e.g., from
     MRI) might have been incorrectly rescaled or cast to the target integer
     data type (e.g., `REFERENCE_DTYPE`), resulting in pixel values that are
     too low. It asserts that not all pixel values are below 128
@@ -376,18 +376,18 @@ def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
     Returns
     -------
     bool
-        True if the reference image's pixel values appear to be
+        True if the template image's pixel values appear to be
         correctly scaled.
 
     Raises
     ------
     AssertionError
-        If all pixel values in the reference image are less than 128,
+        If all pixel values in the template image are less than 128,
         suggesting incorrect scaling.
     """
     assert not np.all(
-        atlas.reference < 128
-    ), f"Reference image is likely wrongly rescaled to {REFERENCE_DTYPE}"
+        atlas.template < 128
+    ), f"Template image is likely wrongly rescaled to {REFERENCE_DTYPE}"
     return True
 
 
@@ -587,7 +587,7 @@ def get_all_validation_functions():
         validate_additional_references,
         catch_missing_mesh_files,
         catch_missing_structures,
-        validate_reference_image_pixels,
+        validate_template_image_pixels,
         validate_annotation_symmetry,
         validate_unique_acronyms,
         validate_atlas_name,

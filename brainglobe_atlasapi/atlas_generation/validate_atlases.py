@@ -8,7 +8,7 @@ from typing import get_args
 
 import numpy as np
 
-from brainglobe_atlasapi import BrainGlobeAtlas
+from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
@@ -292,19 +292,18 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     atlas_path = atlas.root_dir
+    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
 
-    obj_path = Path(atlas_path / "meshes")
+    mesh_path = (
+        Path(atlas_path) / meshes_location / descriptors.V2_MESHES_DIRECTORY
+    )
 
-    ids_from_mesh_files = [
-        int(Path(file).stem)
-        for file in os.listdir(obj_path)
-        if file.endswith(".obj")
-    ]
+    ids_from_mesh_files = [int(Path(f).stem) for f in os.listdir(mesh_path)]
 
     in_bg_not_mesh = []
-    for id in ids_from_bg_atlas_api:
-        if id not in ids_from_mesh_files:
-            in_bg_not_mesh.append(id)
+    for mesh_id in ids_from_bg_atlas_api:
+        if mesh_id not in ids_from_mesh_files:
+            in_bg_not_mesh.append(mesh_id)
 
     if len(in_bg_not_mesh) != 0:
         raise AssertionError(
@@ -337,14 +336,13 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     atlas_path = atlas.root_dir
+    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
 
-    obj_path = Path(atlas_path / "meshes")
+    mesh_path = (
+        Path(atlas_path) / meshes_location / descriptors.V2_MESHES_DIRECTORY
+    )
 
-    ids_from_mesh_files = [
-        int(Path(file).stem)
-        for file in os.listdir(obj_path)
-        if file.endswith(".obj")
-    ]
+    ids_from_mesh_files = [int(Path(f).stem) for f in os.listdir(mesh_path)]
 
     in_mesh_not_bg = []
     for id in ids_from_mesh_files:

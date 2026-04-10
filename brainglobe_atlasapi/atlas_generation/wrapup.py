@@ -168,7 +168,6 @@ def wrapup_atlas_from_data(
     annotation_info: Optional[Tuple[str, str]] = None,
     terminology_info: Optional[Tuple[str, str]] = None,
     coordinate_space_info: Optional[Tuple[str, str]] = None,
-    cleanup_files=False,
     scale_meshes=True,
     resolution_mapping=None,
     additional_references=[],
@@ -217,8 +216,6 @@ def wrapup_atlas_from_data(
         Hemisphere stack for the atlas.
         If str or Path, will be read with tifffile.
         If none is provided, atlas is assumed to be symmetric.
-    cleanup_files : bool, optional
-         (Default value = False)
     scale_meshes: bool, optional
         (Default values = False).
         If True the meshes points are scaled by the resolution
@@ -595,11 +592,5 @@ def wrapup_atlas_from_data(
                 print(f"- {func}: {error}")
 
     _check_validations(validation_results)
-
-    # Cleanup if required:
-    if cleanup_files:
-        print(f"Cleaning up atlas data at: {dest_dir}")
-        # Clean temporary directory and remove it:
-        shutil.rmtree(dest_dir)
 
     return atlas_dir

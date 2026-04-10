@@ -255,7 +255,7 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
     """
     for (
         additional_reference_name
-    ) in atlas.additional_references.references_list:
+    ) in atlas.additional_references.references_names:
         additional_reference = atlas.additional_references[
             additional_reference_name
         ]

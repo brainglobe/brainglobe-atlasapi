@@ -19,6 +19,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 def generate_metadata_dict(
     name,
+    location,
     citation,
     atlas_link,
     species,
@@ -29,6 +30,10 @@ def generate_metadata_dict(
     shape,
     additional_references,
     atlas_packager,
+    coordinate_space_metadata,
+    terminology_metadata,
+    annotation_set_metadata,
+    template_metadata,
 ):
     """
     Generate a dictionary containing metadata for a BrainGlobe atlas.
@@ -37,6 +42,8 @@ def generate_metadata_dict(
     ----------
     name : str
         The name of the atlas.
+    location : str
+        The relative path to the atlas data within the brainglobe directory.
     citation : str
         The citation for the atlas.
     atlas_link : str
@@ -53,10 +60,19 @@ def generate_metadata_dict(
         The version of the atlas.
     shape : tuple of int
         The shape (dimensions) of the atlas volume (e.g., (z, y, x)).
-    additional_references : list of str
+    additional_references : list of dict
         A list of additional reference links or citations.
     atlas_packager : str
         The name of the person or entity packaging the atlas.
+    coordinate_space_metadata : dict
+        Metadata for the coordinate space.
+    terminology_metadata : dict
+        Metadata for the terminology.
+    annotation_set_metadata : dict
+        Metadata for the annotation set.
+    template_metadata : dict
+        Metadata for the template.
+
 
     Returns
     -------
@@ -93,6 +109,7 @@ def generate_metadata_dict(
 
     return dict(
         name=name,
+        location=location,
         citation=citation,
         atlas_link=atlas_link,
         species=species,
@@ -103,6 +120,10 @@ def generate_metadata_dict(
         shape=shape,
         additional_references=additional_references,
         atlas_packager=atlas_packager,
+        coordinate_space=coordinate_space_metadata,
+        terminology=terminology_metadata,
+        annotation_set=annotation_set_metadata,
+        template=template_metadata,
     )
 
 

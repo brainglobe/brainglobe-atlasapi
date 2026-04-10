@@ -42,23 +42,55 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
     AssertionError
         If any expected file or directory is missing.
     """
-    atlas_path = atlas.root_dir
+    root_dir = atlas.root_dir
 
-    assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
+    atlas_location = atlas.metadata["location"].lstrip("/")
+    atlas_path = Path(root_dir) / atlas_location / "manifest.json"
+
+    assert atlas_path.exists(), f"Atlas path {atlas_path} not found"
+
+    template_location = atlas.metadata["template"]["location"].lstrip("/")
+    annotation_location = atlas.metadata["annotation_set"]["location"].lstrip(
+        "/"
+    )
+    terminology_location = atlas.metadata["terminology"]["location"].lstrip(
+        "/"
+    )
+    coordinate_space_location = atlas.metadata["coordinate_space"][
+        "location"
+    ].lstrip("/")
+
     expected_files = [
-        "annotation.tiff",
-        "reference.tiff",
-        "metadata.json",
-        "structures.json",
+        (
+            "Annotations",
+            root_dir / annotation_location / descriptors.V2_ANNOTATION_NAME,
+        ),
+        (
+            "Meshes",
+            root_dir / annotation_location / descriptors.V2_MESHES_DIRECTORY,
+        ),
+        (
+            "Hemispheres",
+            root_dir / annotation_location / descriptors.V2_HEMISPHERES_NAME,
+        ),
+        (
+            "Template",
+            root_dir / template_location / descriptors.V2_TEMPLATE_NAME,
+        ),
+        (
+            "Coordinate Space",
+            root_dir / coordinate_space_location / "manifest.json",
+        ),
+        (
+            "Terminology",
+            root_dir / terminology_location / descriptors.V2_TERMINOLOGY_NAME,
+        ),
     ]
-    for expected_file_name in expected_files:
-        expected_path = Path(atlas_path / expected_file_name)
+    for file_name, expected_path in expected_files:
         assert (
-            expected_path.is_file()
+            expected_path.exists()
         ), f"Expected file not found at {expected_path}"
 
-    meshes_path = atlas_path / "meshes"
-    assert meshes_path.is_dir(), f"Meshes path {meshes_path} not found"
     return True
 
 

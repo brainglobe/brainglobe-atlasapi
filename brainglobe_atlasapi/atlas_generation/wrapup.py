@@ -7,9 +7,11 @@ from typing import List, Optional, Tuple
 
 import brainglobe_space as bgs
 import meshio as mio
+import ngff_zarr as nz
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import s3fs
 import tifffile
 import zarr
 from ome_zarr.io import parse_url
@@ -82,6 +84,80 @@ def filter_structures_not_present_in_annotation(structures, annotation):
         print("Removed structure:", r["name"], "(ID:", r["id"], ")")
 
     return [s for s in structures if is_present(s["id"])]
+
+
+def check_requested_component(
+    component_info: Tuple[str, str, bool],
+    local_path: Path,
+    component_root: str,
+    component_file_name: str,
+) -> Tuple[str, str, bool]:
+    """
+    Check if a requested component already exists remotely and fetch metadata.
+
+    This function checks if a component (e.g., annotation, template) with the
+    specified name and version already exists in the remote storage.
+    If it exists, it fetches the OME-Zarr metadata files for that component
+    and saves them locally. It returns the component name, version,
+    and a boolean indicating whether to skip saving the component data.
+
+    Parameters
+    ----------
+    component_info : Tuple[str, str, bool]
+        A tuple containing the component name, version, and a boolean for
+        whether the component is published.
+    component_root : str
+        The root directory in the remote storage where the component is stored.
+    component_file_name : str
+        The name of the component file (e.g., "anatomical_template.ome.zarr").
+    local_path : Path
+        The local directory where the component metadata should be saved.
+
+    Returns
+    -------
+    Tuple[str, str, bool]
+        A tuple containing the component name, version, and a boolean for
+        whether to skip saving the component data.
+    """
+    fs = s3fs.S3FileSystem(anon=True)
+    component_name, component_version, _ = component_info
+
+    if component_info[2]:
+        remote_path = (
+            f"{component_root}/"
+            f"{component_name}/"
+            f"{component_version.replace('.', '_')}/"
+            f"{component_file_name}"
+        )
+
+        if not fs.exists(descriptors.remote_url_s3.format(remote_path)):
+            raise FileNotFoundError(
+                f"{component_name} version {component_version} "
+                f"not found at {remote_path}"
+            )
+        else:
+            skip_saving = True
+            # Add wildcard to fetch all OME-Zarr metadata files
+            if component_file_name.endswith(".ome.zarr"):
+                remote_path += "/**/*.json"
+
+            local_component_path = (
+                local_path
+                / component_root
+                / component_name
+                / component_version.replace(".", "_")
+                / component_file_name
+            )
+
+            local_component_path.parent.mkdir(parents=True, exist_ok=True)
+            fs.get(
+                descriptors.remote_url_s3.format(remote_path),
+                local_component_path,
+            )
+    else:
+        skip_saving = False
+
+    return component_name, component_version, skip_saving
 
 
 def standardize_resolution(
@@ -164,10 +240,10 @@ def wrapup_atlas_from_data(
     working_dir,
     atlas_packager=None,
     hemispheres_stack=None,
-    template_info: Optional[Tuple[str, str]] = None,
-    annotation_info: Optional[Tuple[str, str]] = None,
-    terminology_info: Optional[Tuple[str, str]] = None,
-    coordinate_space_info: Optional[Tuple[str, str]] = None,
+    template_info: Optional[Tuple[str, str, bool]] = None,
+    annotation_info: Optional[Tuple[str, str, bool]] = None,
+    terminology_info: Optional[Tuple[str, str, bool]] = None,
+    coordinate_space_info: Optional[Tuple[str, str, bool]] = None,
     scale_meshes=True,
     resolution_mapping=None,
     additional_references=[],
@@ -248,28 +324,62 @@ def wrapup_atlas_from_data(
     atlas_dir = Path(working_dir) / atlas_location.strip("/")
 
     if annotation_info is not None:
-        annotation_name, annotation_version = annotation_info
+        annotation_info = check_requested_component(
+            annotation_info,
+            working_dir,
+            descriptors.V2_ANNOTATION_ROOTDIR,
+            descriptors.V2_ANNOTATION_NAME,
+        )
+        annotation_name, annotation_version = annotation_info[0:2]
+        skip_annotation_saving = annotation_info[2]
     else:
         annotation_name = f"{atlas_name}-annotation"
         annotation_version = atlas_version
+        skip_annotation_saving = False
 
     if template_info is not None:
-        template_name, template_version = template_info
+        template_info = check_requested_component(
+            template_info,
+            working_dir,
+            descriptors.V2_TEMPLATE_ROOTDIR,
+            descriptors.V2_TEMPLATE_NAME,
+        )
+        template_name, template_version = template_info[0:2]
+        skip_template_saving = template_info[2]
     else:
         template_name = f"{atlas_name}-template"
         template_version = atlas_version
+        skip_template_saving = False
 
     if terminology_info is not None:
-        terminology_name, terminology_version = terminology_info
+        terminology_info = check_requested_component(
+            terminology_info,
+            working_dir,
+            descriptors.V2_TERMINOLOGY_ROOTDIR,
+            descriptors.V2_TERMINOLOGY_NAME,
+        )
+        terminology_name, terminology_version = terminology_info[0:2]
+        skip_terminology_saving = terminology_info[2]
     else:
         terminology_name = f"{atlas_name}-terminology"
         terminology_version = atlas_version
+        skip_terminology_saving = False
 
     if coordinate_space_info is not None:
-        coordinate_space_name, coordinate_space_version = coordinate_space_info
+        coordinate_space_info = check_requested_component(
+            coordinate_space_info,
+            working_dir,
+            descriptors.V2_COORDINATE_SPACE_ROOTDIR,
+            "manifest.json",
+        )
+        coordinate_space_name, coordinate_space_version = (
+            coordinate_space_info[0:2]
+        )
+        skip_coordinate_space_saving = coordinate_space_info[2]
     else:
         coordinate_space_name = f"{atlas_name}-coordinate-space"
         coordinate_space_version = atlas_version
+        skip_coordinate_space_saving = False
 
     template_metadata = {
         "name": template_name,
@@ -349,59 +459,138 @@ def wrapup_atlas_from_data(
     # Check consistency of structures:
     check_struct_consistency(structures_list)
 
-    stack_list = [reference_stack, annotation_stack]
-    saving_fun_list = [save_template, save_annotation]
-    stack_metadata_list = [template_metadata, annotation_metadata]
-
-    # write OME Zarr stacks:
-    for stack, saving_function, metadata in zip(
-        stack_list, saving_fun_list, stack_metadata_list
-    ):
+    # Write template:
+    if not skip_template_saving:
         # Reorient stacks if required:
-        stack = space_convention.map_stack_to(
-            descriptors.ATLAS_ORIENTATION, stack, copy=False
+        reference_stack = space_convention.map_stack_to(
+            descriptors.ATLAS_ORIENTATION, reference_stack, copy=False
         )
-        shape = stack.shape
+        shape = reference_stack.shape
+        dest_dir = working_dir / template_metadata["location"].lstrip("/")
 
-        dest_dir = working_dir / metadata["location"].lstrip("/")
         if dest_dir.exists():
             print(
-                f"{metadata['name']} directory already exists, "
+                f"{template_metadata['name']} directory already exists, "
                 f"skipping stack saving: {dest_dir}"
             )
         else:
-            saving_function(stack, dest_dir, transformations)
-
-    if hemispheres_stack is None:
-        # initialize empty stack:
-        hemispheres_stack = np.full(shape, 2, dtype=np.uint8)
-
-        # Fill out with 2s the right hemisphere:
-        slices = [slice(None) for _ in range(3)]
-        slices[2] = slice(round(hemispheres_stack.shape[2] / 2), None)
-        hemispheres_stack[tuple(slices)] = 1
-
-        dest_dir = (
+            save_template(reference_stack, dest_dir, transformations)
+    else:
+        multiscale = nz.from_ngff_zarr(
             working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_HEMISPHERES_NAME
+            / template_metadata["location"].lstrip("/")
+            / descriptors.V2_TEMPLATE_NAME
         )
+        shape = multiscale.images[0].data.shape
+
+    # Write annotation:
+    if not skip_annotation_saving:
+        # Reorient stacks if required:
+        annotation_stack = space_convention.map_stack_to(
+            descriptors.ATLAS_ORIENTATION, annotation_stack, copy=False
+        )
+        shape = annotation_stack.shape
+
+        dest_dir = working_dir / annotation_metadata["location"].lstrip("/")
 
         if dest_dir.exists():
             print(
-                f"Hemispheres directory already exists, "
-                f"skipping hemispheres stack saving: {dest_dir}"
+                f"{annotation_metadata['name']} directory already exists, "
+                f"skipping stack saving: {dest_dir}"
             )
         else:
-            save_hemispheres(
-                hemispheres_stack, dest_dir.parent, transformations
+            save_annotation(annotation_stack, dest_dir, transformations)
+
+        if hemispheres_stack is None:
+            # initialize empty stack:
+            hemispheres_stack = np.full(shape, 2, dtype=np.uint8)
+
+            # Fill out with 2s the right hemisphere:
+            slices = [slice(None) for _ in range(3)]
+            slices[2] = slice(round(hemispheres_stack.shape[2] / 2), None)
+            hemispheres_stack[tuple(slices)] = 1
+
+            dest_dir = (
+                working_dir
+                / annotation_metadata["location"].lstrip("/")
+                / descriptors.V2_HEMISPHERES_NAME
             )
 
+            if dest_dir.exists():
+                print(
+                    f"Hemispheres directory already exists, "
+                    f"skipping hemispheres stack saving: {dest_dir}"
+                )
+            else:
+                save_hemispheres(
+                    hemispheres_stack, dest_dir.parent, transformations
+                )
+
+        # Reorient vertices of the mesh.
+        mesh_dest_dir = (
+            working_dir
+            / annotation_metadata["location"].lstrip("/")
+            / descriptors.V2_MESHES_DIRECTORY
+        )
+        if mesh_dest_dir.exists():
+            print(
+                f"Mesh directory already exists, "
+                f"skipping mesh saving: {mesh_dest_dir}"
+            )
+        else:
+            mesh_dest_dir.mkdir(parents=True)
+
+            for mesh_id, meshfile in meshes_dict.items():
+                mesh = mio.read(meshfile)
+
+                if scale_meshes:
+                    # Scale the mesh to the desired resolution,
+                    # BEFORE transforming. Note that this transformation
+                    # happens in original space, but the resolution is passed
+                    # in target space (typically ASR)
+                    if not resolution_mapping:
+                        # isotropic case, so don't need to re-map resolution
+                        mesh.points *= resolution
+                    else:
+                        # resolution needs to be transformed back
+                        # to original space in anisotropic case
+                        original_resolution = (
+                            resolution[resolution_mapping[0]],
+                            resolution[resolution_mapping[1]],
+                            resolution[resolution_mapping[2]],
+                        )
+                        mesh.points *= original_resolution
+
+                # Reorient points:
+                mesh.points = space_convention.map_points_to(
+                    descriptors.ATLAS_ORIENTATION, mesh.points
+                )
+
+                # Save in meshes dir:
+                # TODO: parallelise and copy if not scaling or reorienting
+                mio.write(
+                    mesh_dest_dir / f"{mesh_id}",
+                    mesh,
+                    file_format="neuroglancer",
+                )
+
+    additional_references_metadata = []
     for ref_tuple in additional_references:
         ref_metadata, stack = ref_tuple
         stack = space_convention.map_stack_to(
             descriptors.ATLAS_ORIENTATION, stack, copy=False
         )
+        if isinstance(ref_metadata, str):
+            ref_metadata = {
+                "name": f"{atlas_name}-{ref_metadata}-template",
+                "version": atlas_version,
+                "location": f"/{descriptors.V2_TEMPLATE_ROOTDIR}/"
+                f"{atlas_name}-{ref_metadata}-template/"
+                f"{atlas_version.replace('.', '_')}",
+            }
+
+        additional_references_metadata.append(ref_metadata)
+
         dest_dir = working_dir / ref_metadata["location"].lstrip("/")
 
         if dest_dir.exists():
@@ -412,114 +601,70 @@ def wrapup_atlas_from_data(
         else:
             save_template(stack, dest_dir, transformations)
 
-    # Reorient vertices of the mesh.
-    mesh_dest_dir = (
-        working_dir
-        / annotation_metadata["location"].lstrip("/")
-        / descriptors.V2_MESHES_DIRECTORY
-    )
-    if mesh_dest_dir.exists():
-        print(
-            f"Mesh directory already exists, "
-            f"skipping mesh saving: {mesh_dest_dir}"
-        )
-    else:
-        mesh_dest_dir.mkdir(parents=True)
+    if not skip_terminology_saving:
+        terminology_path = working_dir / terminology_metadata[
+            "location"
+        ].strip("/")
+        if terminology_path.exists():
+            print(
+                f"Terminology directory already exists, "
+                f"skipping terminology saving: {terminology_path}"
+            )
+        else:
+            terminology_path.mkdir(parents=True)
+            terminology_path = terminology_path / "terminology.csv"
 
-        for mesh_id, meshfile in meshes_dict.items():
-            mesh = mio.read(meshfile)
+            structures_df = pd.DataFrame(structures_list)
+            terminology_df = pd.DataFrame()
 
-            if scale_meshes:
-                # Scale the mesh to the desired resolution, BEFORE transforming
-                # Note that this transformation happens in original space,
-                # but the resolution is passed in target space (typically ASR)
-                if not resolution_mapping:
-                    # isotropic case, so don't need to re-map resolution
-                    mesh.points *= resolution
-                else:
-                    # resolution needs to be transformed back
-                    # to original space in anisotropic case
-                    original_resolution = (
-                        resolution[resolution_mapping[0]],
-                        resolution[resolution_mapping[1]],
-                        resolution[resolution_mapping[2]],
-                    )
-                    mesh.points *= original_resolution
+            terminology_df["identifier"] = structures_df["id"].astype(
+                np.uint32
+            )
+            terminology_df["parent_identifier"] = (
+                structures_df["structure_id_path"]
+                .apply(lambda x: x[-2] if len(x) > 1 else None)
+                .astype(pd.UInt32Dtype())
+            )
+            terminology_df["annotation_value"] = structures_df["id"].astype(
+                np.uint32
+            )
+            terminology_df["name"] = structures_df["name"].astype(
+                pd.StringDtype()
+            )
+            terminology_df["abbreviation"] = structures_df["acronym"].astype(
+                pd.StringDtype()
+            )
+            terminology_df["color_hex_triplet"] = structures_df[
+                "rgb_triplet"
+            ].apply(lambda x: "".join(f"{c:02X}" for c in x))
+            terminology_df["color_hex_triplet"] = "#" + terminology_df[
+                "color_hex_triplet"
+            ].astype(pd.StringDtype())
+            terminology_df["root_identifier_path"] = structures_df[
+                "structure_id_path"
+            ]
 
-            # Reorient points:
-            mesh.points = space_convention.map_points_to(
-                descriptors.ATLAS_ORIENTATION, mesh.points
+            terminology_df.to_csv(terminology_path, index=False)
+
+    if not skip_coordinate_space_saving:
+        # Write coordinate space metadata
+        coordinate_space_path = working_dir / coordinate_space_metadata[
+            "location"
+        ].strip("/")
+
+        if coordinate_space_path.exists():
+            print(
+                f"Coordinate space directory already exists, skipping "
+                f"coordinate space metadata saving: {coordinate_space_path}"
+            )
+        else:
+            coordinate_space_path.mkdir(parents=True)
+            coordinate_space_metadata_path = (
+                coordinate_space_path / "manifest.json"
             )
 
-            # Save in meshes dir:
-            # TODO: parallelise and copy if not scaling or reorienting
-            mio.write(
-                mesh_dest_dir / f"{mesh_id}", mesh, file_format="neuroglancer"
-            )
-
-    # save regions list json:
-    with open(dest_dir / descriptors.STRUCTURES_FILENAME, "w") as f:
-        json.dump(structures_list, f)
-
-    # Terminology
-    terminology_path = working_dir / terminology_metadata["location"].strip(
-        "/"
-    )
-    if terminology_path.exists():
-        print(
-            f"Terminology directory already exists, "
-            f"skipping terminology saving: {terminology_path}"
-        )
-    else:
-        terminology_path.mkdir(parents=True)
-        terminology_path = terminology_path / "terminology.csv"
-
-        structures_df = pd.DataFrame(structures_list)
-        terminology_df = pd.DataFrame()
-
-        terminology_df["identifier"] = structures_df["id"].astype(np.uint32)
-        terminology_df["parent_identifier"] = (
-            structures_df["structure_id_path"]
-            .apply(lambda x: x[-2] if len(x) > 1 else None)
-            .astype(pd.UInt32Dtype())
-        )
-        terminology_df["annotation_value"] = structures_df["id"].astype(
-            np.uint32
-        )
-        terminology_df["name"] = structures_df["name"].astype(pd.StringDtype())
-        terminology_df["abbreviation"] = structures_df["acronym"].astype(
-            pd.StringDtype()
-        )
-        terminology_df["color_hex_triplet"] = structures_df[
-            "rgb_triplet"
-        ].apply(lambda x: "".join(f"{c:02X}" for c in x))
-        terminology_df["color_hex_triplet"] = "#" + terminology_df[
-            "color_hex_triplet"
-        ].astype(pd.StringDtype())
-        terminology_df["root_identifier_path"] = structures_df[
-            "structure_id_path"
-        ]
-
-        terminology_df.to_csv(terminology_path, index=False)
-
-    # Write coordinate space metadata
-    coordinate_space_path = working_dir / coordinate_space_metadata[
-        "location"
-    ].strip("/")
-
-    if coordinate_space_path.exists():
-        print(
-            f"Coordinate space directory already exists, skipping "
-            f"coordinate space metadata saving: {coordinate_space_path}"
-        )
-    else:
-        coordinate_space_path.mkdir(parents=True)
-        coordinate_space_metadata_path = (
-            coordinate_space_path / "manifest.json"
-        )
-
-        with open(coordinate_space_metadata_path, "w") as f:
-            json.dump(coordinate_space_metadata, f, indent=4)
+            with open(coordinate_space_metadata_path, "w") as f:
+                json.dump(coordinate_space_metadata, f, indent=4)
 
     # Finalize metadata dictionary:
     metadata_dict = generate_metadata_dict(
@@ -533,9 +678,7 @@ def wrapup_atlas_from_data(
         orientation=descriptors.ATLAS_ORIENTATION,  # Pass orientation "asr"
         version=f"{ATLAS_VERSION}.{atlas_minor_version}",
         shape=shape,
-        additional_references=[
-            add_ref[0] for add_ref in additional_references
-        ],
+        additional_references=additional_references_metadata,
         atlas_packager=atlas_packager,
         coordinate_space_metadata=coordinate_space_metadata,
         terminology_metadata=terminology_metadata,

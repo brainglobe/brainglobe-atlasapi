@@ -3,7 +3,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import brainglobe_space as bgs
 import meshio as mio
@@ -224,6 +224,75 @@ def write_multiscale_ome_zarr(
     )
 
 
+def _resolve_component_info(
+    component_info: Optional[Tuple[str, str, bool]],
+    working_dir: Path,
+    root_dir: str,
+    file_name: str,
+    default_name: str,
+    atlas_version: str,
+) -> Tuple[str, str, bool]:
+    if component_info is not None:
+        component_info = check_requested_component(
+            component_info, working_dir, root_dir, file_name
+        )
+        return component_info[0], component_info[1], component_info[2]
+    return default_name, atlas_version, False
+
+
+def _make_component_metadata(
+    name: str,
+    version: str,
+    root_dir: str,
+    extra: Optional[dict] = None,
+) -> dict:
+    metadata = {
+        "name": name,
+        "version": version,
+        "location": f"/{root_dir}/{name}/{version.replace('.', '_')}",
+    }
+    if extra:
+        metadata.update(extra)
+    return metadata
+
+
+def _save_if_not_exists(
+    stack: npt.NDArray,
+    dest_dir: Path,
+    label: str,
+    transformations: List[List[dict]],
+    save_fn: Callable[[npt.NDArray, Path, List[List[dict]]], None],
+) -> None:
+    if dest_dir.exists():
+        print(f"{label} directory already exists, skipping: {dest_dir}")
+    else:
+        save_fn(stack, dest_dir, transformations)
+
+
+def _check_validations(validation_results: dict) -> None:
+    all_passed = all(
+        result == "Pass" for result in validation_results.values()
+    )
+
+    if all_passed:
+        print("This atlas is valid")
+    else:
+        failed_functions = [
+            func
+            for func, result in validation_results.items()
+            if result != "Pass"
+        ]
+        error_messages = [
+            result.split(": ")[1]
+            for result in validation_results.values()
+            if result != "Pass"
+        ]
+
+        print("These validation functions have failed:")
+        for func, error in zip(failed_functions, error_messages):
+            print(f"- {func}: {error}")
+
+
 def wrapup_atlas_from_data(
     atlas_name,
     atlas_minor_version,
@@ -323,98 +392,75 @@ def wrapup_atlas_from_data(
     )
     atlas_dir = Path(working_dir) / atlas_location.strip("/")
 
-    if annotation_info is not None:
-        annotation_info = check_requested_component(
+    annotation_name, annotation_version, skip_annotation_saving = (
+        _resolve_component_info(
             annotation_info,
             working_dir,
             descriptors.V2_ANNOTATION_ROOTDIR,
             descriptors.V2_ANNOTATION_NAME,
+            f"{atlas_name}-annotation",
+            atlas_version,
         )
-        annotation_name, annotation_version = annotation_info[0:2]
-        skip_annotation_saving = annotation_info[2]
-    else:
-        annotation_name = f"{atlas_name}-annotation"
-        annotation_version = atlas_version
-        skip_annotation_saving = False
+    )
 
-    if template_info is not None:
-        template_info = check_requested_component(
+    template_name, template_version, skip_template_saving = (
+        _resolve_component_info(
             template_info,
             working_dir,
             descriptors.V2_TEMPLATE_ROOTDIR,
             descriptors.V2_TEMPLATE_NAME,
+            f"{atlas_name}-template",
+            atlas_version,
         )
-        template_name, template_version = template_info[0:2]
-        skip_template_saving = template_info[2]
-    else:
-        template_name = f"{atlas_name}-template"
-        template_version = atlas_version
-        skip_template_saving = False
+    )
 
-    if terminology_info is not None:
-        terminology_info = check_requested_component(
+    terminology_name, terminology_version, skip_terminology_saving = (
+        _resolve_component_info(
             terminology_info,
             working_dir,
             descriptors.V2_TERMINOLOGY_ROOTDIR,
             descriptors.V2_TERMINOLOGY_NAME,
+            f"{atlas_name}-terminology",
+            atlas_version,
         )
-        terminology_name, terminology_version = terminology_info[0:2]
-        skip_terminology_saving = terminology_info[2]
-    else:
-        terminology_name = f"{atlas_name}-terminology"
-        terminology_version = atlas_version
-        skip_terminology_saving = False
+    )
 
-    if coordinate_space_info is not None:
-        coordinate_space_info = check_requested_component(
-            coordinate_space_info,
-            working_dir,
-            descriptors.V2_COORDINATE_SPACE_ROOTDIR,
-            "manifest.json",
-        )
-        coordinate_space_name, coordinate_space_version = (
-            coordinate_space_info[0:2]
-        )
-        skip_coordinate_space_saving = coordinate_space_info[2]
-    else:
-        coordinate_space_name = f"{atlas_name}-coordinate-space"
-        coordinate_space_version = atlas_version
-        skip_coordinate_space_saving = False
+    (
+        coordinate_space_name,
+        coordinate_space_version,
+        skip_coordinate_space_saving,
+    ) = _resolve_component_info(
+        coordinate_space_info,
+        working_dir,
+        descriptors.V2_COORDINATE_SPACE_ROOTDIR,
+        "manifest.json",
+        f"{atlas_name}-coordinate-space",
+        atlas_version,
+    )
 
-    template_metadata = {
-        "name": template_name,
-        "version": template_version,
-        "location": f"/{descriptors.V2_TEMPLATE_ROOTDIR}/"
-        f"{template_name}/"
-        f"{template_version.replace('.', '_')}",
-    }
-
-    terminology_metadata = {
-        "name": terminology_name,
-        "version": terminology_version,
-        "location": f"/{descriptors.V2_TERMINOLOGY_ROOTDIR}/"
-        f"{terminology_name}/"
-        f"{terminology_version.replace('.', '_')}",
-    }
-
-    annotation_metadata = {
-        "name": annotation_name,
-        "version": annotation_version,
-        "location": f"/{descriptors.V2_ANNOTATION_ROOTDIR}/"
-        f"{annotation_name}/"
-        f"{annotation_version.replace('.', '_')}",
-        "template": template_metadata,
-        "terminology": terminology_metadata,
-    }
-
-    coordinate_space_metadata = {
-        "name": coordinate_space_name,
-        "version": coordinate_space_version,
-        "location": f"/{descriptors.V2_COORDINATE_SPACE_ROOTDIR}/"
-        f"{coordinate_space_name}/"
-        f"{coordinate_space_version.replace('.', '_')}",
-        "template": template_metadata,
-    }
+    template_metadata = _make_component_metadata(
+        template_name, template_version, descriptors.V2_TEMPLATE_ROOTDIR
+    )
+    terminology_metadata = _make_component_metadata(
+        terminology_name,
+        terminology_version,
+        descriptors.V2_TERMINOLOGY_ROOTDIR,
+    )
+    annotation_metadata = _make_component_metadata(
+        annotation_name,
+        annotation_version,
+        descriptors.V2_ANNOTATION_ROOTDIR,
+        extra={
+            "template": template_metadata,
+            "terminology": terminology_metadata,
+        },
+    )
+    coordinate_space_metadata = _make_component_metadata(
+        coordinate_space_name,
+        coordinate_space_version,
+        descriptors.V2_COORDINATE_SPACE_ROOTDIR,
+        extra={"template": template_metadata},
+    )
 
     resolution_standard = standardize_resolution(resolution)
 
@@ -468,13 +514,13 @@ def wrapup_atlas_from_data(
         shape = reference_stack.shape
         dest_dir = working_dir / template_metadata["location"].lstrip("/")
 
-        if dest_dir.exists():
-            print(
-                f"{template_metadata['name']} directory already exists, "
-                f"skipping stack saving: {dest_dir}"
-            )
-        else:
-            save_template(reference_stack, dest_dir, transformations)
+        _save_if_not_exists(
+            reference_stack,
+            dest_dir,
+            template_metadata["name"],
+            transformations,
+            save_template,
+        )
     else:
         multiscale = nz.from_ngff_zarr(
             working_dir
@@ -493,13 +539,13 @@ def wrapup_atlas_from_data(
 
         dest_dir = working_dir / annotation_metadata["location"].lstrip("/")
 
-        if dest_dir.exists():
-            print(
-                f"{annotation_metadata['name']} directory already exists, "
-                f"skipping stack saving: {dest_dir}"
-            )
-        else:
-            save_annotation(annotation_stack, dest_dir, transformations)
+        _save_if_not_exists(
+            annotation_stack,
+            dest_dir,
+            annotation_metadata["name"],
+            transformations,
+            save_annotation,
+        )
 
         if hemispheres_stack is None:
             # initialize empty stack:
@@ -516,15 +562,13 @@ def wrapup_atlas_from_data(
                 / descriptors.V2_HEMISPHERES_NAME
             )
 
-            if dest_dir.exists():
-                print(
-                    f"Hemispheres directory already exists, "
-                    f"skipping hemispheres stack saving: {dest_dir}"
-                )
-            else:
-                save_hemispheres(
-                    hemispheres_stack, dest_dir.parent, transformations
-                )
+            _save_if_not_exists(
+                hemispheres_stack,
+                dest_dir,
+                annotation_metadata["name"],
+                transformations,
+                save_hemispheres,
+            )
 
         # Reorient vertices of the mesh.
         mesh_dest_dir = (
@@ -581,25 +625,22 @@ def wrapup_atlas_from_data(
             descriptors.ATLAS_ORIENTATION, stack, copy=False
         )
         if isinstance(ref_metadata, str):
-            ref_metadata = {
-                "name": f"{atlas_name}-{ref_metadata}-template",
-                "version": atlas_version,
-                "location": f"/{descriptors.V2_TEMPLATE_ROOTDIR}/"
-                f"{atlas_name}-{ref_metadata}-template/"
-                f"{atlas_version.replace('.', '_')}",
-            }
+            ref_name = f"{atlas_name}-{ref_metadata}-template"
+            ref_metadata = _make_component_metadata(
+                ref_name, atlas_version, descriptors.V2_TEMPLATE_ROOTDIR
+            )
 
         additional_references_metadata.append(ref_metadata)
 
         dest_dir = working_dir / ref_metadata["location"].lstrip("/")
 
-        if dest_dir.exists():
-            print(
-                f"{ref_metadata['name']} directory already exists, "
-                f"skipping stack saving: {dest_dir}"
-            )
-        else:
-            save_template(stack, dest_dir, transformations)
+        _save_if_not_exists(
+            stack,
+            dest_dir,
+            ref_metadata["name"],
+            transformations,
+            save_template,
+        )
 
     if not skip_terminology_saving:
         terminology_path = working_dir / terminology_metadata[
@@ -709,30 +750,6 @@ def wrapup_atlas_from_data(
             validation_results[func.__name__] = "Pass"
         except AssertionError as e:
             validation_results[func.__name__] = f"Fail: {str(e)}"
-
-    def _check_validations(validation_results):
-        # Helper function to check if all validations passed
-        all_passed = all(
-            result == "Pass" for result in validation_results.values()
-        )
-
-        if all_passed:
-            print("This atlas is valid")
-        else:
-            failed_functions = [
-                func
-                for func, result in validation_results.items()
-                if result != "Pass"
-            ]
-            error_messages = [
-                result.split(": ")[1]
-                for result in validation_results.values()
-                if result != "Pass"
-            ]
-
-            print("These validation functions have failed:")
-            for func, error in zip(failed_functions, error_messages):
-                print(f"- {func}: {error}")
 
     _check_validations(validation_results)
 

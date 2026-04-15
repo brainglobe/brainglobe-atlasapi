@@ -108,12 +108,28 @@ def save_reference(stack, output_dir):
     write_stack(stack, output_dir / descriptors.REFERENCE_FILENAME)
 
 
+def _save_as_ome_zarr(
+    stack: npt.NDArray,
+    dtype: npt.DTypeLike,
+    output_path: Path,
+    transformations: List[List[Dict]],
+) -> None:
+    if stack.dtype != dtype:
+        stack = stack.astype(dtype)
+    assert (
+        len(transformations) == 1
+    ), "Currently only one resolution level is supported."
+    write_multiscale_ome_zarr(
+        images=[stack],
+        output_path=output_path,
+        transformations=transformations,
+    )
+
+
 def save_template(
     stack: npt.NDArray, output_dir: Path, transformations: List[List[Dict]]
 ):
     """Save the template image stack along with its transformations.
-
-    Ensures the stack is of the correct data type before saving.
 
     Parameters
     ----------
@@ -124,17 +140,11 @@ def save_template(
     transformations : list of lists of dicts
         A list of transformations to be saved alongside the template.
     """
-    if stack.dtype != descriptors.REFERENCE_DTYPE:
-        stack = stack.astype(descriptors.REFERENCE_DTYPE)
-
-    assert (
-        len(transformations) == 1
-    ), "Currently only one resolution level is supported for the template."
-
-    write_multiscale_ome_zarr(
-        images=[stack],
-        output_path=(output_dir / descriptors.V2_TEMPLATE_NAME),
-        transformations=transformations,
+    _save_as_ome_zarr(
+        stack,
+        descriptors.REFERENCE_DTYPE,
+        output_dir / descriptors.V2_TEMPLATE_NAME,
+        transformations,
     )
 
 
@@ -142,8 +152,6 @@ def save_annotation(
     stack: npt.NDArray, output_dir: Path, transformations: List[List[Dict]]
 ):
     """Save the annotation image stack.
-
-    Ensures the stack is of the correct data type before saving.
 
     Parameters
     ----------
@@ -154,17 +162,11 @@ def save_annotation(
     transformations : list of lists of dicts
         A list of transformations to be saved alongside the annotation.
     """
-    if stack.dtype != descriptors.ANNOTATION_DTYPE:
-        stack = stack.astype(descriptors.ANNOTATION_DTYPE)
-
-    assert (
-        len(transformations) == 1
-    ), "Currently only one resolution level is supported for the annotation."
-
-    write_multiscale_ome_zarr(
-        images=[stack],
-        output_path=output_dir / (descriptors.V2_ANNOTATION_NAME),
-        transformations=transformations,
+    _save_as_ome_zarr(
+        stack,
+        descriptors.ANNOTATION_DTYPE,
+        output_dir / descriptors.V2_ANNOTATION_NAME,
+        transformations,
     )
 
 
@@ -172,8 +174,6 @@ def save_hemispheres(
     stack: npt.NDArray, output_dir: Path, transformations: List[List[Dict]]
 ):
     """Save the hemispheres image stack.
-
-    Ensures the stack is of the correct data type before saving.
 
     Parameters
     ----------
@@ -184,15 +184,9 @@ def save_hemispheres(
     transformations : list of lists of dicts
         A list of transformations to be saved alongside the hemispheres.
     """
-    if stack.dtype != descriptors.HEMISPHERES_DTYPE:
-        stack = stack.astype(descriptors.HEMISPHERES_DTYPE)
-
-    assert (
-        len(transformations) == 1
-    ), "Currently only one resolution level is supported for the hemispheres."
-
-    write_multiscale_ome_zarr(
-        images=[stack],
-        output_path=output_dir / descriptors.V2_HEMISPHERES_NAME,
-        transformations=transformations,
+    _save_as_ome_zarr(
+        stack,
+        descriptors.HEMISPHERES_DTYPE,
+        output_dir / descriptors.V2_HEMISPHERES_NAME,
+        transformations,
     )

@@ -13,9 +13,6 @@ import numpy.typing as npt
 import pandas as pd
 import s3fs
 import tifffile
-import zarr
-from ome_zarr.io import parse_url
-from ome_zarr.writer import write_multiscale
 
 import brainglobe_atlasapi.atlas_generation
 from brainglobe_atlasapi import descriptors
@@ -189,39 +186,6 @@ def standardize_resolution(
         raise ValueError(
             "Resolution must be either a tuple or a list of tuples."
         )
-
-
-def write_multiscale_ome_zarr(
-    images: List[npt.NDArray],
-    output_path: Path,
-    axes: List[dict],
-    transformations: List[List[dict]],
-):
-    """
-    Write a multiscale OME Zarr file with the given images, and metadata.
-
-    Parameters
-    ----------
-    images : List[npt.NDArray]
-        A list of NumPy arrays representing the image data at different scales.
-    output_path : Path
-        The file path where the OME Zarr file will be saved.
-    axes : List[dict]
-        A list of dictionaries describing the axes of the image data.
-    transformations : List[List[dict]]
-        A set of dictionaries describing the transformations per scale.
-    """
-    zarr_loc = parse_url(output_path, mode="w")
-    assert zarr_loc is not None
-    store = zarr_loc.store
-    root = zarr.group(store=store)
-
-    write_multiscale(
-        pyramid=images,
-        group=root,
-        axes=axes,
-        coordinate_transformations=transformations,
-    )
 
 
 def _resolve_component_info(

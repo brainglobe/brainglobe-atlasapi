@@ -94,7 +94,9 @@ def test_write_multiscale_ome_zarr_creates_zarr(
     )
     assert output_path.exists()
     root = zarr.open_group(str(output_path), mode="r")
-    assert "0" in root
+    arr_keys = list(root.keys())
+    assert len(arr_keys) == 1
+    assert arr_keys[0].endswith("0")
 
 
 def test_write_multiscale_ome_zarr_default_axes(
@@ -169,7 +171,8 @@ def test_save_as_ome_zarr_converts_dtype(
     output_path = tmp_path / "test.ome.zarr"
     _save_as_ome_zarr(image_float32, np.uint16, output_path, transformations)
     root = zarr.open_group(str(output_path), mode="r")
-    assert root["0"].dtype == np.uint16
+    for arr_key in root:
+        assert root[arr_key].dtype == np.uint16
 
 
 def test_save_as_ome_zarr_raises_on_multiple_resolutions(
@@ -206,7 +209,8 @@ def test_save_template_uses_reference_dtype(
     root = zarr.open_group(
         str(tmp_path / descriptors.V2_TEMPLATE_NAME), mode="r"
     )
-    assert root["0"].dtype == descriptors.REFERENCE_DTYPE
+    for arr_key in root:
+        assert root[arr_key].dtype == descriptors.REFERENCE_DTYPE
 
 
 # --- save_annotation ---
@@ -226,7 +230,8 @@ def test_save_annotation_uses_annotation_dtype(
     root = zarr.open_group(
         str(tmp_path / descriptors.V2_ANNOTATION_NAME), mode="r"
     )
-    assert root["0"].dtype == descriptors.ANNOTATION_DTYPE
+    for arr_key in root:
+        assert root[arr_key].dtype == descriptors.ANNOTATION_DTYPE
 
 
 # --- save_hemispheres ---
@@ -246,4 +251,5 @@ def test_save_hemispheres_uses_hemispheres_dtype(
     root = zarr.open_group(
         str(tmp_path / descriptors.V2_HEMISPHERES_NAME), mode="r"
     )
-    assert root["0"].dtype == descriptors.HEMISPHERES_DTYPE
+    for arr_key in root:
+        assert root[arr_key].dtype == descriptors.HEMISPHERES_DTYPE

@@ -29,32 +29,35 @@ def update_atlas(atlas_name, force=False, fn_update=None):
         atlas_name=atlas_name, check_latest=False, fn_update=fn_update
     )
 
-    # Check if we need to update
-    if not force:
-        if atlas.check_latest_version(print_warning=False):
-            rprint(
-                f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} "
-                "is already updated "
-                f"(version: {_version_str_from_tuple(atlas.local_version)})"
-                "[/b]"
-            )
-            return
+    is_latest_version = atlas.check_latest_version(print_warning=False)
 
-    # Delete atlas folder
+    if force and is_latest_version:
+        # Delete atlas folder to force update
+        atlas_folder = (atlas.brainglobe_dir / atlas.local_full_name).parent
+        shutil.rmtree(atlas_folder)
+        if atlas_folder.exists():
+            raise ValueError(
+                "Something went wrong while trying to delete the old "
+                "version of the atlas, aborting."
+            )
+
+    elif is_latest_version:
+        rprint(
+            f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} "
+            "is already updated "
+            f"(version: {_version_str_from_tuple(atlas.local_version)})"
+            "[/b]"
+        )
+
+        return
+
     rprint(
         "[b][magenta2]brainglobe_atlasapi: "
         f"updating {atlas.atlas_name}[/magenta2][/b]"
     )
-    fld = atlas.brainglobe_dir / atlas.local_full_name
-    shutil.rmtree(fld)
-    if fld.exists():
-        raise ValueError(
-            "Something went wrong while trying to delete the old version "
-            "of the atlas, aborting."
-        )
 
     # Download again
-    atlas.download_extract_file()
+    atlas.download()
 
     # Check that everything went well
     rprint(

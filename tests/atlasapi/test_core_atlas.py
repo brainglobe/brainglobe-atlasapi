@@ -1,40 +1,32 @@
 """Test the core Atlas class."""
 
 import contextlib
-import warnings
 from io import StringIO
 
+import ngff_zarr as nz
 import numpy as np
 import pandas as pd
 import pytest
-import tifffile
 
 from brainglobe_atlasapi import core
+from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
 
 
 def test_initialization(atlas):
     """Test Atlas class initialization."""
-    assert atlas.metadata == {
-        "name": "example_mouse",
-        "citation": (
-            "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
-        ),
-        "atlas_link": "http://www.brain-map.org",
-        "species": "Mus musculus",
-        "symmetric": True,
-        "resolution": [100.0, 100.0, 100.0],
-        "orientation": "asr",
-        "version": atlas.metadata["version"],  # no target value for version
-        "shape": [132, 80, 114],
-        "trasform_to_bg": [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ],
-        "additional_references": [],
-    }
+    assert atlas.metadata["name"] == "example_mouse"
+    assert (
+        atlas.metadata["citation"]
+        == "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
+    )
+    assert atlas.metadata["atlas_link"] == "http://www.brain-map.org"
+    assert atlas.metadata["species"] == "Mus musculus"
+    assert atlas.metadata["symmetric"] is True
+    assert atlas.metadata["resolution"] == [100.0, 100.0, 100.0]
+    assert atlas.metadata["orientation"] == "asr"
+    assert atlas.metadata["shape"] == [132, 80, 114]
+    assert atlas.metadata["additional_references"] == []
 
     assert atlas.orientation == "asr"
     assert atlas.shape == (132, 80, 114)
@@ -42,18 +34,25 @@ def test_initialization(atlas):
     assert atlas.shape_um == (13200.0, 8000.0, 11400.0)
 
 
-def test_additional_ref_dict(temp_path):
+def test_additional_ref_dict(atlas):
     """Test AdditionalRefDict class functionality."""
-    fake_data = dict()
-    for k in ["1", "2"]:
-        stack = np.ones((10, 20, 30)) * int(k)
-        fake_data[k] = stack
-        tifffile.imwrite(temp_path / f"{k}.tiff", stack)
+    fake_data = [
+        {
+            "name": "allen-adult-mouse-stpt-template",
+            "version": "2015",
+            "location": "/templates/allen-adult-mouse-stpt-template/2015",
+        }
+    ]
 
-    add_ref_dict = AdditionalRefDict(fake_data.keys(), temp_path)
+    data_path = get_brainglobe_dir() / "brainglobe-atlasapi"
+    add_ref_dict = AdditionalRefDict(
+        fake_data, data_path, resolution=(100.0, 100.0, 100.0)
+    )
 
-    for k, stack in add_ref_dict.items():
-        assert np.all(add_ref_dict[k] == stack)
+    assert list(add_ref_dict) == ["allen-adult-mouse-stpt-template"]
+    assert np.all(
+        add_ref_dict["allen-adult-mouse-stpt-template"] == atlas.template
+    )
 
     with pytest.warns(UserWarning, match="No reference named 3"):
         assert add_ref_dict["3"] is None
@@ -67,16 +66,32 @@ def test_addition_ref_dict_keys_only(temp_path):
     temp_path : Path
         Temporary path for test files.
     """
-    fake_data = ["1", "2"]
-    add_ref_dict = AdditionalRefDict(fake_data, temp_path)
+    fake_data = [
+        {
+            "name": "allen-adult-mouse-stpt-template",
+            "version": "2015",
+            "location": "/templates/allen-adult-mouse-stpt-template/2015",
+        },
+        {
+            "name": "another-template",
+            "version": "2020",
+            "location": "/templates/another-template/2020",
+        },
+    ]
+    add_ref_dict = AdditionalRefDict(
+        fake_data, temp_path, resolution=(100.0, 100.0, 100.0)
+    )
 
-    assert list(add_ref_dict) == fake_data
+    assert list(add_ref_dict) == [
+        "allen-adult-mouse-stpt-template",
+        "another-template",
+    ]
 
 
 @pytest.mark.parametrize(
     "stack_name, val",
     [
-        ("reference", [[[155, 146], [157, 153]], [[151, 148], [154, 153]]]),
+        ("template", [[[155, 146], [157, 153]], [[151, 148], [154, 153]]]),
         ("annotation", [[[59, 59], [59, 59]], [[59, 59], [59, 59]]]),
         ("hemispheres", [[[2, 1], [2, 1]], [[2, 1], [2, 1]]]),
     ],
@@ -183,11 +198,13 @@ def test_meshfile_from_id(atlas):
     atlas : brainglobe_atlasapi.core.Atlas
         The atlas fixture.
     """
-    assert (
-        atlas.meshfile_from_structure("CH")
-        == atlas.root_dir / "meshes/567.obj"
+    mesh_root_path = (
+        atlas.root_dir
+        / atlas.metadata["annotation_set"]["location"][1:]
+        / "annotation.precomputed"
     )
-    assert atlas.root_meshfile() == atlas.root_dir / "meshes/997.obj"
+    assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567"
+    assert atlas.root_meshfile() == mesh_root_path / "997"
 
 
 def test_mesh_from_id(atlas):
@@ -338,34 +355,6 @@ def test_get_structure_mask(atlas):
     ), "Values in grey_structure_mask should be either 0 or 7"
 
 
-def test_key_error_for_additional_references(atlas, mocker):
-    """Warn if metadata lacks 'additional_references'.
-
-    Parameters
-    ----------
-    atlas : brainglobe_atlasapi.core.Atlas
-        The atlas fixture.
-    mocker : pytest_mock.plugin.MockerFixture
-        The mocker fixture.
-    """
-    atlas.metadata.pop("additional_references")
-    mock_metadata = atlas.metadata
-    structures_list = atlas.structures_list
-    mocker.patch(
-        "brainglobe_atlasapi.core.read_json",
-        side_effect=[
-            mock_metadata,
-            structures_list,
-        ],
-    )
-    mocker.patch("warnings.warn")
-    atlas.__init__("example_mouse_100um")
-    warnings.warn.assert_called_once_with(
-        "This atlas seems to be outdated as no additional_references list "
-        "is found in metadata!"
-    )
-
-
 @pytest.mark.parametrize(
     "atlas_fixture",
     [
@@ -386,12 +375,19 @@ def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
         The mocker fixture.
     """
     atlas = request.getfixturevalue(atlas_fixture)
-    mocker.patch("brainglobe_atlasapi.core.read_tiff")
+    mock_hemispheres = np.zeros(atlas.metadata["shape"], dtype=np.uint8)
+    mock_hemispheres_multiscale = nz.to_multiscales(
+        mock_hemispheres, scale_factors=1
+    )
+    mocker.patch(
+        "brainglobe_atlasapi.core.nz.from_ngff_zarr",
+        return_value=mock_hemispheres_multiscale,
+    )
     _ = atlas.hemispheres
     if atlas.metadata["symmetric"]:
-        core.read_tiff.assert_not_called()
+        core.nz.from_ngff_zarr.assert_not_called()
     elif atlas.metadata["symmetric"] is False:
-        core.read_tiff.assert_called_once()
+        core.nz.from_ngff_zarr.assert_called_once()
 
 
 def test_get_structures_at_hierarchy_level_as_acronym(atlas):

@@ -1,34 +1,41 @@
-"""Defines the BrainGlobeAtlas class for accessing brain atlas data."""
+"""Defines the BrainGlobe Atlas API v2 classes and functions."""
 
-import shutil
-import tarfile
-import warnings
+import re
 from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
-import requests
+import s3fs
+from fsspec.callbacks import TqdmCallback
 from rich import print as rprint
 from rich.console import Console
 
-from brainglobe_atlasapi import config, core, descriptors, utils
+from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
+from brainglobe_atlasapi.descriptors import (
+    V2_ANNOTATION_NAME,
+    V2_ATLAS_ROOTDIR,
+    V2_HEMISPHERES_NAME,
+    V2_MESHES_DIRECTORY,
+    V2_TEMPLATE_NAME,
+    remote_url_s3,
+)
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
-    check_gin_status,
     check_internet_connection,
+    check_s3_status,
+    get_latest_version,
+    read_json,
 )
 
-COMPRESSED_FILENAME = "atlas.tar.gz"
 
-
-def _version_tuple_from_str(version_str: str) -> Tuple[int, ...]:
+def _version_tuple_from_str(version_str):
     return tuple([int(n) for n in version_str.split(".")])
 
 
 def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
-    return f"{version_tuple[0]}.{version_tuple[1]}"
+    return "_".join(str(num) for num in version_tuple)
 
 
 class BrainGlobeAtlas(core.Atlas):
@@ -39,34 +46,40 @@ class BrainGlobeAtlas(core.Atlas):
     ----------
     atlas_name : str
         Name of the atlas to be used.
+    version : str (optional)
+        Desired version of the atlas. If None, the latest version will be used.
     brainglobe_dir : str or Path object
         Default folder for brainglobe downloads.
-    interm_download_dir : str or Path object
-        Folder to download the compressed file for extraction.
     check_latest : bool (optional)
         If true, check if we have the most recent atlas (default=True). Set
         this to False to avoid waiting for remote server response on atlas
         instantiation and to suppress warnings.
-    print_authors : bool (optional)
-        If true, disable default listing of the atlas reference.
     fn_update : Callable
         Handler function to update during download. Takes completed and total
         bytes.
-
     """
-
-    atlas_name = None
-    _remote_url_base = descriptors.remote_url_base
 
     def __init__(
         self,
         atlas_name: AtlasName,
+        version: Optional[str] = None,
         brainglobe_dir: Optional[Union[str, Path]] = None,
-        interm_download_dir: Optional[Union[str, Path]] = None,
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
     ):
+        self._remote_version = None
+        self._local_full_name = None
+        self._requested_version = (
+            version.replace(".", "_") if version else None
+        )
+        self._local_version = (
+            _version_tuple_from_str(version.replace("_", "."))
+            if version
+            else None
+        )
+        self.fs = s3fs.S3FileSystem(anon=True)
+
         self.atlas_name = atlas_name
         self.fn_update = fn_update
 
@@ -75,145 +88,296 @@ class BrainGlobeAtlas(core.Atlas):
 
         # Use either input locations or locations from the config file,
         # and create directory if it does not exist:
-        for dir, dirname in zip(
-            [brainglobe_dir, interm_download_dir],
-            ["brainglobe_dir", "interm_download_dir"],
-        ):
-            if dir is None:
-                dir = conf["default_dirs"][dirname]
+        if brainglobe_dir is None:
+            self.brainglobe_dir = Path(conf["default_dirs"]["brainglobe_dir"])
+        else:
+            self.brainglobe_dir = Path(brainglobe_dir)
 
-            # If the default folder does not exist yet, make it:
-            dir_path = Path(dir)
-            dir_path.mkdir(parents=True, exist_ok=True)
-            setattr(self, dirname, dir_path)
+        self.brainglobe_dir = self.brainglobe_dir / "brainglobe-atlasapi"
+
+        self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
             if self.remote_version is None:
                 check_internet_connection(raise_error=True)
-                check_gin_status(raise_error=True)
 
-                # If internet and GIN are up, then the atlas name was invalid
+                # If internet is up, then the atlas name was invalid
                 raise ValueError(f"{atlas_name} is not a valid atlas name!")
             else:
-                self.download_extract_file()
+                self.download()
+                assert self.local_full_name is not None, (
+                    "Download failed: local atlas manifest not found after "
+                    "download."
+                )
 
-        # Instantiate after eventual download:
-        for attempt in (0, 1):
-            try:
-                super().__init__(self.brainglobe_dir / self.local_full_name)
-                break
-            except (FileNotFoundError, ValueError):
-                if attempt == 1:
-                    raise
-
-                atlas_path = self.brainglobe_dir / self.local_full_name
-                if atlas_path.exists() and atlas_path.is_dir():
-                    warnings.warn(
-                        "Atlas metadata appears corrupted or incomplete. "
-                        "Re-downloading atlas...",
-                        UserWarning,
-                    )
-                    shutil.rmtree(atlas_path)
-
-                self.download_extract_file()
+        super().__init__(self.brainglobe_dir / self.local_full_name)
 
         if check_latest:
             self.check_latest_version()
 
     @property
-    def local_version(self) -> Optional[Tuple[int, ...]]:
-        """If atlas is local, return actual version of the downloaded files;
-        Else, return none.
+    def local_full_name(self):
         """
-        full_name = self.local_full_name
+        Returns the local full path to the manifest.json file of the atlas.
 
-        if full_name is None:
-            return None
+        This will return either the path to the requested version if it is
+        found locally, or the latest version found locally.
 
-        return _version_tuple_from_str(full_name.split("_v")[-1])
-
-    @property
-    def remote_version(self) -> Optional[Tuple[int, ...]]:
-        """Remote version read from GIN conf file. If we are offline, return
-        None.
+        If not found, returns None.
         """
-        remote_url = self._remote_url_base.format("last_versions.conf")
+        if self._local_full_name is not None:
+            return self._local_full_name
 
-        try:
-            # Grasp remote version
-            versions_conf = utils.conf_from_url(remote_url)
-        except requests.ConnectionError:
-            return None
-
-        try:
-            version_str = versions_conf["atlases"][self.atlas_name]
-            return _version_tuple_from_str(version_str)
-        except KeyError:
-            return None
-
-    @property
-    def local_full_name(self) -> Optional[str]:
-        """As we can't know the local version a priori, search candidate dirs
-        using name and not version number. If none is found, return None.
-        """
-        pattern = f"{self.atlas_name}_v*"
-        candidate_dirs = list(self.brainglobe_dir.glob(pattern))
-
-        # If multiple folders exist, raise error:
-        if len(candidate_dirs) > 1:
-            raise FileExistsError(
-                f"Multiple versions of atlas {self.atlas_name} in "
-                f"{self.brainglobe_dir}"
-            )
-        # If no one exist, return None:
-        elif len(candidate_dirs) == 0:
-            return None
-        # Else, return actual name:
-        else:
-            return candidate_dirs[0].name
-
-    @property
-    def remote_url(self) -> Optional[str]:
-        """Format complete url for download, or None if unavailable."""
-        if self.remote_version is not None:
-            name = (
-                f"{self.atlas_name}_v{self.remote_version[0]}."
-                f"{self.remote_version[1]}.tar.gz"
-            )
-
-            return self._remote_url_base.format(name)
-
-        return None
-
-    def download_extract_file(self) -> None:
-        """Download and extract atlas from remote url."""
-        check_internet_connection()
-        check_gin_status()
-
-        # Get path to folder where data will be saved
-        destination_path = self.interm_download_dir / COMPRESSED_FILENAME
-
-        # Try to download atlas data
-        utils.retrieve_over_http(
-            self.remote_url, destination_path, self.fn_update
+        (self.brainglobe_dir / V2_ATLAS_ROOTDIR).mkdir(
+            parents=True, exist_ok=True
         )
 
-        # Uncompress in brainglobe path:
-        try:
-            tar = tarfile.open(destination_path)
-            tar.extractall(path=self.brainglobe_dir)
-            tar.close()
-        except (tarfile.ReadError, tarfile.CompressionError, EOFError) as e:
-            # Delete corrupted file so we can try again later
-            destination_path.unlink(missing_ok=True)
-            raise tarfile.ReadError(
-                f"Atlas download was interrupted or corrupted. "
-                f"Please try again. Details: {e}"
-            ) from e
+        if self._requested_version is not None:
+            pattern = (
+                f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
+                f"{self._requested_version}/manifest.json"
+            )
+        else:
+            pattern = (
+                rf"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
+                rf"\d+(?:_\d+)?/manifest.json"
+            )
 
-        # Also delete the compressed file after successful extraction
-        destination_path.unlink(missing_ok=True)
+        glob_pattern = f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/*/manifest.json"
+
+        available_versions: List[str] = [
+            p.parent.name
+            for p in self.brainglobe_dir.glob(glob_pattern)
+            if re.search(pattern, p.as_posix())
+        ]
+
+        if len(available_versions) == 0:
+            return None
+
+        latest_version = get_latest_version(available_versions)
+
+        self._local_full_name = (
+            f"{V2_ATLAS_ROOTDIR}/"
+            f"{self.atlas_name}/"
+            f"{latest_version}/"
+            f"manifest.json"
+        )
+
+        return self._local_full_name
+
+    @property
+    def local_version(self) -> Optional[Tuple[int, ...]]:
+        """If atlas is local, return actual version of the downloaded files."""
+        if self._local_version is not None:
+            return self._local_version
+
+        version_str = self.metadata["version"]
+        self._local_version = _version_tuple_from_str(
+            version_str.replace("_", ".")
+        )
+
+        return self._local_version
+
+    @property
+    def remote_version(self) -> Optional[tuple[int, ...]]:
+        """Reads remote version from s3 bucket.
+
+        Largest numerical version assumed to be latest.
+        If we are offline, return None.
+        """
+        if self._remote_version is not None:
+            return self._remote_version
+
+        if not check_s3_status(raise_error=False):
+            return None
+
+        bucket_path = remote_url_s3.format(f"atlases/{self.atlas_name}")
+
+        if self.fs.exists(bucket_path) is False:
+            raise FileNotFoundError(
+                f"{self.atlas_name} is not a valid atlas name!"
+            )
+
+        if self._requested_version is None:
+            versions_path = self.fs.ls(bucket_path)
+            available_versions: List[str] = [
+                path_str.split("/")[-1] for path_str in versions_path
+            ]
+            latest_version = get_latest_version(available_versions)
+            self._remote_version = _version_tuple_from_str(
+                latest_version.replace("_", ".")
+            )
+        else:
+            requested_path = f"{bucket_path}/{self._requested_version}"
+            if not self.fs.exists(requested_path):
+                raise FileNotFoundError(
+                    f"Requested version {self._requested_version} for atlas "
+                    f"{self.atlas_name} not found in remote."
+                )
+
+            self._remote_version = _version_tuple_from_str(
+                self._requested_version.replace("_", ".")
+            )
+
+        return self._remote_version
+
+    def download(self):
+        """Download and extract the atlas files from remote storage.
+
+        The manifest file is removed if any error occurs during the
+        download to ensure that incomplete downloads are retried.
+        """
+        check_s3_status()
+
+        remote_version_str = _version_str_from_tuple(self.remote_version)
+        key_name = (
+            f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
+            f"{remote_version_str}/manifest.json"
+        )
+
+        local_path = self.brainglobe_dir / key_name
+        remote_path = remote_url_s3.format(key_name)
+
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        print(
+            f"Downloading {self.atlas_name} atlas "
+            f"v{remote_version_str.replace('_', '.')} manifest:"
+        )
+        self.fs.get(remote_path, local_path, callback=TqdmCallback())
+        self.metadata = read_json(local_path)
+
+        try:
+            # Download terminology file
+            terminology_location = self.metadata["terminology"]["location"][1:]
+            local_terminology_path = self.brainglobe_dir / terminology_location
+            if not local_terminology_path.exists():
+                remote_terminology_path = remote_url_s3.format(
+                    terminology_location
+                )
+                print(
+                    f"Downloading terminology metadata "
+                    f"for {self.metadata['terminology']['name']}:"
+                )
+                self.fs.get(
+                    remote_terminology_path,
+                    local_terminology_path,
+                    recursive=True,
+                    callback=TqdmCallback(),
+                )
+
+            # Download coordinate space files
+            coordspace_location = self.metadata["coordinate_space"][
+                "location"
+            ][1:]
+            local_coordspace_path = self.brainglobe_dir / coordspace_location
+            if not local_coordspace_path.exists():
+                remote_coordspace_path = remote_url_s3.format(
+                    coordspace_location
+                )
+                print(
+                    f"Downloading coordinate space metadata "
+                    f"for {self.metadata['coordinate_space']['name']}:"
+                )
+                self.fs.get(
+                    remote_coordspace_path,
+                    local_coordspace_path,
+                    recursive=True,
+                    callback=TqdmCallback(),
+                )
+
+            # Download annotation metadata files
+            annotation_location = self.metadata["annotation_set"]["location"][
+                1:
+            ]
+            local_annotation_path = self.brainglobe_dir / annotation_location
+            if not local_annotation_path.exists():
+                root_metadata_path = (
+                    annotation_location + f"/{V2_ANNOTATION_NAME}/**/*.json"
+                )
+                remote_root_metadata_path = remote_url_s3.format(
+                    root_metadata_path
+                )
+                print(
+                    f"Downloading annotation metadata "
+                    f"for {self.metadata['annotation_set']['name']}:"
+                )
+                self.fs.get(
+                    remote_root_metadata_path,
+                    local_annotation_path / V2_ANNOTATION_NAME,
+                    callback=TqdmCallback(),
+                )
+                mesh_path = local_annotation_path / V2_MESHES_DIRECTORY
+                mesh_path.mkdir(exist_ok=True)
+
+                if not self.metadata["symmetric"]:
+                    root_hemisphere_path = (
+                        annotation_location
+                        + f"/{V2_HEMISPHERES_NAME}/**/*.json"
+                    )
+                    remote_root_hemisphere_path = remote_url_s3.format(
+                        root_hemisphere_path
+                    )
+                    self.fs.get(
+                        remote_root_hemisphere_path,
+                        local_annotation_path / V2_HEMISPHERES_NAME,
+                    )
+
+            # Download template metadata files
+            template_location = self.metadata["annotation_set"]["template"][
+                "location"
+            ][1:]
+            local_template_path = self.brainglobe_dir / template_location
+            if not local_template_path.exists():
+                root_metadata_path = (
+                    template_location + f"/{V2_TEMPLATE_NAME}/**/*.json"
+                )
+                remote_root_metadata_path = remote_url_s3.format(
+                    root_metadata_path
+                )
+
+                print(
+                    f"Downloading template metadata "
+                    f"for {self.metadata['template']['name']}:"
+                )
+                self.fs.get(
+                    remote_root_metadata_path,
+                    local_template_path / V2_TEMPLATE_NAME,
+                    callback=TqdmCallback(),
+                )
+
+            additional_reference_names = self.metadata.get(
+                "additional_references", []
+            )
+
+            for ref in additional_reference_names:
+                template_location = ref["location"][1:]
+                local_template_path = self.brainglobe_dir / template_location
+
+                if not local_template_path.exists():
+                    root_metadata_path = (
+                        template_location + f"/{V2_TEMPLATE_NAME}/**/*.json"
+                    )
+                    remote_root_metadata_path = remote_url_s3.format(
+                        root_metadata_path
+                    )
+                    print(
+                        f"Downloading template metadata "
+                        f"for {self.metadata['template']['name']}:"
+                    )
+                    self.fs.get(
+                        remote_root_metadata_path,
+                        local_template_path / V2_TEMPLATE_NAME,
+                        callback=TqdmCallback(),
+                    )
+            # Reset local_full_name to ensure it is updated with new location
+            self._local_full_name = None
+
+        except Exception:
+            # Remove the manifest so the next run detects the incomplete
+            # download and retries rather than finding partial files.
+            local_path.unlink(missing_ok=True)
+            raise
 
     def check_latest_version(
         self, print_warning: bool = True
@@ -248,8 +412,10 @@ class BrainGlobeAtlas(core.Atlas):
             if print_warning:
                 rprint(
                     "[b][magenta2]brainglobe_atlasapi[/b]: "
-                    f"[b]{self.atlas_name}[/b] version [b]{local}[/b] "
-                    f"is not the latest available ([b]{online}[/b]). "
+                    f"[b]{self.atlas_name}[/b] version "
+                    f"[b]{local.replace('_', '.')}[/b] "
+                    f"is not the latest available "
+                    f"([b]{online.replace('_', '.')}[/b]). "
                     "To update the atlas run in the terminal:[/magenta2]\n"
                     f" [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
                 )
@@ -266,7 +432,7 @@ class BrainGlobeAtlas(core.Atlas):
     def __str__(self) -> str:
         """
         If the atlas metadata are to be printed
-        with the built in print function instead of rich's, then
+        with the built-in print function instead of rich's, then
         print the rich panel as a string.
 
         It will miss the colors.

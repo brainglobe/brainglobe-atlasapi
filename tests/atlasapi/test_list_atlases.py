@@ -31,7 +31,7 @@ def test_get_downloaded_atlases():
 def test_get_local_atlas_version_real_atlas():
     """Test getting the version of a real, downloaded atlas."""
     v = get_local_atlas_version("example_mouse_100um")
-    assert len(v.split(".")) == 2
+    assert len(v.split("_")) == 2
 
 
 def test_get_local_atlas_version_missing_atlas(capsys):
@@ -84,7 +84,12 @@ def test_get_all_atlases_lastversions():
 def test_atlas_name_matches_lastversions():
     """Ensure atlas name list matches last_versions.conf keys exactly."""
     atlas_name_values = list(get_args(AtlasName))
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    cache_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / "atlases"
+        / "last_versions.conf"
+    )
     # we read the file directly, using lastversions() includes custom atlases.
     last_versions = utils.conf_from_file(cache_path)["atlases"]
     last_version_names = list(last_versions.keys())
@@ -102,7 +107,12 @@ def test_get_all_atlases_custom_atlases(mocker):
     mocker : pytest_mock.plugin.MockerFixture
         The mocker fixture.
     """
-    custom_path = config.get_brainglobe_dir() / "custom_atlases.conf"
+    custom_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / "atlases"
+        / "custom_atlases.conf"
+    )
     mock_custom_atlas = {"atlases": {"mock_custom_atlas": "1.1"}}
 
     with mocker.patch(
@@ -115,10 +125,31 @@ def test_get_all_atlases_custom_atlases(mocker):
         assert last_versions["mock_custom_atlas"] == "1.1"
 
 
+def test_get_all_atlases_lastversions_empty_custom_atlases(tmp_path):
+    """Test retrieving atlas versions when custom_atlases.conf is empty."""
+    custom_path = tmp_path / "custom_atlases.conf"
+    custom_path.touch()
+
+    with mock.patch(
+        "brainglobe_atlasapi.list_atlases.config.get_brainglobe_dir",
+        return_value=tmp_path,
+    ):
+        last_versions = get_all_atlases_lastversions()
+
+        assert "example_mouse_100um" in last_versions
+        assert "osten_mouse_50um" in last_versions
+        assert "allen_mouse_25um" in last_versions
+
+
 def test_get_all_atlases_lastversions_offline():
     """Test retrieving atlas versions from cache when offline."""
     cleanup_cache = False
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    cache_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / "atlases"
+        / "last_versions.conf"
+    )
 
     if not cache_path.exists():
         cache_path.touch()
@@ -147,7 +178,12 @@ def test_get_all_atlases_lastversions_offline():
 def test_get_all_atlases_lastversions_gin_down():
     """Test retrieving atlas versions from cache when GIN is down."""
     cleanup_cache = False
-    cache_path = config.get_brainglobe_dir() / "last_versions.conf"
+    cache_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / "atlases"
+        / "last_versions.conf"
+    )
 
     if not cache_path.exists():
         cache_path.touch()
@@ -180,6 +216,7 @@ def test_get_all_atlases_lastversions_gin_down():
             {
                 "version": "1",
                 "latest_version": "2",
+                "updated": False,
             },
             "│ awesome_name │ ✔ │ x │ 1 │ 2 │",
             id="version != latest_version",
@@ -188,6 +225,7 @@ def test_get_all_atlases_lastversions_gin_down():
             {
                 "version": "1",
                 "latest_version": "1",
+                "updated": True,
             },
             "│ awesome_name │ ✔ │ ✔ │ 1 │ 1 │",
             id="version == latest_version",
@@ -210,6 +248,7 @@ def test_add_atlas_to_row(version, expected_print, capsys):
         "downloaded": True,
         "version": version["version"],
         "latest_version": version["latest_version"],
+        "updated": version["updated"],
     }
     table = add_atlas_to_row(atlas="awesome_name", info=info, table=Table())
     Console().print(table)

@@ -7,9 +7,10 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
+import pandas as pd
 import requests
 import tifffile
 from rich.panel import Panel
@@ -25,7 +26,7 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
-from brainglobe_atlasapi import config, descriptors
+from brainglobe_atlasapi import descriptors
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -168,6 +169,30 @@ def check_internet_connection(
             "No internet connection, try again when you are "
             "connected to the internet."
         )
+
+    return False
+
+
+def check_s3_status(timeout=5, raise_error=True):
+    """
+    Check that the S3 BrainGlobe bucket is accessible.
+
+    timeout : int
+        timeout to wait for [in seconds] (Default value = 5).
+    raise_error : bool
+        if false, warning but no error.
+    """
+    url = descriptors.remote_url_s3_http.format("")
+
+    try:
+        _ = requests.head(url, timeout=timeout)
+        return True
+    except (requests.ConnectionError, requests.exceptions.Timeout) as e:
+        error_message = "S3 BrainGlobe bucket is not accessible."
+        if not raise_error:
+            print(error_message)
+        else:
+            raise ConnectionError(error_message) from e
 
     return False
 
@@ -326,7 +351,27 @@ def get_download_size(url: str) -> int:
         raise IndexError("Improperly formatted URL")
 
 
-def conf_from_url(url) -> configparser.ConfigParser:
+def get_latest_version(available_versions: List[str]) -> str:
+    """
+    Get the latest version from a list of version strings.
+
+    Parameters
+    ----------
+    available_versions : list of str
+        List of version strings.
+
+    Returns
+    -------
+    str
+        The latest version string.
+    """
+    available_versions.sort(
+        key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
+    )
+    return available_versions[0]
+
+
+def conf_from_url(url, cache_path) -> configparser.ConfigParser:
     """Read conf file from a URL and
     cache a copy of the configuration file in the brainglobe directory.
 
@@ -335,6 +380,8 @@ def conf_from_url(url) -> configparser.ConfigParser:
     url : str
         URL of the configuration file. Ensure it's the raw URL for repository
         files (e.g., from GIN raw content).
+    cache_path : Path
+        The path where the configuration file will be cached.
 
     Returns
     -------
@@ -342,8 +389,6 @@ def conf_from_url(url) -> configparser.ConfigParser:
         A ConfigParser object containing the configuration data.
 
     """
-    cache_path: Path = config.get_brainglobe_dir() / "last_versions.conf"
-
     max_tries = 5
     sleep_time = 0.5
     status_code = 418  # teapot status code
@@ -432,6 +477,49 @@ def read_json(path: Union[str, Path]) -> Dict[str, Any]:
     with open(path, "r") as f:
         data = json.load(f)
     return data
+
+
+def load_structures_from_csv(structures_path):
+    """
+    Load structures information from a CSV file.
+
+    Parameters
+    ----------
+    structures_path : Path
+        Path to the CSV file containing structures information.
+
+    Returns
+    -------
+    list of dict
+        A list of dictionaries, where each dictionary contains information
+        about a structure, such as its acronym, id, name, structure_id_path,
+        rgb_triplet, and mesh_filename.
+    """
+    structures_df = pd.read_csv(
+        structures_path,
+        dtype={"parent_identifier": pd.UInt16Dtype()},
+        converters={
+            "root_identifier_path": lambda x: np.fromstring(
+                x.strip("[]"), sep=",", dtype=np.uint32
+            ).tolist(),
+            "color_hex_triplet": lambda x: [
+                int(x.strip("#")[i : i + 2], 16) for i in (0, 2, 4)
+            ],
+        },
+        keep_default_na=False,
+        na_values=["", "NaN", "NULL", "nan", "N/A", "na", "null"],
+    )
+    rename_dict = {
+        "identifier": "id",
+        "parent_identifier": "parent_structure_id",
+        "abbreviation": "acronym",
+        "root_identifier_path": "structure_id_path",
+        "color_hex_triplet": "rgb_triplet",
+    }
+    structures_df = structures_df.rename(columns=rename_dict)
+    structures_list = structures_df.to_dict(orient="records")
+
+    return structures_list
 
 
 def read_tiff(path: Union[str, Path]) -> np.ndarray:

@@ -5,12 +5,12 @@ import pooch
 import xmltodict  # IS THIS IN REQUIREMENTS?
 from brainglobe_utils.IO.image import load_any
 
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
-from brainglobe_atlasapi.utils import atlas_name_from_repr
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
@@ -332,12 +332,12 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         smooth=False,
         parallel=True,
         verbosity=0,
-        num_threads=-1
+        num_threads=-1,
     )
-    
+
     # Filter structures to only those with meshes
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
-    
+
     return meshes_dict, structures_with_mesh
 
 
@@ -380,7 +380,9 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information(annotated_volume)
-    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(annotated_volume, structures)
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+        annotated_volume, structures
+    )
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

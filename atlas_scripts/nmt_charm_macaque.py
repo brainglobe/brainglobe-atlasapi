@@ -714,9 +714,6 @@ def retrieve_or_construct_meshes(
 
 
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
     bg_root_dir.mkdir(parents=True, exist_ok=True)
 

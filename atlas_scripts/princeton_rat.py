@@ -8,6 +8,9 @@ from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import atlas_name_from_repr
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
@@ -37,7 +40,7 @@ ATLAS_LINK = "https://figshare.com/ndownloader/files/42485103"
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "rai"
+ORIENTATION = "ras"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
@@ -305,7 +308,7 @@ def retrieve_structure_information(annotation):
     return structures
 
 
-def retrieve_or_construct_meshes():
+def retrieve_or_construct_meshes(annotated_volume, structures):
     """
     Return a dictionary mapping structure IDs to paths of mesh files.
 
@@ -318,8 +321,24 @@ def retrieve_or_construct_meshes():
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
-    meshes_dict = {}
-    return meshes_dict
+    # Construct meshes from the annotation volume.
+    # Requires atlas generation extras: vedo + PyMCubes.
+    meshes_dict = construct_meshes_from_annotation(
+        save_path=DOWNLOAD_DIR_PATH,
+        volume=annotated_volume,
+        structures_list=structures,
+        closing_n_iters=2,
+        decimate_fraction=0.2,
+        smooth=False,
+        parallel=True,
+        verbosity=0,
+        num_threads=-1
+    )
+    
+    # Filter structures to only those with meshes
+    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
+    
+    return meshes_dict, structures_with_mesh
 
 
 def retrieve_additional_references():
@@ -361,7 +380,7 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information(annotated_volume)
-    meshes_dict = retrieve_or_construct_meshes()
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(annotated_volume, structures)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -374,7 +393,7 @@ if __name__ == "__main__":
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=structures,
+        structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,
@@ -382,4 +401,5 @@ if __name__ == "__main__":
         compress=True,
         scale_meshes=True,
         additional_references=additional_references,
+        atlas_packager=ATLAS_PACKAGER,
     )

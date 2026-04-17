@@ -5,6 +5,7 @@ import pooch
 import xmltodict  # IS THIS IN REQUIREMENTS?
 from brainglobe_utils.IO.image import load_any
 
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
@@ -27,7 +28,7 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "princeton_rat_female"
+ATLAS_NAME = "princeton_female_rat"
 
 # DOI of the most relevant citable document
 CITATION = "https://doi.org/10.21769/BioProtoc.4854"

@@ -5,6 +5,7 @@ import pooch
 import xmltodict  # IS THIS IN REQUIREMENTS?
 from brainglobe_utils.IO.image import load_any
 
+from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )

@@ -57,8 +57,8 @@ RESOLUTION = 25
 # --- Script toggles (no CLI args) ---
 # If True, do not re-download files that already exist on disk.
 SKIP_DOWNLOADS_IF_PRESENT = True
-TEMPLATE_URL = "https://figshare.com/ndownloader/files/42485103"
-ANNOTATION_URL = "https://figshare.com/ndownloader/files/51181751"
+TEMPLATE_URL = "https://ndownloader.figshare.com/files/42485103"
+ANNOTATION_URL = "https://ndownloader.figshare.com/files/51181751"
 LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME

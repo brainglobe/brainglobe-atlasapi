@@ -57,8 +57,8 @@ RESOLUTION = 25
 # --- Script toggles (no CLI args) ---
 # If True, do not re-download files that already exist on disk.
 SKIP_DOWNLOADS_IF_PRESENT = True
-TEMPLATE_URL = "https://figshare.com/ndownloader/files/42825733"
-ANNOTATION_URL = "https://figshare.com/ndownloader/files/42825718"
+TEMPLATE_URL = "https://ndownloader.figshare.com/files/42825733"
+ANNOTATION_URL = "https://ndownloader.figshare.com/files/42825718"
 LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
@@ -101,7 +101,7 @@ def download_waxholm_atlas_files(
 
     pooch.retrieve(
         url=atlas_file_url,
-        known_hash=None,
+        known_hash="2adeffb6816ee1ace68c1c0383cd484f9eccf436375ebd502890990e26621ae1",
         path=download_dir_path,
         fname=download_name,
         progressbar=True,
@@ -208,7 +208,7 @@ def download_resources():
             TEMPLATE_URL,
             path=DOWNLOAD_DIR_PATH,
             fname=TEMPLATE_FNAME,
-            known_hash=None,
+            known_hash="b03dc1cc1406e711ac99c409fa7cfbc735c5cd5d4e094e731d25b664c50cb3d8",
             progressbar=True,
         )
     if should_fetch(annotation_path):
@@ -216,7 +216,7 @@ def download_resources():
             ANNOTATION_URL,
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
-            known_hash=None,
+            known_hash="e7ccb0f83d59a53417a92a55a2a7c8e304f4743c469ad9ab7baf188f49598644",
             progressbar=True,
         )
 

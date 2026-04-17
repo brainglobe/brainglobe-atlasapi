@@ -36,7 +36,9 @@ CITATION = "https://doi.org/10.21769/BioProtoc.4854"
 SPECIES = "Rattus norvegicus"
 
 # The URL for the data files
-ATLAS_LINK = "https://figshare.com/articles/dataset/Princeton_RAtlas_PRA_/24207429"
+ATLAS_LINK = (
+    "https://figshare.com/articles/dataset/Princeton_RAtlas_PRA_/24207429"
+)
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation

@@ -39,13 +39,13 @@ from brainglobe_atlasapi.utils import (
 def _determine_pyramid_level(
     multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
 ):
-    for metadata in multiscale.metadata.datasets:
+    for idx, metadata in enumerate(multiscale.metadata.datasets):
         scales = metadata.coordinateTransformations[0].scale
         if all(
             np.isclose(res / 1000, scale)
             for res, scale in zip(resolution, scales)
         ):
-            return int(metadata.path)
+            return idx
 
     raise ValueError(f"Requested resolution {resolution} um is invalid.")
 

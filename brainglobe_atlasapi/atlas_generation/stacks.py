@@ -90,6 +90,8 @@ def write_multiscale_ome_zarr(
         coordinate_transformations=transformations,
     )
 
+    store.close()
+
 
 def save_reference(stack, output_dir):
     """Save the reference image stack.

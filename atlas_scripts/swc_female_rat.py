@@ -32,7 +32,7 @@ SPECIES = "Rattus norvegicus"
 ATLAS_LINK = ""
 CITATION = "unpublished"
 ORIENTATION = "asr"
-RESOLUTION = (50, 50, 50)
+RESOLUTION = (25, 25, 25)
 ROOT_ID = 10000  # Waxholm root
 ATLAS_PACKAGER = "Viktor Plattner, v.plattner@ucl.ac.uk"
 
@@ -57,10 +57,10 @@ STRUCTURES_ILF_URL = (
 
 # Hashes for the atlas files. Modify these if the files are updated.
 TEMPLATE_HASH = (
-    "7aed7300fdec07c601f376ffe7b77da059fcb6a46e568e99125e473e08e75c8a"
+    "64fe376a91732b2bb321f2b6412851bc512228dc4b10a893887f7e594dbbd588"
 )
 ANNOTATION_HASH = (
-    "bf7ace23df27a1037d494cac030d07e2a45bc26df5cf611b5563598a581116b8"
+    "68c941a8e2456100c99c38214f7fa3e0ef145f0503085696a39fbc706e805b95"
 )
 STRUCTURES_ILF_HASH = (
     "dd0de0cfb3ae22a8e5666d11df846afa465aa5c5c2dd02af68720488633d2a65"

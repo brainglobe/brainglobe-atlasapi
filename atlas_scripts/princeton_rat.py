@@ -255,9 +255,11 @@ def retrieve_hemisphere_map(reference_volume):
     """
     hemispheres_map = np.full(reference_volume.shape, 0, dtype=np.uint8)
     for anterioposterior_distance in range(hemispheres_map.shape[1]):
-        hemispheres_map[: int(anterioposterior_distance*-0.04608 + 352.9), 
-                        anterioposterior_distance] = 1
-    
+        hemispheres_map[
+            : int(anterioposterior_distance * -0.04608 + 352.9),
+            anterioposterior_distance,
+        ] = 1
+
     return hemispheres_map
 
 
@@ -387,9 +389,9 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_map = retrieve_hemisphere_map(reference_volume)
     structures = retrieve_structure_information(annotated_volume)
-    '''meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+    """meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
-    )'''
+    )"""
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

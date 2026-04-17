@@ -27,7 +27,7 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "princeton_rat"
+ATLAS_NAME = "princeton_rat_female"
 
 # DOI of the most relevant citable document
 CITATION = "https://doi.org/10.21769/BioProtoc.4854"
@@ -54,15 +54,15 @@ RESOLUTION = 25
 # --- Script toggles (no CLI args) ---
 # If True, do not re-download files that already exist on disk.
 SKIP_DOWNLOADS_IF_PRESENT = True
-TEMPLATE_URL = "https://figshare.com/ndownloader/files/42485103"
-ANNOTATION_URL = "https://figshare.com/ndownloader/files/51181751"
+TEMPLATE_URL = "https://figshare.com/ndownloader/files/42825733"
+ANNOTATION_URL = "https://figshare.com/ndownloader/files/42825718"
 LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
-TEMPLATE_FNAME = "PRA.tif"
-ANNOTATION_FNAME = "PRA_WHS_v4_anns.tif"
+TEMPLATE_FNAME = "fPRA.tif"
+ANNOTATION_FNAME = "fPRA_WHS_v4_anns.tif"
 LABELS_FNAME = "WHS_SD_rat_atlas_v4.01_labels.ilf"
 
 ATLAS_PACKAGER = "Jung Woo Kim"

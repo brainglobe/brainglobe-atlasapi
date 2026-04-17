@@ -98,7 +98,7 @@ def download_waxholm_atlas_files(
 
     pooch.retrieve(
         url=atlas_file_url,
-        known_hash="2adeffb6816ee1ace68c1c0383cd484f9eccf436375ebd502890990e26621ae1",
+        known_hash=None,
         path=download_dir_path,
         fname=download_name,
         progressbar=True,
@@ -205,7 +205,7 @@ def download_resources():
             TEMPLATE_URL,
             path=DOWNLOAD_DIR_PATH,
             fname=TEMPLATE_FNAME,
-            known_hash="c764a7a15aa1e4b54fb5277057a7d4af1169cb00864feceb2a0103dc9b74fa7e",
+            known_hash=None,
             progressbar=True,
         )
     if should_fetch(annotation_path):
@@ -213,7 +213,7 @@ def download_resources():
             ANNOTATION_URL,
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
-            known_hash="cb8087e4c108a63d1350411d5cbafb394314b43c55afb831e15810c9cfaf0726",
+            known_hash=None,
             progressbar=True,
         )
 

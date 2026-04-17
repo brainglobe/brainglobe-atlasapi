@@ -471,7 +471,6 @@ def wrapup_atlas_from_data(
             for stack in reference_stack
         ]
 
-        shape = reference_stack[0].shape
         shapes = [stack.shape for stack in reference_stack]
         dest_dir = working_dir / template_metadata["location"].lstrip("/")
 

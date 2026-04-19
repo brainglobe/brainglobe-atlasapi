@@ -48,7 +48,7 @@ NMT_SYM_URL = (
 NMT_SYM_HASH = (
     "sha256:9c455431ec1e8257fef4127c137e49f710aa43ef8a87f1bf73701b83d5ef7e6d"
 )
-STRUCTURE_RE = re.compile(r"^\s*(\d+):\s*(.*?)\s*\((.*?)\)\s*$")
+STRUCTURE_RE = re.compile(r"^\s*(\d+):\s*([^()]*)\s*\(([^()]*)\)\s*$")
 CHARM_MESH_RE = re.compile(r"^CHARM_(\d+)\.(.+)\.k(\d+)\.gii$")
 UNUSED_CHARM_STRUCTURE_IDS = set(range(140, 148))
 

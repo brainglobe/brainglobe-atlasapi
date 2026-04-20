@@ -45,7 +45,7 @@ ATLAS_LINK = "https://download.alleninstitute.org/informatics-archive/october-20
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "asr"
+ORIENTATION = "rsa"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
@@ -334,4 +334,5 @@ if __name__ == "__main__":
         compress=True,
         scale_meshes=True,
         additional_references=additional_references,
+        atlas_packager=ATLAS_PACKAGER
     )

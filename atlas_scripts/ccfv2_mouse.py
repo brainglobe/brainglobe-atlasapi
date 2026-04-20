@@ -334,5 +334,5 @@ if __name__ == "__main__":
         compress=True,
         scale_meshes=True,
         additional_references=additional_references,
-        atlas_packager=ATLAS_PACKAGER
+        atlas_packager=ATLAS_PACKAGER,
     )

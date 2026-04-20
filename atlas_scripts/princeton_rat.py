@@ -58,7 +58,8 @@ RESOLUTION = 25
 # If True, do not re-download files that already exist on disk.
 SKIP_DOWNLOADS_IF_PRESENT = True
 TEMPLATE_URL = "https://ndownloader.figshare.com/files/42485103"
-ANNOTATION_URL = "https://ndownloader.figshare.com/files/51181751"
+#ANNOTATION_URL = "https://ndownloader.figshare.com/files/51181751" # v5
+ANNOTATION_URL = "https://ndownloader.figshare.com/files/42825790" # v4
 LABELS_URL = "https://www.nitrc.org/frs/download.php/13400/MBAT_WHS_SD_rat_atlas_v4.01.zip//?i_agree=1&download_now=1"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
@@ -216,7 +217,8 @@ def download_resources():
             ANNOTATION_URL,
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
-            known_hash="cb8087e4c108a63d1350411d5cbafb394314b43c55afb831e15810c9cfaf0726",
+            #known_hash="cb8087e4c108a63d1350411d5cbafb394314b43c55afb831e15810c9cfaf0726", # v5
+            known_hash="c8c04429c41f997d721e9be1e116f4e7139daf7e40a7e55bbed514ce09288c60", # v4
             progressbar=True,
         )
 

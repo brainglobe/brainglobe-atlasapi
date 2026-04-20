@@ -4,26 +4,18 @@ Use this script as a starting point to package a new BrainGlobe atlas by
 filling in the required functions and metadata.
 """
 
-import json
-import pooch
-import rawpy # Might have to add this into dependencies?
-import SimpleITK # This too?
-
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
+import pooch
 import skimage.io as io
-from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.atlas_generation.wrapup import (
-    wrapup_atlas_from_data
-)
-from brainglobe_atlasapi.utils import atlas_name_from_repr
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
@@ -79,6 +71,7 @@ DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 ATLAS_PACKAGER = "Jung Woo Kim"
 
+
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
 
@@ -99,17 +92,18 @@ def hex_to_rgb(hex):
 
     return rgb
 
+
 def download_resources():
     """
     Download the necessary resources for the atlas with Pooch.
     """
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
-    
+
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
     labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
-    
+
     needs_download = (
         (not reference_path.exists())
         or (not annotation_path.exists())
@@ -117,12 +111,12 @@ def download_resources():
     )
     if needs_download:
         utils.check_internet_connection()
-    
+
     def should_fetch(path: Path) -> bool:
         if not path.exists():
             return True
         return not SKIP_DOWNLOADS_IF_PRESENT
-    
+
     if should_fetch(reference_path):
         pooch.retrieve(
             url=REFERENCE_URL,
@@ -132,7 +126,7 @@ def download_resources():
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )
-        
+
     if should_fetch(annotation_path):
         pooch.retrieve(
             url=ANNOTATION_URL,
@@ -142,7 +136,7 @@ def download_resources():
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )
-        
+
     if should_fetch(labels_path):
         pooch.retrieve(
             url=LABELS_URL,
@@ -151,7 +145,7 @@ def download_resources():
             fname=LABELS_FNAME,
             progressbar=True,
         )
-        
+
     pass
 
 
@@ -166,11 +160,10 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-
     reference_path = DOWNLOAD_DIR_PATH / "atlasVolume/atlasVolume.mhd"
-    reference = io.imread(reference_path, plugin='simpleitk')
+    reference = io.imread(reference_path, plugin="simpleitk")
     annotation_path = DOWNLOAD_DIR_PATH / "annotation.mhd"
-    annotation = io.imread(annotation_path, plugin='simpleitk')
+    annotation = io.imread(annotation_path, plugin="simpleitk")
     return reference, annotation
 
 
@@ -217,29 +210,29 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
-
     df = pd.read_csv(DOWNLOAD_DIR_PATH / LABELS_FNAME)
-    df.drop(columns = [
-        "atlas_id", 
-        "st_level", 
-        "ontology_id",
-        "hemisphere_id", # May be useful
-        "weight",
-        "parent_structure_id",
-        "depth",
-        "graph_id",
-        "graph_order",
-        "neuro_name_structure_id",
-        "neuro_name_structure_id_path",
-        "failed",
-        "sphinx_id",
-        "structure_name_facet",
-        "failed_facet"
-        ], inplace=True)
-    df.rename(columns={"color_hex_triplet":"rgb_triplet"}, inplace=True)
-    df["rgb_triplet"] = df["rgb_triplet"].apply(lambda x : 
-        hex_to_rgb(x))
+    df.drop(
+        columns=[
+            "atlas_id",
+            "st_level",
+            "ontology_id",
+            "hemisphere_id",  # May be useful
+            "weight",
+            "parent_structure_id",
+            "depth",
+            "graph_id",
+            "graph_order",
+            "neuro_name_structure_id",
+            "neuro_name_structure_id_path",
+            "failed",
+            "sphinx_id",
+            "structure_name_facet",
+            "failed_facet",
+        ],
+        inplace=True,
+    )
+    df.rename(columns={"color_hex_triplet": "rgb_triplet"}, inplace=True)
+    df["rgb_triplet"] = df["rgb_triplet"].apply(lambda x: hex_to_rgb(x))
     df["structure_id_path"] = (
         df["structure_id_path"]
         .str.split("/")
@@ -273,9 +266,9 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         verbosity=0,
         num_threads=-1,
     )
-    
+
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
-    
+
     return meshes_dict, structures_with_mesh
 
 
@@ -318,7 +311,9 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(annotated_volume, structures)
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+        annotated_volume, structures
+    )
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

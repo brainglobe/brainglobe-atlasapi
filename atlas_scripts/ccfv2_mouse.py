@@ -4,10 +4,26 @@ Use this script as a starting point to package a new BrainGlobe atlas by
 filling in the required functions and metadata.
 """
 
+import json
+import pooch
+import rawpy # Might have to add this into dependencies?
+import SimpleITK # This too?
+
 from pathlib import Path
 
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+import numpy as np
+import pandas as pd
+import skimage.io as io
+from brainglobe_utils.IO.image import load_any
+
+from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.wrapup import (
+    wrapup_atlas_from_data
+)
 from brainglobe_atlasapi.utils import atlas_name_from_repr
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
@@ -24,16 +40,16 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "example_mouse"
+ATLAS_NAME = "ccfv2_mouse"
 
 # DOI of the most relevant citable document
-CITATION = None
+CITATION = "https://doi.org/10.1038/nature05453"
 
 # The scientific name of the species, ie; Rattus norvegicus
-SPECIES = None
+SPECIES = "Mus musculus"
 
 # The URL for the data files
-ATLAS_LINK = None
+ATLAS_LINK = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/"
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
@@ -42,19 +58,100 @@ ORIENTATION = "asr"
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
 # hierarchical
-ROOT_ID = None
+ROOT_ID = 997
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
-RESOLUTION = None
+RESOLUTION = 25
 
+
+SKIP_DOWNLOADS_IF_PRESENT = True
+REFERENCE_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/atlasVolume.zip"
+ANNOTATION_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/P56_Mouse_annotation.zip"
+LABELS_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/structures.csv"
+
+REFERENCE_FNAME = "atlasVolume.zip"
+ANNOTATION_FNAME = "p56_Mouse_annotation.zip"
+LABELS_FNAME = "structures.csv"
+
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
+
+ATLAS_PACKAGER = "Jung Woo Kim"
+
+def hex_to_rgb(hex):
+    """Convert a hexadecimal color string to an RGB triplet.
+
+    Parameters
+    ----------
+    hex : str
+        The hexadecimal color string (e.g., "RRGGBB").
+
+    Returns
+    -------
+    list
+        A list of three integers representing the RGB color (0-255).
+    """
+    rgb = []
+    for i in (0, 2, 4):
+        decimal = int(hex[i : i + 2], 16)
+        rgb.append(decimal)
+
+    return rgb
 
 def download_resources():
     """
-    Download the necessary resources for the atlas.
-
-    If possible, please use the Pooch library to retrieve any resources.
+    Download the necessary resources for the atlas with Pooch.
     """
+    BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
+    DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
+    
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
+    
+    needs_download = (
+        (not reference_path.exists())
+        or (not annotation_path.exists())
+        or (not labels_path.exists())
+    )
+    if needs_download:
+        utils.check_internet_connection()
+    
+    def should_fetch(path: Path) -> bool:
+        if not path.exists():
+            return True
+        return not SKIP_DOWNLOADS_IF_PRESENT
+    
+    if should_fetch(reference_path):
+        pooch.retrieve(
+            url=REFERENCE_URL,
+            known_hash="8b19e3435198a9811c53631b9e4a50ccd6a84ef5f10b4e526c5ec7749ae41484",
+            path=DOWNLOAD_DIR_PATH,
+            fname=REFERENCE_FNAME,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
+        
+    if should_fetch(annotation_path):
+        pooch.retrieve(
+            url=ANNOTATION_URL,
+            known_hash="af89f9639a77801fbddfdb75a927dc0de4488ec82290d561eda99a50a1832321",
+            path=DOWNLOAD_DIR_PATH,
+            fname=ANNOTATION_FNAME,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
+        
+    if should_fetch(labels_path):
+        pooch.retrieve(
+            url=LABELS_URL,
+            known_hash="9dd4264ff54c44be7fd019fac1d5780c679eeb83b0efd0ba4cc3ac67beed6825",
+            path=DOWNLOAD_DIR_PATH,
+            fname=LABELS_FNAME,
+            progressbar=True,
+        )
+        
     pass
 
 
@@ -69,8 +166,11 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference = None
-    annotation = None
+
+    reference_path = DOWNLOAD_DIR_PATH / "atlasVolume/atlasVolume.mhd"
+    reference = io.imread(reference_path, plugin='simpleitk')
+    annotation_path = DOWNLOAD_DIR_PATH / "annotation.mhd"
+    annotation = io.imread(annotation_path, plugin='simpleitk')
     return reference, annotation
 
 
@@ -117,10 +217,39 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    return None
+    
+
+    df = pd.read_csv(DOWNLOAD_DIR_PATH / LABELS_FNAME)
+    df.drop(columns = [
+        "atlas_id", 
+        "st_level", 
+        "ontology_id",
+        "hemisphere_id", # May be useful
+        "weight",
+        "parent_structure_id",
+        "depth",
+        "graph_id",
+        "graph_order",
+        "neuro_name_structure_id",
+        "neuro_name_structure_id_path",
+        "failed",
+        "sphinx_id",
+        "structure_name_facet",
+        "failed_facet"
+        ], inplace=True)
+    df.rename(columns={"color_hex_triplet":"rgb_triplet"}, inplace=True)
+    df["rgb_triplet"] = df["rgb_triplet"].apply(lambda x : 
+        hex_to_rgb(x))
+    df["structure_id_path"] = (
+        df["structure_id_path"]
+        .str.split("/")
+        .map(lambda path: [int(id) for id in path if id])
+    )
+    structures = df.to_dict("records")
+    return structures
 
 
-def retrieve_or_construct_meshes():
+def retrieve_or_construct_meshes(annotated_volume, structures):
     """
     Return a dictionary mapping structure IDs to paths of mesh files.
 
@@ -133,8 +262,21 @@ def retrieve_or_construct_meshes():
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
-    meshes_dict = {}
-    return meshes_dict
+    meshes_dict = construct_meshes_from_annotation(
+        save_path=DOWNLOAD_DIR_PATH,
+        volume=annotated_volume,
+        structures_list=structures,
+        closing_n_iters=2,
+        decimate_fraction=0.2,
+        smooth=False,
+        parallel=True,
+        verbosity=0,
+        num_threads=-1,
+    )
+    
+    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
+    
+    return meshes_dict, structures_with_mesh
 
 
 def retrieve_additional_references():
@@ -176,7 +318,7 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    meshes_dict = retrieve_or_construct_meshes()
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(annotated_volume, structures)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -189,7 +331,7 @@ if __name__ == "__main__":
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=structures,
+        structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,

@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas, config
+from brainglobe_atlasapi.update_atlases import update_atlas
 
 
 @pytest.fixture(autouse=True)
@@ -65,6 +66,9 @@ def atlas():
     BrainGlobeAtlas
         An instance of BrainGlobeAtlas for 'example_mouse_100um'.
     """
+    # Ensure atlas is updated to latest version for testing:
+    update_atlas("example_mouse_100um")
+
     return BrainGlobeAtlas("example_mouse_100um")
 
 
@@ -77,6 +81,9 @@ def asymmetric_atlas():
     BrainGlobeAtlas
         An instance of BrainGlobeAtlas for 'unam_axolotl_40um'.
     """
+    # Ensure atlas is updated to latest version for testing:
+    update_atlas("unam_axolotl_40um")
+
     return BrainGlobeAtlas("unam_axolotl_40um")
 
 
@@ -105,4 +112,7 @@ def atlas_path():
     pathlib.Path
         The root directory path of the 'example_mouse_100um' atlas.
     """
+    # Ensure atlas is updated to latest version for testing:
+    update_atlas("example_mouse_100um")
+
     return BrainGlobeAtlas("example_mouse_100um").root_dir

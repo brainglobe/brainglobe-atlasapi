@@ -4,26 +4,50 @@ import warnings
 from collections import UserDict, deque
 from pathlib import Path
 from typing import (
+    Dict,
     List,
     Tuple,
     Union,
 )
 
+import ngff_zarr as nz
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
+import s3fs
 from brainglobe_space import AnatomicalSpace
+from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import (
-    ANNOTATION_FILENAME,
+    ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
-    HEMISPHERES_FILENAME,
-    MESHES_DIRNAME,
-    METADATA_FILENAME,
-    REFERENCE_FILENAME,
-    STRUCTURES_FILENAME,
+    REFERENCE_DTYPE,
+    V2_ANNOTATION_NAME,
+    V2_HEMISPHERES_NAME,
+    V2_MESHES_DIRECTORY,
+    V2_TEMPLATE_NAME,
+    V2_TERMINOLOGY_NAME,
+    remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
-from brainglobe_atlasapi.utils import read_json, read_tiff
+from brainglobe_atlasapi.utils import (
+    load_structures_from_csv,
+    read_json,
+)
+
+
+def _determine_pyramid_level(
+    multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
+):
+    for metadata in multiscale.metadata.datasets:
+        scales = metadata.coordinateTransformations[0].scale
+        if all(
+            np.isclose(res / 1000, scale)
+            for res, scale in zip(resolution, scales)
+        ):
+            return int(metadata.path)
+
+    raise ValueError(f"Requested resolution {resolution} um is invalid.")
 
 
 class Atlas:
@@ -39,19 +63,49 @@ class Atlas:
     right_hemisphere_value = 2
 
     def __init__(self, path):
-        self.root_dir = Path(path)
-        self.metadata = read_json(self.root_dir / METADATA_FILENAME)
+        self._template_pyramid_level = 0
+        self._annotation_pyramid_level = 0
+        self.fs = s3fs.S3FileSystem(anon=True)
 
-        # Load structures list:
-        structures_list = read_json(self.root_dir / STRUCTURES_FILENAME)
+        atlas_path = Path(path)
+        self.root_dir = atlas_path.parents[3]
+        self.metadata = read_json(atlas_path)
+        structures_path = (
+            self.root_dir
+            / self.metadata["terminology"]["location"][1:]
+            / V2_TERMINOLOGY_NAME
+        )
+        structures_list = load_structures_from_csv(structures_path)
+        meshes_path = (
+            self.root_dir
+            / self.metadata["annotation_set"]["location"][1:]
+            / V2_MESHES_DIRECTORY
+        )
+
+        template_location = self.metadata["annotation_set"]["template"][
+            "location"
+        ][1:]
+        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
+
+        multiscale = nz.from_ngff_zarr(template_path)
+        self._template_pyramid_level = _determine_pyramid_level(
+            multiscale, self.resolution
+        )
+        annotation_location = self.metadata["annotation_set"]["location"][1:]
+        annotation_path = (
+            self.root_dir / annotation_location / V2_ANNOTATION_NAME
+        )
+        multiscale = nz.from_ngff_zarr(annotation_path)
+        self._annotation_pyramid_level = _determine_pyramid_level(
+            multiscale, self.resolution
+        )
+
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = (
-                self.root_dir / MESHES_DIRNAME / "{}.obj".format(struct["id"])
-            )
+            struct["mesh_filename"] = meshes_path / str(struct["id"])
 
         self.structures = StructuresDict(structures_list)
 
@@ -65,9 +119,13 @@ class Atlas:
         self._reference = None
 
         try:
+            additional_references = self.metadata.get(
+                "additional_references", []
+            )
             self.additional_references = AdditionalRefDict(
-                references_list=self.metadata["additional_references"],
+                references_list=additional_references,
                 data_path=self.root_dir,
+                resolution=self.resolution,
             )
         except KeyError:
             warnings.warn(
@@ -77,6 +135,7 @@ class Atlas:
             )
 
         self._annotation = None
+        self._template = None
         self._hemispheres = None
         self._lookup = None
 
@@ -119,20 +178,81 @@ class Atlas:
         return self._lookup
 
     @property
-    def reference(self):
-        """Return the reference image data. Loads it if not already loaded."""
-        if self._reference is None:
-            self._reference = read_tiff(self.root_dir / REFERENCE_FILENAME)
-        return self._reference
+    def template(self) -> npt.NDArray[REFERENCE_DTYPE]:
+        """Return the template image data. Loads it if not already loaded."""
+        if self._template is not None:
+            return self._template
+
+        template_location = self.metadata["annotation_set"]["template"][
+            "location"
+        ][1:]
+
+        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
+
+        multiscale = nz.from_ngff_zarr(template_path)
+        resolution_path = template_path / str(self._template_pyramid_level)
+
+        if not (resolution_path / "c").exists():
+            print("Downloading template...")
+            remote_path = remote_url_s3.format(
+                f"{template_location}/{V2_TEMPLATE_NAME}/{self._template_pyramid_level}/"
+            )
+            self.fs.get(
+                remote_path,
+                resolution_path,
+                recursive=True,
+                callback=TqdmCallback(),
+            )
+
+        self._template = multiscale.images[
+            self._template_pyramid_level
+        ].data.compute()
+
+        return self._template
 
     @property
-    def annotation(self):
+    def reference(self):
+        """Return the template image data.
+
+        Warning: this is a deprecated alias for template, and will be removed
+        in future versions. Use atlas.template instead.
         """
-        Return the annotation image data.
-        Loads it if not already loaded.
-        """
-        if self._annotation is None:
-            self._annotation = read_tiff(self.root_dir / ANNOTATION_FILENAME)
+        print(
+            "Warning: atlas.reference is a deprecated alias for "
+            "atlas.template, and will be removed in future versions."
+        )
+        return self.template
+
+    @property
+    def annotation(self) -> npt.NDArray[ANNOTATION_DTYPE]:
+        """Return the annotation image data. Loads it if not already loaded."""
+        if self._annotation is not None:
+            return self._annotation
+
+        annotation_location = self.metadata["annotation_set"]["location"][1:]
+        annotation_path = (
+            self.root_dir / annotation_location / V2_ANNOTATION_NAME
+        )
+
+        multiscale = nz.from_ngff_zarr(annotation_path)
+        resolution_path = annotation_path / str(self._annotation_pyramid_level)
+
+        if not (resolution_path / "c").exists():
+            print("Downloading annotations...")
+            remote_path = remote_url_s3.format(
+                f"{annotation_location}/{V2_ANNOTATION_NAME}/{self._annotation_pyramid_level}/"
+            )
+            self.fs.get(
+                remote_path,
+                resolution_path,
+                recursive=True,
+                callback=TqdmCallback(),
+            )
+
+        self._annotation = multiscale.images[
+            self._annotation_pyramid_level
+        ].data.compute()
+
         return self._annotation
 
     @property
@@ -145,27 +265,54 @@ class Atlas:
         If the reference has an odd number of voxels along the frontal axis,
         the middle plane is assigned to the left hemisphere.
         """
-        if self._hemispheres is None:
-            # If reference is symmetric generate hemispheres block:
-            if self.metadata["symmetric"]:
-                # initialize empty stack:
-                stack = np.full(self.metadata["shape"], 2, dtype=np.uint8)
+        if self._hemispheres is not None:
+            return self._hemispheres
 
-                # Use bgspace description to fill out with hemisphere values:
-                front_ax_idx = self.space.axes_order.index("frontal")
+        # If reference is symmetric generate hemispheres block:
+        if self.metadata["symmetric"]:
+            # initialize empty stack:
+            stack = np.full(self.metadata["shape"], 2, dtype=np.uint8)
 
-                # Fill out with 2s the right hemisphere:
-                slices = [slice(None) for _ in range(3)]
-                slices[front_ax_idx] = slice(
-                    round(stack.shape[front_ax_idx] / 2), None
+            # Use bgspace description to fill out with hemisphere values:
+            front_ax_idx = self.space.axes_order.index("frontal")
+
+            # Fill out with 2s the right hemisphere:
+            slices = [slice(None) for _ in range(3)]
+            slices[front_ax_idx] = slice(
+                round(stack.shape[front_ax_idx] / 2), None
+            )
+            stack[tuple(slices)] = 1
+
+            self._hemispheres = stack
+        else:
+            annotation_location = self.metadata["annotation_set"]["location"][
+                1:
+            ]
+            hemispheres_path = (
+                self.root_dir / annotation_location / V2_HEMISPHERES_NAME
+            )
+
+            multiscale = nz.from_ngff_zarr(hemispheres_path)
+            resolution_path = hemispheres_path / str(
+                self._annotation_pyramid_level
+            )
+
+            if not (resolution_path / "c").exists():
+                print("Downloading hemispheres...")
+                remote_path = remote_url_s3.format(
+                    f"{annotation_location}/{V2_HEMISPHERES_NAME}/{self._annotation_pyramid_level}/"
                 )
-                stack[tuple(slices)] = 1
-
-                self._hemispheres = stack
-            else:
-                self._hemispheres = read_tiff(
-                    self.root_dir / HEMISPHERES_FILENAME
+                self.fs.get(
+                    remote_path,
+                    resolution_path,
+                    recursive=True,
+                    callback=TqdmCallback(),
                 )
+
+            self._hemispheres = multiscale.images[
+                self._annotation_pyramid_level
+            ].data.compute()
+
         return self._hemispheres
 
     def hemisphere_from_coords(
@@ -525,16 +672,25 @@ class AdditionalRefDict(UserDict):
     if the dictionary is queried for it.
     """
 
-    def __init__(self, references_list, data_path, *args, **kwargs):
+    def __init__(
+        self,
+        references_list: List[Dict[str, str]],
+        data_path,
+        resolution: Tuple[float, float, float],
+        *args,
+        **kwargs,
+    ):
         self.data_path = data_path
-        self.references_list = references_list
+        self.references_names = [ref["name"] for ref in references_list]
+        self.references_dict = {ref["name"]: ref for ref in references_list}
+        self.resolution = resolution
 
         super().__init__(*args, **kwargs)
 
-        for ref_name in self.references_list:
+        for ref_name in self.references_names:
             self.data[ref_name] = None
 
-    def __getitem__(self, ref_name):
+    def __getitem__(self, key):
         """Retrieve an item from the dictionary using the reference name
         as key.
 
@@ -545,7 +701,7 @@ class AdditionalRefDict(UserDict):
 
         Parameters
         ----------
-        ref_name : str
+        key : str
             The name of the reference image to retrieve (e.g., "aba").
 
         Returns
@@ -558,16 +714,40 @@ class AdditionalRefDict(UserDict):
         ------
             KeyError: If the ref_name is not found.
         """
-        if ref_name not in self.references_list:
+        if key not in self.references_names:
             warnings.warn(
-                f"No reference named {ref_name} "
-                f"(available: {self.references_list})"
+                f"No reference named {key} "
+                f"(available: {self.references_names})"
             )
             return None
 
-        if self.data[ref_name] is None:
-            self.data[ref_name] = read_tiff(
-                self.data_path / f"{ref_name}.tiff"
+        if self.data[key] is None:
+            additional_ref_data = self.references_dict.get(key, key)
+
+            additional_ref_location = additional_ref_data["location"][1:]
+            local_path: Path = (
+                self.data_path / additional_ref_location / V2_TEMPLATE_NAME
             )
 
-        return self.data[ref_name]
+            multiscale = nz.from_ngff_zarr(local_path)
+            pyramid_level = _determine_pyramid_level(
+                multiscale, self.resolution
+            )
+
+            resolution_path = local_path / str(pyramid_level)
+
+            if not (resolution_path / "c").exists():
+                print("Downloading template...")
+                remote_path = remote_url_s3.format(
+                    f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{pyramid_level}/"
+                )
+                fs = s3fs.S3FileSystem(anon=True)
+                fs.get(
+                    remote_path,
+                    resolution_path,
+                    recursive=True,
+                    callback=TqdmCallback(),
+                )
+            self.data[key] = multiscale.images[pyramid_level].data.compute()
+
+        return self.data[key]

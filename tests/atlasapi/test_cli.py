@@ -36,7 +36,7 @@ def test_update_command():
     update_atlas = CliRunner().invoke(
         cli.bg_cli, ["update", "-a", "example_mouse_100um", "-f"]
     )
-    expected_output = "updating example_mouse_100um\nDownloading..."
+    expected_output = "updating example_mouse_100um"
     assert expected_output in update_atlas.output
 
 

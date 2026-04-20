@@ -14,7 +14,7 @@ def test_update():
 
 def test_update_wrong_name():
     """Test updating with an invalid atlas name."""
-    with pytest.raises(ValueError) as error:
+    with pytest.raises(FileNotFoundError) as error:
         update_atlases.update_atlas("allen_madasadsdouse_25um")
     assert "is not a valid atlas name!" in str(error)
 

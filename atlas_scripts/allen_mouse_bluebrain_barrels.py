@@ -373,20 +373,10 @@ def create_atlas(working_dir, resolution):
             continue
 
         else:
-            create_region_mesh(
-                (
-                    meshes_dir,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    CLOSING_N_ITERS,
-                    DECIMATE_FRACTION,
-                    SMOOTH,
-                )
+            raise FileNotFoundError(
+                "Missing precomputed mesh for nonbarrel structure "
+                "rerun with a complete set of downloaded meshes."
             )
-            meshes_dict[node.identifier] = file_name
 
     print(
         "Finished mesh extraction in : ",

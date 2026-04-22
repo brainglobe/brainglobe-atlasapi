@@ -133,12 +133,13 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
         if name in available_atlases.keys():
             local_version = get_local_atlas_version(name)
             latest = str(available_atlases[name])
+            local_version_dotted = folder_version_to_dotted(local_version)
             atlases[name] = dict(
                 downloaded=True,
                 local=name,
-                version=folder_version_to_dotted(local_version),
+                version=local_version_dotted,
                 latest_version=latest,
-                updated=latest.replace(".", "_") == local_version,
+                updated=local_version_dotted == latest,
             )
     return atlases
 

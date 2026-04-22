@@ -73,6 +73,9 @@ def test_lastversions():
             )
         ]
     )
+    assert example_atlas["updated"] == (
+        example_atlas["version"] == example_atlas["latest_version"]
+    )
 
 
 def test_show_atlases():

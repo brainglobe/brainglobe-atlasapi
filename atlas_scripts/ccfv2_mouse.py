@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 import pooch
 import skimage.io as io
+import numpy as np
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -332,6 +333,7 @@ if __name__ == "__main__":
     '''meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
     )'''
+    structures_with_mesh = [s for s in structures if s["id"] in np.unique(annotated_volume)]
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -344,7 +346,7 @@ if __name__ == "__main__":
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=structures, #    structures_with_mesh,
+        structures_list=structures_with_mesh,
         meshes_dict={}, #    meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,

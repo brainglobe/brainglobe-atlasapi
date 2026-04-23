@@ -1,6 +1,6 @@
-"""Package the Allen CCFv2 Mouse Atlas.
+"""Package the Allen CCFv2 Mouse Fiber Tract Atlas.
 
-This script generates the Allen CCFv2 mouse brain atlas, based on data from
+This script generates the Allen CCFv2 mouse fiber tract atlas, based on data from
 the Allen Institute. It downloads the necessary annotation and structure data,
 processes it to create an atlas, and then wraps it up into the
 BrainGlobe atlas format.
@@ -21,7 +21,7 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 ### Metadata ###
 __version__ = 0
-ATLAS_NAME = "ccfv2_mouse"
+ATLAS_NAME = "ccfv2_fiber_mouse"
 CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/"
@@ -33,12 +33,12 @@ ATLAS_PACKAGER = "Jung Woo Kim"
 SKIP_DOWNLOADS_IF_PRESENT = True
 
 REFERENCE_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/atlasVolume.zip"
-ANNOTATION_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/P56_Mouse_annotation.zip"
+ANNOTATION_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/P56_Mouse_annotationFiber.zip"
 LABELS_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/structures.csv"
 AVERAGED_REFERENCE_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/averageTemplate.zip"
 
 REFERENCE_FNAME = "atlasVolume.zip"
-ANNOTATION_FNAME = "p56_Mouse_annotation.zip"
+ANNOTATION_FNAME = "p56_Mouse_annotationFiber.zip"
 LABELS_FNAME = "structures.csv"
 AVERAGED_REFERENCE_FNAME = "averageTemplate.zip"
 
@@ -104,7 +104,7 @@ def download_resources():
     if should_fetch(annotation_path):
         pooch.retrieve(
             url=ANNOTATION_URL,
-            known_hash="af89f9639a77801fbddfdb75a927dc0de4488ec82290d561eda99a50a1832321",
+            known_hash="ed94878a8fcc5b6a661cac98fec71116d8edc510703460aa0075169e38b5351a",
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
             progressbar=True,
@@ -134,7 +134,7 @@ def retrieve_reference_and_annotation():
     """
     reference_path = DOWNLOAD_DIR_PATH / "atlasVolume/atlasVolume.mhd"
     reference = io.imread(reference_path, plugin="simpleitk")
-    annotation_path = DOWNLOAD_DIR_PATH / "annotation.mhd"
+    annotation_path = DOWNLOAD_DIR_PATH / "annotationFiber.mhd"
     annotation = io.imread(annotation_path, plugin="simpleitk")
     return reference, annotation
 

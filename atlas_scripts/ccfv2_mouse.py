@@ -1,4 +1,4 @@
-"""Package the Allen CCFv2 Mouse Atlas.
+"""Package the Allen CCFv2 Mouse Brain Atlas.
 
 This script generates the Allen CCFv2 mouse brain atlas, based on data from
 the Allen Institute. It downloads the necessary annotation and structure data,

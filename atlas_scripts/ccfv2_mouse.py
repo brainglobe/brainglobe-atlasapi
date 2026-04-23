@@ -1,9 +1,3 @@
-"""Template script for generating a BrainGlobe atlas.
-
-Use this script as a starting point to package a new BrainGlobe atlas by
-filling in the required functions and metadata.
-"""
-
 from pathlib import Path
 
 import pandas as pd
@@ -17,8 +11,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
 
 ### Metadata ###
 
@@ -62,9 +54,13 @@ REFERENCE_URL = "https://download.alleninstitute.org/informatics-archive/october
 ANNOTATION_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/P56_Mouse_annotation.zip"
 LABELS_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/structures.csv"
 
+AVERAGED_REFERENCE_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/averageTemplate.zip"
+
 REFERENCE_FNAME = "atlasVolume.zip"
 ANNOTATION_FNAME = "p56_Mouse_annotation.zip"
 LABELS_FNAME = "structures.csv"
+
+AVERAGED_REFERENCE_FNAME = "averageTemplate.zip"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
@@ -216,7 +212,7 @@ def retrieve_structure_information():
             "atlas_id",
             "st_level",
             "ontology_id",
-            "hemisphere_id",  # May be useful
+            "hemisphere_id",
             "weight",
             "parent_structure_id",
             "depth",
@@ -285,7 +281,29 @@ def retrieve_additional_references():
     dict
         A dictionary mapping reference image names to their image stack data.
     """
-    additional_references = {}
+    averaged_reference_path = DOWNLOAD_DIR_PATH / AVERAGED_REFERENCE_FNAME
+    
+    needs_download = not averaged_reference_path.exists()
+    if needs_download:
+        utils.check_internet_connection()
+
+    def should_fetch(path: Path) -> bool:
+        if not path.exists():
+            return True
+        return not SKIP_DOWNLOADS_IF_PRESENT
+
+    if should_fetch(averaged_reference_path):
+        pooch.retrieve(
+            url=AVERAGED_REFERENCE_URL,
+            known_hash="f3476045fef475ce6c03dea20b38ec6afbb85d9110a6b468ac8259be4f8842ce",
+            path=DOWNLOAD_DIR_PATH,
+            fname=AVERAGED_REFERENCE_FNAME,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
+    averaged_reference_path = DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
+    averaged_reference = io.imread(averaged_reference_path, plugin="simpleitk")
+    additional_references = {"Averaged reference" : averaged_reference}
     return additional_references
 
 
@@ -311,9 +329,9 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+    '''meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
-    )
+    )'''
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -326,8 +344,8 @@ if __name__ == "__main__":
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=structures_with_mesh,
-        meshes_dict=meshes_dict,
+        structures_list=structures, #    structures_with_mesh,
+        meshes_dict={}, #    meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,
         cleanup_files=False,

@@ -1,3 +1,11 @@
+"""Package the Allen CCFv2 Mouse Atlas.
+
+This script generates the Allen CCFv2 mouse brain atlas, based on data from
+the Allen Institute. It downloads the necessary annotation and structure data,
+processes it to create an atlas, and then wraps it up into the
+BrainGlobe atlas format.
+"""
+
 from pathlib import Path
 
 import pandas as pd
@@ -14,59 +22,30 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 
 ### Metadata ###
-
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
 __version__ = 0
-
-# The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
-# Institution_SpeciesCommonName, e.g. allen_mouse.
-# remember to add {ATLAS_NAME}_{RESOLUTION}um to:
-# brainglobe_atlasapi/atlas_names.py
 ATLAS_NAME = "ccfv2_mouse"
-
-# DOI of the most relevant citable document
 CITATION = "https://doi.org/10.1038/nature05453"
-
-# The scientific name of the species, ie; Rattus norvegicus
 SPECIES = "Mus musculus"
-
-# The URL for the data files
 ATLAS_LINK = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/"
-
-# The orientation of the **original** atlas data, in BrainGlobe convention:
-# https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
 ORIENTATION = "rsa"
-
-# The id of the highest level of the atlas. This is commonly called root or
-# brain. Include some information on what to do if your atlas is not
-# hierarchical
 ROOT_ID = 997
-
-# The resolution of your volume in microns. Details on how to format this
-# parameter for non isotropic datasets or datasets with multiple resolutions.
 RESOLUTION = 25
-
+ATLAS_PACKAGER = "Jung Woo Kim"
 
 SKIP_DOWNLOADS_IF_PRESENT = True
+
 REFERENCE_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/atlasVolume.zip"
 ANNOTATION_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/P56_Mouse_annotation.zip"
 LABELS_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/structures.csv"
-
 AVERAGED_REFERENCE_URL = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/averageTemplate.zip"
 
 REFERENCE_FNAME = "atlasVolume.zip"
 ANNOTATION_FNAME = "p56_Mouse_annotation.zip"
 LABELS_FNAME = "structures.csv"
-
 AVERAGED_REFERENCE_FNAME = "averageTemplate.zip"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
-
-ATLAS_PACKAGER = "Jung Woo Kim"
 
 
 def hex_to_rgb(hex):
@@ -143,8 +122,6 @@ def download_resources():
             progressbar=True,
         )
 
-    pass
-
 
 def retrieve_reference_and_annotation():
     """
@@ -174,9 +151,8 @@ def retrieve_hemisphere_map():
 
     Returns
     -------
-    np.ndarray or None
-        A numpy array representing the hemisphere map, or None if the atlas
-        is symmetrical.
+    None
+        None as the atlas is symmetrical.
     """
     return None
 
@@ -308,8 +284,6 @@ def retrieve_additional_references():
     return additional_references
 
 
-### If the code above this line has been filled correctly, nothing needs to be
-### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
     if RESOLUTION is None:
         raise ValueError("RESOLUTION must be set before running this script.")
@@ -330,10 +304,9 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    '''meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
-    )'''
-    structures_with_mesh = [s for s in structures if s["id"] in np.unique(annotated_volume)]
+    )
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -347,7 +320,7 @@ if __name__ == "__main__":
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
         structures_list=structures_with_mesh,
-        meshes_dict={}, #    meshes_dict,
+        meshes_dict=meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,
         cleanup_files=False,

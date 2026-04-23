@@ -11,7 +11,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-
 ### Metadata ###
 
 # The minor version of the atlas in the brainglobe_atlasapi, this is internal,
@@ -282,7 +281,7 @@ def retrieve_additional_references():
         A dictionary mapping reference image names to their image stack data.
     """
     averaged_reference_path = DOWNLOAD_DIR_PATH / AVERAGED_REFERENCE_FNAME
-    
+
     needs_download = not averaged_reference_path.exists()
     if needs_download:
         utils.check_internet_connection()
@@ -301,9 +300,11 @@ def retrieve_additional_references():
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )
-    averaged_reference_path = DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
+    averaged_reference_path = (
+        DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
+    )
     averaged_reference = io.imread(averaged_reference_path, plugin="simpleitk")
-    additional_references = {"Averaged reference" : averaged_reference}
+    additional_references = {"Averaged reference": averaged_reference}
     return additional_references
 
 
@@ -329,9 +330,9 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    '''meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+    """meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
-    )'''
+    )"""
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -344,8 +345,8 @@ if __name__ == "__main__":
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=structures, #    structures_with_mesh,
-        meshes_dict={}, #    meshes_dict,
+        structures_list=structures,  #    structures_with_mesh,
+        meshes_dict={},  #    meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,
         cleanup_files=False,

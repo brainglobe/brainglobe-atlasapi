@@ -8,7 +8,6 @@ BrainGlobe atlas format.
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pooch
 import skimage.io as io

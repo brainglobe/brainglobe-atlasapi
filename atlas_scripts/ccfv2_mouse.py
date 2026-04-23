@@ -8,10 +8,10 @@ BrainGlobe atlas format.
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pooch
 import skimage.io as io
-import numpy as np
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -19,7 +19,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
-
 
 ### Metadata ###
 __version__ = 0
@@ -259,7 +258,7 @@ def retrieve_additional_references():
         A dictionary mapping reference image names to their image stack data.
     """
     averaged_reference_path = DOWNLOAD_DIR_PATH / AVERAGED_REFERENCE_FNAME
-    
+
     needs_download = not averaged_reference_path.exists()
     if needs_download:
         utils.check_internet_connection()
@@ -278,9 +277,11 @@ def retrieve_additional_references():
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )
-    averaged_reference_path = DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
+    averaged_reference_path = (
+        DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
+    )
     averaged_reference = io.imread(averaged_reference_path, plugin="simpleitk")
-    additional_references = {"Averaged reference" : averaged_reference}
+    additional_references = {"Averaged reference": averaged_reference}
     return additional_references
 
 
@@ -325,7 +326,5 @@ if __name__ == "__main__":
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
-        scale_meshes=True,
         additional_references=additional_references,
-        atlas_packager=ATLAS_PACKAGER,
     )

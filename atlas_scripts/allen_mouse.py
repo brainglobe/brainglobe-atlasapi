@@ -222,6 +222,8 @@ def retrieve_or_construct_meshes(
 
     meshes_dir_path = BG_ROOT_DIR / "meshes"
     meshes_dir_path.mkdir(exist_ok=True)
+    raw_meshes_dir_path = download_dir_path / "raw_meshes"
+    raw_meshes_dir_path.mkdir(exist_ok=True)
 
     meshes_dict = {}
     unchanged_ids.add(ROOT_ID)
@@ -235,16 +237,17 @@ def retrieve_or_construct_meshes(
         if sid not in unchanged_ids:
             continue
         mesh_path = meshes_dir_path / f"{sid}.obj"
-        if not mesh_path.exists():
+        raw_mesh_path = raw_meshes_dir_path / f"{sid}.obj"
+        if not raw_mesh_path.exists():
             mesh_url = ALLEN_2017_MESH_URL_TEMPLATE.format(structure_id=sid)
-            retrieve_over_http(mesh_url, mesh_path)
-            # Allen 2017 meshes are in microns. Convert to voxel
-            # coordinates of the (downsampled) annotation so they are
-            # consistent with locally generated meshes.
-            mesh = mio.read(mesh_path)
-            if len(mesh.points) > 0:
-                mesh.points /= voxel_spacing
-                mio.write(mesh_path, mesh)
+            retrieve_over_http(mesh_url, raw_mesh_path)
+        # Allen 2017 meshes are in microns. Always convert to voxel
+        # coordinates of the (downsampled) annotation so they are
+        # consistent with locally generated meshes.
+        mesh = mio.read(raw_mesh_path)
+        if len(mesh.points) > 0:
+            mesh.points /= voxel_spacing
+        mio.write(mesh_path, mesh)
         meshes_dict[sid] = mesh_path
 
     # Generate meshes using the full structure tree so parent regions include

@@ -209,10 +209,10 @@ def retrieve_structure_information():
         .str.split("/")
         .map(lambda path: [int(id) for id in path if id])
     )
-    
+
     # Remove Fiber Tracts from structures hierarchy (Used in ccfv2_fiber_mouse instead)
     df = df[df["id"] != 1009]
-    
+
     structures = df.to_dict("records")
     return structures
 

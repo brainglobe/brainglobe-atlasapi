@@ -438,12 +438,12 @@ def wrapup_atlas_from_data(
 
     if isinstance(annotation_stack, str) or isinstance(annotation_stack, Path):
         annotation_stack = [tifffile.imread(annotation_stack)]
-    elif isinstance(annotation_stack, npt.NDArray):
+    elif isinstance(annotation_stack, np.ndarray):
         annotation_stack = [annotation_stack]
 
     if isinstance(reference_stack, str) or isinstance(reference_stack, Path):
         reference_stack = [tifffile.imread(reference_stack)]
-    elif isinstance(reference_stack, npt.NDArray):
+    elif isinstance(reference_stack, np.ndarray):
         reference_stack = [reference_stack]
 
     structures_list = filter_structures_not_present_in_annotation(
@@ -592,7 +592,7 @@ def wrapup_atlas_from_data(
             additional_stack, Path
         ):
             additional_stack = [tifffile.imread(additional_stack)]
-        elif isinstance(additional_stack, npt.NDArray):
+        elif isinstance(additional_stack, np.ndarray):
             additional_stack = [additional_stack]
 
         additional_stack = [

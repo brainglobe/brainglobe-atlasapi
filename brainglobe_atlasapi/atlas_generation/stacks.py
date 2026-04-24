@@ -111,31 +111,35 @@ def save_reference(stack, output_dir):
 
 
 def _save_as_ome_zarr(
-    stack: npt.NDArray,
+    stack: List[npt.NDArray],
     dtype: npt.DTypeLike,
     output_path: Path,
     transformations: List[List[Dict]],
 ) -> None:
-    if stack.dtype != dtype:
-        stack = stack.astype(dtype)
-    assert (
-        len(transformations) == 1
+    for arr in stack:
+        if arr.dtype != dtype:
+            arr = arr.astype(dtype)
+
+    assert len(transformations) == len(
+        stack
     ), "Currently only one resolution level is supported."
     write_multiscale_ome_zarr(
-        images=[stack],
+        images=stack,
         output_path=output_path,
         transformations=transformations,
     )
 
 
 def save_template(
-    stack: npt.NDArray, output_dir: Path, transformations: List[List[Dict]]
+    stack: List[npt.NDArray],
+    output_dir: Path,
+    transformations: List[List[Dict]],
 ):
     """Save the template image stack along with its transformations.
 
     Parameters
     ----------
-    stack : np.ndarray
+    stack : List[np.ndarray]
         The template image stack.
     output_dir : Path
         The directory where the template image will be saved.
@@ -151,13 +155,15 @@ def save_template(
 
 
 def save_annotation(
-    stack: npt.NDArray, output_dir: Path, transformations: List[List[Dict]]
+    stack: List[npt.NDArray],
+    output_dir: Path,
+    transformations: List[List[Dict]],
 ):
     """Save the annotation image stack.
 
     Parameters
     ----------
-    stack : np.ndarray
+    stack : List[np.ndarray]
         The annotation image stack.
     output_dir : Path
         The directory where the annotation image will be saved.
@@ -173,13 +179,15 @@ def save_annotation(
 
 
 def save_hemispheres(
-    stack: npt.NDArray, output_dir: Path, transformations: List[List[Dict]]
+    stack: List[npt.NDArray],
+    output_dir: Path,
+    transformations: List[List[Dict]],
 ):
     """Save the hemispheres image stack.
 
     Parameters
     ----------
-    stack : np.ndarray
+    stack : List[np.ndarray]
         The hemispheres image stack.
     output_dir : Path
         The directory where the hemispheres image will be saved.

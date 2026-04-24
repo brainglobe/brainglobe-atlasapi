@@ -104,7 +104,7 @@ def download_resources():
     if should_fetch(annotation_path):
         pooch.retrieve(
             url=ANNOTATION_URL,
-            known_hash=None,
+            known_hash="69f8ab6139ed0a5eaf94646ee3b0bff812845d3b66322eea6d62238fbd079778",
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
             progressbar=True,
@@ -209,6 +209,10 @@ def retrieve_structure_information():
         .str.split("/")
         .map(lambda path: [int(id) for id in path if id])
     )
+    
+    # Remove Fiber Tracts from structures hierarchy (Used in ccfv2_fiber_mouse instead)
+    df = df[df["id"] != 1009]
+    
     structures = df.to_dict("records")
     return structures
 

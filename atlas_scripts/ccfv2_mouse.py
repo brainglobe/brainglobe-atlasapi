@@ -6,6 +6,8 @@ processes it to create an atlas, and then wraps it up into the
 BrainGlobe atlas format.
 """
 
+#TODO remove 'fiber tracts' from structures hierarchy
+
 from pathlib import Path
 
 import pandas as pd
@@ -236,6 +238,7 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         parallel=True,
         verbosity=0,
         num_threads=-1,
+        
     )
 
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
@@ -301,12 +304,12 @@ if __name__ == "__main__":
         )
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
     )
-    additional_references = retrieve_additional_references()
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -326,4 +329,6 @@ if __name__ == "__main__":
         cleanup_files=False,
         compress=True,
         additional_references=additional_references,
+        atlas_packager=ATLAS_PACKAGER,
+        scale_meshes=True,
     )

@@ -326,4 +326,5 @@ if __name__ == "__main__":
         cleanup_files=False,
         compress=True,
         additional_references=additional_references,
+        atlas_packager=ATLAS_PACKAGER,
     )

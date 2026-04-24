@@ -6,7 +6,7 @@ processes it to create an atlas, and then wraps it up into the
 BrainGlobe atlas format.
 """
 
-#TODO remove 'fiber tracts' from structures hierarchy
+# TODO remove 'fiber tracts' from structures hierarchy
 
 from pathlib import Path
 
@@ -213,7 +213,7 @@ def retrieve_structure_information():
     )
 
     # Remove Fiber Tracts from structures hierarchy (Used in ccfv2_fiber_mouse instead)
-    df = df[df['id'] != 1009]
+    df = df[df["id"] != 1009]
 
     structures = df.to_dict("records")
     return structures
@@ -242,7 +242,6 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         parallel=True,
         verbosity=0,
         num_threads=-1,
-        
     )
 
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]

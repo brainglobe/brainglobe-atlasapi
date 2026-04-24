@@ -33,6 +33,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 from loguru import logger
+from treelib import Node, Tree
 
 from brainglobe_atlasapi.atlas_generation.volume_utils import (
     create_masked_array,
@@ -150,16 +151,16 @@ def extract_mesh_from_mask(
 
 def _create_region_mesh(
     meshes_dir_path: Path,
-    node,
-    tree,
-    labels,
-    annotated_volume,
+    node: Node,
+    tree: Tree,
+    labels: list[int],
+    annotated_volume: np.ndarray | str | Path,
     ROOT_ID: int,
     closing_n_iters: int,
     decimate_fraction: float,
     smooth: bool,
     verbosity: int = 0,
-):
+) -> None:
     """
     Create and save an `.obj` mesh for a region and its descendants.
 

@@ -211,8 +211,8 @@ def retrieve_structure_information():
     )
 
     # Fix name of root (renamed from "Mus musculus")
-    df.loc[df['id'] == 15564, "name"] = "root"
-    df.loc[df['id'] == 15564, "acronym"] = "root"
+    df.loc[df["id"] == 15564, "name"] = "root"
+    df.loc[df["id"] == 15564, "acronym"] = "root"
 
     structures = df.to_dict("records")
     return structures

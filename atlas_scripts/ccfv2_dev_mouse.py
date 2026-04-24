@@ -26,7 +26,7 @@ CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/"
 ORIENTATION = "rsa"
-ROOT_ID = 997
+ROOT_ID = 15564
 RESOLUTION = 25
 ATLAS_PACKAGER = "Jung Woo Kim"
 
@@ -210,8 +210,9 @@ def retrieve_structure_information():
         .map(lambda path: [int(id) for id in path if id])
     )
 
-    # Remove Fiber Tracts from structures hierarchy (Used in ccfv2_fiber_mouse instead)
-    df = df[df["id"] != 1009]
+    # Fix name of root (renamed from "Mus musculus")
+    df.loc[df['id'] == 15564, "name"] = "root"
+    df.loc[df['id'] == 15564, "acronym"] = "root"
 
     structures = df.to_dict("records")
     return structures

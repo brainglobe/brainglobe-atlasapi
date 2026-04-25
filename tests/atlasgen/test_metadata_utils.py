@@ -24,8 +24,35 @@ def metadata_input_template():
     dict
         A dictionary containing template metadata.
     """
+    template_metadata = {
+        "name": "author_species-template",
+        "version": "1.4",
+        "location": "/stub/location/of/template",
+    }
+    terminology_metadata = {
+        "name": "author_species-terminology",
+        "version": "1.2",
+        "location": "/stub/location/of/terminology",
+    }
+
+    coordinate_space_metadata = {
+        "name": "author_species-space",
+        "version": "1.0",
+        "location": "/stub/location/of/coordinate/space",
+        "template": template_metadata,
+    }
+
+    annotation_metadata = {
+        "name": "author_species-annotation",
+        "version": "1.3",
+        "location": "/stub/location/of/annotation",
+        "template": template_metadata,
+        "terminology": terminology_metadata,
+    }
+
     return {
         "name": "author_species",
+        "location": "/stub/location/of/atlas",
         "citation": "Lazcano, I. et al. 2021, https://doi.org/10.1038/s41598-021-89357-3",
         "atlas_link": "https://zenodo.org/records/4595016",
         "species": "Ambystoma mexicanum",
@@ -37,6 +64,10 @@ def metadata_input_template():
         "shape": [172, 256, 154],  # Keep as list/tuple input type
         "additional_references": [],
         "atlas_packager": "people who packaged the atlas",
+        "coordinate_space_metadata": coordinate_space_metadata,
+        "terminology_metadata": terminology_metadata,
+        "annotation_set_metadata": annotation_metadata,
+        "template_metadata": template_metadata,
     }
 
 
@@ -53,31 +84,55 @@ def test_generate_metadata_dict(metadata_input_template):
 
     assert isinstance(output, dict)
 
+    key_map = {
+        "name": "name",
+        "location": "location",
+        "citation": "citation",
+        "atlas_link": "atlas_link",
+        "species": "species",
+        "symmetric": "symmetric",
+        "resolution": "resolution",
+        "orientation": "orientation",
+        "version": "version",
+        "shape": "shape",
+        "additional_references": "additional_references",
+        "atlas_packager": "atlas_packager",
+        "coordinate_space_metadata": "coordinate_space",
+        "terminology_metadata": "terminology",
+        "annotation_set_metadata": "annotation_set",
+        "template_metadata": "template",
+    }
+
     for key in input_data:  # Iterate through keys expected based on input
         # Assert key presence
-        assert key in output, f"Expected key '{key}' missing in output"
+        output_key = key_map[key]
+        assert (
+            output_key in output
+        ), f"Expected key '{output_key}' missing in output"
 
         # Assert value correctness, handling type conversions
         if key == "resolution":
             # Check if the output tuple matches the input list/tuple elements
-            assert output[key] == tuple(
+            assert output[output_key] == tuple(
                 input_data[key]
             ), f"'{key}' value mismatch or type mismatch (expected tuple)"
         elif key == "shape":
             # Check if the output tuple matches the input list/tuple elements
-            assert output[key] == tuple(
+            assert output[output_key] == tuple(
                 input_data[key]
             ), f"'{key}' value mismatch or type mismatch (expected tuple)"
         elif key == "orientation":
             # Ensure the output orientation is the standard 'asr'
             assert (
-                output[key] == "asr"
+                output[output_key] == "asr"
             ), f"'{key}' value mismatch (expected 'asr')"
         else:
             # Direct comparison for other keys (name, citation, species, etc.)
-            assert output[key] == input_data[key], f"'{key}' value mismatch"
+            assert (
+                output[output_key] == input_data[key]
+            ), f"'{key}' value mismatch"
 
-    expected_keys = set(input_data.keys())
+    expected_keys = set(key_map.values())
     output_keys = set(output.keys())
     assert (
         output_keys == expected_keys

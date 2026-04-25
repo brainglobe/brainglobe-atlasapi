@@ -8,7 +8,7 @@ from typing import get_args
 
 import numpy as np
 
-from brainglobe_atlasapi import BrainGlobeAtlas
+from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
@@ -42,23 +42,55 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
     AssertionError
         If any expected file or directory is missing.
     """
-    atlas_path = atlas.root_dir
+    root_dir = atlas.root_dir
 
-    assert atlas_path.is_dir(), f"Atlas path {atlas_path} not found"
+    atlas_location = atlas.metadata["location"].lstrip("/")
+    atlas_path = Path(root_dir) / atlas_location / "manifest.json"
+
+    assert atlas_path.exists(), f"Atlas path {atlas_path} not found"
+
+    template_location = atlas.metadata["template"]["location"].lstrip("/")
+    annotation_location = atlas.metadata["annotation_set"]["location"].lstrip(
+        "/"
+    )
+    terminology_location = atlas.metadata["terminology"]["location"].lstrip(
+        "/"
+    )
+    coordinate_space_location = atlas.metadata["coordinate_space"][
+        "location"
+    ].lstrip("/")
+
     expected_files = [
-        "annotation.tiff",
-        "reference.tiff",
-        "metadata.json",
-        "structures.json",
+        (
+            "Annotations",
+            root_dir / annotation_location / descriptors.V2_ANNOTATION_NAME,
+        ),
+        (
+            "Meshes",
+            root_dir / annotation_location / descriptors.V2_MESHES_DIRECTORY,
+        ),
+        (
+            "Hemispheres",
+            root_dir / annotation_location / descriptors.V2_HEMISPHERES_NAME,
+        ),
+        (
+            "Template",
+            root_dir / template_location / descriptors.V2_TEMPLATE_NAME,
+        ),
+        (
+            "Coordinate Space",
+            root_dir / coordinate_space_location / "manifest.json",
+        ),
+        (
+            "Terminology",
+            root_dir / terminology_location / descriptors.V2_TERMINOLOGY_NAME,
+        ),
     ]
-    for expected_file_name in expected_files:
-        expected_path = Path(atlas_path / expected_file_name)
+    for file_name, expected_path in expected_files:
         assert (
-            expected_path.is_file()
+            expected_path.exists()
         ), f"Expected file not found at {expected_path}"
 
-    meshes_path = atlas_path / "meshes"
-    assert meshes_path.is_dir(), f"Meshes path {meshes_path} not found"
     return True
 
 
@@ -204,7 +236,7 @@ def validate_checksum(atlas: BrainGlobeAtlas):
 
 
 def validate_image_dimensions(atlas: BrainGlobeAtlas):
-    """Check that annotation and reference images have identical dimensions.
+    """Check that annotation and template images have identical dimensions.
 
     Parameters
     ----------
@@ -219,12 +251,12 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
     Raises
     ------
     AssertionError
-        If the `annotation` and `reference` image arrays have different shapes.
+        If the `annotation` and `template` image arrays have different shapes.
     """
-    assert atlas.annotation.shape == atlas.reference.shape, (
-        "Annotation and reference image have different dimensions. \n"
+    assert atlas.annotation.shape == atlas.template.shape, (
+        "Annotation and template image have different dimensions. \n"
         f"Annotation image has dimension: {atlas.annotation.shape}, "
-        f"while reference image has dimension {atlas.reference.shape}."
+        f"while template image has dimension {atlas.template.shape}."
     )
     return True
 
@@ -255,16 +287,16 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
     """
     for (
         additional_reference_name
-    ) in atlas.additional_references.references_list:
+    ) in atlas.additional_references.references_names:
         additional_reference = atlas.additional_references[
             additional_reference_name
         ]
-        assert additional_reference.shape == atlas.reference.shape, (
+        assert additional_reference.shape == atlas.template.shape, (
             f"Additional reference {additional_reference} "
             "has unexpected dimension."
         )
         assert not np.all(
-            additional_reference == atlas.reference
+            additional_reference == atlas.template
         ), "Additional reference is not different to main reference."
     return True
 
@@ -292,19 +324,18 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     atlas_path = atlas.root_dir
+    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
 
-    obj_path = Path(atlas_path / "meshes")
+    mesh_path = (
+        Path(atlas_path) / meshes_location / descriptors.V2_MESHES_DIRECTORY
+    )
 
-    ids_from_mesh_files = [
-        int(Path(file).stem)
-        for file in os.listdir(obj_path)
-        if file.endswith(".obj")
-    ]
+    ids_from_mesh_files = [int(Path(f).stem) for f in os.listdir(mesh_path)]
 
     in_bg_not_mesh = []
-    for id in ids_from_bg_atlas_api:
-        if id not in ids_from_mesh_files:
-            in_bg_not_mesh.append(id)
+    for mesh_id in ids_from_bg_atlas_api:
+        if mesh_id not in ids_from_mesh_files:
+            in_bg_not_mesh.append(mesh_id)
 
     if len(in_bg_not_mesh) != 0:
         raise AssertionError(
@@ -337,14 +368,13 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
     atlas_path = atlas.root_dir
+    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
 
-    obj_path = Path(atlas_path / "meshes")
+    mesh_path = (
+        Path(atlas_path) / meshes_location / descriptors.V2_MESHES_DIRECTORY
+    )
 
-    ids_from_mesh_files = [
-        int(Path(file).stem)
-        for file in os.listdir(obj_path)
-        if file.endswith(".obj")
-    ]
+    ids_from_mesh_files = [int(Path(f).stem) for f in os.listdir(mesh_path)]
 
     in_mesh_not_bg = []
     for id in ids_from_mesh_files:
@@ -359,10 +389,10 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
-    """Validate that the reference image was correctly rescaled.
+def validate_template_image_pixels(atlas: BrainGlobeAtlas):
+    """Validate that the template image was correctly rescaled.
 
-    This check aims to catch issues where a float64 reference image (e.g., from
+    This check aims to catch issues where a float64 template image (e.g., from
     MRI) might have been incorrectly rescaled or cast to the target integer
     data type (e.g., `REFERENCE_DTYPE`), resulting in pixel values that are
     too low. It asserts that not all pixel values are below 128
@@ -376,18 +406,18 @@ def validate_reference_image_pixels(atlas: BrainGlobeAtlas):
     Returns
     -------
     bool
-        True if the reference image's pixel values appear to be
+        True if the template image's pixel values appear to be
         correctly scaled.
 
     Raises
     ------
     AssertionError
-        If all pixel values in the reference image are less than 128,
+        If all pixel values in the template image are less than 128,
         suggesting incorrect scaling.
     """
     assert not np.all(
-        atlas.reference < 128
-    ), f"Reference image is likely wrongly rescaled to {REFERENCE_DTYPE}"
+        atlas.template < 128
+    ), f"Template image is likely wrongly rescaled to {REFERENCE_DTYPE}"
     return True
 
 
@@ -587,7 +617,7 @@ def get_all_validation_functions():
         validate_additional_references,
         catch_missing_mesh_files,
         catch_missing_structures,
-        validate_reference_image_pixels,
+        validate_template_image_pixels,
         validate_annotation_symmetry,
         validate_unique_acronyms,
         validate_atlas_name,

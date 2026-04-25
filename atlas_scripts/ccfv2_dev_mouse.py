@@ -215,7 +215,8 @@ def retrieve_structure_information():
     # Fix details of root structure
     df.loc[df["id"] == 15564, "name"] = "root"
     df.loc[df["id"] == 15564, "acronym"] = "root"
-    df.loc[df["id"] == 15564, "rgb_triplet"] = [255, 255, 255]
+    df.loc[df["id"] == 15564, "rgb_triplet"] = pd.Series([[255, 255, 255]], 
+                                        index = df.index[df["id"] == 15564])
 
     structures = df.to_dict("records")
     return structures

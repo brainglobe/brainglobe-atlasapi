@@ -48,7 +48,7 @@ NMT_SYM_URL = (
 NMT_SYM_HASH = (
     "sha256:9c455431ec1e8257fef4127c137e49f710aa43ef8a87f1bf73701b83d5ef7e6d"
 )
-STRUCTURE_RE = re.compile(r"^\s*(\d+):\s*([^()]*)\s*\(([^()]*)\)\s*$")
+NMT_REFERENCE_FILENAME = "NMT_v2.0_sym.nii.gz"
 CHARM_MESH_RE = re.compile(r"^CHARM_(\d+)\.(.+)\.k(\d+)\.gii$")
 UNUSED_CHARM_STRUCTURE_IDS = set(range(140, 148))
 
@@ -103,13 +103,13 @@ def resolve_standard_nmt_dir(nmt_dir: Path) -> Path:
         [
             path
             for path in [nmt_dir, *nmt_dir.rglob("*")]
-            if path.is_dir() and (path / "NMT_v2.0_sym.nii.gz").exists()
+            if path.is_dir() and (path / NMT_REFERENCE_FILENAME).exists()
         ]
     )
 
     if not candidates:
         raise FileNotFoundError(
-            "Could not find a directory containing NMT_v2.0_sym.nii.gz "
+            f"Could not find a directory containing {NMT_REFERENCE_FILENAME} "
             f"inside {nmt_dir}"
         )
 
@@ -133,7 +133,7 @@ def retrieve_reference_and_annotation(
         The normalized reference volume and level-6 CHARM annotation volume.
     """
     standard_dir = resolve_standard_nmt_dir(nmt_dir)
-    reference_path = standard_dir / "NMT_v2.0_sym.nii.gz"
+    reference_path = standard_dir / NMT_REFERENCE_FILENAME
     annotation_path = (
         standard_dir / "supplemental_CHARM" / "CHARM_6_in_NMT_v2.0_sym.nii.gz"
     )
@@ -181,14 +181,24 @@ def parse_charm_structure(value: str) -> dict:
     dict
         Parsed structure ID, name, and acronym.
     """
-    match = STRUCTURE_RE.match(str(value))
-    if match is None:
+    value = str(value).strip()
+
+    try:
+        structure_id_text, remainder = value.split(":", maxsplit=1)
+        name, acronym = remainder.rsplit("(", maxsplit=1)
+    except ValueError as error:
+        raise ValueError(
+            f"Could not parse CHARM structure entry: {value!r}"
+        ) from error
+
+    acronym = acronym.strip()
+    if not acronym.endswith(")"):
         raise ValueError(f"Could not parse CHARM structure entry: {value!r}")
 
     return {
-        "id": int(match.group(1)),
-        "name": match.group(2),
-        "acronym": match.group(3),
+        "id": int(structure_id_text.strip()),
+        "name": name.strip(),
+        "acronym": acronym[:-1].strip(),
     }
 
 
@@ -595,7 +605,7 @@ def retrieve_or_construct_meshes(
         Mapping from structure ID to converted OBJ mesh path.
     """
     standard_dir = resolve_standard_nmt_dir(nmt_dir)
-    reference_path = standard_dir / "NMT_v2.0_sym.nii.gz"
+    reference_path = standard_dir / NMT_REFERENCE_FILENAME
     surfaces_dir = standard_dir.parent / "NMT_v2.0_sym_surfaces"
     charm_surfaces_dir = surfaces_dir / "atlases" / "CHARM"
     output_mesh_dir = Path(working_dir) / "meshes"

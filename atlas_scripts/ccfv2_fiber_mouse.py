@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 import pooch
-import skimage.io as io
+import SimpleITK as sitk
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -133,9 +133,11 @@ def retrieve_reference_and_annotation():
         A tuple containing the reference volume and the annotation volume.
     """
     reference_path = DOWNLOAD_DIR_PATH / "atlasVolume/atlasVolume.mhd"
-    reference = io.imread(reference_path, plugin="simpleitk")
+    ref_image = sitk.ReadImage(reference_path)
+    reference = sitk.GetArrayFromImage(ref_image)
     annotation_path = DOWNLOAD_DIR_PATH / "annotationFiber.mhd"
-    annotation = io.imread(annotation_path, plugin="simpleitk")
+    ann_image = sitk.ReadImage(annotation_path)
+    annotation = sitk.GetArrayFromImage(ann_image)
     return reference, annotation
 
 
@@ -279,7 +281,8 @@ def retrieve_additional_references():
     averaged_reference_path = (
         DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
     )
-    averaged_reference = io.imread(averaged_reference_path, plugin="simpleitk")
+    ave_ref_image = sitk.ReadImage(averaged_reference_path)
+    averaged_reference = sitk.GetArrayFromImage(ave_ref_image)
     additional_references = {"Averaged reference": averaged_reference}
     return additional_references
 

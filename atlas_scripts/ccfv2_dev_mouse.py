@@ -212,9 +212,10 @@ def retrieve_structure_information():
         .map(lambda path: [int(id) for id in path if id])
     )
 
-    # Fix name of root (renamed from "Mus musculus")
+    # Fix details of root structure
     df.loc[df["id"] == 15564, "name"] = "root"
     df.loc[df["id"] == 15564, "acronym"] = "root"
+    df.loc[df["id"] == 15564, "rgb_triplet"] = [255,255,255]
 
     structures = df.to_dict("records")
     return structures

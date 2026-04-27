@@ -1,9 +1,9 @@
 """Package the Allen CCFv2 Developing Mouse Brain Atlas.
 
-This script generates the Allen CCFv2 developing mouse brain atlas, based on data from
-the Allen Institute. It downloads the necessary annotation and structure data,
-processes it to create an atlas, and then wraps it up into the
-BrainGlobe atlas format.
+This script generates the Allen CCFv2 developing mouse brain atlas, 
+based on data from the Allen Institute. It downloads the necessary 
+annotation and structure data, processes it to create an atlas, 
+and then wraps it up into the BrainGlobe atlas format.
 """
 
 from pathlib import Path
@@ -68,9 +68,8 @@ def hex_to_rgb(hex):
 
 
 def download_resources():
-    """
-    Download the necessary resources for the atlas with Pooch.
-    """
+    """Download the necessary resources for the atlas with Pooch."""
+    
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 

@@ -1,9 +1,9 @@
 """Package the Allen CCFv2 Mouse Brain Atlas.
 
-This script generates the Allen CCFv2 mouse brain atlas, based on data from
-the Allen Institute. It downloads the necessary annotation and structure data,
-processes it to create an atlas, and then wraps it up into the
-BrainGlobe atlas format.
+This script generates the Allen CCFv2 mouse brain atlas, 
+based on data from the Allen Institute. It downloads the necessary 
+annotation and structure data, processes it to create an atlas, 
+and then wraps it up into the BrainGlobe atlas format.
 """
 
 from pathlib import Path
@@ -212,7 +212,8 @@ def retrieve_structure_information():
         .map(lambda path: [int(id) for id in path if id])
     )
     print(df[df["id"] == 1009])
-    # Remove Fiber Tracts from structures hierarchy (Used in ccfv2_fiber_mouse instead)
+    # Remove Fiber Tracts from structures hierarchy 
+    # (Used in ccfv2_fiber_mouse instead)
     df = df[df["id"] != 1009]
     print(df[df["id"] == 1009])
 

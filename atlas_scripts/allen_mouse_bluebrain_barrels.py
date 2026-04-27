@@ -268,6 +268,7 @@ def create_atlas(working_dir, resolution):
 
     # Add list of dicts to structs_with_mesh
     structs_with_mesh = structs_with_mesh + dict_to_add
+    barrel_structure_ids = {d["id"] for d in dict_to_add}
 
     # Directory for mesh saving:
     meshes_dir = (
@@ -285,6 +286,11 @@ def create_atlas(working_dir, resolution):
     for s in tqdm(structs_with_mesh):
         name = s["id"]
         filename = meshes_dir / f"{name}.obj"
+
+        # barrel structures are custom additions and are not available through
+        # precomputed mesh download endpoint.
+        if name in barrel_structure_ids:
+            continue
 
         if filename.exists():
             meshes_dict[name] = filename
@@ -328,43 +334,55 @@ def create_atlas(working_dir, resolution):
 
         # Check if mesh already exists
         file_name = meshes_dir / f"{node.identifier}.obj"
+
+        # this Barrel meshes are generated in voxel units & need scaling once.
+        # cache the SCALED output under a suffix to avoid re-scaling
+        if node.identifier in barrel_structure_ids:
+            scaled_file_name = meshes_dir / f"{node.identifier}_scaled.obj"
+
+            if scaled_file_name.exists():
+                meshes_dict[node.identifier] = scaled_file_name
+                continue
+
+            if not file_name.exists():
+                create_region_mesh(
+                    (
+                        meshes_dir,
+                        node,
+                        tree,
+                        labels,
+                        annotated_volume,
+                        ROOT_ID,
+                        CLOSING_N_ITERS,
+                        DECIMATE_FRACTION,
+                        SMOOTH,
+                    )
+                )
+
+            try:
+                mesh = mio.read(file_name)
+                mesh.points *= resolution
+                mio.write(scaled_file_name, mesh)
+                meshes_dict[node.identifier] = scaled_file_name
+            except mio._exceptions.ReadError:
+                print(f"Mesh file {file_name} not found.")
+            continue
+
         if file_name.exists():
             meshes_dict[node.identifier] = file_name
             continue
 
         else:
-            create_region_mesh(
-                (
-                    meshes_dir,
-                    node,
-                    tree,
-                    labels,
-                    annotated_volume,
-                    ROOT_ID,
-                    CLOSING_N_ITERS,
-                    DECIMATE_FRACTION,
-                    SMOOTH,
-                )
+            raise FileNotFoundError(
+                "Missing precomputed mesh for nonbarrel structure "
+                "rerun with a complete set of downloaded meshes."
             )
-            meshes_dict[node.identifier] = file_name
 
     print(
         "Finished mesh extraction in : ",
         round((time.time() - start) / 60, 2),
         " minutes",
     )
-
-    # Once mesh creation is over, rescale
-    for mesh_id, meshfile in meshes_dict.items():
-        # Check if mesh is barrel-related
-        if mesh_id in [s["id"] for s in dict_to_add]:
-
-            try:
-                mesh = mio.read(meshfile)
-                mesh.points *= resolution
-                mio.write(meshfile, mesh)
-            except mio._exceptions.ReadError:
-                print(f"Mesh file {meshfile} not found.")
 
     # Loop over structures, remove entries not used:
     for struct in structs_with_mesh:

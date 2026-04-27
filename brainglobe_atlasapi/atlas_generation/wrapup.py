@@ -518,10 +518,10 @@ def wrapup_atlas_from_data(
             ]
 
             # Fill out with 2s the right hemisphere:
-            slices = [slice(None) for _ in range(3)] * len(annotation_stack)
-            for stack in hemispheres_stack:
-                slices[2] = slice(round(stack.shape[2] / 2), None)
-                stack[tuple(slices)] = 1
+            slices = ([slice(None) for _ in range(3)],) * len(annotation_stack)
+            for stack, slice_set in zip(hemispheres_stack, slices):
+                slice_set[2] = slice(round(stack.shape[2] / 2), None)
+                stack[tuple(slice_set)] = 1
 
             dest_dir = (
                 working_dir

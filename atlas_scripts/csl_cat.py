@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
-from scipy.ndimage import median_filter
+from scipy.ndimage import median_filter, zoom
 from vedo import Mesh, write
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -438,6 +438,12 @@ if __name__ == "__main__":
     template_volume, reference_volume = retrieve_template_and_annotations(
         local_file_path_list
     )
+
+    scaled_template_volume = zoom(template_volume, zoom=2)
+    scaled_reference_volume = zoom(reference_volume, zoom=2, order=0)
+
+    scaled_resolution = RESOLUTION * 2
+
     structures_dict = retrieve_structure_information(
         local_file_path_list, acronym_to_region_map
     )
@@ -445,22 +451,40 @@ if __name__ == "__main__":
     print("Converting VTK files into .obj mesh")
     meshes_dict = extract_mesh_from_vtk(working_dir)
 
+    template_info = {
+        "name": "csl_cat-template",
+        "version": "1_1",
+        "skip_saving": False,
+        "update_existing": True,
+        "existing_version": "1_0",
+    }
+
+    annotation_info = {
+        "name": "csl_cat-annotation",
+        "version": "1_1",
+        "skip_saving": False,
+        "update_existing": True,
+        "existing_version": "1_0",
+    }
+
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(RESOLUTION,) * 3,
+        resolution=(scaled_resolution,) * 3,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
-        reference_stack=template_volume,
-        annotation_stack=reference_volume,
+        reference_stack=scaled_template_volume,
+        template_info=template_info,
+        annotation_stack=scaled_reference_volume,
+        annotation_info=annotation_info,
         structures_list=structures_dict,
         meshes_dict=meshes_dict,
         working_dir=working_dir,
         hemispheres_stack=None,
-        overwrite=False,
+        overwrite=True,
         scale_meshes=True,
         atlas_packager=ATLAS_PACKAGER,
     )

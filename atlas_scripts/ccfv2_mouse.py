@@ -68,9 +68,7 @@ def hex_to_rgb(hex):
 
 
 def download_resources():
-    """
-    Download the necessary resources for the atlas with Pooch.
-    """
+    """Download the necessary resources for the atlas with Pooch."""
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
@@ -211,11 +209,10 @@ def retrieve_structure_information():
         .str.split("/")
         .map(lambda path: [int(id) for id in path if id])
     )
-    print(df[df["id"] == 1009])
+
     # Remove Fiber Tracts from structures hierarchy
     # (Used in ccfv2_fiber_mouse instead)
     df = df[df["id"] != 1009]
-    print(df[df["id"] == 1009])
 
     structures = df.to_dict("records")
     return structures

@@ -9,6 +9,7 @@ BRAINGLOBE_CONFIG_DIR.
 import configparser
 import os
 from pathlib import Path
+from typing import Optional, Union
 
 import click
 
@@ -29,7 +30,8 @@ TEMPLATE_CONF_DICT = {
 DEFAULT_WORKDIR = Path.home() / "brainglobe_workingdir"
 
 
-def write_default_config(path=None, template=None):
+def write_default_config(path=None, template=None, template: Optional[dict] = None,
+) -> None:
     """Write configuration file at first repo usage. In this way,
     we don't need to keep a confusing template config file in the repo.
 
@@ -81,7 +83,8 @@ def read_config(path=None):
     return conf
 
 
-def write_config_value(key, val, path=None):
+def write_config_value(key: str, val: Union[str, Path], path: Optional[Path] = None,
+) -> None:
     """Write a new value in the config file. To make things simple, ignore
     sections and look directly for matching parameters names.
 
@@ -103,12 +106,31 @@ def write_config_value(key, val, path=None):
     for sect_name, sect_dict in conf.items():
         if key in sect_dict.keys():
             conf[sect_name][key] = str(val)
+            key_found = True
+
+    if not key_found:
+        raise keyError(
+            f"'{key}' was not found in the config file at {path}. "
+            f"Valid keys are: {list_config_keys(path)}"
+        )
 
     with open(path, "w") as f:
         conf.write(f)
 
 
-def get_brainglobe_dir():
+def list_content_keys(path: Optional[Path] = None) -> list:
+
+    if path is None:
+        path = CONFIG_PATH
+    conf = read_config(path)
+    keys = []
+    for sect_name, sect_dict in conf.items():
+        if sect_name == "DEFAULT":
+            continue
+        keys.extend(sect_dict.keys())
+    return keys
+
+def get_brainglobe_dir(): -> Path:
     """Return brainglobe default directory.
 
     Returns
@@ -119,34 +141,46 @@ def get_brainglobe_dir():
     conf = read_config()
     return Path(conf["default_dirs"]["brainglobe_dir"])
 
+def get_interm_download_dir() -> Path:
+    conf = read_config()
+    return Path(conf["default_dirs"]["interm_download_dir"])
 
-def cli_modify_config(key=0, value=0, show=False):
+
+def cli_modify_config(key: str = "",
+                     value: str ="",
+                     show: bool = False,
+) -> None:
     """Ensure that we choose valid paths for default directory.
     The path does not have to exist yet, but the parent must be valid.
 
     """
     if not show:
-        if key[-3:] == "dir":
+        if key.endswith("dir"):
             path = Path(value)
-            click.echo(path.parent.exists())
             if not path.parent.exists():
                 click.echo(
                     f"{value} is not a valid path. Path must be "
                     "a valid path string, and its parent must exist!"
                 )
                 return
-        write_config_value(key, value)
+            try:
+                write_config_value(key, value)
+            except KeyError as e:
+                click.echo(str(e))
+                return
 
     click.echo(_print_config())
 
 
-def _print_config():
+def _print_config() -> str:
     """Print configuration."""
     config = read_config()
-    string = ""
+    lines = []
     for sect_name, sect_content in config.items():
-        string += f"[{sect_name}]\n"
+        if sect_name == "Default":
+            continue
+        lines.append(f"[{sect_name}]")
         for k, val in sect_content.items():
-            string += f"\t{k}: {val}\n"
+            lines.append(f"\t{k}: {val}")
 
-    return string
+    return "\n".join(lines)

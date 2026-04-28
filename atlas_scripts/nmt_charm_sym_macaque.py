@@ -137,7 +137,9 @@ def retrieve_reference_and_annotation(
     standard_dir = resolve_standard_nmt_dir(nmt_dir)
     reference_path = standard_dir / NMT_REFERENCE_FILENAME
     annotation_path = (
-        standard_dir / "supplemental_CHARM" / "CHARM_6_in_NMT_v2.0_sym_fh.nii.gz"
+        standard_dir
+        / "supplemental_CHARM"
+        / "CHARM_6_in_NMT_v2.0_sym_fh.nii.gz"
     )
 
     reference = load_nii(reference_path, as_array=True).astype(np.float32)

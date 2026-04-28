@@ -21,7 +21,7 @@ from brainglobe_atlasapi.utils import (
 
 ### Metadata
 __version__ = 0
-ATLAS_NAME = "charm_macaque"
+ATLAS_NAME = "nmt_charm_sym_macaque"
 CITATION = (
     "Jung et al., 2021. A comprehensive macaque fMRI pipeline and "
     "hierarchical atlas. NeuroImage. "
@@ -48,14 +48,16 @@ NMT_SYM_URL = (
 NMT_SYM_HASH = (
     "sha256:9c455431ec1e8257fef4127c137e49f710aa43ef8a87f1bf73701b83d5ef7e6d"
 )
-NMT_REFERENCE_FILENAME = "NMT_v2.0_sym.nii.gz"
+
+# Use the full-head NMT v2.0
+NMT_REFERENCE_FILENAME = "NMT_v2.0_sym_fh.nii.gz"
 CHARM_MESH_RE = re.compile(r"^CHARM_(\d+)\.(.+)\.k(\d+)\.gii$")
 UNUSED_CHARM_STRUCTURE_IDS = set(range(140, 148))
 
 
 def download_resources(working_dir: Path) -> Path:
     """
-    Download and extract the symmetric NMT v2 dataset.
+    Download and extract the symmetric NMT v2.0 dataset.
 
     Parameters
     ----------
@@ -96,7 +98,7 @@ def resolve_standard_nmt_dir(nmt_dir: Path) -> Path:
     Returns
     -------
     Path
-        Directory containing ``NMT_v2.0_sym.nii.gz``.
+        Directory containing ``NMT_v2.0_sym_fh.nii.gz``.
     """
     nmt_dir = Path(nmt_dir)
     candidates = sorted(
@@ -135,7 +137,7 @@ def retrieve_reference_and_annotation(
     standard_dir = resolve_standard_nmt_dir(nmt_dir)
     reference_path = standard_dir / NMT_REFERENCE_FILENAME
     annotation_path = (
-        standard_dir / "supplemental_CHARM" / "CHARM_6_in_NMT_v2.0_sym.nii.gz"
+        standard_dir / "supplemental_CHARM" / "CHARM_6_in_NMT_v2.0_sym_fh.nii.gz"
     )
 
     reference = load_nii(reference_path, as_array=True).astype(np.float32)
@@ -162,7 +164,7 @@ def retrieve_hemisphere_map() -> np.ndarray | None:
     Returns
     -------
     None
-        The symmetric NMT v2 / CHARM atlas does not need a hemisphere map.
+        The symmetric NMT v2.0 / CHARM atlas does not need a hemisphere map.
     """
     return None
 

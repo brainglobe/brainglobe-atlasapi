@@ -3,6 +3,7 @@
 import json
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import brainglobe_space as bgs
@@ -617,6 +618,85 @@ def _save_additional_references(
     return additional_references_metadata
 
 
+def _resolve_all_components(
+    working_dir: Path,
+    atlas_name: str,
+    atlas_version: str,
+    annotation_info: Optional[Dict[str, str | bool]],
+    template_info: Optional[Dict[str, str | bool]],
+    terminology_info: Optional[Dict[str, str | bool]],
+    coordinate_space_info: Optional[Dict[str, str | bool]],
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        annotation=_resolve_component_info(
+            annotation_info,
+            working_dir,
+            descriptors.V2_ANNOTATION_ROOTDIR,
+            descriptors.V2_ANNOTATION_NAME,
+            f"{atlas_name}-annotation",
+            atlas_version,
+        ),
+        template=_resolve_component_info(
+            template_info,
+            working_dir,
+            descriptors.V2_TEMPLATE_ROOTDIR,
+            descriptors.V2_TEMPLATE_NAME,
+            f"{atlas_name}-template",
+            atlas_version,
+        ),
+        terminology=_resolve_component_info(
+            terminology_info,
+            working_dir,
+            descriptors.V2_TERMINOLOGY_ROOTDIR,
+            descriptors.V2_TERMINOLOGY_NAME,
+            f"{atlas_name}-terminology",
+            atlas_version,
+        ),
+        coordinate_space=_resolve_component_info(
+            coordinate_space_info,
+            working_dir,
+            descriptors.V2_COORDINATE_SPACE_ROOTDIR,
+            "manifest.json",
+            f"{atlas_name}-coordinate-space",
+            atlas_version,
+        ),
+    )
+
+
+def _build_all_component_metadata(components: SimpleNamespace) -> dict:
+    template_metadata = _make_component_metadata(
+        components.template["name"],
+        components.template["version"],
+        descriptors.V2_TEMPLATE_ROOTDIR,
+    )
+    terminology_metadata = _make_component_metadata(
+        components.terminology["name"],
+        components.terminology["version"],
+        descriptors.V2_TERMINOLOGY_ROOTDIR,
+    )
+    annotation_metadata = _make_component_metadata(
+        components.annotation["name"],
+        components.annotation["version"],
+        descriptors.V2_ANNOTATION_ROOTDIR,
+        extra={
+            "template": template_metadata,
+            "terminology": terminology_metadata,
+        },
+    )
+    coordinate_space_metadata = _make_component_metadata(
+        components.coordinate_space["name"],
+        components.coordinate_space["version"],
+        descriptors.V2_COORDINATE_SPACE_ROOTDIR,
+        extra={"template": template_metadata},
+    )
+    return {
+        "template": template_metadata,
+        "terminology": terminology_metadata,
+        "annotation": annotation_metadata,
+        "coordinate_space": coordinate_space_metadata,
+    }
+
+
 def wrapup_atlas_from_data(
     atlas_name: str,
     atlas_minor_version: Union[int, str],
@@ -716,67 +796,26 @@ def wrapup_atlas_from_data(
     atlas_version = f"{ATLAS_VERSION}.{atlas_minor_version}"
     atlas_version_underscore = atlas_version.replace(".", "_")
 
-    annotation_info = _resolve_component_info(
+    components = _resolve_all_components(
+        working_dir,
+        atlas_name,
+        atlas_version,
         annotation_info,
-        working_dir,
-        descriptors.V2_ANNOTATION_ROOTDIR,
-        descriptors.V2_ANNOTATION_NAME,
-        f"{atlas_name}-annotation",
-        atlas_version,
-    )
-
-    template_info = _resolve_component_info(
         template_info,
-        working_dir,
-        descriptors.V2_TEMPLATE_ROOTDIR,
-        descriptors.V2_TEMPLATE_NAME,
-        f"{atlas_name}-template",
-        atlas_version,
-    )
-
-    terminology_info = _resolve_component_info(
         terminology_info,
-        working_dir,
-        descriptors.V2_TERMINOLOGY_ROOTDIR,
-        descriptors.V2_TERMINOLOGY_NAME,
-        f"{atlas_name}-terminology",
-        atlas_version,
-    )
-
-    coordinate_space_info = _resolve_component_info(
         coordinate_space_info,
-        working_dir,
-        descriptors.V2_COORDINATE_SPACE_ROOTDIR,
-        "manifest.json",
-        f"{atlas_name}-coordinate-space",
-        atlas_version,
     )
+    metadata = _build_all_component_metadata(components)
 
-    template_metadata = _make_component_metadata(
-        template_info["name"],
-        template_info["version"],
-        descriptors.V2_TEMPLATE_ROOTDIR,
-    )
-    terminology_metadata = _make_component_metadata(
-        terminology_info["name"],
-        terminology_info["version"],
-        descriptors.V2_TERMINOLOGY_ROOTDIR,
-    )
-    annotation_metadata = _make_component_metadata(
-        annotation_info["name"],
-        annotation_info["version"],
-        descriptors.V2_ANNOTATION_ROOTDIR,
-        extra={
-            "template": template_metadata,
-            "terminology": terminology_metadata,
-        },
-    )
-    coordinate_space_metadata = _make_component_metadata(
-        coordinate_space_info["name"],
-        coordinate_space_info["version"],
-        descriptors.V2_COORDINATE_SPACE_ROOTDIR,
-        extra={"template": template_metadata},
-    )
+    template_metadata = metadata["template"]
+    terminology_metadata = metadata["terminology"]
+    annotation_metadata = metadata["annotation"]
+    coordinate_space_metadata = metadata["coordinate_space"]
+
+    annotation_info = components.annotation
+    template_info = components.template
+    terminology_info = components.terminology
+    coordinate_space_info = components.coordinate_space
 
     resolution_standard = standardize_resolution(resolution)
 

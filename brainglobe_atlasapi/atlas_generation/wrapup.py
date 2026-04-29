@@ -203,6 +203,13 @@ def _make_component_metadata(
     return metadata
 
 
+def _skip_if_exists(path: Path, label: str) -> bool:
+    if path.exists():
+        print(f"{label} directory already exists, skipping: {path}")
+        return True
+    return False
+
+
 def _save_if_not_exists(
     stacks: List[npt.NDArray],
     dest_dir: Path,
@@ -210,10 +217,9 @@ def _save_if_not_exists(
     transformations: List[List[dict]],
     save_fn: Callable[[npt.NDArray, Path, List[List[dict]]], None],
 ) -> None:
-    if dest_dir.exists():
-        print(f"{label} directory already exists, skipping: {dest_dir}")
-    else:
-        save_fn(stacks, dest_dir, transformations)
+    if _skip_if_exists(dest_dir, label):
+        return
+    save_fn(stacks, dest_dir, transformations)
 
 
 def _merge_resolutions_list(
@@ -578,12 +584,7 @@ def wrapup_atlas_from_data(
             / annotation_metadata["location"].lstrip("/")
             / descriptors.V2_MESHES_DIRECTORY
         )
-        if mesh_dest_dir.exists():
-            print(
-                f"Mesh directory already exists, "
-                f"skipping mesh saving: {mesh_dest_dir}"
-            )
-        else:
+        if not _skip_if_exists(mesh_dest_dir, "Mesh directory"):
             mesh_dest_dir.mkdir(parents=True)
 
             for mesh_id, meshfile in meshes_dict.items():
@@ -683,12 +684,7 @@ def wrapup_atlas_from_data(
             / annotation_metadata["location"].lstrip("/")
             / descriptors.V2_MESHES_DIRECTORY
         )
-        if mesh_dest_dir.exists():
-            print(
-                f"Mesh directory already exists, "
-                f"skipping mesh saving: {mesh_dest_dir}"
-            )
-        else:
+        if not _skip_if_exists(mesh_dest_dir, "Mesh directory"):
             mesh_dest_dir.mkdir(parents=True)
 
             for mesh_id, meshfile in meshes_dict.items():
@@ -773,12 +769,7 @@ def wrapup_atlas_from_data(
         terminology_path = working_dir / terminology_metadata[
             "location"
         ].strip("/")
-        if terminology_path.exists():
-            print(
-                f"Terminology directory already exists, "
-                f"skipping terminology saving: {terminology_path}"
-            )
-        else:
+        if not _skip_if_exists(terminology_path, "Terminology directory"):
             terminology_path.mkdir(parents=True)
             terminology_path = terminology_path / "terminology.csv"
 
@@ -820,12 +811,9 @@ def wrapup_atlas_from_data(
             "location"
         ].strip("/")
 
-        if coordinate_space_path.exists():
-            print(
-                f"Coordinate space directory already exists, skipping "
-                f"coordinate space metadata saving: {coordinate_space_path}"
-            )
-        else:
+        if not _skip_if_exists(
+            coordinate_space_path, "Coordinate space directory"
+        ):
             coordinate_space_path.mkdir(parents=True)
             coordinate_space_metadata_path = (
                 coordinate_space_path / "manifest.json"

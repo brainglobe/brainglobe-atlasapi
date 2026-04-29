@@ -355,6 +355,268 @@ def _save_coordinate_space_manifest(
         json.dump(coordinate_space_metadata, f, indent=4)
 
 
+def _save_meshes(
+    meshes_dict: Dict[int | str, str | Path],
+    mesh_dest_dir: Path,
+    space_convention: bgs.AnatomicalSpace,
+    scale_meshes: bool,
+    resolution_standard: List[Tuple[int | float]],
+    resolution_mapping: Optional[List[int]],
+) -> None:
+    if _skip_if_exists(mesh_dest_dir, "Mesh directory"):
+        return
+    mesh_dest_dir.mkdir(parents=True)
+
+    for mesh_id, meshfile in meshes_dict.items():
+        mesh = mio.read(meshfile)
+
+        if scale_meshes:
+            if not resolution_mapping:
+                mesh.points *= resolution_standard[0]
+            else:
+                original_resolution = (
+                    resolution_standard[0][resolution_mapping[0]],
+                    resolution_standard[0][resolution_mapping[1]],
+                    resolution_standard[0][resolution_mapping[2]],
+                )
+                mesh.points *= original_resolution
+
+        mesh.points = space_convention.map_points_to(
+            descriptors.ATLAS_ORIENTATION, mesh.points
+        )
+
+        # TODO: parallelise and copy if not scaling or reorienting
+        mio.write(
+            mesh_dest_dir / f"{mesh_id}",
+            mesh,
+            file_format="neuroglancer",
+        )
+
+
+def _save_template_data(
+    reference_stack: List[npt.NDArray],
+    space_convention: bgs.AnatomicalSpace,
+    template_metadata: dict,
+    transformations: List[List[dict]],
+    working_dir: Path,
+    template_info: dict,
+) -> List[tuple]:
+    if (
+        not template_info["skip_saving"]
+        and not template_info["update_existing"]
+    ):
+        reference_stack = _reorient_stacks(reference_stack, space_convention)
+        shapes = [stack.shape for stack in reference_stack]
+        dest_dir = working_dir / template_metadata["location"].lstrip("/")
+        _save_if_not_exists(
+            reference_stack,
+            dest_dir,
+            template_metadata["name"],
+            transformations,
+            save_template,
+        )
+        return shapes
+
+    elif template_info["update_existing"]:
+        local_existing_path = (
+            working_dir
+            / descriptors.V2_TEMPLATE_ROOTDIR
+            / template_info["name"]
+            / template_info["existing_version"].replace(".", "_")
+            / descriptors.V2_TEMPLATE_NAME
+        )
+        multiscale = nz.from_ngff_zarr(local_existing_path)
+        local_target_path = (
+            working_dir
+            / template_metadata["location"].lstrip("/")
+            / descriptors.V2_TEMPLATE_NAME
+        )
+        _insert_into_multiscale(
+            multiscale,
+            transformations=transformations,
+            new_data=reference_stack,
+            working_dir=local_target_path,
+        )
+        updated_multiscale = nz.from_ngff_zarr(local_target_path)
+        return [image.data.shape for image in updated_multiscale.images]
+
+    else:
+        multiscale = nz.from_ngff_zarr(
+            working_dir
+            / template_metadata["location"].lstrip("/")
+            / descriptors.V2_TEMPLATE_NAME
+        )
+        return [image.data.shape for image in multiscale.images]
+
+
+def _save_annotation_data(
+    annotation_stack: List[npt.NDArray],
+    hemispheres_stack,
+    meshes_dict: Dict[int | str, str | Path],
+    space_convention: bgs.AnatomicalSpace,
+    annotation_metadata: dict,
+    transformations: List[List[dict]],
+    working_dir: Path,
+    resolution_standard: List[Tuple[int | float]],
+    scale_meshes: bool,
+    resolution_mapping: Optional[List[int]],
+    annotation_info: dict,
+) -> List[tuple]:
+    mesh_dest_dir = (
+        working_dir
+        / annotation_metadata["location"].lstrip("/")
+        / descriptors.V2_MESHES_DIRECTORY
+    )
+
+    if (
+        not annotation_info["skip_saving"]
+        and not annotation_info["update_existing"]
+    ):
+        annotation_stack = _reorient_stacks(annotation_stack, space_convention)
+        shapes = [stack.shape for stack in annotation_stack]
+        dest_dir = working_dir / annotation_metadata["location"].lstrip("/")
+
+        _save_if_not_exists(
+            annotation_stack,
+            dest_dir,
+            annotation_metadata["name"],
+            transformations,
+            save_annotation,
+        )
+
+        if hemispheres_stack is None:
+            hemispheres_stack = _auto_generate_hemispheres(
+                shapes, annotation_stack
+            )
+
+        dest_dir_hemi = (
+            working_dir
+            / annotation_metadata["location"].lstrip("/")
+            / descriptors.V2_HEMISPHERES_NAME
+        )
+        _save_if_not_exists(
+            hemispheres_stack,
+            dest_dir_hemi,
+            annotation_metadata["name"],
+            transformations,
+            save_hemispheres,
+        )
+
+        _save_meshes(
+            meshes_dict,
+            mesh_dest_dir,
+            space_convention,
+            scale_meshes,
+            resolution_standard,
+            resolution_mapping,
+        )
+        return shapes
+
+    elif annotation_info["update_existing"]:
+        local_existing_path = (
+            working_dir
+            / descriptors.V2_ANNOTATION_ROOTDIR
+            / annotation_info["name"]
+            / annotation_info["existing_version"].replace(".", "_")
+            / descriptors.V2_ANNOTATION_NAME
+        )
+        multiscale = nz.from_ngff_zarr(local_existing_path)
+        local_target_path = (
+            working_dir
+            / annotation_metadata["location"].lstrip("/")
+            / descriptors.V2_ANNOTATION_NAME
+        )
+        _insert_into_multiscale(
+            multiscale,
+            transformations=transformations,
+            new_data=annotation_stack,
+            working_dir=local_target_path,
+        )
+
+        if hemispheres_stack is None:
+            updated_temp = nz.from_ngff_zarr(local_target_path)
+            shapes_for_hemi = [
+                image.data.shape for image in updated_temp.images
+            ]
+            hemispheres_stack = _auto_generate_hemispheres(
+                shapes_for_hemi, annotation_stack
+            )
+
+        local_existing_hemispheres = (
+            working_dir
+            / descriptors.V2_ANNOTATION_ROOTDIR
+            / annotation_info["name"]
+            / annotation_info["existing_version"].replace(".", "_")
+            / descriptors.V2_HEMISPHERES_NAME
+        )
+        multiscale_hemispheres = nz.from_ngff_zarr(local_existing_hemispheres)
+        local_target_hemispheres = (
+            working_dir
+            / annotation_metadata["location"].lstrip("/")
+            / descriptors.V2_HEMISPHERES_NAME
+        )
+        _insert_into_multiscale(
+            multiscale_hemispheres,
+            transformations=transformations,
+            new_data=hemispheres_stack,
+            working_dir=local_target_hemispheres,
+        )
+
+        _save_meshes(
+            meshes_dict,
+            mesh_dest_dir,
+            space_convention,
+            scale_meshes,
+            resolution_standard,
+            resolution_mapping,
+        )
+
+        updated_multiscale = nz.from_ngff_zarr(local_target_path)
+        return [image.data.shape for image in updated_multiscale.images]
+
+    else:
+        multiscale = nz.from_ngff_zarr(
+            working_dir
+            / annotation_metadata["location"].lstrip("/")
+            / descriptors.V2_ANNOTATION_NAME
+        )
+        return [image.data.shape for image in multiscale.images]
+
+
+def _save_additional_references(
+    additional_references: List[Tuple],
+    atlas_name: str,
+    atlas_version: str,
+    space_convention: bgs.AnatomicalSpace,
+    working_dir: Path,
+    transformations: List[List[dict]],
+) -> List[dict]:
+    additional_references_metadata = []
+    for ref_tuple in additional_references:
+        ref_metadata, additional_stack = ref_tuple
+        additional_stack = _load_stack(additional_stack)
+        additional_stack = _reorient_stacks(additional_stack, space_convention)
+
+        if isinstance(ref_metadata, str):
+            ref_name = f"{atlas_name}-{ref_metadata}-template"
+            ref_metadata = _make_component_metadata(
+                ref_name, atlas_version, descriptors.V2_TEMPLATE_ROOTDIR
+            )
+
+        additional_references_metadata.append(ref_metadata)
+
+        dest_dir = working_dir / ref_metadata["location"].lstrip("/")
+        _save_if_not_exists(
+            additional_stack,
+            dest_dir,
+            ref_metadata["name"],
+            transformations,
+            save_template,
+        )
+
+    return additional_references_metadata
+
+
 def wrapup_atlas_from_data(
     atlas_name: str,
     atlas_minor_version: Union[int, str],
@@ -541,299 +803,37 @@ def wrapup_atlas_from_data(
     # Check consistency of structures:
     check_struct_consistency(structures_list)
 
-    # Write template:
-    if (
-        not template_info["skip_saving"]
-        and not template_info["update_existing"]
-    ):
-        # Reorient stacks if required:
-        reference_stack = [
-            space_convention.map_stack_to(
-                descriptors.ATLAS_ORIENTATION, stack, copy=False
-            )
-            for stack in reference_stack
-        ]
+    shapes = _save_template_data(
+        reference_stack,
+        space_convention,
+        template_metadata,
+        transformations,
+        working_dir,
+        template_info,
+    )
 
-        shapes = [stack.shape for stack in reference_stack]
-        dest_dir = working_dir / template_metadata["location"].lstrip("/")
+    shapes = _save_annotation_data(
+        annotation_stack,
+        hemispheres_stack,
+        meshes_dict,
+        space_convention,
+        annotation_metadata,
+        transformations,
+        working_dir,
+        resolution_standard,
+        scale_meshes,
+        resolution_mapping,
+        annotation_info,
+    )
 
-        _save_if_not_exists(
-            reference_stack,
-            dest_dir,
-            template_metadata["name"],
-            transformations,
-            save_template,
-        )
-    elif template_info["update_existing"]:
-        local_existing_path = (
-            working_dir
-            / descriptors.V2_TEMPLATE_ROOTDIR
-            / template_info["name"]
-            / template_info["existing_version"].replace(".", "_")
-            / descriptors.V2_TEMPLATE_NAME
-        )
-
-        multiscale = nz.from_ngff_zarr(local_existing_path)
-
-        local_target_path = (
-            working_dir
-            / template_metadata["location"].lstrip("/")
-            / descriptors.V2_TEMPLATE_NAME
-        )
-
-        _insert_into_multiscale(
-            multiscale,
-            transformations=transformations,
-            new_data=reference_stack,
-            working_dir=local_target_path,
-        )
-        updated_multiscale = nz.from_ngff_zarr(local_target_path)
-        shapes = [image.data.shape for image in updated_multiscale.images]
-    else:
-        multiscale = nz.from_ngff_zarr(
-            working_dir
-            / template_metadata["location"].lstrip("/")
-            / descriptors.V2_TEMPLATE_NAME
-        )
-
-        shapes = [image.data.shape for image in multiscale.images]
-
-    # Write annotation:
-    if (
-        not annotation_info["skip_saving"]
-        and not annotation_info["update_existing"]
-    ):
-        # Reorient stacks if required:
-        annotation_stack = [
-            space_convention.map_stack_to(
-                descriptors.ATLAS_ORIENTATION, stack, copy=False
-            )
-            for stack in annotation_stack
-        ]
-
-        shapes = [stack.shape for stack in annotation_stack]
-        dest_dir = working_dir / annotation_metadata["location"].lstrip("/")
-
-        _save_if_not_exists(
-            annotation_stack,
-            dest_dir,
-            annotation_metadata["name"],
-            transformations,
-            save_annotation,
-        )
-
-        if hemispheres_stack is None:
-            # initialize empty stack:
-            hemispheres_stack = [
-                np.full(shape, 2, dtype=np.uint8) for shape in shapes
-            ]
-
-            # Fill out with 2s the right hemisphere:
-            slices = ([slice(None) for _ in range(3)],) * len(annotation_stack)
-            for stack, slice_set in zip(hemispheres_stack, slices):
-                slice_set[2] = slice(round(stack.shape[2] / 2), None)
-                stack[tuple(slice_set)] = 1
-
-        dest_dir = (
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_HEMISPHERES_NAME
-        )
-
-        _save_if_not_exists(
-            hemispheres_stack,
-            dest_dir,
-            annotation_metadata["name"],
-            transformations,
-            save_hemispheres,
-        )
-
-        # Reorient vertices of the mesh.
-        mesh_dest_dir = (
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_MESHES_DIRECTORY
-        )
-        if not _skip_if_exists(mesh_dest_dir, "Mesh directory"):
-            mesh_dest_dir.mkdir(parents=True)
-
-            for mesh_id, meshfile in meshes_dict.items():
-                mesh = mio.read(meshfile)
-
-                if scale_meshes:
-                    # Scale the mesh to the desired resolution,
-                    # BEFORE transforming. Note that this transformation
-                    # happens in original space, but the resolution is passed
-                    # in target space (typically ASR)
-                    if not resolution_mapping:
-                        # isotropic case, so don't need to re-map resolution
-                        mesh.points *= resolution_standard[0]
-                    else:
-                        # resolution needs to be transformed back
-                        # to original space in anisotropic case
-                        original_resolution = (
-                            resolution_standard[0][resolution_mapping[0]],
-                            resolution_standard[0][resolution_mapping[1]],
-                            resolution_standard[0][resolution_mapping[2]],
-                        )
-                        mesh.points *= original_resolution
-
-                # Reorient points:
-                mesh.points = space_convention.map_points_to(
-                    descriptors.ATLAS_ORIENTATION, mesh.points
-                )
-
-                # Save in meshes dir:
-                # TODO: parallelise and copy if not scaling or reorienting
-                mio.write(
-                    mesh_dest_dir / f"{mesh_id}",
-                    mesh,
-                    file_format="neuroglancer",
-                )
-    elif annotation_info["update_existing"]:
-        local_existing_path = (
-            working_dir
-            / descriptors.V2_ANNOTATION_ROOTDIR
-            / annotation_info["name"]
-            / annotation_info["existing_version"].replace(".", "_")
-            / descriptors.V2_ANNOTATION_NAME
-        )
-
-        multiscale = nz.from_ngff_zarr(local_existing_path)
-
-        local_target_path = (
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_ANNOTATION_NAME
-        )
-
-        _insert_into_multiscale(
-            multiscale,
-            transformations=transformations,
-            new_data=annotation_stack,
-            working_dir=local_target_path,
-        )
-
-        if hemispheres_stack is None:
-            # initialize empty stack:
-            hemispheres_stack = [
-                np.full(shape, 2, dtype=np.uint8) for shape in shapes
-            ]
-
-            # Fill out with 2s the right hemisphere:
-            slices = ([slice(None) for _ in range(3)],) * len(annotation_stack)
-            for stack, slice_set in zip(hemispheres_stack, slices):
-                slice_set[2] = slice(round(stack.shape[2] / 2), None)
-                stack[tuple(slice_set)] = 1
-
-        local_existing_hemispheres = (
-            working_dir
-            / descriptors.V2_ANNOTATION_ROOTDIR
-            / annotation_info["name"]
-            / annotation_info["existing_version"].replace(".", "_")
-            / descriptors.V2_HEMISPHERES_NAME
-        )
-        multiscale_hemispheres = nz.from_ngff_zarr(local_existing_hemispheres)
-
-        local_target_hemispheres = (
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_HEMISPHERES_NAME
-        )
-
-        _insert_into_multiscale(
-            multiscale_hemispheres,
-            transformations=transformations,
-            new_data=hemispheres_stack,
-            working_dir=local_target_hemispheres,
-        )
-
-        # Reorient vertices of the mesh.
-        mesh_dest_dir = (
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_MESHES_DIRECTORY
-        )
-        if not _skip_if_exists(mesh_dest_dir, "Mesh directory"):
-            mesh_dest_dir.mkdir(parents=True)
-
-            for mesh_id, meshfile in meshes_dict.items():
-                mesh = mio.read(meshfile)
-
-                if scale_meshes:
-                    # Scale the mesh to the desired resolution,
-                    # BEFORE transforming. Note that this transformation
-                    # happens in original space, but the resolution is passed
-                    # in target space (typically ASR)
-                    if not resolution_mapping:
-                        # isotropic case, so don't need to re-map resolution
-                        mesh.points *= resolution_standard[0]
-                    else:
-                        # resolution needs to be transformed back
-                        # to original space in anisotropic case
-                        original_resolution = (
-                            resolution_standard[0][resolution_mapping[0]],
-                            resolution_standard[0][resolution_mapping[1]],
-                            resolution_standard[0][resolution_mapping[2]],
-                        )
-                        mesh.points *= original_resolution
-
-                # Reorient points:
-                mesh.points = space_convention.map_points_to(
-                    descriptors.ATLAS_ORIENTATION, mesh.points
-                )
-
-                # Save in meshes dir:
-                # TODO: parallelise and copy if not scaling or reorienting
-                mio.write(
-                    mesh_dest_dir / f"{mesh_id}",
-                    mesh,
-                    file_format="neuroglancer",
-                )
-
-        updated_multiscale = nz.from_ngff_zarr(local_target_path)
-        shapes = [image.data.shape for image in updated_multiscale.images]
-    else:
-        multiscale = nz.from_ngff_zarr(
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_ANNOTATION_NAME
-        )
-        shapes = [image.data.shape for image in multiscale.images]
-
-    additional_references_metadata = []
-    for ref_tuple in additional_references:
-        ref_metadata, additional_stack = ref_tuple
-        if isinstance(additional_stack, str) or isinstance(
-            additional_stack, Path
-        ):
-            additional_stack = [tifffile.imread(additional_stack)]
-        elif isinstance(additional_stack, np.ndarray):
-            additional_stack = [additional_stack]
-
-        additional_stack = [
-            space_convention.map_stack_to(
-                descriptors.ATLAS_ORIENTATION, stack, copy=False
-            )
-            for stack in additional_stack
-        ]
-        if isinstance(ref_metadata, str):
-            ref_name = f"{atlas_name}-{ref_metadata}-template"
-            ref_metadata = _make_component_metadata(
-                ref_name, atlas_version, descriptors.V2_TEMPLATE_ROOTDIR
-            )
-
-        additional_references_metadata.append(ref_metadata)
-
-        dest_dir = working_dir / ref_metadata["location"].lstrip("/")
-
-        _save_if_not_exists(
-            additional_stack,
-            dest_dir,
-            ref_metadata["name"],
-            transformations,
-            save_template,
-        )
+    additional_references_metadata = _save_additional_references(
+        additional_references,
+        atlas_name,
+        atlas_version,
+        space_convention,
+        working_dir,
+        transformations,
+    )
 
     if not terminology_info["skip_saving"]:
         terminology_dir = working_dir / terminology_metadata["location"].strip(

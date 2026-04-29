@@ -697,6 +697,94 @@ def _build_all_component_metadata(components: SimpleNamespace) -> dict:
     }
 
 
+def _finalize_atlas_at_resolution(
+    resolution: Tuple[int | float],
+    shape: tuple,
+    atlas_name: str,
+    atlas_minor_version: Union[int, str],
+    atlas_version_underscore: str,
+    working_dir: Path,
+    citation: str,
+    atlas_link: str,
+    species: str,
+    symmetric: bool,
+    additional_references_metadata: List[dict],
+    atlas_packager,
+    coordinate_space_metadata: dict,
+    terminology_metadata: dict,
+    annotation_metadata: dict,
+    template_metadata: dict,
+    overwrite: bool,
+) -> Path:
+    atlas_name_with_res = f"{atlas_name}_{resolution[0]}um"
+    atlas_location = (
+        f"/{descriptors.V2_ATLAS_ROOTDIR}/"
+        f"{atlas_name_with_res}/{atlas_version_underscore}"
+    )
+    atlas_dir = Path(working_dir) / atlas_location.strip("/")
+
+    if atlas_dir.exists():
+        if overwrite:
+            print(f"Atlas directory already exists, overwriting: {atlas_dir}")
+            shutil.rmtree(atlas_dir)
+        else:
+            raise FileExistsError(
+                f"Atlas output already exists at {atlas_dir}. "
+                "Try setting overwrite=True"
+            )
+
+    # exist_ok would be more permissive but error-prone here as there might
+    # be old files
+    atlas_dir.mkdir(parents=True)
+
+    metadata_dict = generate_metadata_dict(
+        name=atlas_name_with_res,
+        location=atlas_location,
+        citation=citation,
+        atlas_link=atlas_link,
+        species=species,
+        symmetric=symmetric,
+        resolution=resolution,  # We expect input to be asr
+        orientation=descriptors.ATLAS_ORIENTATION,
+        version=f"{ATLAS_VERSION}.{atlas_minor_version}",
+        shape=shape,
+        additional_references=additional_references_metadata,
+        atlas_packager=atlas_packager,
+        coordinate_space_metadata=coordinate_space_metadata,
+        terminology_metadata=terminology_metadata,
+        annotation_set_metadata=annotation_metadata,
+        template_metadata=template_metadata,
+    )
+
+    with open(atlas_dir / "manifest.json", "w") as f:
+        json.dump(metadata_dict, f, indent=4)
+
+    atlas_name_for_validation = atlas_name_from_repr(atlas_name, resolution[0])
+
+    atlas_to_validate = BrainGlobeAtlas(
+        atlas_name=atlas_name_for_validation,
+        brainglobe_dir=working_dir.parent,
+        check_latest=False,
+    )
+
+    print(f"Running atlas validation on {atlas_location}")
+
+    validation_results = {}
+
+    # NOTE: get_all_validation_functions must be called by its unqualified
+    # module-scope name so monkeypatch in test_wrapup_overwrite.py works.
+    for func in get_all_validation_functions():
+        try:
+            func(atlas_to_validate)
+            validation_results[func.__name__] = "Pass"
+        except AssertionError as e:
+            validation_results[func.__name__] = f"Fail: {str(e)}"
+
+    report_validation_results(validation_results)
+
+    return atlas_dir
+
+
 def wrapup_atlas_from_data(
     atlas_name: str,
     atlas_minor_version: Union[int, str],
@@ -891,76 +979,23 @@ def wrapup_atlas_from_data(
             _save_coordinate_space_manifest(coordinate_space_metadata, cs_dir)
 
     for resolution, shape in zip(resolution_standard, shapes):
-        # Finalize metadata dictionary:
-        atlas_name_with_res = f"{atlas_name}_{resolution[0]}um"
-
-        atlas_location = (
-            f"/{descriptors.V2_ATLAS_ROOTDIR}/"
-            f"{atlas_name_with_res}/{atlas_version_underscore}"
-        )
-        atlas_dir = Path(working_dir) / atlas_location.strip("/")
-
-        if atlas_dir.exists():
-            if overwrite:
-                print(
-                    f"Atlas directory already exists, overwriting: {atlas_dir}"
-                )
-                shutil.rmtree(atlas_dir)
-            else:
-                raise FileExistsError(
-                    f"Atlas output already exists at {atlas_dir}. "
-                    "Try setting overwrite=True"
-                )
-
-        # exist_ok would be more permissive but error-prone here as there might
-        # be old files
-        atlas_dir.mkdir(parents=True)
-
-        metadata_dict = generate_metadata_dict(
-            name=atlas_name_with_res,
-            location=atlas_location,
+        atlas_dir = _finalize_atlas_at_resolution(
+            resolution=resolution,
+            shape=shape,
+            atlas_name=atlas_name,
+            atlas_minor_version=atlas_minor_version,
+            atlas_version_underscore=atlas_version_underscore,
+            working_dir=working_dir,
             citation=citation,
             atlas_link=atlas_link,
             species=species,
             symmetric=symmetric,
-            resolution=resolution,  # We expect input to be asr
-            orientation=descriptors.ATLAS_ORIENTATION,
-            version=f"{ATLAS_VERSION}.{atlas_minor_version}",
-            shape=shape,
-            additional_references=additional_references_metadata,
+            additional_references_metadata=additional_references_metadata,
             atlas_packager=atlas_packager,
             coordinate_space_metadata=coordinate_space_metadata,
             terminology_metadata=terminology_metadata,
-            annotation_set_metadata=annotation_metadata,
+            annotation_metadata=annotation_metadata,
             template_metadata=template_metadata,
+            overwrite=overwrite,
         )
-
-        with open(atlas_dir / "manifest.json", "w") as f:
-            json.dump(metadata_dict, f, indent=4)
-
-        atlas_name_for_validation = atlas_name_from_repr(
-            atlas_name, resolution[0]
-        )
-
-        # creating BrainGlobe object from local folder (working_dir)
-        atlas_to_validate = BrainGlobeAtlas(
-            atlas_name=atlas_name_for_validation,
-            brainglobe_dir=working_dir.parent,
-            check_latest=False,
-        )
-
-        # Run validation functions
-        print(f"Running atlas validation on {atlas_location}")
-
-        validation_results = {}
-
-        for func in get_all_validation_functions():
-            try:
-                func(atlas_to_validate)
-                validation_results[func.__name__] = "Pass"
-            except AssertionError as e:
-                validation_results[func.__name__] = f"Fail: {str(e)}"
-
-        report_validation_results(validation_results)
-
     return atlas_dir

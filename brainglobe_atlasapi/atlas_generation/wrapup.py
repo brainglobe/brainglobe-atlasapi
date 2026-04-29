@@ -27,61 +27,17 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
 )
 from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
+    filter_structures_not_present_in_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     get_all_validation_functions,
 )
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas
 # structure:
 ATLAS_VERSION = atlas_generation.__version__
-
-
-def filter_structures_not_present_in_annotation(structures, annotation):
-    """
-    Filter out structures not present in the annotation volume.
-
-    This function removes structures from the provided list that are
-    not found in the annotation volume, or whose children are also
-    not present. It also prints the names and IDs of the removed structures.
-
-    Parameters
-    ----------
-    structures : list of dict
-        A list of dictionaries, where each dictionary contains information
-        about a brain structure (e.g., ID, name, parent information).
-    annotation : np.ndarray
-        The annotation volume (3D NumPy array) where each voxel contains
-        a structure ID.
-
-    Returns
-    -------
-    list of dict
-        A new list containing only the structure dictionaries that are
-        present in the annotation volume or have descendants present.
-    """
-    present_ids = set(np.unique(annotation))
-    # Create a structure tree for easy parent-child relationship traversal
-    tree = get_structures_tree(structures)
-
-    # Function to check if a structure or any of its descendants are present
-    def is_present(structure_id):
-        if structure_id in present_ids:
-            return True
-        # Recursively check all descendants
-        for child_node in tree.children(structure_id):
-            if is_present(child_node.identifier):
-                return True
-        return False
-
-    removed = [s for s in structures if not is_present(s["id"])]
-    for r in removed:
-        print("Removed structure:", r["name"], "(ID:", r["id"], ")")
-
-    return [s for s in structures if is_present(s["id"])]
 
 
 def check_requested_component(

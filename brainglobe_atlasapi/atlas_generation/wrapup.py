@@ -31,6 +31,7 @@ from brainglobe_atlasapi.atlas_generation.structures import (
 )
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     get_all_validation_functions,
+    report_validation_results,
 )
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 from brainglobe_atlasapi.utils import atlas_name_from_repr
@@ -266,30 +267,6 @@ def _insert_into_multiscale(
         output_path=working_dir,
         transformations=new_transformations,
     )
-
-
-def _check_validations(validation_results: dict) -> None:
-    all_passed = all(
-        result == "Pass" for result in validation_results.values()
-    )
-
-    if all_passed:
-        print("This atlas is valid")
-    else:
-        failed_functions = [
-            func
-            for func, result in validation_results.items()
-            if result != "Pass"
-        ]
-        error_messages = [
-            result.split(": ")[1]
-            for result in validation_results.values()
-            if result != "Pass"
-        ]
-
-        print("These validation functions have failed:")
-        for func, error in zip(failed_functions, error_messages):
-            print(f"- {func}: {error}")
 
 
 def wrapup_atlas_from_data(
@@ -928,6 +905,6 @@ def wrapup_atlas_from_data(
             except AssertionError as e:
                 validation_results[func.__name__] = f"Fail: {str(e)}"
 
-        _check_validations(validation_results)
+        report_validation_results(validation_results)
 
     return atlas_dir

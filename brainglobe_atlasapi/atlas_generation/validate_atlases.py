@@ -597,6 +597,38 @@ def validate_metadata(atlas: BrainGlobeAtlas):
     return True
 
 
+def report_validation_results(validation_results: dict) -> None:
+    """
+    Print a summary of atlas validation results.
+
+    Parameters
+    ----------
+    validation_results : dict
+        Maps validation function names to "Pass" or "Fail: <error>".
+    """
+    all_passed = all(
+        result == "Pass" for result in validation_results.values()
+    )
+
+    if all_passed:
+        print("This atlas is valid")
+    else:
+        failed_functions = [
+            func
+            for func, result in validation_results.items()
+            if result != "Pass"
+        ]
+        error_messages = [
+            result.split(": ")[1]
+            for result in validation_results.values()
+            if result != "Pass"
+        ]
+
+        print("These validation functions have failed:")
+        for func, error in zip(failed_functions, error_messages):
+            print(f"- {func}: {error}")
+
+
 def get_all_validation_functions():
     """Return all individual validation functions as a list.
 

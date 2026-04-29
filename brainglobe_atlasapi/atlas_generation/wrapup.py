@@ -275,6 +275,86 @@ def _insert_into_multiscale(
     )
 
 
+def _load_stack(
+    stack: Union[str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]],
+) -> List[npt.NDArray]:
+    if isinstance(stack, (str, Path)):
+        return [tifffile.imread(stack)]
+    elif isinstance(stack, np.ndarray):
+        return [stack]
+    return stack
+
+
+def _build_transformations(
+    resolution_standard: List[Tuple[int | float]],
+) -> List[List[dict]]:
+    return [
+        [{"type": "scale", "scale": [res / 1000 for res in res_tuple]}]
+        for res_tuple in resolution_standard
+    ]
+
+
+def _reorient_stacks(
+    stacks: List[npt.NDArray],
+    space_convention: bgs.AnatomicalSpace,
+) -> List[npt.NDArray]:
+    return [
+        space_convention.map_stack_to(
+            descriptors.ATLAS_ORIENTATION, stack, copy=False
+        )
+        for stack in stacks
+    ]
+
+
+def _auto_generate_hemispheres(
+    shapes: List[tuple],
+    annotation_stack: List[npt.NDArray],
+) -> List[npt.NDArray]:
+    hemispheres_stack = [np.full(shape, 2, dtype=np.uint8) for shape in shapes]
+    slices = ([slice(None) for _ in range(3)],) * len(annotation_stack)
+    for stack, slice_set in zip(hemispheres_stack, slices):
+        slice_set[2] = slice(round(stack.shape[2] / 2), None)
+        stack[tuple(slice_set)] = 1
+    return hemispheres_stack
+
+
+def _save_terminology_csv(
+    structures_list: List[Dict],
+    terminology_path: Path,
+) -> None:
+    structures_df = pd.DataFrame(structures_list)
+    terminology_df = pd.DataFrame()
+
+    terminology_df["identifier"] = structures_df["id"].astype(np.uint32)
+    terminology_df["parent_identifier"] = (
+        structures_df["structure_id_path"]
+        .apply(lambda x: x[-2] if len(x) > 1 else None)
+        .astype(pd.UInt32Dtype())
+    )
+    terminology_df["annotation_value"] = structures_df["id"].astype(np.uint32)
+    terminology_df["name"] = structures_df["name"].astype(pd.StringDtype())
+    terminology_df["abbreviation"] = structures_df["acronym"].astype(
+        pd.StringDtype()
+    )
+    terminology_df["color_hex_triplet"] = structures_df["rgb_triplet"].apply(
+        lambda x: "".join(f"{c:02X}" for c in x)
+    )
+    terminology_df["color_hex_triplet"] = "#" + terminology_df[
+        "color_hex_triplet"
+    ].astype(pd.StringDtype())
+    terminology_df["root_identifier_path"] = structures_df["structure_id_path"]
+
+    terminology_df.to_csv(terminology_path, index=False)
+
+
+def _save_coordinate_space_manifest(
+    coordinate_space_metadata: dict,
+    cs_dir: Path,
+) -> None:
+    with open(cs_dir / "manifest.json", "w") as f:
+        json.dump(coordinate_space_metadata, f, indent=4)
+
+
 def wrapup_atlas_from_data(
     atlas_name: str,
     atlas_minor_version: Union[int, str],
@@ -438,23 +518,13 @@ def wrapup_atlas_from_data(
 
     resolution_standard = standardize_resolution(resolution)
 
-    transformations = [
-        [{"type": "scale", "scale": [res / 1000 for res in res_tuple]}]
-        for res_tuple in resolution_standard
-    ]
+    transformations = _build_transformations(resolution_standard)
 
     # If no hemisphere file is given, assume the atlas is symmetric:
     symmetric = hemispheres_stack is None
 
-    if isinstance(annotation_stack, str) or isinstance(annotation_stack, Path):
-        annotation_stack = [tifffile.imread(annotation_stack)]
-    elif isinstance(annotation_stack, np.ndarray):
-        annotation_stack = [annotation_stack]
-
-    if isinstance(reference_stack, str) or isinstance(reference_stack, Path):
-        reference_stack = [tifffile.imread(reference_stack)]
-    elif isinstance(reference_stack, np.ndarray):
-        reference_stack = [reference_stack]
+    annotation_stack = _load_stack(annotation_stack)
+    reference_stack = _load_stack(reference_stack)
 
     structures_list = filter_structures_not_present_in_annotation(
         structures_list, annotation_stack[0]
@@ -766,61 +836,20 @@ def wrapup_atlas_from_data(
         )
 
     if not terminology_info["skip_saving"]:
-        terminology_path = working_dir / terminology_metadata[
-            "location"
-        ].strip("/")
-        if not _skip_if_exists(terminology_path, "Terminology directory"):
-            terminology_path.mkdir(parents=True)
-            terminology_path = terminology_path / "terminology.csv"
-
-            structures_df = pd.DataFrame(structures_list)
-            terminology_df = pd.DataFrame()
-
-            terminology_df["identifier"] = structures_df["id"].astype(
-                np.uint32
+        terminology_dir = working_dir / terminology_metadata["location"].strip(
+            "/"
+        )
+        if not _skip_if_exists(terminology_dir, "Terminology directory"):
+            terminology_dir.mkdir(parents=True)
+            _save_terminology_csv(
+                structures_list, terminology_dir / "terminology.csv"
             )
-            terminology_df["parent_identifier"] = (
-                structures_df["structure_id_path"]
-                .apply(lambda x: x[-2] if len(x) > 1 else None)
-                .astype(pd.UInt32Dtype())
-            )
-            terminology_df["annotation_value"] = structures_df["id"].astype(
-                np.uint32
-            )
-            terminology_df["name"] = structures_df["name"].astype(
-                pd.StringDtype()
-            )
-            terminology_df["abbreviation"] = structures_df["acronym"].astype(
-                pd.StringDtype()
-            )
-            terminology_df["color_hex_triplet"] = structures_df[
-                "rgb_triplet"
-            ].apply(lambda x: "".join(f"{c:02X}" for c in x))
-            terminology_df["color_hex_triplet"] = "#" + terminology_df[
-                "color_hex_triplet"
-            ].astype(pd.StringDtype())
-            terminology_df["root_identifier_path"] = structures_df[
-                "structure_id_path"
-            ]
-
-            terminology_df.to_csv(terminology_path, index=False)
 
     if not coordinate_space_info["skip_saving"]:
-        # Write coordinate space metadata
-        coordinate_space_path = working_dir / coordinate_space_metadata[
-            "location"
-        ].strip("/")
-
-        if not _skip_if_exists(
-            coordinate_space_path, "Coordinate space directory"
-        ):
-            coordinate_space_path.mkdir(parents=True)
-            coordinate_space_metadata_path = (
-                coordinate_space_path / "manifest.json"
-            )
-
-            with open(coordinate_space_metadata_path, "w") as f:
-                json.dump(coordinate_space_metadata, f, indent=4)
+        cs_dir = working_dir / coordinate_space_metadata["location"].strip("/")
+        if not _skip_if_exists(cs_dir, "Coordinate space directory"):
+            cs_dir.mkdir(parents=True)
+            _save_coordinate_space_manifest(coordinate_space_metadata, cs_dir)
 
     for resolution, shape in zip(resolution_standard, shapes):
         # Finalize metadata dictionary:

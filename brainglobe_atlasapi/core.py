@@ -190,12 +190,15 @@ class Atlas:
         template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
 
         multiscale = nz.from_ngff_zarr(template_path)
-        resolution_path = template_path / str(self._template_pyramid_level)
+        dataset_path = multiscale.metadata.datasets[
+            self._template_pyramid_level
+        ].path
+        resolution_path = template_path / dataset_path
 
         if not (resolution_path / "c").exists():
             print("Downloading template...")
             remote_path = remote_url_s3.format(
-                f"{template_location}/{V2_TEMPLATE_NAME}/{self._template_pyramid_level}/"
+                f"{template_location}/{V2_TEMPLATE_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -235,12 +238,15 @@ class Atlas:
         )
 
         multiscale = nz.from_ngff_zarr(annotation_path)
-        resolution_path = annotation_path / str(self._annotation_pyramid_level)
+        dataset_path = multiscale.metadata.datasets[
+            self._annotation_pyramid_level
+        ].path
+        resolution_path = annotation_path / dataset_path
 
         if not (resolution_path / "c").exists():
             print("Downloading annotations...")
             remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V2_ANNOTATION_NAME}/{self._annotation_pyramid_level}/"
+                f"{annotation_location}/{V2_ANNOTATION_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -293,14 +299,15 @@ class Atlas:
             )
 
             multiscale = nz.from_ngff_zarr(hemispheres_path)
-            resolution_path = hemispheres_path / str(
+            dataset_path = multiscale.metadata.datasets[
                 self._annotation_pyramid_level
-            )
+            ].path
+            resolution_path = hemispheres_path / dataset_path
 
             if not (resolution_path / "c").exists():
                 print("Downloading hemispheres...")
                 remote_path = remote_url_s3.format(
-                    f"{annotation_location}/{V2_HEMISPHERES_NAME}/{self._annotation_pyramid_level}/"
+                    f"{annotation_location}/{V2_HEMISPHERES_NAME}/{dataset_path}/"
                 )
                 self.fs.get(
                     remote_path,

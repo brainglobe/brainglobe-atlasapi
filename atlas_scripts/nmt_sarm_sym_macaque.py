@@ -14,6 +14,9 @@ from brainglobe_utils.IO.image import load_nii
 from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
 )
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    extract_mesh_from_mask,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import (
     atlas_name_from_repr,
@@ -600,7 +603,7 @@ def retrieve_or_construct_meshes(
     The SARM download provides GIFTI meshes for regions across the six
     hierarchy levels. This function converts those meshes to OBJ files that
     can be read by BrainGlobe's wrapup step. A synthetic root mesh is created
-    by combining the five level-1 SARM meshes.
+    from the foreground of the level-6 SARM annotation volume.
 
     Parameters
     ----------
@@ -630,36 +633,30 @@ def retrieve_or_construct_meshes(
     meshes_dict = {}
     mesh_sources = {}
 
-    root_surface_paths = [
-        sarm_surfaces_dir / "Level_1" / "SARM_1.di.k74.gii",
-        sarm_surfaces_dir / "Level_1" / "SARM_1.mes.k162.gii",
-        sarm_surfaces_dir / "Level_1" / "SARM_1.met.k204.gii",
-        sarm_surfaces_dir / "Level_1" / "SARM_1.myel.k279.gii",
-        sarm_surfaces_dir / "Level_1" / "SARM_1.tel.k1.gii",
-    ]
-
-    for path in root_surface_paths:
-        if not path.exists():
-            raise FileNotFoundError(
-                f"Could not find root surface mesh: {path}"
-            )
-
-    root_vertices, root_faces = load_combined_gifti_mesh_in_voxel_space(
-        mesh_paths=root_surface_paths,
-        ras_mm_to_voxel=ras_mm_to_voxel,
-    )
     root_mesh_path = output_mesh_dir / f"{ROOT_ID}.obj"
-    root_mesh = mio.Mesh(
-        points=root_vertices,
-        cells=[("triangle", root_faces)],
+
+    if annotation_volume is None:
+        annotation_path = (
+            standard_dir
+            / "supplemental_SARM"
+            / "SARM_6_in_NMT_v2.0_sym_fh.nii.gz"
+        )
+        annotation_volume = load_nii(annotation_path, as_array=True)
+
+    root_mask = (annotation_volume > 0).astype(np.uint8)
+    extract_mesh_from_mask(
+        root_mask,
+        obj_filepath=root_mesh_path,
+        smooth=False,
+        closing_n_iters=8,
+        decimate_fraction=0.6,
     )
-    mio.write(root_mesh_path, root_mesh)
 
     meshes_dict[ROOT_ID] = root_mesh_path
     mesh_sources[ROOT_ID] = {
         "level": 0,
-        "name": "NMT subcortical surface",
-        "source": root_surface_paths,
+        "name": "SARM annotation outer surface",
+        "source": "SARM_6 annotation foreground mask",
     }
 
     print("Converting SARM GIFTI meshes to OBJ files")

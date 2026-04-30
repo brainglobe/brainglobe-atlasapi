@@ -3,7 +3,6 @@
 import json
 import shutil
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import brainglobe_space as bgs
@@ -12,11 +11,15 @@ import ngff_zarr as nz
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import s3fs
-import tifffile
-from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi import atlas_generation, descriptors
+from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
+    AnnotationInfo,
+    AtlasPackagingData,
+    CoordinateSpaceInfo,
+    TemplateInfo,
+    TerminologyInfo,
+)
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     generate_metadata_dict,
 )
@@ -25,10 +28,6 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
     save_hemispheres,
     save_template,
     write_multiscale_ome_zarr,
-)
-from brainglobe_atlasapi.atlas_generation.structures import (
-    check_struct_consistency,
-    filter_structures_not_present_in_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     get_all_validation_functions,
@@ -42,175 +41,6 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 ATLAS_VERSION = atlas_generation.__version__
 
 
-def check_requested_component(
-    component_info: Dict[str, str | bool],
-    local_path: Path,
-    component_root: str,
-    component_file_name: str,
-) -> Dict[str, str | bool]:
-    """
-    Check if a requested component already exists remotely and fetch metadata.
-
-    This function checks if a component (e.g., annotation, template) with the
-    specified name and version already exists in the remote storage.
-    If it exists, it fetches the OME-Zarr metadata files for that component
-    and saves them locally. It returns the component name, version,
-    and a boolean indicating whether to skip saving the component data.
-
-    Parameters
-    ----------
-    component_info : Dict[str, str | bool]
-        A dictionary containing the component name, version, and a booleans for
-        whether the component is published and whether to update existing.
-    component_root : str
-        The root directory in the remote storage where the component is stored.
-    component_file_name : str
-        The name of the component file (e.g., "anatomical_template.ome.zarr").
-    local_path : Path
-        The local directory where the component metadata should be saved.
-
-    Returns
-    -------
-    Dict[str, str | bool]
-        A dictionary containing the component name, version, and a boolean for
-        whether to skip saving the component data, update existing, and the
-        version to use when updating.
-    """
-    fs = s3fs.S3FileSystem(anon=True)
-
-    if component_info.get("skip_saving", False) or component_info.get(
-        "update_existing", False
-    ):
-        update_existing = component_info.get("update_existing", False)
-
-        if update_existing:
-            component_version = component_info.get("existing_version")
-            if not component_version:
-                raise ValueError(
-                    "To update an existing component, 'existing_version' "
-                    "must be specified in component_info."
-                )
-        else:
-            component_version = component_info["version"]
-
-        remote_path = (
-            f"{component_root}/"
-            f"{component_info['name']}/"
-            f"{component_version.replace('.', '_')}"
-        )
-
-        local_component_path = (
-            local_path
-            / component_root
-            / component_info["name"]
-            / component_version.replace(".", "_")
-        )
-
-        if not fs.exists(descriptors.remote_url_s3.format(remote_path)):
-            raise FileNotFoundError(
-                f"{component_info['name']} version {component_version} "
-                f"not found at {remote_path}"
-            )
-        elif component_info.get("skip_saving", False):
-            # Add wildcard to fetch all OME-Zarr metadata files
-            if component_file_name.endswith(".ome.zarr"):
-                remote_path += "/**/*.json"
-
-            local_component_path.parent.mkdir(parents=True, exist_ok=True)
-            fs.get(
-                descriptors.remote_url_s3.format(remote_path),
-                local_component_path,
-            )
-        elif update_existing:
-            local_component_path.parent.mkdir(parents=True, exist_ok=True)
-            fs.get(
-                descriptors.remote_url_s3.format(remote_path),
-                local_component_path,
-                recursive=True,
-                callback=TqdmCallback(),
-            )
-
-    return component_info
-
-
-def standardize_resolution(
-    resolution: Tuple[int | float] | List[Tuple[int | float]],
-) -> List[Tuple[int | float]]:
-    """
-    Standardize resolution input to a list of tuples.
-
-    This function takes a resolution input that can be either a single tuple
-    (for a single scale) or a list of tuples (for multiple scales) and
-    standardizes it to always return a list of tuples. If the input is a
-    single tuple, it will be wrapped in a list.
-
-    Parameters
-    ----------
-    resolution : Tuple[int | float] | List[Tuple[int | float]]
-        The resolution input, either a single tuple or a list of tuples.
-
-    Returns
-    -------
-    List[Tuple[int | float]]
-        A standardized list of tuples with the resolution at each scale.
-    """
-    if isinstance(resolution, tuple):
-        return [resolution]
-    elif isinstance(resolution, list):
-        return resolution
-    else:
-        raise ValueError(
-            "Resolution must be either a tuple or a list of tuples."
-        )
-
-
-def _resolve_component_info(
-    component_info: Optional[Dict[str, str | bool]],
-    working_dir: Path,
-    root_dir: str,
-    file_name: str,
-    default_name: str,
-    atlas_version: str,
-) -> Dict[str, str | bool]:
-    if component_info is not None:
-        component_info = check_requested_component(
-            component_info, working_dir, root_dir, file_name
-        )
-        return component_info
-
-    default_dict = {
-        "name": default_name,
-        "version": atlas_version,
-        "skip_saving": False,
-        "update_existing": False,
-    }
-
-    return default_dict
-
-
-def _make_component_metadata(
-    name: str,
-    version: str,
-    root_dir: str,
-    extra: Optional[dict] = None,
-) -> dict:
-    metadata = {
-        "name": name,
-        "version": version,
-        "location": f"/{root_dir}/{name}/{version.replace('.', '_')}",
-    }
-    if extra:
-        metadata.update(extra)
-    return metadata
-
-
-def _skip_if_exists(path: Path, label: str) -> bool:
-    if path.exists():
-        print(f"{label} directory already exists, skipping: {path}")
-        return True
-    return False
-
-
 def _save_if_not_exists(
     stacks: List[npt.NDArray],
     dest_dir: Path,
@@ -218,8 +48,10 @@ def _save_if_not_exists(
     transformations: List[List[dict]],
     save_fn: Callable[[npt.NDArray, Path, List[List[dict]]], None],
 ) -> None:
-    if _skip_if_exists(dest_dir, label):
+    if dest_dir.exists():
+        print(f"{label} directory already exists, skipping: {dest_dir}")
         return
+
     save_fn(stacks, dest_dir, transformations)
 
 
@@ -276,16 +108,6 @@ def _insert_into_multiscale(
     )
 
 
-def _load_stack(
-    stack: Union[str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]],
-) -> List[npt.NDArray]:
-    if isinstance(stack, (str, Path)):
-        return [tifffile.imread(stack)]
-    elif isinstance(stack, np.ndarray):
-        return [stack]
-    return stack
-
-
 def _build_transformations(
     resolution_standard: List[Tuple[int | float]],
 ) -> List[List[dict]]:
@@ -293,30 +115,6 @@ def _build_transformations(
         [{"type": "scale", "scale": [res / 1000 for res in res_tuple]}]
         for res_tuple in resolution_standard
     ]
-
-
-def _reorient_stacks(
-    stacks: List[npt.NDArray],
-    space_convention: bgs.AnatomicalSpace,
-) -> List[npt.NDArray]:
-    return [
-        space_convention.map_stack_to(
-            descriptors.ATLAS_ORIENTATION, stack, copy=False
-        )
-        for stack in stacks
-    ]
-
-
-def _auto_generate_hemispheres(
-    shapes: List[tuple],
-    annotation_stack: List[npt.NDArray],
-) -> List[npt.NDArray]:
-    hemispheres_stack = [np.full(shape, 2, dtype=np.uint8) for shape in shapes]
-    slices = ([slice(None) for _ in range(3)],) * len(annotation_stack)
-    for stack, slice_set in zip(hemispheres_stack, slices):
-        slice_set[2] = slice(round(stack.shape[2] / 2), None)
-        stack[tuple(slice_set)] = 1
-    return hemispheres_stack
 
 
 def _save_terminology_csv(
@@ -350,9 +148,9 @@ def _save_terminology_csv(
 
 def _save_coordinate_space_manifest(
     coordinate_space_metadata: dict,
-    cs_dir: Path,
+    coordinate_space_path: Path,
 ) -> None:
-    with open(cs_dir / "manifest.json", "w") as f:
+    with open(coordinate_space_path, "w") as f:
         json.dump(coordinate_space_metadata, f, indent=4)
 
 
@@ -364,8 +162,10 @@ def _save_meshes(
     resolution_standard: List[Tuple[int | float]],
     resolution_mapping: Optional[List[int]],
 ) -> None:
-    if _skip_if_exists(mesh_dest_dir, "Mesh directory"):
+    if mesh_dest_dir.exists():
+        print(f"Mesh directory already exists, skipping: {mesh_dest_dir}")
         return
+
     mesh_dest_dir.mkdir(parents=True)
 
     for mesh_id, meshfile in meshes_dict.items():
@@ -395,333 +195,190 @@ def _save_meshes(
 
 
 def _save_template_data(
-    reference_stack: List[npt.NDArray],
-    space_convention: bgs.AnatomicalSpace,
-    template_metadata: dict,
+    packaging_data: AtlasPackagingData,
     transformations: List[List[dict]],
-    working_dir: Path,
-    template_info: dict,
 ) -> List[tuple]:
-    if (
-        not template_info["skip_saving"]
-        and not template_info["update_existing"]
-    ):
-        reference_stack = _reorient_stacks(reference_stack, space_convention)
-        shapes = [stack.shape for stack in reference_stack]
-        dest_dir = working_dir / template_metadata["location"].lstrip("/")
+    template_info = packaging_data.template_info
+    if not template_info.skip_saving and not template_info.update_existing:
+        shapes = [stack.shape for stack in packaging_data.reference_stack]
+        dest_dir = packaging_data.working_dir / template_info.metadata[
+            "location"
+        ].lstrip("/")
         _save_if_not_exists(
-            reference_stack,
+            packaging_data.reference_stack,
             dest_dir,
-            template_metadata["name"],
+            template_info.metadata["name"],
             transformations,
             save_template,
         )
-        return shapes
-
-    elif template_info["update_existing"]:
+    elif template_info.update_existing:
         local_existing_path = (
-            working_dir
-            / descriptors.V2_TEMPLATE_ROOTDIR
-            / template_info["name"]
-            / template_info["existing_version"].replace(".", "_")
-            / descriptors.V2_TEMPLATE_NAME
+            packaging_data.working_dir / template_info.existing_stub
         )
         multiscale = nz.from_ngff_zarr(local_existing_path)
-        local_target_path = (
-            working_dir
-            / template_metadata["location"].lstrip("/")
-            / descriptors.V2_TEMPLATE_NAME
-        )
+        local_target_path = packaging_data.working_dir / template_info.stub
         _insert_into_multiscale(
             multiscale,
             transformations=transformations,
-            new_data=reference_stack,
+            new_data=packaging_data.reference_stack,
             working_dir=local_target_path,
         )
         updated_multiscale = nz.from_ngff_zarr(local_target_path)
-        return [image.data.shape for image in updated_multiscale.images]
-
+        shapes = [image.data.shape for image in updated_multiscale.images]
     else:
         multiscale = nz.from_ngff_zarr(
-            working_dir
-            / template_metadata["location"].lstrip("/")
-            / descriptors.V2_TEMPLATE_NAME
+            packaging_data.working_dir / template_info.stub
         )
-        return [image.data.shape for image in multiscale.images]
+        shapes = [image.data.shape for image in multiscale.images]
+
+    return shapes
 
 
 def _save_annotation_data(
-    annotation_stack: List[npt.NDArray],
-    hemispheres_stack,
-    meshes_dict: Dict[int | str, str | Path],
-    space_convention: bgs.AnatomicalSpace,
-    annotation_metadata: dict,
+    packaging_data: AtlasPackagingData,
     transformations: List[List[dict]],
-    working_dir: Path,
-    resolution_standard: List[Tuple[int | float]],
     scale_meshes: bool,
     resolution_mapping: Optional[List[int]],
-    annotation_info: dict,
 ) -> List[tuple]:
-    mesh_dest_dir = (
-        working_dir
-        / annotation_metadata["location"].lstrip("/")
-        / descriptors.V2_MESHES_DIRECTORY
-    )
+    annotation_info = packaging_data.annotation_info
 
-    if (
-        not annotation_info["skip_saving"]
-        and not annotation_info["update_existing"]
-    ):
-        annotation_stack = _reorient_stacks(annotation_stack, space_convention)
-        shapes = [stack.shape for stack in annotation_stack]
-        dest_dir = working_dir / annotation_metadata["location"].lstrip("/")
+    if not annotation_info.skip_saving and not annotation_info.update_existing:
+        shapes = [stack.shape for stack in packaging_data.annotation_stack]
+        dest_dir = packaging_data.working_dir / annotation_info.stub
 
         _save_if_not_exists(
-            annotation_stack,
+            packaging_data.annotation_stack,
             dest_dir,
-            annotation_metadata["name"],
+            annotation_info.metadata["name"],
             transformations,
             save_annotation,
         )
 
-        if hemispheres_stack is None:
-            hemispheres_stack = _auto_generate_hemispheres(
-                shapes, annotation_stack
-            )
-
-        dest_dir_hemi = (
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_HEMISPHERES_NAME
+        hemispheres_stub = descriptors.format_hemispheres_stub(
+            annotation_info.name, annotation_info.version
         )
+        dest_dir_hemi = packaging_data.working_dir / hemispheres_stub
+
         _save_if_not_exists(
-            hemispheres_stack,
+            packaging_data.hemispheres_stack,
             dest_dir_hemi,
-            annotation_metadata["name"],
+            annotation_info.metadata["name"],
             transformations,
             save_hemispheres,
         )
-
-        _save_meshes(
-            meshes_dict,
-            mesh_dest_dir,
-            space_convention,
-            scale_meshes,
-            resolution_standard,
-            resolution_mapping,
-        )
-        return shapes
-
-    elif annotation_info["update_existing"]:
+    elif annotation_info.update_existing:
         local_existing_path = (
-            working_dir
-            / descriptors.V2_ANNOTATION_ROOTDIR
-            / annotation_info["name"]
-            / annotation_info["existing_version"].replace(".", "_")
-            / descriptors.V2_ANNOTATION_NAME
+            packaging_data.working_dir / annotation_info.existing_stub
         )
         multiscale = nz.from_ngff_zarr(local_existing_path)
-        local_target_path = (
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_ANNOTATION_NAME
-        )
+        local_target_path = packaging_data.working_dir / annotation_info.stub
         _insert_into_multiscale(
             multiscale,
             transformations=transformations,
-            new_data=annotation_stack,
+            new_data=packaging_data.annotation_stack,
             working_dir=local_target_path,
         )
 
-        if hemispheres_stack is None:
-            updated_temp = nz.from_ngff_zarr(local_target_path)
-            shapes_for_hemi = [
-                image.data.shape for image in updated_temp.images
-            ]
-            hemispheres_stack = _auto_generate_hemispheres(
-                shapes_for_hemi, annotation_stack
-            )
-
+        existing_hemispheres_stub = descriptors.format_hemispheres_stub(
+            annotation_info.name, annotation_info.existing_version
+        )
         local_existing_hemispheres = (
-            working_dir
-            / descriptors.V2_ANNOTATION_ROOTDIR
-            / annotation_info["name"]
-            / annotation_info["existing_version"].replace(".", "_")
-            / descriptors.V2_HEMISPHERES_NAME
+            packaging_data.working_dir / existing_hemispheres_stub
         )
         multiscale_hemispheres = nz.from_ngff_zarr(local_existing_hemispheres)
-        local_target_hemispheres = (
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_HEMISPHERES_NAME
+        hemispheres_stub = descriptors.format_hemispheres_stub(
+            annotation_info.name, annotation_info.version
         )
+        local_target_hemispheres = (
+            packaging_data.working_dir / hemispheres_stub
+        )
+
         _insert_into_multiscale(
             multiscale_hemispheres,
             transformations=transformations,
-            new_data=hemispheres_stack,
+            new_data=packaging_data.hemispheres_stack,
             working_dir=local_target_hemispheres,
         )
 
+        updated_multiscale = nz.from_ngff_zarr(local_target_path)
+        shapes = [image.data.shape for image in updated_multiscale.images]
+    else:
+        multiscale = nz.from_ngff_zarr(
+            packaging_data.working_dir / annotation_info.stub
+        )
+        shapes = [image.data.shape for image in multiscale.images]
+
+    if not annotation_info.skip_saving or annotation_info.update_existing:
+        meshes_stub = descriptors.format_meshes_stub(
+            annotation_info.name, annotation_info.version
+        )
+        mesh_dest_dir = packaging_data.working_dir / meshes_stub
         _save_meshes(
-            meshes_dict,
+            packaging_data.meshes_dict,
             mesh_dest_dir,
-            space_convention,
+            packaging_data.space_convention,
             scale_meshes,
-            resolution_standard,
+            packaging_data.resolution,
             resolution_mapping,
         )
 
-        updated_multiscale = nz.from_ngff_zarr(local_target_path)
-        return [image.data.shape for image in updated_multiscale.images]
-
-    else:
-        multiscale = nz.from_ngff_zarr(
-            working_dir
-            / annotation_metadata["location"].lstrip("/")
-            / descriptors.V2_ANNOTATION_NAME
-        )
-        return [image.data.shape for image in multiscale.images]
+    return shapes
 
 
-def _save_additional_references(
-    additional_references: List[Tuple],
-    atlas_name: str,
-    atlas_version: str,
-    space_convention: bgs.AnatomicalSpace,
-    working_dir: Path,
-    transformations: List[List[dict]],
-) -> List[dict]:
-    additional_references_metadata = []
-    for ref_tuple in additional_references:
-        ref_metadata, additional_stack = ref_tuple
-        additional_stack = _load_stack(additional_stack)
-        additional_stack = _reorient_stacks(additional_stack, space_convention)
+# def _save_additional_references(
+#     packaging_data: AtlasPackagingData,
+#     atlas_version: str,
+#     space_convention: bgs.AnatomicalSpace,
+#     working_dir: Path,
+#     transformations: List[List[dict]],
+# ) -> List[dict]:
+#     additional_references_metadata = []
+#     for ref_tuple in packaging_data.additional_references:
+#         ref_metadata, additional_stack = ref_tuple
+#         additional_stack = _load_stack(additional_stack)
+#         additional_stack = _reorient_stacks(
+#             additional_stack,
+#             space_convention
+#         )
 
-        if isinstance(ref_metadata, str):
-            ref_name = f"{atlas_name}-{ref_metadata}-template"
-            ref_metadata = _make_component_metadata(
-                ref_name, atlas_version, descriptors.V2_TEMPLATE_ROOTDIR
-            )
+#         if isinstance(ref_metadata, str):
+#             ref_name = f"{packaging_data.atlas_name}-{ref_metadata}-template"
+#             ref_metadata = _make_component_metadata(
+#                 ref_name, atlas_version, descriptors.V2_TEMPLATE_ROOTDIR
+#             )
 
-        additional_references_metadata.append(ref_metadata)
+#         additional_references_metadata.append(ref_metadata)
 
-        dest_dir = working_dir / ref_metadata["location"].lstrip("/")
-        _save_if_not_exists(
-            additional_stack,
-            dest_dir,
-            ref_metadata["name"],
-            transformations,
-            save_template,
-        )
+#         dest_dir = working_dir / ref_metadata["location"].lstrip("/")
+#         _save_if_not_exists(
+#             additional_stack,
+#             dest_dir,
+#             ref_metadata["name"],
+#             transformations,
+#             save_template,
+#         )
 
-    return additional_references_metadata
-
-
-def _resolve_all_components(
-    working_dir: Path,
-    atlas_name: str,
-    atlas_version: str,
-    annotation_info: Optional[Dict[str, str | bool]],
-    template_info: Optional[Dict[str, str | bool]],
-    terminology_info: Optional[Dict[str, str | bool]],
-    coordinate_space_info: Optional[Dict[str, str | bool]],
-) -> SimpleNamespace:
-    return SimpleNamespace(
-        annotation=_resolve_component_info(
-            annotation_info,
-            working_dir,
-            descriptors.V2_ANNOTATION_ROOTDIR,
-            descriptors.V2_ANNOTATION_NAME,
-            f"{atlas_name}-annotation",
-            atlas_version,
-        ),
-        template=_resolve_component_info(
-            template_info,
-            working_dir,
-            descriptors.V2_TEMPLATE_ROOTDIR,
-            descriptors.V2_TEMPLATE_NAME,
-            f"{atlas_name}-template",
-            atlas_version,
-        ),
-        terminology=_resolve_component_info(
-            terminology_info,
-            working_dir,
-            descriptors.V2_TERMINOLOGY_ROOTDIR,
-            descriptors.V2_TERMINOLOGY_NAME,
-            f"{atlas_name}-terminology",
-            atlas_version,
-        ),
-        coordinate_space=_resolve_component_info(
-            coordinate_space_info,
-            working_dir,
-            descriptors.V2_COORDINATE_SPACE_ROOTDIR,
-            "manifest.json",
-            f"{atlas_name}-coordinate-space",
-            atlas_version,
-        ),
-    )
-
-
-def _build_all_component_metadata(components: SimpleNamespace) -> dict:
-    template_metadata = _make_component_metadata(
-        components.template["name"],
-        components.template["version"],
-        descriptors.V2_TEMPLATE_ROOTDIR,
-    )
-    terminology_metadata = _make_component_metadata(
-        components.terminology["name"],
-        components.terminology["version"],
-        descriptors.V2_TERMINOLOGY_ROOTDIR,
-    )
-    annotation_metadata = _make_component_metadata(
-        components.annotation["name"],
-        components.annotation["version"],
-        descriptors.V2_ANNOTATION_ROOTDIR,
-        extra={
-            "template": template_metadata,
-            "terminology": terminology_metadata,
-        },
-    )
-    coordinate_space_metadata = _make_component_metadata(
-        components.coordinate_space["name"],
-        components.coordinate_space["version"],
-        descriptors.V2_COORDINATE_SPACE_ROOTDIR,
-        extra={"template": template_metadata},
-    )
-    return {
-        "template": template_metadata,
-        "terminology": terminology_metadata,
-        "annotation": annotation_metadata,
-        "coordinate_space": coordinate_space_metadata,
-    }
+#     return additional_references_metadata
 
 
 def _finalize_atlas_at_resolution(
     resolution: Tuple[int | float],
     shape: tuple,
-    atlas_name: str,
-    atlas_minor_version: Union[int, str],
-    atlas_version_underscore: str,
-    working_dir: Path,
-    citation: str,
-    atlas_link: str,
-    species: str,
-    symmetric: bool,
+    packaging_data: AtlasPackagingData,
     additional_references_metadata: List[dict],
-    atlas_packager,
-    coordinate_space_metadata: dict,
-    terminology_metadata: dict,
-    annotation_metadata: dict,
-    template_metadata: dict,
     overwrite: bool,
 ) -> Path:
+    atlas_version = packaging_data.atlas_version
+    atlas_version_underscore = atlas_version.replace(".", "_")
+    symmetric = packaging_data.symmetric
+    atlas_name = packaging_data.atlas_name
+
     atlas_name_with_res = f"{atlas_name}_{resolution[0]}um"
     atlas_location = (
         f"/{descriptors.V2_ATLAS_ROOTDIR}/"
         f"{atlas_name_with_res}/{atlas_version_underscore}"
     )
-    atlas_dir = Path(working_dir) / atlas_location.strip("/")
+    atlas_dir = packaging_data.working_dir / atlas_location.strip("/")
 
     if atlas_dir.exists():
         if overwrite:
@@ -740,20 +397,20 @@ def _finalize_atlas_at_resolution(
     metadata_dict = generate_metadata_dict(
         name=atlas_name_with_res,
         location=atlas_location,
-        citation=citation,
-        atlas_link=atlas_link,
-        species=species,
+        citation=packaging_data.citation,
+        atlas_link=packaging_data.atlas_link,
+        species=packaging_data.species,
         symmetric=symmetric,
-        resolution=resolution,  # We expect input to be asr
+        resolution=resolution,
         orientation=descriptors.ATLAS_ORIENTATION,
-        version=f"{ATLAS_VERSION}.{atlas_minor_version}",
+        version=atlas_version,
         shape=shape,
         additional_references=additional_references_metadata,
-        atlas_packager=atlas_packager,
-        coordinate_space_metadata=coordinate_space_metadata,
-        terminology_metadata=terminology_metadata,
-        annotation_set_metadata=annotation_metadata,
-        template_metadata=template_metadata,
+        atlas_packager=packaging_data.atlas_packager,
+        coordinate_space_metadata=packaging_data.coordinate_space_info.metadata,
+        terminology_metadata=packaging_data.terminology_info.metadata,
+        annotation_set_metadata=packaging_data.annotation_info.metadata,
+        template_metadata=packaging_data.template_info.metadata,
     )
 
     with open(atlas_dir / "manifest.json", "w") as f:
@@ -763,7 +420,7 @@ def _finalize_atlas_at_resolution(
 
     atlas_to_validate = BrainGlobeAtlas(
         atlas_name=atlas_name_for_validation,
-        brainglobe_dir=working_dir.parent,
+        brainglobe_dir=packaging_data.working_dir.parent,
         check_latest=False,
     )
 
@@ -882,120 +539,110 @@ def wrapup_atlas_from_data(
     """  # noqa: E501
     working_dir = Path(working_dir) / "brainglobe-atlasapi"
     atlas_version = f"{ATLAS_VERSION}.{atlas_minor_version}"
-    atlas_version_underscore = atlas_version.replace(".", "_")
 
-    components = _resolve_all_components(
-        working_dir,
-        atlas_name,
-        atlas_version,
-        annotation_info,
-        template_info,
-        terminology_info,
-        coordinate_space_info,
+    if template_info is None:
+        template_info = {
+            "name": f"{atlas_name}-template",
+            "version": atlas_version,
+        }
+
+    if terminology_info is None:
+        terminology_info = {
+            "name": f"{atlas_name}-terminology",
+            "version": atlas_version,
+        }
+
+    if annotation_info is None:
+        annotation_info = {
+            "name": f"{atlas_name}-annotation",
+            "version": atlas_version,
+        }
+
+    if coordinate_space_info is None:
+        coordinate_space_info = {
+            "name": f"{atlas_name}-coordinate-space",
+            "version": atlas_version,
+        }
+
+    template_info = TemplateInfo(**template_info)
+    terminology_info = TerminologyInfo(**terminology_info)
+    annotation_info = AnnotationInfo(
+        template=template_info, terminology=terminology_info, **annotation_info
     )
-    metadata = _build_all_component_metadata(components)
-
-    template_metadata = metadata["template"]
-    terminology_metadata = metadata["terminology"]
-    annotation_metadata = metadata["annotation"]
-    coordinate_space_metadata = metadata["coordinate_space"]
-
-    annotation_info = components.annotation
-    template_info = components.template
-    terminology_info = components.terminology
-    coordinate_space_info = components.coordinate_space
-
-    resolution_standard = standardize_resolution(resolution)
-
-    transformations = _build_transformations(resolution_standard)
-
-    # If no hemisphere file is given, assume the atlas is symmetric:
-    symmetric = hemispheres_stack is None
-
-    annotation_stack = _load_stack(annotation_stack)
-    reference_stack = _load_stack(reference_stack)
-
-    structures_list = filter_structures_not_present_in_annotation(
-        structures_list, annotation_stack[0]
+    coordinate_space_info = CoordinateSpaceInfo(
+        template=template_info, **coordinate_space_info
     )
 
-    # Instantiate BGSpace obj, using original stack size in um as meshes
-    # are un um:
-    original_shape = reference_stack[0].shape
-    volume_shape = tuple(
-        res * s for res, s in zip(resolution_standard[0], original_shape)
+    packaging_data = AtlasPackagingData(
+        atlas_name=atlas_name,
+        atlas_version=atlas_version,
+        citation=citation,
+        atlas_link=atlas_link,
+        species=species,
+        resolution=resolution,
+        orientation=orientation,
+        root_id=root_id,
+        reference_stack=reference_stack,
+        annotation_stack=annotation_stack,
+        working_dir=working_dir,
+        template_info=template_info,
+        annotation_info=annotation_info,
+        terminology_info=terminology_info,
+        coordinate_space_info=coordinate_space_info,
+        structures_list=structures_list,
+        meshes_dict=meshes_dict,
+        atlas_packager=atlas_packager,
+        hemispheres_stack=hemispheres_stack,
+        additional_references=additional_references,
+        additional_metadata=additional_metadata,
     )
-    space_convention = bgs.AnatomicalSpace(orientation, shape=volume_shape)
 
-    # Check consistency of structures:
-    check_struct_consistency(structures_list)
+    transformations = _build_transformations(packaging_data.resolution)
 
     shapes = _save_template_data(
-        reference_stack,
-        space_convention,
-        template_metadata,
+        packaging_data,
         transformations,
-        working_dir,
-        template_info,
     )
 
     shapes = _save_annotation_data(
-        annotation_stack,
-        hemispheres_stack,
-        meshes_dict,
-        space_convention,
-        annotation_metadata,
+        packaging_data,
         transformations,
-        working_dir,
-        resolution_standard,
         scale_meshes,
         resolution_mapping,
-        annotation_info,
     )
 
-    additional_references_metadata = _save_additional_references(
-        additional_references,
-        atlas_name,
-        atlas_version,
-        space_convention,
-        working_dir,
-        transformations,
-    )
+    # additional_references_metadata = _save_additional_references(
+    #     packaging_data,
+    #     atlas_version,
+    #     space_convention,
+    #     working_dir,
+    #     transformations,
+    # )
 
-    if not terminology_info["skip_saving"]:
-        terminology_dir = working_dir / terminology_metadata["location"].strip(
-            "/"
+    if not terminology_info.skip_saving:
+        terminology_dir = working_dir / terminology_info.stub
+
+        terminology_dir.parent.mkdir(parents=True, exist_ok=True)
+        _save_terminology_csv(
+            packaging_data.structures_list,
+            terminology_dir,
         )
-        if not _skip_if_exists(terminology_dir, "Terminology directory"):
-            terminology_dir.mkdir(parents=True)
-            _save_terminology_csv(
-                structures_list, terminology_dir / "terminology.csv"
-            )
 
-    if not coordinate_space_info["skip_saving"]:
-        cs_dir = working_dir / coordinate_space_metadata["location"].strip("/")
-        if not _skip_if_exists(cs_dir, "Coordinate space directory"):
-            cs_dir.mkdir(parents=True)
-            _save_coordinate_space_manifest(coordinate_space_metadata, cs_dir)
+    if not coordinate_space_info.skip_saving:
+        coordinate_space_path = working_dir / coordinate_space_info.stub
 
-    for resolution, shape in zip(resolution_standard, shapes):
-        atlas_dir = _finalize_atlas_at_resolution(
+        coordinate_space_path.parent.mkdir(parents=True, exist_ok=True)
+        _save_coordinate_space_manifest(
+            coordinate_space_info.metadata, coordinate_space_path
+        )
+
+    for resolution, shape in zip(packaging_data.resolution, shapes):
+        _finalize_atlas_at_resolution(
             resolution=resolution,
             shape=shape,
-            atlas_name=atlas_name,
-            atlas_minor_version=atlas_minor_version,
-            atlas_version_underscore=atlas_version_underscore,
-            working_dir=working_dir,
-            citation=citation,
-            atlas_link=atlas_link,
-            species=species,
-            symmetric=symmetric,
-            additional_references_metadata=additional_references_metadata,
-            atlas_packager=atlas_packager,
-            coordinate_space_metadata=coordinate_space_metadata,
-            terminology_metadata=terminology_metadata,
-            annotation_metadata=annotation_metadata,
-            template_metadata=template_metadata,
+            packaging_data=packaging_data,
+            additional_references_metadata=[],
             overwrite=overwrite,
         )
-    return atlas_dir
+
+    return

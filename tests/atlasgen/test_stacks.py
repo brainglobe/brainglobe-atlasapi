@@ -169,7 +169,7 @@ def test_save_as_ome_zarr_converts_dtype(
 ):
     """Test _save_as_ome_zarr converts to the specified data type."""
     output_path = tmp_path / "test.ome.zarr"
-    _save_as_ome_zarr(image_float32, np.uint16, output_path, transformations)
+    _save_as_ome_zarr([image_float32], np.uint16, output_path, transformations)
     root = zarr.open_group(str(output_path), mode="r")
     for arr_key in root:
         assert root[arr_key].dtype == np.uint16
@@ -185,7 +185,7 @@ def test_save_as_ome_zarr_raises_on_multiple_resolutions(
     ]
     with pytest.raises(AssertionError):
         _save_as_ome_zarr(
-            image_uint16,
+            [image_uint16],
             np.uint16,
             tmp_path / "test.ome.zarr",
             bad_transformations,
@@ -197,7 +197,7 @@ def test_save_as_ome_zarr_raises_on_multiple_resolutions(
 
 def test_save_template_creates_zarr(image_uint16, transformations, tmp_path):
     """Test save_template creates the expected OME-Zarr file."""
-    save_template(image_uint16, tmp_path, transformations)
+    save_template([image_uint16], tmp_path, transformations)
     assert (tmp_path / descriptors.V2_TEMPLATE_NAME).exists()
 
 
@@ -205,7 +205,7 @@ def test_save_template_uses_reference_dtype(
     image_uint8, transformations, tmp_path
 ):
     """Test save_template saves the image with the correct data type."""
-    save_template(image_uint8, tmp_path, transformations)
+    save_template([image_uint8], tmp_path, transformations)
     root = zarr.open_group(
         str(tmp_path / descriptors.V2_TEMPLATE_NAME), mode="r"
     )
@@ -218,7 +218,7 @@ def test_save_template_uses_reference_dtype(
 
 def test_save_annotation_creates_zarr(image_uint32, transformations, tmp_path):
     """Test save_annotation creates the expected OME-Zarr file."""
-    save_annotation(image_uint32, tmp_path, transformations)
+    save_annotation([image_uint32], tmp_path, transformations)
     assert (tmp_path / descriptors.V2_ANNOTATION_NAME).exists()
 
 
@@ -226,7 +226,7 @@ def test_save_annotation_uses_annotation_dtype(
     image_uint8, transformations, tmp_path
 ):
     """Test save_annotation saves the image with the correct data type."""
-    save_annotation(image_uint8, tmp_path, transformations)
+    save_annotation([image_uint8], tmp_path, transformations)
     root = zarr.open_group(
         str(tmp_path / descriptors.V2_ANNOTATION_NAME), mode="r"
     )
@@ -239,7 +239,7 @@ def test_save_annotation_uses_annotation_dtype(
 
 def test_save_hemispheres_creates_zarr(image_uint8, transformations, tmp_path):
     """Test save_hemispheres creates the expected OME-Zarr file."""
-    save_hemispheres(image_uint8, tmp_path, transformations)
+    save_hemispheres([image_uint8], tmp_path, transformations)
     assert (tmp_path / descriptors.V2_HEMISPHERES_NAME).exists()
 
 
@@ -247,7 +247,7 @@ def test_save_hemispheres_uses_hemispheres_dtype(
     image_uint16, transformations, tmp_path
 ):
     """Test save_hemispheres saves the image with the correct data type."""
-    save_hemispheres(image_uint16, tmp_path, transformations)
+    save_hemispheres([image_uint16], tmp_path, transformations)
     root = zarr.open_group(
         str(tmp_path / descriptors.V2_HEMISPHERES_NAME), mode="r"
     )

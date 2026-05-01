@@ -116,9 +116,7 @@ def _save_as_ome_zarr(
     output_path: Path,
     transformations: List[List[Dict]],
 ) -> None:
-    for arr in stack:
-        if arr.dtype != dtype:
-            arr = arr.astype(dtype)
+    stack = [s.astype(dtype) for s in stack]
 
     assert len(transformations) == len(
         stack

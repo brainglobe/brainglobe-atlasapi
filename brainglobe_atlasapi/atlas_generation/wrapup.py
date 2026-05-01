@@ -244,7 +244,9 @@ def _save_annotation_data(
 
     if not annotation_info.skip_saving and not annotation_info.update_existing:
         shapes = [stack.shape for stack in packaging_data.annotation_stack]
-        dest_dir = packaging_data.working_dir / annotation_info.stub
+        dest_dir = packaging_data.working_dir / annotation_info.metadata[
+            "location"
+        ].lstrip("/")
 
         _save_if_not_exists(
             packaging_data.annotation_stack,
@@ -325,40 +327,38 @@ def _save_annotation_data(
     return shapes
 
 
-# def _save_additional_references(
-#     packaging_data: AtlasPackagingData,
-#     atlas_version: str,
-#     space_convention: bgs.AnatomicalSpace,
-#     working_dir: Path,
-#     transformations: List[List[dict]],
-# ) -> List[dict]:
-#     additional_references_metadata = []
-#     for ref_tuple in packaging_data.additional_references:
-#         ref_metadata, additional_stack = ref_tuple
-#         additional_stack = _load_stack(additional_stack)
-#         additional_stack = _reorient_stacks(
-#             additional_stack,
-#             space_convention
-#         )
+def _save_additional_references(
+    packaging_data: AtlasPackagingData,
+    transformations: List[List[dict]],
+) -> List[dict]:
+    for ref_tuple in packaging_data.additional_references:
+        ref_info, additional_template = ref_tuple
 
-#         if isinstance(ref_metadata, str):
-#             ref_name = f"{packaging_data.atlas_name}-{ref_metadata}-template"
-#             ref_metadata = _make_component_metadata(
-#                 ref_name, atlas_version, descriptors.V2_TEMPLATE_ROOTDIR
-#             )
+        if not ref_info.skip_saving and not ref_info.update_existing:
+            dest_dir = packaging_data.working_dir / ref_info.metadata[
+                "location"
+            ].lstrip("/")
+            _save_if_not_exists(
+                additional_template,
+                dest_dir,
+                ref_info.metadata["name"],
+                transformations,
+                save_template,
+            )
+        elif ref_info.update_existing:
+            local_existing_path = (
+                packaging_data.working_dir / ref_info.existing_stub
+            )
+            multiscale = nz.from_ngff_zarr(local_existing_path)
+            local_target_path = packaging_data.working_dir / ref_info.stub
+            _insert_into_multiscale(
+                multiscale,
+                transformations=transformations,
+                new_data=additional_template,
+                working_dir=local_target_path,
+            )
 
-#         additional_references_metadata.append(ref_metadata)
-
-#         dest_dir = working_dir / ref_metadata["location"].lstrip("/")
-#         _save_if_not_exists(
-#             additional_stack,
-#             dest_dir,
-#             ref_metadata["name"],
-#             transformations,
-#             save_template,
-#         )
-
-#     return additional_references_metadata
+    return
 
 
 def _finalize_atlas_at_resolution(
@@ -466,8 +466,16 @@ def wrapup_atlas_from_data(
     coordinate_space_info: Optional[Dict[str, str | bool]] = None,
     scale_meshes=True,
     resolution_mapping=None,
-    additional_references=[],
-    additional_metadata={},
+    additional_references: (
+        List[
+            Tuple[
+                Dict | str,
+                str | Path | npt.NDArray | List[str | Path | npt.NDArray],
+            ]
+        ]
+        | None
+    ) = None,
+    additional_metadata: dict | None = None,
     overwrite=False,
 ):
     """
@@ -526,8 +534,7 @@ def wrapup_atlas_from_data(
     resolution_mapping: List[int], optional
         a list of three mapping the target space axes to the source axes
         only needed for mesh scaling of anisotropic atlases
-    additional_references: List[Tuple[Dict, str | Path | npt.NDArray | List[str | Path | npt.NDArray]]], optional
-        (Default value = empty list).
+    additional_references: List[Tuple[Dict | str, str | Path | npt.NDArray | List[str | Path | npt.NDArray]]] | None
         List of tuples containing metadata and arrays for secondary templates.
     additional_metadata: dict, optional
         (Default value = empty dict).
@@ -564,6 +571,19 @@ def wrapup_atlas_from_data(
             "version": atlas_version,
         }
 
+    additional_template_list = []
+    if additional_references is not None:
+        for ref_tuple in additional_references:
+            ref_metadata, _ = ref_tuple
+            if isinstance(ref_metadata, str):
+                ref_dict = {
+                    "name": f"{ref_metadata}-template",
+                    "version": atlas_version,
+                }
+
+            component_info = TemplateInfo(**ref_dict)
+            additional_template_list.append((component_info, ref_tuple[1]))
+
     template_info = TemplateInfo(**template_info)
     terminology_info = TerminologyInfo(**terminology_info)
     annotation_info = AnnotationInfo(
@@ -593,7 +613,7 @@ def wrapup_atlas_from_data(
         meshes_dict=meshes_dict,
         atlas_packager=atlas_packager,
         hemispheres_stack=hemispheres_stack,
-        additional_references=additional_references,
+        additional_references=additional_template_list,
         additional_metadata=additional_metadata,
     )
 
@@ -611,13 +631,10 @@ def wrapup_atlas_from_data(
         resolution_mapping,
     )
 
-    # additional_references_metadata = _save_additional_references(
-    #     packaging_data,
-    #     atlas_version,
-    #     space_convention,
-    #     working_dir,
-    #     transformations,
-    # )
+    _save_additional_references(
+        packaging_data,
+        transformations,
+    )
 
     if not terminology_info.skip_saving:
         terminology_dir = working_dir / terminology_info.stub

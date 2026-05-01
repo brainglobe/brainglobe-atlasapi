@@ -410,7 +410,12 @@ class AtlasPackagingData:
     hemispheres_stack: Optional[
         Union[str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]]
     ] = None
-    additional_references: List = field(default_factory=list)
+    additional_references: List[
+        Tuple[
+            TemplateInfo,
+            Union[str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]],
+        ]
+    ] = field(default_factory=list)
     additional_metadata: Dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -438,6 +443,12 @@ class AtlasPackagingData:
         self.annotation_stack = _reorient_stacks(
             self.annotation_stack, self.space_convention
         )
+
+        for i, stack_tuple in enumerate(self.additional_references):
+            ref_stack = _load_stack(stack_tuple[1])
+            ref_stack = _reorient_stacks(ref_stack, self.space_convention)
+            self.additional_references[i] = (stack_tuple[0], ref_stack)
+
         self.symmetric = self.hemispheres_stack is None
 
         if not self.symmetric:
@@ -458,6 +469,9 @@ class AtlasPackagingData:
         check_requested_component(self.annotation_info, self.working_dir)
         check_requested_component(self.terminology_info, self.working_dir)
         check_requested_component(self.coordinate_space_info, self.working_dir)
+
+        for template_info, _ in self.additional_references:
+            check_requested_component(template_info, self.working_dir)
 
 
 def _standardize_resolution(

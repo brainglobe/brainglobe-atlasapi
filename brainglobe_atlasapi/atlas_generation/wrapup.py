@@ -446,7 +446,10 @@ def wrapup_atlas_from_data(
     citation: str,
     atlas_link: str,
     species: str,
-    resolution: Tuple[int | float] | List[Tuple[int | float]],
+    resolution: (
+        Tuple[int | float, int | float, int | float]
+        | List[Tuple[int | float, int | float, int | float]]
+    ),
     orientation: str,
     root_id: int,
     reference_stack: str | Path | npt.NDArray | List[str | Path | npt.NDArray],
@@ -493,7 +496,7 @@ def wrapup_atlas_from_data(
         Valid URL for the atlas.
     species : str
         Species name formatted as "CommonName (Genus species)".
-    resolution : Tuple[int | float] | List[Tuple[int | float]]
+    resolution : Tuple[int | float, int | float, int | float] | List[Tuple[int | float, int | float, int | float]]
         Three elements tuple, resolution on three axes or a list of such tuples
         for each scale, ordered from highest to lowest resolution.
     orientation : str

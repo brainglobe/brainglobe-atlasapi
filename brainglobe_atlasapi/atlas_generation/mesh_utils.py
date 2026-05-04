@@ -33,6 +33,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 from loguru import logger
+from treelib import Node, Tree
 
 from brainglobe_atlasapi.atlas_generation.volume_utils import (
     create_masked_array,
@@ -80,11 +81,6 @@ def extract_mesh_from_mask(
         What fraction of the original number of vertices is to be kept.
         EG .5 means that 50% of the vertices are kept,
         the others are removed.
-    tol: float
-        parameter for decimation, with larger values corresponding
-        to more aggressive decimation.
-        EG 0.02 -> points that are closer than 2% of the size of the mesh's
-        bounding box are identified and removed (only one is kept).
     extract_largest: bool
         If True only the largest region are extracted. It can cause issues for
         bilateral regions as only one will remain
@@ -153,42 +149,72 @@ def extract_mesh_from_mask(
     return mesh
 
 
-def create_region_mesh(args):
+def _create_region_mesh(
+    meshes_dir_path: Path,
+    node: Node,
+    tree: Tree,
+    labels: list[int],
+    annotated_volume: np.ndarray | str | Path,
+    ROOT_ID: int,
+    closing_n_iters: int,
+    decimate_fraction: float,
+    smooth: bool,
+    verbosity: int = 0,
+) -> None:
     """
-    Automate the creation of a region's mesh. Given a volume of annotations
-    and a structures tree, it takes the volume's region corresponding to the
-    region of interest and all of its children's labels and creates a mesh.
-    It takes a tuple of arguments to facilitate parallel processing with
-    multiprocessing.pool.map.
+    Create and save an `.obj` mesh for a region and its descendants.
 
-    Note, by default it avoids overwriting a structure's mesh if the
-    .obj file exists already.
+    The mesh is generated from a binary mask built from `node.identifier` and
+    the identifiers of all child nodes in `tree`. Only labels present in
+    `annotated_volume` are considered. If no matching labels are found, or the
+    resulting mask is empty, no mesh is written.
+
+    `annotated_volume` may be provided as an in-memory NumPy array or as a
+    path to a zarr store, which will be opened in read mode.
+
+    For the root region (`node.identifier == ROOT_ID`), mesh extraction skips
+    the `closing_n_iters` argument. For all other regions, that parameter is
+    passed through to `extract_mesh_from_mask`.
 
     Parameters
     ----------
-    meshes_dir_path: pathlib Path object with folder where meshes are saved
-    tree: treelib.Tree with hierarchical structures information
-    node: tree's node corresponding to the region whose mesh is being created
-    labels: list of unique label annotations in annotated volume,
-    (list(np.unique(annotated_volume)))
-    annotated_volume: 3d numpy array path to a zarr store with annotations
-    ROOT_ID: int,
-    id of root structure (mesh creation is a bit more refined for that)
-    """
-    # Split arguments
-    meshes_dir_path = args[0]
-    node = args[1]
-    tree = args[2]
-    labels = args[3]
-    annotated_volume = args[4]
-    ROOT_ID = args[5]
-    closing_n_iters = args[6]
-    decimate_fraction = args[7]
-    smooth = args[8]
-    verbosity = args[9] if len(args) > 9 else 0
+    meshes_dir_path : Path
+        Directory where mesh `.obj` files are written.
+    node
+        Tree node corresponding to the region whose mesh should be created.
+    tree
+        Structure hierarchy containing `node` and its descendants.
+    labels
+        Unique annotation labels present in `annotated_volume`, typically
+        `list(np.unique(annotated_volume))`.
+    annotated_volume : numpy.ndarray or str or Path
+        Annotation volume as a 3D array, or a path to a zarr store containing
+        the annotations.
+    ROOT_ID : int
+        Identifier of the root structure.
+    closing_n_iters : int
+        Number of morphological closing iterations to apply for non-root
+        regions during mesh extraction.
+    decimate_fraction : float
+        Fraction used to decimate the extracted mesh.
+    smooth : bool
+        Whether to smooth the extracted mesh.
+    verbosity : int, optional
+        Verbosity level used for debug output.
 
+    Raises
+    ------
+    TypeError
+        If `annotated_volume` is neither a NumPy array nor a path to a zarr
+        store.
+
+    Returns
+    -------
+    None
+        Mesh data is written to disk when extraction succeeds.
+    """
     if verbosity > 0:
-        logger.debug(f"Creating mesh for region {args[1].identifier}")
+        logger.debug(f"Creating mesh for region {node.identifier}")
 
     # Avoid overwriting existing mesh
     savepath = meshes_dir_path / f"{node.identifier}.obj"
@@ -243,6 +269,17 @@ def create_region_mesh(args):
                 )
 
 
+def create_region_mesh(args):
+    """
+    Wrap _create_region_mesh which facilitates
+    multiprocessing.
+    """
+    if not isinstance(args, (tuple, list)):
+        raise TypeError("args must be a tuple or list")
+
+    return _create_region_mesh(*args)
+
+
 def construct_meshes_from_annotation(
     save_path: Path,
     volume: np.ndarray,
@@ -253,6 +290,7 @@ def construct_meshes_from_annotation(
     parallel: bool = True,
     num_threads: int = -1,
     verbosity: int = 0,
+    skip_structure_ids=None,
 ):
     """
     Retrieve or construct atlas region meshes for a given annotation volume.
@@ -287,6 +325,8 @@ def construct_meshes_from_annotation(
         If > 0, uses that many threads.
     verbosity: int
         Level of verbosity for logging. 0 for no output, 1 for basic info.
+    skip_structure_ids: iterable of int or None
+        If provided, mesh generation for these structure IDs is skipped.
 
     Returns
     -------
@@ -327,7 +367,16 @@ def construct_meshes_from_annotation(
         volume = ann_path
 
     root_id = tree.root
-    # Create a list of arguments for each region's mesh creation
+
+    # Normalise skip set so filtering is a simple membership check
+    if skip_structure_ids is None:
+        skip_structure_ids = set()
+    elif not isinstance(skip_structure_ids, set):
+        skip_structure_ids = set(skip_structure_ids)
+
+    # Create a list of arguments for each region's mesh creation,
+    # filtering out structures that should be skipped upstream to
+    # avoid unnecessary inter-process communication.
     args_list = [
         (
             meshes_dir_path,
@@ -342,6 +391,7 @@ def construct_meshes_from_annotation(
             verbosity,
         )
         for node in preorder_depth_first_search(tree)
+        if node.identifier not in skip_structure_ids
     ]
 
     if parallel:
@@ -368,7 +418,7 @@ def construct_meshes_from_annotation(
         for args in track(
             args_list, total=len(args_list), description="Creating meshes"
         ):
-            create_region_mesh(args)
+            _create_region_mesh(*args)
 
     meshes_dict = {}
     structures_with_mesh = []

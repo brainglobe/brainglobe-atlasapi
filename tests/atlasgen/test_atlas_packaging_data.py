@@ -281,8 +281,8 @@ def test_component_info_no_existing_stub_without_update_existing():
     assert info.existing_stub is None
 
 
-def test_component_info_metadata_keys(component_info):
-    """Test ComponentInfo.metadata contains required keys.
+def test_component_info_metadata_has_name_key(component_info):
+    """Test ComponentInfo.metadata contains a 'name' key.
 
     Parameters
     ----------
@@ -290,7 +290,27 @@ def test_component_info_metadata_keys(component_info):
         A ComponentInfo instance for testing.
     """
     assert "name" in component_info.metadata
+
+
+def test_component_info_metadata_has_version_key(component_info):
+    """Test ComponentInfo.metadata contains a 'version' key.
+
+    Parameters
+    ----------
+    component_info : ComponentInfo
+        A ComponentInfo instance for testing.
+    """
     assert "version" in component_info.metadata
+
+
+def test_component_info_metadata_has_location_key(component_info):
+    """Test ComponentInfo.metadata contains a 'location' key.
+
+    Parameters
+    ----------
+    component_info : ComponentInfo
+        A ComponentInfo instance for testing.
+    """
     assert "location" in component_info.metadata
 
 

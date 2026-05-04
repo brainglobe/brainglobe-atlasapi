@@ -583,7 +583,10 @@ def test_check_requested_component_skip_saving_fetches(mocker, tmp_path):
         return_value=mock_fs,
     )
     component = TemplateInfo(
-        name="test-template", version="1.0", skip_saving=True
+        name="test-template",
+        version="1.0",
+        skip_saving=True,
+        file_name="test.ome.zarr",
     )
     check_requested_component(component, tmp_path)
     mock_fs.get.assert_called_once()
@@ -655,6 +658,9 @@ def test_check_requested_component_update_existing_fetches_recursively(
     mocker.patch(
         "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.s3fs.S3FileSystem",
         return_value=mock_fs,
+    )
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.TqdmCallback"
     )
     component = TemplateInfo(
         name="test-template",

@@ -1,4 +1,9 @@
-"""Tests for atlas_packaging_data module."""
+"""
+Tests for the atlas_packaging_data module.
+
+Verifies the correctness of resolution standardisation, stack loading,
+hemisphere auto-generation, and stack reorientation helpers.
+"""
 
 import brainglobe_space as bgs
 import numpy as np
@@ -6,6 +11,8 @@ import pytest
 import tifffile
 
 from brainglobe_atlasapi import descriptors
+
+# Imported for use in Tasks 2-5 tests (not yet used in Task 1)
 from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
     AnnotationInfo,  # noqa: F401
     AtlasPackagingData,  # noqa: F401
@@ -77,8 +84,8 @@ def test_load_stack_list_passthrough():
     assert result == [arr1, arr2]
 
 
-def test_load_stack_path(tmp_path):
-    """Test `_load_stack` reads a TIFF file from a Path.
+def test_load_stack_path_returns_list(tmp_path):
+    """Test `_load_stack` returns a single-element list when given a Path.
 
     Parameters
     ----------
@@ -91,11 +98,25 @@ def test_load_stack_path(tmp_path):
     result = _load_stack(tiff_path)
     assert isinstance(result, list)
     assert len(result) == 1
+
+
+def test_load_stack_path_reads_data(tmp_path):
+    """Test `_load_stack` reads correct data from a TIFF file at a Path.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    """
+    arr = np.zeros((4, 4, 4), dtype=np.uint16)
+    tiff_path = tmp_path / "test.tiff"
+    tifffile.imwrite(tiff_path, arr)
+    result = _load_stack(tiff_path)
     assert np.array_equal(result[0], arr)
 
 
-def test_load_stack_str(tmp_path):
-    """Test `_load_stack` reads a TIFF file from a string path.
+def test_load_stack_str_returns_list(tmp_path):
+    """Test `_load_stack` returns a list when given a string path.
 
     Parameters
     ----------
@@ -108,6 +129,20 @@ def test_load_stack_str(tmp_path):
     result = _load_stack(str(tiff_path))
     assert isinstance(result, list)
     assert len(result) == 1
+
+
+def test_load_stack_str_reads_data(tmp_path):
+    """Test `_load_stack` reads correct data from a string TIFF file path.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    """
+    arr = np.zeros((4, 4, 4), dtype=np.uint16)
+    tiff_path = tmp_path / "test.tiff"
+    tifffile.imwrite(tiff_path, arr)
+    result = _load_stack(str(tiff_path))
     assert np.array_equal(result[0], arr)
 
 
@@ -168,7 +203,6 @@ def test_reorient_stacks_reorders_axes():
     space = bgs.AnatomicalSpace("sar", shape=arr.shape)
     result = _reorient_stacks([arr], space)
     assert len(result) == 1
-    # result should differ from input when orientation != asr
     expected = space.map_stack_to(
         descriptors.ATLAS_ORIENTATION, arr, copy=True
     )

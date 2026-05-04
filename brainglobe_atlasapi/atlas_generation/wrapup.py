@@ -3,7 +3,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple
 
 import brainglobe_space as bgs
 import meshio as mio
@@ -428,8 +428,6 @@ def _finalize_atlas_at_resolution(
 
     validation_results = {}
 
-    # NOTE: get_all_validation_functions must be called by its unqualified
-    # module-scope name so monkeypatch in test_wrapup_overwrite.py works.
     for func in get_all_validation_functions():
         try:
             func(atlas_to_validate)
@@ -444,7 +442,7 @@ def _finalize_atlas_at_resolution(
 
 def wrapup_atlas_from_data(
     atlas_name: str,
-    atlas_minor_version: Union[int, str],
+    atlas_minor_version: int | str,
     citation: str,
     atlas_link: str,
     species: str,
@@ -460,10 +458,10 @@ def wrapup_atlas_from_data(
     working_dir: str | Path,
     atlas_packager=None,
     hemispheres_stack=None,
-    template_info: Optional[Dict[str, str | bool]] = None,
-    annotation_info: Optional[Dict[str, str | bool]] = None,
-    terminology_info: Optional[Dict[str, str | bool]] = None,
-    coordinate_space_info: Optional[Dict[str, str | bool]] = None,
+    template_info: Dict[str, str | bool] | None = None,
+    annotation_info: Dict[str, str | bool] | None = None,
+    terminology_info: Dict[str, str | bool] | None = None,
+    coordinate_space_info: Dict[str, str | bool] | None = None,
     scale_meshes=True,
     resolution_mapping=None,
     additional_references: (
@@ -487,7 +485,7 @@ def wrapup_atlas_from_data(
     ----------
     atlas_name : str
         Atlas name in the form author_species.
-    atlas_minor_version : int or str
+    atlas_minor_version : int | str
         Minor version number for this particular atlas.
     citation : str
         Citation for the atlas, if unpublished specify "unpublished".
@@ -495,12 +493,13 @@ def wrapup_atlas_from_data(
         Valid URL for the atlas.
     species : str
         Species name formatted as "CommonName (Genus species)".
-    resolution : tuple
-        Three elements tuple, resolution on three axes
-    orientation :
+    resolution : Tuple[int | float] | List[Tuple[int | float]]
+        Three elements tuple, resolution on three axes or a list of such tuples
+        for each scale, ordered from highest to lowest resolution.
+    orientation : str
         Orientation of the original atlas
         (tuple describing origin for BGSpace).
-    root_id :
+    root_id : int
         Id of the root element of the atlas.
     reference_stack : str | Path | npt.NDArray | List[str | Path | npt.NDArray]
         Reference stack for the atlas.
@@ -513,12 +512,12 @@ def wrapup_atlas_from_data(
         If list, should be list of stacks for each scale, ordered from highest
         to lowest resolution.
     structures_list : List[Dict]
-        List of valid dictionary for structures.
+        List of valid dictionaries for structures.
     meshes_dict : Dict[int | str, str | Path]
         dict of meshio-compatible mesh file paths in the form
         {struct_id: meshpath}
-    working_dir : str or Path obj
-        Path where the atlas folder and compressed file will be generated.
+    working_dir : str | Path
+        Path where the atlas will be generated.
     atlas_packager : str or None
         Credit for those responsible for converting the atlas
         into the BrainGlobe format.
@@ -540,7 +539,7 @@ def wrapup_atlas_from_data(
         List of tuples containing metadata and arrays for secondary templates.
     additional_metadata: dict, optional
         (Default value = empty dict).
-        Additional metadata to write to metadata.json
+        Additional metadata to write to manifest.json
     overwrite : bool, optional
         (Default value = False).
         If True, will overwrite existing atlas directory.

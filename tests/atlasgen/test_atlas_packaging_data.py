@@ -335,3 +335,208 @@ def test_component_info_metadata_location(component_info):
     """
     assert "templates" in component_info.metadata["location"]
     assert "1_2_3" in component_info.metadata["location"]
+
+
+# --- TemplateInfo, TerminologyInfo, AnnotationInfo, CoordinateSpaceInfo ---
+
+
+@pytest.fixture
+def template_info():
+    """Provide a TemplateInfo instance for testing.
+
+    Returns
+    -------
+    TemplateInfo
+        A TemplateInfo instance with name and version.
+    """
+    return TemplateInfo(name="test-template", version="1.0")
+
+
+@pytest.fixture
+def terminology_info():
+    """Provide a TerminologyInfo instance for testing.
+
+    Returns
+    -------
+    TerminologyInfo
+        A TerminologyInfo instance with name and version.
+    """
+    return TerminologyInfo(name="test-terminology", version="1.0")
+
+
+@pytest.fixture
+def annotation_info(template_info, terminology_info):
+    """Provide an AnnotationInfo instance for testing.
+
+    Parameters
+    ----------
+    template_info : TemplateInfo
+        A TemplateInfo instance.
+    terminology_info : TerminologyInfo
+        A TerminologyInfo instance.
+
+    Returns
+    -------
+    AnnotationInfo
+        An AnnotationInfo instance linked to template and terminology.
+    """
+    return AnnotationInfo(
+        name="test-annotation",
+        version="1.0",
+        template=template_info,
+        terminology=terminology_info,
+    )
+
+
+@pytest.fixture
+def coordinate_space_info(template_info):
+    """Provide a CoordinateSpaceInfo instance for testing.
+
+    Parameters
+    ----------
+    template_info : TemplateInfo
+        A TemplateInfo instance.
+
+    Returns
+    -------
+    CoordinateSpaceInfo
+        A CoordinateSpaceInfo instance linked to the template.
+    """
+    return CoordinateSpaceInfo(
+        name="test-space",
+        version="1.0",
+        template=template_info,
+    )
+
+
+def test_template_info_default_root_dir(template_info):
+    """Test TemplateInfo uses V2_TEMPLATE_ROOTDIR as default root_dir.
+
+    Parameters
+    ----------
+    template_info : TemplateInfo
+        A TemplateInfo instance for testing.
+    """
+    assert template_info.root_dir == descriptors.V2_TEMPLATE_ROOTDIR
+
+
+def test_template_info_default_file_name(template_info):
+    """Test TemplateInfo uses V2_TEMPLATE_NAME as default file_name.
+
+    Parameters
+    ----------
+    template_info : TemplateInfo
+        A TemplateInfo instance for testing.
+    """
+    assert template_info.file_name == descriptors.V2_TEMPLATE_NAME
+
+
+def test_terminology_info_default_root_dir(terminology_info):
+    """Test TerminologyInfo uses V2_TERMINOLOGY_ROOTDIR as default root_dir.
+
+    Parameters
+    ----------
+    terminology_info : TerminologyInfo
+        A TerminologyInfo instance for testing.
+    """
+    assert terminology_info.root_dir == descriptors.V2_TERMINOLOGY_ROOTDIR
+
+
+def test_terminology_info_default_file_name(terminology_info):
+    """Test TerminologyInfo uses V2_TERMINOLOGY_NAME as default file_name.
+
+    Parameters
+    ----------
+    terminology_info : TerminologyInfo
+        A TerminologyInfo instance for testing.
+    """
+    assert terminology_info.file_name == descriptors.V2_TERMINOLOGY_NAME
+
+
+def test_annotation_info_default_root_dir(annotation_info):
+    """Test AnnotationInfo uses V2_ANNOTATION_ROOTDIR as default root_dir.
+
+    Parameters
+    ----------
+    annotation_info : AnnotationInfo
+        An AnnotationInfo instance for testing.
+    """
+    assert annotation_info.root_dir == descriptors.V2_ANNOTATION_ROOTDIR
+
+
+def test_annotation_info_default_file_name(annotation_info):
+    """Test AnnotationInfo uses V2_ANNOTATION_NAME as default file_name.
+
+    Parameters
+    ----------
+    annotation_info : AnnotationInfo
+        An AnnotationInfo instance for testing.
+    """
+    assert annotation_info.file_name == descriptors.V2_ANNOTATION_NAME
+
+
+def test_annotation_info_metadata_contains_template(annotation_info):
+    """Test AnnotationInfo.metadata includes template metadata.
+
+    Parameters
+    ----------
+    annotation_info : AnnotationInfo
+        An AnnotationInfo instance for testing.
+    """
+    assert "template" in annotation_info.metadata
+    assert annotation_info.metadata["template"]["name"] == "test-template"
+
+
+def test_annotation_info_metadata_contains_terminology(annotation_info):
+    """Test AnnotationInfo.metadata includes terminology metadata.
+
+    Parameters
+    ----------
+    annotation_info : AnnotationInfo
+        An AnnotationInfo instance for testing.
+    """
+    assert "terminology" in annotation_info.metadata
+    assert (
+        annotation_info.metadata["terminology"]["name"] == "test-terminology"
+    )
+
+
+def test_coordinate_space_info_default_root_dir(coordinate_space_info):
+    """Test CoordinateSpaceInfo uses V2_COORDINATE_SPACE_ROOTDIR as root_dir.
+
+    Parameters
+    ----------
+    coordinate_space_info : CoordinateSpaceInfo
+        A CoordinateSpaceInfo instance for testing.
+    """
+    assert (
+        coordinate_space_info.root_dir
+        == descriptors.V2_COORDINATE_SPACE_ROOTDIR
+    )
+
+
+def test_coordinate_space_info_default_file_name(coordinate_space_info):
+    """Test CoordinateSpaceInfo uses "manifest.json" as default file_name.
+
+    Parameters
+    ----------
+    coordinate_space_info : CoordinateSpaceInfo
+        A CoordinateSpaceInfo instance for testing.
+    """
+    assert coordinate_space_info.file_name == "manifest.json"
+
+
+def test_coordinate_space_info_metadata_contains_template(
+    coordinate_space_info,
+):
+    """Test CoordinateSpaceInfo.metadata includes template metadata.
+
+    Parameters
+    ----------
+    coordinate_space_info : CoordinateSpaceInfo
+        A CoordinateSpaceInfo instance for testing.
+    """
+    assert "template" in coordinate_space_info.metadata
+    assert (
+        coordinate_space_info.metadata["template"]["name"] == "test-template"
+    )

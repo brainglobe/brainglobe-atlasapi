@@ -706,7 +706,7 @@ def atlas_packaging_kwargs(
         atlas_name="test_mouse",
         atlas_version="1.0",
         citation="unpublished",
-        atlas_link="http://example.com",
+        atlas_link="https://example.com",
         species="Mouse (Mus musculus)",
         resolution=(25, 25, 25),
         orientation="asr",

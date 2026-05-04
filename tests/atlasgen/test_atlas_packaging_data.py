@@ -7,10 +7,17 @@ import tifffile
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
+    AnnotationInfo,  # noqa: F401
+    AtlasPackagingData,  # noqa: F401
+    ComponentInfo,  # noqa: F401
+    CoordinateSpaceInfo,  # noqa: F401
+    TemplateInfo,  # noqa: F401
+    TerminologyInfo,  # noqa: F401
     _auto_generate_hemispheres,
     _load_stack,
     _reorient_stacks,
     _standardize_resolution,
+    check_requested_component,  # noqa: F401
 )
 
 # --- _standardize_resolution ---

@@ -477,6 +477,8 @@ def wrapup_atlas_from_data(
     ) = None,
     additional_metadata: dict | None = None,
     overwrite=False,
+    cleanup_files=None,
+    compress=None,
 ):
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -543,7 +545,21 @@ def wrapup_atlas_from_data(
         (Default value = False).
         If True, will overwrite existing atlas directory.
         If False and atlas directory exists, raises FileExistsError.
+    cleanup_files : deprecated, optional
+        (Default value = None).
+        Deprecated and has no effect.
+    compress : deprecated, optional
+        (Default value = None).
+        Deprecated and has no effect.
     """  # noqa: E501
+    if cleanup_files is not None:
+        print(
+            "Warning: `cleanup_files` argument is deprecated and has no effect"
+        )
+
+    if compress is not None:
+        print("Warning: `compress` argument is deprecated and has no effect")
+
     working_dir = Path(working_dir) / "brainglobe-atlasapi"
     atlas_version = f"{ATLAS_VERSION}.{atlas_minor_version}"
 

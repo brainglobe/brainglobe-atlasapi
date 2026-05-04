@@ -96,20 +96,6 @@ def test_load_stack_path_returns_list(tmp_path):
     result = _load_stack(tiff_path)
     assert isinstance(result, list)
     assert len(result) == 1
-
-
-def test_load_stack_path_reads_data(tmp_path):
-    """Test `_load_stack` reads correct data from a TIFF file at a Path.
-
-    Parameters
-    ----------
-    tmp_path : Path
-        Temporary directory path provided by pytest.
-    """
-    arr = np.zeros((4, 4, 4), dtype=np.uint16)
-    tiff_path = tmp_path / "test.tiff"
-    tifffile.imwrite(tiff_path, arr)
-    result = _load_stack(tiff_path)
     assert np.array_equal(result[0], arr)
 
 
@@ -127,20 +113,6 @@ def test_load_stack_str_returns_list(tmp_path):
     result = _load_stack(str(tiff_path))
     assert isinstance(result, list)
     assert len(result) == 1
-
-
-def test_load_stack_str_reads_data(tmp_path):
-    """Test `_load_stack` reads correct data from a string TIFF file path.
-
-    Parameters
-    ----------
-    tmp_path : Path
-        Temporary directory path provided by pytest.
-    """
-    arr = np.zeros((4, 4, 4), dtype=np.uint16)
-    tiff_path = tmp_path / "test.tiff"
-    tifffile.imwrite(tiff_path, arr)
-    result = _load_stack(str(tiff_path))
     assert np.array_equal(result[0], arr)
 
 
@@ -150,8 +122,7 @@ def test_load_stack_str_reads_data(tmp_path):
 def test_auto_generate_hemispheres_shape():
     """Test `_auto_generate_hemispheres` with matching shapes."""
     shapes = [(4, 4, 4)]
-    annotation = [np.zeros((4, 4, 4), dtype=np.uint32)]
-    result = _auto_generate_hemispheres(shapes, annotation)
+    result = _auto_generate_hemispheres(shapes)
     assert len(result) == 1
     assert result[0].shape == (4, 4, 4)
 
@@ -163,8 +134,7 @@ def test_auto_generate_hemispheres_values():
     The right half (dim 2, indices >= midpoint) should be 1.
     """
     shapes = [(4, 4, 4)]
-    annotation = [np.zeros((4, 4, 4), dtype=np.uint32)]
-    result = _auto_generate_hemispheres(shapes, annotation)
+    result = _auto_generate_hemispheres(shapes)
     assert np.all(result[0][:, :, :2] == 2)
     assert np.all(result[0][:, :, 2:] == 1)
 
@@ -172,11 +142,7 @@ def test_auto_generate_hemispheres_values():
 def test_auto_generate_hemispheres_multiple_scales():
     """Test `_auto_generate_hemispheres` handles multiple annotation scales."""
     shapes = [(4, 4, 4), (2, 2, 2)]
-    annotations = [
-        np.zeros((4, 4, 4), dtype=np.uint32),
-        np.zeros((2, 2, 2), dtype=np.uint32),
-    ]
-    result = _auto_generate_hemispheres(shapes, annotations)
+    result = _auto_generate_hemispheres(shapes)
     assert len(result) == 2
     assert result[0].shape == (4, 4, 4)
     assert result[1].shape == (2, 2, 2)

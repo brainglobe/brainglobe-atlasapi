@@ -456,7 +456,6 @@ class AtlasPackagingData:
         else:
             self.hemispheres_stack = _auto_generate_hemispheres(
                 shapes=[stack.shape for stack in self.annotation_stack],
-                annotation_stack=self.annotation_stack,
             )
 
         self.structures_list = filter_structures_not_present_in_annotation(
@@ -489,10 +488,9 @@ def _standardize_resolution(
 
 def _auto_generate_hemispheres(
     shapes: List[tuple],
-    annotation_stack: List[npt.NDArray],
 ) -> List[npt.NDArray]:
     hemispheres_stack = [np.full(shape, 2, dtype=np.uint8) for shape in shapes]
-    slices = ([slice(None) for _ in range(3)],) * len(annotation_stack)
+    slices = ([slice(None) for _ in range(3)],) * len(shapes)
     for stack, slice_set in zip(hemispheres_stack, slices):
         slice_set[2] = slice(round(stack.shape[2] / 2), None)
         stack[tuple(slice_set)] = 1

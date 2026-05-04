@@ -70,10 +70,6 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
             root_dir / annotation_location / descriptors.V2_MESHES_DIRECTORY,
         ),
         (
-            "Hemispheres",
-            root_dir / annotation_location / descriptors.V2_HEMISPHERES_NAME,
-        ),
-        (
             "Template",
             root_dir / template_location / descriptors.V2_TEMPLATE_NAME,
         ),

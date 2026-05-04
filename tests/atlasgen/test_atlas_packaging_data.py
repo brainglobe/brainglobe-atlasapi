@@ -821,7 +821,9 @@ def test_atlas_packaging_data_stacks_are_lists(mocker, atlas_packaging_kwargs):
     )
     data = AtlasPackagingData(**atlas_packaging_kwargs)
     assert isinstance(data.reference_stack, list)
+    assert len(data.reference_stack) == 1
     assert isinstance(data.annotation_stack, list)
+    assert len(data.annotation_stack) == 1
 
 
 def test_atlas_packaging_data_symmetric_auto_hemispheres(
@@ -937,4 +939,5 @@ def test_atlas_packaging_data_multiscale_resolution(
     )
     atlas_packaging_kwargs["resolution"] = [(25, 25, 25), (50, 50, 50)]
     data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert isinstance(data.resolution, list)
     assert data.resolution == [(25, 25, 25), (50, 50, 50)]

@@ -34,6 +34,11 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     report_validation_results,
 )
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+from brainglobe_atlasapi.descriptors import (
+    Resolution,
+    ResolutionList,
+    ValidComponentData,
+)
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 # This should be changed every time we make changes in the atlas
@@ -56,9 +61,9 @@ def _save_if_not_exists(
 
 
 def _merge_resolutions_list(
-    existing_resolutions: List[Tuple[int | float]],
-    new_resolutions: List[Tuple[int | float]],
-) -> List[Tuple[int | float]]:
+    existing_resolutions: ResolutionList,
+    new_resolutions: ResolutionList,
+) -> ResolutionList:
     merged_resolutions = sorted(set(existing_resolutions + new_resolutions))
 
     return merged_resolutions
@@ -109,7 +114,7 @@ def _insert_into_multiscale(
 
 
 def _build_transformations(
-    resolution_standard: List[Tuple[int | float]],
+    resolution_standard: ResolutionList,
 ) -> List[List[dict]]:
     return [
         [{"type": "scale", "scale": [res / 1000 for res in res_tuple]}]
@@ -159,8 +164,8 @@ def _save_meshes(
     mesh_dest_dir: Path,
     space_convention: bgs.AnatomicalSpace,
     scale_meshes: bool,
-    resolution_standard: List[Tuple[int | float]],
-    resolution_mapping: Optional[List[int]],
+    resolution_standard: ResolutionList,
+    resolution_mapping: List[int] | None,
 ) -> None:
     if mesh_dest_dir.exists():
         print(f"Mesh directory already exists, skipping: {mesh_dest_dir}")
@@ -362,7 +367,7 @@ def _save_additional_references(
 
 
 def _finalize_atlas_at_resolution(
-    resolution: Tuple[int | float],
+    resolution: Resolution,
     shape: tuple,
     packaging_data: AtlasPackagingData,
     additional_references_metadata: List[dict],
@@ -446,16 +451,11 @@ def wrapup_atlas_from_data(
     citation: str,
     atlas_link: str,
     species: str,
-    resolution: (
-        Tuple[int | float, int | float, int | float]
-        | List[Tuple[int | float, int | float, int | float]]
-    ),
+    resolution: Resolution | ResolutionList,
     orientation: str,
     root_id: int,
-    reference_stack: str | Path | npt.NDArray | List[str | Path | npt.NDArray],
-    annotation_stack: (
-        str | Path | npt.NDArray | List[str | Path | npt.NDArray]
-    ),
+    reference_stack: ValidComponentData,
+    annotation_stack: ValidComponentData,
     structures_list: List[Dict],
     meshes_dict: Dict[int | str, str | Path],
     working_dir: str | Path,
@@ -471,7 +471,7 @@ def wrapup_atlas_from_data(
         List[
             Tuple[
                 Dict | str,
-                str | Path | npt.NDArray | List[str | Path | npt.NDArray],
+                ValidComponentData,
             ]
         ]
         | None
@@ -496,7 +496,7 @@ def wrapup_atlas_from_data(
         Valid URL for the atlas.
     species : str
         Species name formatted as "CommonName (Genus species)".
-    resolution : Tuple[int | float, int | float, int | float] | List[Tuple[int | float, int | float, int | float]]
+    resolution : Resolution | ResolutionList
         Three elements tuple, resolution on three axes or a list of such tuples
         for each scale, ordered from highest to lowest resolution.
     orientation : str
@@ -504,12 +504,12 @@ def wrapup_atlas_from_data(
         (tuple describing origin for BGSpace).
     root_id : int
         Id of the root element of the atlas.
-    reference_stack : str | Path | npt.NDArray | List[str | Path | npt.NDArray]
+    reference_stack : ValidComponentData
         Reference stack for the atlas.
         If str or Path, will be read with tifffile.
         If list, should be list of stacks for each scale, ordered from highest
         to lowest resolution.
-    annotation_stack : str | Path | npt.NDArray | List[str | Path | npt.NDArray]
+    annotation_stack : ValidComponentData
         Annotation stack for the atlas.
         If str or Path, will be read with tifffile.
         If list, should be list of stacks for each scale, ordered from highest
@@ -524,7 +524,7 @@ def wrapup_atlas_from_data(
     atlas_packager : str or None
         Credit for those responsible for converting the atlas
         into the BrainGlobe format.
-    hemispheres_stack : str | Path | npt.NDArray | List[str | Path | npt.NDArray] | None, optional
+    hemispheres_stack : ValidComponentData | None, optional
         Hemisphere stack for the atlas.
         If str or Path, will be read with tifffile.
         If list, should be list of stacks for each scale, ordered from highest
@@ -538,7 +538,7 @@ def wrapup_atlas_from_data(
     resolution_mapping: List[int], optional
         a list of three mapping the target space axes to the source axes
         only needed for mesh scaling of anisotropic atlases
-    additional_references: List[Tuple[Dict | str, str | Path | npt.NDArray | List[str | Path | npt.NDArray]]] | None
+    additional_references: List[Tuple[Dict | str, ValidComponentData]] | None
         List of tuples containing metadata and arrays for secondary templates.
     additional_metadata: dict, optional
         (Default value = empty dict).

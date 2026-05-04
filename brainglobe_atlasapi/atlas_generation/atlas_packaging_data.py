@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import brainglobe_space as bgs
 import numpy as np
@@ -16,6 +16,11 @@ from brainglobe_atlasapi.atlas_generation.structures import (
     check_struct_consistency,
     filter_structures_not_present_in_annotation,
 )
+from brainglobe_atlasapi.descriptors import (
+    Resolution,
+    ResolutionList,
+    ValidComponentData,
+)
 
 
 def check_requested_component(
@@ -23,13 +28,12 @@ def check_requested_component(
     working_dir: Path,
 ):
     """
-    Check if a requested component already exists remotely and fetch metadata.
+    Check if a requested component already exists remotely and fetch it.
 
-    This function checks if a component (e.g., annotation, template) with the
-    specified name and version already exists in the remote storage.
-    If it exists, it fetches the OME-Zarr metadata files for that component
-    and saves them locally. It returns the component name, version,
-    and a boolean indicating whether to skip saving the component data.
+    If the component is set to skip_saving, will check if it exists remotely
+    and fetch all metadata files locally.
+    If the component is set to update_existing, will check if the existing
+    version exists remotely and fetch all data and metadata files locally.
 
     Parameters
     ----------
@@ -42,6 +46,13 @@ def check_requested_component(
         The root directory in the remote storage where the component is stored.
     component_file_name : str
         The name of the component file (e.g., "anatomical_template.ome.zarr").
+
+    Raises
+    ------
+    ValueError
+        If update_existing is True but existing_version is not provided.
+    FileNotFoundError
+        If the requested component or existing version is not found remotely.
     """
     if component_info.update_existing:
         if not component_info.existing_version:
@@ -346,75 +357,66 @@ class AtlasPackagingData:
         Valid URL for the atlas.
     species : str
         Species name formatted as "CommonName (Genus species)".
-    resolution : tuple or list of tuples
+    resolution : Resolution | ResolutionList
         Resolution on three axes, or a list of such tuples for multi-scale.
     orientation : str
         Orientation of the original atlas (tuple describing origin for
         BGSpace).
     root_id : int
         Id of the root element of the atlas.
-    reference_stack : str, Path, ndarray, or list thereof
+    reference_stack : ValidComponentData
         Reference stack for the atlas. If str or Path, will be read with
         tifffile. If list, should be ordered from highest to lowest
         resolution.
-    annotation_stack : str, Path, ndarray, or list thereof
+    annotation_stack : ValidComponentData
         Annotation stack for the atlas. If str or Path, will be read with
         tifffile. If list, should be ordered from highest to lowest
         resolution.
-    structures_list : list of dict
+    structures_list : List[Dict]
         List of valid dictionaries for structures.
-    meshes_dict : dict
+    meshes_dict : Dict[int | str, str | Path]
         Dict of meshio-compatible mesh file paths in the form
         {struct_id: meshpath}.
-    atlas_packager : str or None, optional
+    atlas_packager : str, optional
         Credit for those responsible for converting the atlas into the
         BrainGlobe format.
-    hemispheres_stack : str, Path, ndarray, list thereof, or None, optional
+    hemispheres_stack : ValidComponentData, optional
         Hemisphere stack for the atlas. If None, atlas is assumed symmetric.
-    additional_references : list, optional
+    additional_references : List[Tuple[TemplateInfo, ValidComponentData]], optional
         List of tuples containing metadata and arrays for secondary
         templates.
-    additional_metadata : dict, optional
+    additional_metadata : Dict, optional
         Additional metadata to write to metadata.json.
     symmetric : bool, optional
         Whether the atlas is symmetric across the midline.
-    """
+    """  # noqa: E501
 
     atlas_name: str
     atlas_version: str
     citation: str
     atlas_link: str
     species: str
-    resolution: Union[
-        Tuple[Union[int, float], ...],
-        List[Tuple[Union[int, float], ...]],
-    ]
+    resolution: Resolution | ResolutionList
     root_id: int
     working_dir: Path
-    reference_stack: Union[
-        str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]
-    ]
-    annotation_stack: Union[
-        str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]
-    ]
+    reference_stack: ValidComponentData
+    annotation_stack: ValidComponentData
     structures_list: List[Dict]
-    meshes_dict: Dict[Union[int, str], Union[str, Path]]
+    meshes_dict: Dict[int | str, str | Path]
     template_info: TemplateInfo
     annotation_info: AnnotationInfo
     terminology_info: TerminologyInfo
     coordinate_space_info: CoordinateSpaceInfo
     orientation: str = descriptors.ATLAS_ORIENTATION
-    space_convention: Optional[bgs.AnatomicalSpace] = None
+    space_convention: bgs.AnatomicalSpace | None = None
     atlas_version_underscore: str = None
-    atlas_packager: Optional[str] = None
-    hemispheres_stack: Optional[
-        Union[str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]]
-    ] = None
+    atlas_packager: str | None = None
+    hemispheres_stack: ValidComponentData = None
     additional_references: List[
         Tuple[
             TemplateInfo,
-            Union[str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]],
-        ]
+            ValidComponentData,
+        ],
     ] = field(default_factory=list)
     additional_metadata: Dict = field(default_factory=dict)
 
@@ -474,8 +476,8 @@ class AtlasPackagingData:
 
 
 def _standardize_resolution(
-    resolution: Tuple[int | float] | List[Tuple[int | float]],
-) -> List[Tuple[int | float]]:
+    resolution: Resolution | ResolutionList,
+) -> ResolutionList:
     if isinstance(resolution, tuple):
         return [resolution]
     elif isinstance(resolution, list):
@@ -498,7 +500,7 @@ def _auto_generate_hemispheres(
 
 
 def _load_stack(
-    stack: Union[str, Path, npt.NDArray, List[Union[str, Path, npt.NDArray]]],
+    stack: ValidComponentData,
 ) -> List[npt.NDArray]:
     if isinstance(stack, (str, Path)):
         return [tifffile.imread(stack)]

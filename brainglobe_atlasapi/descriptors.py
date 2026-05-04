@@ -1,6 +1,10 @@
 """Module containing property descriptors for brainglobe-atlasapi."""
 
+from pathlib import Path
+from typing import List, Tuple, TypeAlias
+
 import numpy as np
+import numpy.typing as npt
 
 # Base url of the gin repository:
 remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
@@ -69,6 +73,13 @@ HEMISPHERES_DTYPE = np.uint8
 # Standard orientation origin: Anterior, Superior, Right
 # (using brainglobe-space definition)
 ATLAS_ORIENTATION = "asr"
+
+# Type aliases
+ValidComponentData: TypeAlias = (
+    str | Path | npt.NDArray | List[str | Path | npt.NDArray]
+)
+Resolution: TypeAlias = Tuple[int | float, int | float, int | float]
+ResolutionList: TypeAlias = List[Resolution]
 
 
 def format_component_stub(

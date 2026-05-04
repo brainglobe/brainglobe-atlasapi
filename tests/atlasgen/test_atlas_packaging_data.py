@@ -540,3 +540,158 @@ def test_coordinate_space_info_metadata_contains_template(
     assert (
         coordinate_space_info.metadata["template"]["name"] == "test-template"
     )
+
+
+# --- check_requested_component ---
+
+
+def test_check_requested_component_noop(mocker, tmp_path, template_info):
+    """Test `check_requested_component` returns without S3 calls when
+    neither skip_saving nor update_existing is set.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    template_info : TemplateInfo
+        A TemplateInfo instance for testing.
+    """
+    mock_s3 = mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.s3fs.S3FileSystem"
+    )
+    check_requested_component(template_info, tmp_path)
+    mock_s3.assert_not_called()
+
+
+def test_check_requested_component_skip_saving_fetches(mocker, tmp_path):
+    """Test `check_requested_component` fetches JSON metadata when
+    skip_saving=True.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    """
+    mock_fs = mocker.MagicMock()
+    mock_fs.exists.return_value = True
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.s3fs.S3FileSystem",
+        return_value=mock_fs,
+    )
+    component = TemplateInfo(
+        name="test-template", version="1.0", skip_saving=True
+    )
+    check_requested_component(component, tmp_path)
+    mock_fs.get.assert_called_once()
+    remote_arg = mock_fs.get.call_args[0][0]
+    assert remote_arg.endswith("/**/*.json")
+
+
+def test_check_requested_component_skip_saving_raises_if_not_found(
+    mocker, tmp_path
+):
+    """Test `check_requested_component` raises FileNotFoundError when
+    skip_saving=True but the remote component does not exist.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    """
+    mock_fs = mocker.MagicMock()
+    mock_fs.exists.return_value = False
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.s3fs.S3FileSystem",
+        return_value=mock_fs,
+    )
+    component = TemplateInfo(
+        name="test-template", version="1.0", skip_saving=True
+    )
+    with pytest.raises(FileNotFoundError, match="not found at"):
+        check_requested_component(component, tmp_path)
+
+
+def test_check_requested_component_update_existing_raises_without_version(
+    tmp_path,
+):
+    """Test `check_requested_component` raises ValueError when
+    update_existing=True but existing_version is not set.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    """
+    component = TemplateInfo(
+        name="test-template",
+        version="2.0",
+        update_existing=True,
+    )
+    with pytest.raises(ValueError, match="existing_version"):
+        check_requested_component(component, tmp_path)
+
+
+def test_check_requested_component_update_existing_fetches_recursively(
+    mocker, tmp_path
+):
+    """Test `check_requested_component` fetches the existing component
+    recursively when update_existing=True and the remote component exists.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    """
+    mock_fs = mocker.MagicMock()
+    mock_fs.exists.return_value = True
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.s3fs.S3FileSystem",
+        return_value=mock_fs,
+    )
+    component = TemplateInfo(
+        name="test-template",
+        version="2.0",
+        existing_version="1.0",
+        update_existing=True,
+    )
+    check_requested_component(component, tmp_path)
+    mock_fs.get.assert_called_once()
+    _, kwargs = mock_fs.get.call_args
+    assert kwargs.get("recursive") is True
+
+
+def test_check_requested_component_update_existing_raises_if_not_found(
+    mocker, tmp_path
+):
+    """Test `check_requested_component` raises FileNotFoundError when
+    update_existing=True but the remote component does not exist.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    """
+    mock_fs = mocker.MagicMock()
+    mock_fs.exists.return_value = False
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.s3fs.S3FileSystem",
+        return_value=mock_fs,
+    )
+    component = TemplateInfo(
+        name="test-template",
+        version="2.0",
+        existing_version="1.0",
+        update_existing=True,
+    )
+    with pytest.raises(FileNotFoundError, match="not found at"):
+        check_requested_component(component, tmp_path)

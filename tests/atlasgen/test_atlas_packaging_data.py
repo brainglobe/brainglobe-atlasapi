@@ -701,3 +701,240 @@ def test_check_requested_component_update_existing_raises_if_not_found(
     )
     with pytest.raises(FileNotFoundError, match="not found at"):
         check_requested_component(component, tmp_path)
+
+
+# --- AtlasPackagingData ---
+
+
+@pytest.fixture
+def atlas_packaging_kwargs(
+    tmp_path,
+    template_info,
+    annotation_info,
+    terminology_info,
+    coordinate_space_info,
+):
+    """Provide minimal valid kwargs for constructing AtlasPackagingData.
+
+    Uses a single root structure with id=0 and all-zeros stacks so that
+    `filter_structures_not_present_in_annotation` keeps root (id=0 is
+    present in the all-zeros annotation).
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Temporary directory path provided by pytest.
+    template_info : TemplateInfo
+        A TemplateInfo instance.
+    annotation_info : AnnotationInfo
+        An AnnotationInfo instance.
+    terminology_info : TerminologyInfo
+        A TerminologyInfo instance.
+    coordinate_space_info : CoordinateSpaceInfo
+        A CoordinateSpaceInfo instance.
+
+    Returns
+    -------
+    dict
+        A dictionary of keyword arguments for AtlasPackagingData.
+    """
+    return dict(
+        atlas_name="test_mouse",
+        atlas_version="1.0",
+        citation="unpublished",
+        atlas_link="http://example.com",
+        species="Mouse (Mus musculus)",
+        resolution=(25, 25, 25),
+        orientation="asr",
+        root_id=0,
+        working_dir=tmp_path,
+        reference_stack=np.zeros((4, 4, 4), dtype=np.uint16),
+        annotation_stack=np.zeros((4, 4, 4), dtype=np.uint32),
+        structures_list=[
+            {
+                "id": 0,
+                "acronym": "root",
+                "name": "root",
+                "rgb_triplet": [255, 255, 255],
+                "structure_id_path": [0],
+            }
+        ],
+        meshes_dict={},
+        template_info=template_info,
+        annotation_info=annotation_info,
+        terminology_info=terminology_info,
+        coordinate_space_info=coordinate_space_info,
+    )
+
+
+def test_atlas_packaging_data_version_underscore(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData sets atlas_version_underscore correctly.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert data.atlas_version_underscore == "1_0"
+
+
+def test_atlas_packaging_data_resolution_standardized(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData standardizes resolution to a list of tuples.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert isinstance(data.resolution, list)
+    assert data.resolution == [(25, 25, 25)]
+
+
+def test_atlas_packaging_data_stacks_are_lists(mocker, atlas_packaging_kwargs):
+    """Test AtlasPackagingData wraps stacks in lists after loading.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert isinstance(data.reference_stack, list)
+    assert isinstance(data.annotation_stack, list)
+
+
+def test_atlas_packaging_data_symmetric_auto_hemispheres(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData auto-generates hemispheres when
+    hemispheres_stack is None.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert data.symmetric is True
+    assert isinstance(data.hemispheres_stack, list)
+    assert data.hemispheres_stack[0].shape == (4, 4, 4)
+
+
+def test_atlas_packaging_data_asymmetric_uses_provided_hemispheres(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData uses the provided hemispheres stack when given.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    hemispheres = np.zeros((4, 4, 4), dtype=np.uint8)
+    atlas_packaging_kwargs["hemispheres_stack"] = hemispheres
+    data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert data.symmetric is False
+    assert isinstance(data.hemispheres_stack, list)
+    assert np.array_equal(data.hemispheres_stack[0], hemispheres)
+
+
+def test_atlas_packaging_data_calls_check_requested_component(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData calls check_requested_component for each
+    of the four required components.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mock_check = mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    AtlasPackagingData(**atlas_packaging_kwargs)
+    assert mock_check.call_count == 4
+
+
+def test_atlas_packaging_data_additional_references_processed(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData processes additional_references correctly.
+
+    Each additional reference stack is loaded and reoriented, and
+    check_requested_component is called once more per additional reference.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mock_check = mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    extra_ref = TemplateInfo(name="extra-template", version="1.0")
+    extra_stack = np.zeros((4, 4, 4), dtype=np.uint16)
+    atlas_packaging_kwargs["additional_references"] = [
+        (extra_ref, extra_stack)
+    ]
+    data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert len(data.additional_references) == 1
+    ref_info, ref_stack = data.additional_references[0]
+    assert isinstance(ref_stack, list)
+    assert ref_stack[0].shape == (4, 4, 4)
+    assert mock_check.call_count == 5
+
+
+def test_atlas_packaging_data_multiscale_resolution(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData handles a list of resolutions (multiscale).
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    atlas_packaging_kwargs["resolution"] = [(25, 25, 25), (50, 50, 50)]
+    data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert data.resolution == [(25, 25, 25), (50, 50, 50)]

@@ -82,7 +82,7 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
             root_dir / terminology_location / descriptors.V2_TERMINOLOGY_NAME,
         ),
     ]
-    for file_name, expected_path in expected_files:
+    for _, expected_path in expected_files:
         assert (
             expected_path.exists()
         ), f"Expected file not found at {expected_path}"

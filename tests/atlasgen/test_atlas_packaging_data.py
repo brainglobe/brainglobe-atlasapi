@@ -914,7 +914,7 @@ def test_atlas_packaging_data_additional_references_processed(
     ]
     data = AtlasPackagingData(**atlas_packaging_kwargs)
     assert len(data.additional_references) == 1
-    ref_info, ref_stack = data.additional_references[0]
+    _, ref_stack = data.additional_references[0]
     assert isinstance(ref_stack, list)
     assert ref_stack[0].shape == (4, 4, 4)
     assert mock_check.call_count == 5

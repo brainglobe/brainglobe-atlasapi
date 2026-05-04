@@ -120,7 +120,7 @@ def _save_as_ome_zarr(
 
     assert len(transformations) == len(
         stack
-    ), "Currently only one resolution level is supported."
+    ), "Number of transformation sets must match number of scales in stack."
     write_multiscale_ome_zarr(
         images=stack,
         output_path=output_path,
@@ -141,7 +141,7 @@ def save_template(
         The template image stack.
     output_dir : Path
         The directory where the template image will be saved.
-    transformations : list of lists of dicts
+    transformations : List[List[Dict]]
         A list of transformations to be saved alongside the template.
     """
     _save_as_ome_zarr(
@@ -165,7 +165,7 @@ def save_annotation(
         The annotation image stack.
     output_dir : Path
         The directory where the annotation image will be saved.
-    transformations : list of lists of dicts
+    transformations : List[List[Dict]]
         A list of transformations to be saved alongside the annotation.
     """
     _save_as_ome_zarr(
@@ -189,7 +189,7 @@ def save_hemispheres(
         The hemispheres image stack.
     output_dir : Path
         The directory where the hemispheres image will be saved.
-    transformations : list of lists of dicts
+    transformations : List[List[Dict]]
         A list of transformations to be saved alongside the hemispheres.
     """
     _save_as_ome_zarr(

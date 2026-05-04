@@ -11,20 +11,18 @@ import pytest
 import tifffile
 
 from brainglobe_atlasapi import descriptors
-
-# Imported for use in Tasks 2-5 tests (not yet used in Task 1)
 from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
-    AnnotationInfo,  # noqa: F401
-    AtlasPackagingData,  # noqa: F401
-    ComponentInfo,  # noqa: F401
-    CoordinateSpaceInfo,  # noqa: F401
-    TemplateInfo,  # noqa: F401
-    TerminologyInfo,  # noqa: F401
+    AnnotationInfo,
+    AtlasPackagingData,
+    ComponentInfo,
+    CoordinateSpaceInfo,
+    TemplateInfo,
+    TerminologyInfo,
     _auto_generate_hemispheres,
     _load_stack,
     _reorient_stacks,
     _standardize_resolution,
-    check_requested_component,  # noqa: F401
+    check_requested_component,
 )
 
 # --- _standardize_resolution ---

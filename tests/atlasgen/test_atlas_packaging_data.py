@@ -207,3 +207,111 @@ def test_reorient_stacks_reorders_axes():
         descriptors.ATLAS_ORIENTATION, arr, copy=True
     )
     assert np.array_equal(result[0], expected)
+
+
+# --- ComponentInfo ---
+
+
+@pytest.fixture
+def component_info():
+    """Provide a ComponentInfo instance for testing.
+
+    Returns
+    -------
+    ComponentInfo
+        A ComponentInfo instance with name, version, root_dir, and file_name.
+    """
+    return ComponentInfo(
+        name="test-component",
+        version="1.2.3",
+        root_dir="templates",
+        file_name="anatomical_template.ome.zarr",
+    )
+
+
+def test_component_info_version_underscore(component_info):
+    """Test ComponentInfo converts version dots to underscores.
+
+    Parameters
+    ----------
+    component_info : ComponentInfo
+        A ComponentInfo instance for testing.
+    """
+    assert component_info.version == "1_2_3"
+
+
+def test_component_info_stub(component_info):
+    """Test ComponentInfo generates the correct stub.
+
+    Parameters
+    ----------
+    component_info : ComponentInfo
+        A ComponentInfo instance for testing.
+    """
+    expected = descriptors.format_component_stub(
+        "test-component", "1_2_3", "templates", "anatomical_template.ome.zarr"
+    )
+    assert component_info.stub == expected
+
+
+def test_component_info_existing_stub_when_update_existing():
+    """Test ComponentInfo generates existing_stub when update_existing=True."""
+    info = ComponentInfo(
+        name="test-component",
+        version="2.0.0",
+        existing_version="1.0.0",
+        update_existing=True,
+        root_dir="templates",
+        file_name="anatomical_template.ome.zarr",
+    )
+    expected = descriptors.format_component_stub(
+        "test-component", "1_0_0", "templates", "anatomical_template.ome.zarr"
+    )
+    assert info.existing_stub == expected
+
+
+def test_component_info_no_existing_stub_without_update_existing():
+    """Test ComponentInfo does not generate existing_stub when not updating."""
+    info = ComponentInfo(
+        name="test-component",
+        version="1.0.0",
+        root_dir="templates",
+        file_name="anatomical_template.ome.zarr",
+    )
+    assert info.existing_stub is None
+
+
+def test_component_info_metadata_keys(component_info):
+    """Test ComponentInfo.metadata contains required keys.
+
+    Parameters
+    ----------
+    component_info : ComponentInfo
+        A ComponentInfo instance for testing.
+    """
+    assert "name" in component_info.metadata
+    assert "version" in component_info.metadata
+    assert "location" in component_info.metadata
+
+
+def test_component_info_metadata_version_uses_dots(component_info):
+    """Test ComponentInfo.metadata version restores dots from underscores.
+
+    Parameters
+    ----------
+    component_info : ComponentInfo
+        A ComponentInfo instance for testing.
+    """
+    assert component_info.metadata["version"] == "1.2.3"
+
+
+def test_component_info_metadata_location(component_info):
+    """Test ComponentInfo.metadata location contains root_dir and version.
+
+    Parameters
+    ----------
+    component_info : ComponentInfo
+        A ComponentInfo instance for testing.
+    """
+    assert "templates" in component_info.metadata["location"]
+    assert "1_2_3" in component_info.metadata["location"]

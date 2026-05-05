@@ -564,6 +564,31 @@ def wrapup_atlas_from_data(
 
     working_dir = Path(working_dir) / "brainglobe-atlasapi"
     atlas_version = f"{ATLAS_VERSION}.{atlas_minor_version}"
+    atlas_version_underscore = atlas_version.replace(".", "_")
+
+    # Normalise resolution to list form for the early overwrite check.
+    resolution_list = (
+        [resolution] if isinstance(resolution, tuple) else list(resolution)
+    )
+    for res in resolution_list:
+        atlas_name_with_res = f"{atlas_name}_{res[0]}um"
+        atlas_dir = (
+            working_dir
+            / descriptors.V2_ATLAS_ROOTDIR
+            / atlas_name_with_res
+            / atlas_version_underscore
+        )
+        if atlas_dir.exists():
+            if overwrite:
+                print(
+                    f"Atlas directory already exists, overwriting: {atlas_dir}"
+                )
+                shutil.rmtree(atlas_dir)
+            else:
+                raise FileExistsError(
+                    f"Atlas output already exists at {atlas_dir}. "
+                    "Try setting overwrite=True"
+                )
 
     if template_info is None:
         template_info = {

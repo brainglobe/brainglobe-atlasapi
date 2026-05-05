@@ -202,10 +202,9 @@ def _save_meshes(
 def _save_template_data(
     packaging_data: AtlasPackagingData,
     transformations: List[List[dict]],
-) -> List[tuple]:
+) -> nz.Multiscales:
     template_info = packaging_data.template_info
     if not template_info.skip_saving and not template_info.update_existing:
-        shapes = [stack.shape for stack in packaging_data.reference_stack]
         dest_dir = packaging_data.working_dir / template_info.metadata[
             "location"
         ].lstrip("/")
@@ -216,6 +215,7 @@ def _save_template_data(
             transformations,
             save_template,
         )
+        template_multiscale = nz.from_ngff_zarr(dest_dir)
     elif template_info.update_existing:
         local_existing_path = (
             packaging_data.working_dir / template_info.existing_stub
@@ -228,15 +228,13 @@ def _save_template_data(
             new_data=packaging_data.reference_stack,
             working_dir=local_target_path,
         )
-        updated_multiscale = nz.from_ngff_zarr(local_target_path)
-        shapes = [image.data.shape for image in updated_multiscale.images]
+        template_multiscale = nz.from_ngff_zarr(local_target_path)
     else:
-        multiscale = nz.from_ngff_zarr(
+        template_multiscale = nz.from_ngff_zarr(
             packaging_data.working_dir / template_info.stub
         )
-        shapes = [image.data.shape for image in multiscale.images]
 
-    return shapes
+    return template_multiscale
 
 
 def _save_annotation_data(
@@ -244,11 +242,10 @@ def _save_annotation_data(
     transformations: List[List[dict]],
     scale_meshes: bool,
     resolution_mapping: Optional[List[int]],
-) -> List[tuple]:
+) -> Tuple[nz.Multiscales, nz.Multiscales]:
     annotation_info = packaging_data.annotation_info
 
     if not annotation_info.skip_saving and not annotation_info.update_existing:
-        shapes = [stack.shape for stack in packaging_data.annotation_stack]
         dest_dir = packaging_data.working_dir / annotation_info.metadata[
             "location"
         ].lstrip("/")
@@ -273,14 +270,16 @@ def _save_annotation_data(
             transformations,
             save_hemispheres,
         )
+        annotation_multiscale = nz.from_ngff_zarr(dest_dir)
+        hemispheres_multiscale = nz.from_ngff_zarr(dest_dir_hemi)
     elif annotation_info.update_existing:
         local_existing_path = (
             packaging_data.working_dir / annotation_info.existing_stub
         )
-        multiscale = nz.from_ngff_zarr(local_existing_path)
+        annotation_multiscale = nz.from_ngff_zarr(local_existing_path)
         local_target_path = packaging_data.working_dir / annotation_info.stub
         _insert_into_multiscale(
-            multiscale,
+            annotation_multiscale,
             transformations=transformations,
             new_data=packaging_data.annotation_stack,
             working_dir=local_target_path,
@@ -292,7 +291,7 @@ def _save_annotation_data(
         local_existing_hemispheres = (
             packaging_data.working_dir / existing_hemispheres_stub
         )
-        multiscale_hemispheres = nz.from_ngff_zarr(local_existing_hemispheres)
+        hemispheres_multiscale = nz.from_ngff_zarr(local_existing_hemispheres)
         hemispheres_stub = descriptors.format_hemispheres_stub(
             annotation_info.name, annotation_info.version
         )
@@ -301,19 +300,24 @@ def _save_annotation_data(
         )
 
         _insert_into_multiscale(
-            multiscale_hemispheres,
+            hemispheres_multiscale,
             transformations=transformations,
             new_data=packaging_data.hemispheres_stack,
             working_dir=local_target_hemispheres,
         )
 
-        updated_multiscale = nz.from_ngff_zarr(local_target_path)
-        shapes = [image.data.shape for image in updated_multiscale.images]
+        annotation_multiscale = nz.from_ngff_zarr(local_target_path)
+        hemispheres_multiscale = nz.from_ngff_zarr(local_target_hemispheres)
     else:
-        multiscale = nz.from_ngff_zarr(
+        hemispheres_stub = descriptors.format_hemispheres_stub(
+            annotation_info.name, annotation_info.version
+        )
+        annotation_multiscale = nz.from_ngff_zarr(
             packaging_data.working_dir / annotation_info.stub
         )
-        shapes = [image.data.shape for image in multiscale.images]
+        hemispheres_multiscale = nz.from_ngff_zarr(
+            packaging_data.working_dir / hemispheres_stub
+        )
 
     if not annotation_info.skip_saving or annotation_info.update_existing:
         meshes_stub = descriptors.format_meshes_stub(
@@ -329,13 +333,13 @@ def _save_annotation_data(
             resolution_mapping,
         )
 
-    return shapes
+    return annotation_multiscale, hemispheres_multiscale
 
 
 def _save_additional_references(
     packaging_data: AtlasPackagingData,
     transformations: List[List[dict]],
-) -> List[dict]:
+) -> None:
     for ref_tuple in packaging_data.additional_references:
         ref_info, additional_template = ref_tuple
 
@@ -637,12 +641,14 @@ def wrapup_atlas_from_data(
 
     transformations = _build_transformations(packaging_data.resolution)
 
-    shapes = _save_template_data(
+    template_multiscale = _save_template_data(
         packaging_data,
         transformations,
     )
 
-    shapes = _save_annotation_data(
+    shapes = [image.data.shape for image in template_multiscale.images]
+
+    _save_annotation_data(
         packaging_data,
         transformations,
         scale_meshes,

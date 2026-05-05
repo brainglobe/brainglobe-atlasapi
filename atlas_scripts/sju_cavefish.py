@@ -188,6 +188,8 @@ def create_atlas(working_dir, resolution):
         scale_meshes=True,
         working_dir=working_dir,
         hemispheres_stack=None,
+        cleanup_files=False,
+        compress=True,
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
         additional_references=ADDITIONAL_REFERENCES,

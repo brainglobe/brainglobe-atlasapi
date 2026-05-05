@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from brainglobe_atlasapi.atlas_generation import __version__ as ATLAS_VERSION
 from brainglobe_atlasapi.atlas_generation.wrapup import (
     _build_transformations,
     _merge_resolutions_list,
@@ -21,7 +22,6 @@ from brainglobe_atlasapi.atlas_generation.wrapup import (
     _save_terminology_csv,
     wrapup_atlas_from_data,
 )
-from brainglobe_atlasapi.descriptors import ATLAS_VERSION
 
 # --- _merge_resolutions_list ---
 

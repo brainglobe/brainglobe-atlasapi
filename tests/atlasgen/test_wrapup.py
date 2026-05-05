@@ -226,18 +226,18 @@ def minimal_valid_inputs(tmp_path):
     Return a minimal set of valid inputs required to run wrapup
     past the overwrite logic without performing actual atlas gen.
     """
-    return dict(
-        atlas_name="test_mouse",
-        atlas_minor_version=0,
-        citation="unpublished",
-        atlas_link="http://example.com",
-        species="Mouse (Mus musculus)",
-        resolution=(25, 25, 25),
-        orientation="asr",
-        root_id=0,
-        reference_stack=np.zeros((2, 2, 2)),
-        annotation_stack=np.zeros((2, 2, 2), dtype=np.uint32),
-        structures_list=[
+    return {
+        "atlas_name": "test_mouse",
+        "atlas_minor_version": 0,
+        "citation": "unpublished",
+        "atlas_link": "https://example.com",
+        "species": "Mouse (Mus musculus)",
+        "resolution": (25, 25, 25),
+        "orientation": "asr",
+        "root_id": 0,
+        "reference_stack": np.zeros((2, 2, 2)),
+        "annotation_stack": np.zeros((2, 2, 2), dtype=np.uint32),
+        "structures_list": [
             {
                 "id": 0,
                 "acronym": "root",
@@ -246,9 +246,9 @@ def minimal_valid_inputs(tmp_path):
                 "structure_id_path": [0],
             }
         ],
-        meshes_dict={},
-        working_dir=tmp_path,
-    )
+        "meshes_dict": {},
+        "working_dir": tmp_path,
+    }
 
 
 @pytest.fixture

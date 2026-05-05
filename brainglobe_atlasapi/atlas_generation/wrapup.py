@@ -85,9 +85,7 @@ def _insert_into_multiscale(
     )
 
     # Create a mapping from resolution to new_data
-    resolution_to_data = {
-        res: data for res, data in zip(requested_resolutions, new_data)
-    }
+    resolution_to_data = dict(zip(requested_resolutions, new_data))
 
     # Extract existing data into the map
     for image in multiscale.images:
@@ -102,7 +100,7 @@ def _insert_into_multiscale(
         resolution_to_data[res].astype(dtype) for res in merged_resolutions
     ]
     new_transformations = [
-        [{"type": "scale", "scale": [res for res in res_tuple]}]
+        [{"type": "scale", "scale": list(res_tuple)}]
         for res_tuple in merged_resolutions
     ]
 
@@ -366,8 +364,6 @@ def _save_additional_references(
                 new_data=additional_template,
                 working_dir=local_target_path,
             )
-
-    return
 
 
 def _finalize_atlas_at_resolution(
@@ -685,5 +681,3 @@ def wrapup_atlas_from_data(
             additional_references_metadata=[],
             overwrite=overwrite,
         )
-
-    return

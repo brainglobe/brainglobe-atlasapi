@@ -90,7 +90,8 @@ def check_requested_component(
             remote_path,
             local_path,
         )
-    elif component_info.update_existing:
+    else:
+        # Fetch all data files if updating existing component
         fs.get(
             remote_path,
             local_path,
@@ -409,7 +410,7 @@ class AtlasPackagingData:
     coordinate_space_info: CoordinateSpaceInfo
     orientation: str = descriptors.ATLAS_ORIENTATION
     space_convention: bgs.AnatomicalSpace | None = None
-    atlas_version_underscore: str = None
+    atlas_version_underscore: Optional[str] = None
     atlas_packager: str | None = None
     hemispheres_stack: ValidComponentData = None
     additional_references: List[

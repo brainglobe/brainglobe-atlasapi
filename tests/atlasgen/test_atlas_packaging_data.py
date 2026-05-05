@@ -702,19 +702,19 @@ def atlas_packaging_kwargs(
     dict
         A dictionary of keyword arguments for AtlasPackagingData.
     """
-    return dict(
-        atlas_name="test_mouse",
-        atlas_version="1.0",
-        citation="unpublished",
-        atlas_link="https://example.com",
-        species="Mouse (Mus musculus)",
-        resolution=(25, 25, 25),
-        orientation="asr",
-        root_id=0,
-        working_dir=tmp_path,
-        reference_stack=np.zeros((4, 4, 4), dtype=np.uint16),
-        annotation_stack=np.zeros((4, 4, 4), dtype=np.uint32),
-        structures_list=[
+    return {
+        "atlas_name": "test_mouse",
+        "atlas_version": "1.0",
+        "citation": "unpublished",
+        "atlas_link": "https://example.com",
+        "species": "Mouse (Mus musculus)",
+        "resolution": (25, 25, 25),
+        "orientation": "asr",
+        "root_id": 0,
+        "working_dir": tmp_path,
+        "reference_stack": np.zeros((4, 4, 4), dtype=np.uint16),
+        "annotation_stack": np.zeros((4, 4, 4), dtype=np.uint32),
+        "structures_list": [
             {
                 "id": 0,
                 "acronym": "root",
@@ -723,12 +723,12 @@ def atlas_packaging_kwargs(
                 "structure_id_path": [0],
             }
         ],
-        meshes_dict={},
-        template_info=template_info,
-        annotation_info=annotation_info,
-        terminology_info=terminology_info,
-        coordinate_space_info=coordinate_space_info,
-    )
+        "meshes_dict": {},
+        "template_info": template_info,
+        "annotation_info": annotation_info,
+        "terminology_info": terminology_info,
+        "coordinate_space_info": coordinate_space_info,
+    }
 
 
 def test_atlas_packaging_data_version_underscore(

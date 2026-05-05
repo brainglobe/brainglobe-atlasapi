@@ -20,32 +20,40 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
     write_stack,
 )
 
+RANDOM_GENERATOR = np.random.default_rng(seed=42)
+
 
 @pytest.fixture
 def image_uint16():
     """Fixture providing a dummy uint16 image stack."""
-    image_uint16 = np.random.randint(0, 65535, (10, 10, 10), dtype=np.uint16)
+    image_uint16 = RANDOM_GENERATOR.integers(
+        0, 65535, (10, 10, 10), dtype=np.uint16
+    )
     yield image_uint16
 
 
 @pytest.fixture
 def image_float32():
     """Fixture providing a dummy float32 image stack."""
-    image_float32 = np.random.rand(10, 10, 10).astype(np.float32)
+    image_float32 = RANDOM_GENERATOR.random((10, 10, 10)).astype(np.float32)
     yield image_float32
 
 
 @pytest.fixture
 def image_uint32():
     """Fixture providing a dummy uint32 image stack."""
-    image_uint32 = np.random.randint(0, 100, (10, 10, 10), dtype=np.uint32)
+    image_uint32 = RANDOM_GENERATOR.integers(
+        0, 100, (10, 10, 10), dtype=np.uint32
+    )
     yield image_uint32
 
 
 @pytest.fixture
 def image_uint8():
     """Fixture providing a dummy uint8 image stack."""
-    image_uint8 = np.random.randint(0, 255, (10, 10, 10), dtype=np.uint8)
+    image_uint8 = RANDOM_GENERATOR.integers(
+        0, 255, (10, 10, 10), dtype=np.uint8
+    )
     yield image_uint8
 
 

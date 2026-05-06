@@ -14,12 +14,11 @@ from pathlib import Path
 import numpy as np
 import pooch
 import tifffile
-from rich.progress import track
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -130,7 +129,9 @@ def create_atlas(working_dir, resolution):
         cartpt_volume
     )  # shift cartpt to a non-negative range before converting to UINT16
     cartpt_volume = cartpt_volume.astype(np.uint16)
-    ADDITIONAL_REFERENCES = {"cartpt": cartpt_volume}
+    ADDITIONAL_REFERENCES = [
+        ("cartpt", cartpt_volume),
+    ]
 
     print(f"Saving atlas data at {atlas_path}")
     tree = get_structures_tree(hierarchy)
@@ -156,51 +157,19 @@ def create_atlas(working_dir, resolution):
 
     start = time.time()
 
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
-        create_region_mesh(
-            (
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                annotated_volume,
-                ROOT_ID,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            )
-        )
+    meshes_dict = construct_meshes_from_annotation(
+        meshes_dir_path.parent,
+        annotated_volume,
+        hierarchy,
+        closing_n_iters,
+        decimate_fraction,
+        smooth,
+    )
 
     print(
         "Finished mesh extraction in : ",
         round((time.time() - start) / 60, 2),
         " minutes",
-    )
-
-    # create meshes dict
-    meshes_dict = dict()
-    structures_with_mesh = []
-    for s in hierarchy:
-        # check if a mesh was created
-        mesh_path = meshes_dir_path / f"{s['id']}.obj"
-        if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it.")
-            continue
-        else:
-            # check that the mesh actually exists and isn't empty
-            if mesh_path.stat().st_size < 512:
-                print(f"obj file for {s} is too small, ignoring it.")
-                continue
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
-
-    print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
     )
 
     output_filename = wrapup_atlas_from_data(

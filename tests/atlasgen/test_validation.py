@@ -21,7 +21,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
     validate_metadata,
-    validate_reference_image_pixels,
+    validate_template_image_pixels,
     validate_unique_acronyms,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
@@ -359,17 +359,17 @@ def test_badly_scaled_reference_fails(mocker, atlas):
     atlas : BrainGlobeAtlas
         A BrainGlobeAtlas instance.
     """
-    invalid_reference = np.ones_like(atlas.reference)
+    invalid_reference = np.ones_like(atlas.template)
     mocker.patch(
-        "brainglobe_atlasapi.BrainGlobeAtlas.reference",
+        "brainglobe_atlasapi.BrainGlobeAtlas.template",
         new_callable=mocker.PropertyMock,
         return_value=invalid_reference,
     )
     with pytest.raises(
         AssertionError,
-        match=r"Reference image is likely wrongly rescaled to.",
+        match=r"Template image is likely wrongly rescaled to.",
     ):
-        validate_reference_image_pixels(atlas)
+        validate_template_image_pixels(atlas)
 
 
 def test_asymmetrical_annotation_fails(mocker, atlas):

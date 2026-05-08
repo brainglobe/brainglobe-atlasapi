@@ -454,6 +454,8 @@ if __name__ == "__main__":
         resolution=(RESOLUTION,) * 3,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
+        reference_stack=template_volume,
+        annotation_stack=reference_volume,
         structures_list=structures_dict,
         meshes_dict=meshes_dict,
         working_dir=working_dir,

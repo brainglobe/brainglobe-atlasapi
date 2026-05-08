@@ -174,6 +174,9 @@ def _save_meshes(
     for mesh_id, meshfile in meshes_dict.items():
         mesh = mio.read(meshfile)
 
+        if len(mesh.points) == 0:
+            continue
+
         if scale_meshes:
             if not resolution_mapping:
                 mesh.points *= resolution_standard[0]

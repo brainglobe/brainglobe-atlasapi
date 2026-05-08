@@ -213,7 +213,9 @@ def _save_template_data(
             transformations,
             save_template,
         )
-        template_multiscale = nz.from_ngff_zarr(dest_dir)
+        template_multiscale = nz.from_ngff_zarr(
+            packaging_data.working_dir / template_info.stub
+        )
     elif template_info.update_existing:
         local_existing_path = (
             packaging_data.working_dir / template_info.existing_stub
@@ -261,14 +263,20 @@ def _save_annotation_data(
         )
         dest_dir_hemi = packaging_data.working_dir / hemispheres_stub
 
-        _save_if_not_exists(
-            packaging_data.hemispheres_stack,
-            dest_dir_hemi,
-            annotation_info.metadata["name"],
-            transformations,
-            save_hemispheres,
+        if not dest_dir_hemi.exists():
+            save_hemispheres(
+                packaging_data.hemispheres_stack,
+                dest_dir,
+                transformations,
+            )
+        else:
+            print(
+                f"{annotation_info.metadata['name']} directory already exists,"
+                f" skipping: {dest_dir_hemi}"
+            )
+        annotation_multiscale = nz.from_ngff_zarr(
+            packaging_data.working_dir / annotation_info.stub
         )
-        annotation_multiscale = nz.from_ngff_zarr(dest_dir)
         hemispheres_multiscale = nz.from_ngff_zarr(dest_dir_hemi)
     elif annotation_info.update_existing:
         local_existing_path = (
@@ -623,6 +631,8 @@ def wrapup_atlas_from_data(
                     "name": f"{ref_metadata}-template",
                     "version": atlas_version,
                 }
+            else:
+                ref_dict = ref_metadata
 
             component_info = TemplateInfo(**ref_dict)
             additional_template_list.append((component_info, ref_tuple[1]))

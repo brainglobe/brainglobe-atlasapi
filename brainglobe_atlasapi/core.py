@@ -741,12 +741,13 @@ class AdditionalRefDict(UserDict):
                 multiscale, self.resolution
             )
 
-            resolution_path = local_path / str(pyramid_level)
+            dataset_path = multiscale.metadata.datasets[pyramid_level].path
+            resolution_path = local_path / dataset_path
 
             if not (resolution_path / "c").exists():
                 print("Downloading template...")
                 remote_path = remote_url_s3.format(
-                    f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{pyramid_level}/"
+                    f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{dataset_path}/"
                 )
                 fs = s3fs.S3FileSystem(anon=True)
                 fs.get(

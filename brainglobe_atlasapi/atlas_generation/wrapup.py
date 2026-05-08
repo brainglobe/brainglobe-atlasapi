@@ -709,10 +709,14 @@ def wrapup_atlas_from_data(
         )
 
     for resolution, shape in zip(packaging_data.resolution, shapes):
+        additional_references_metadata = [
+            ref_info.metadata
+            for ref_info, _ in packaging_data.additional_references
+        ]
         _finalize_atlas_at_resolution(
             resolution=resolution,
             shape=shape,
             packaging_data=packaging_data,
-            additional_references_metadata=[],
+            additional_references_metadata=additional_references_metadata,
             overwrite=overwrite,
         )

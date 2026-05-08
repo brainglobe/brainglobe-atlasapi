@@ -542,7 +542,7 @@ def wrapup_atlas_from_data(
         to lowest resolution.
         If none is provided, atlas is assumed to be symmetric.
     scale_meshes: bool, optional
-        (Default values = False).
+        (Default value = True).
         If True the meshes points are scaled by the resolution
         to ensure that they are specified in microns,
         regardless of the atlas resolution.

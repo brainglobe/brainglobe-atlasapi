@@ -644,7 +644,7 @@ def retrieve_or_construct_meshes(
     extract_mesh_from_mask(
         root_mask,
         obj_filepath=root_mesh_path,
-        smooth=False,
+        smooth=True,
         closing_n_iters=8,
         decimate_fraction=0.6,
     )

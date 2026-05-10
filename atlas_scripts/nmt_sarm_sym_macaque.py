@@ -11,11 +11,11 @@ import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
 
-from brainglobe_atlasapi.atlas_generation.structures import (
-    check_struct_consistency,
-)
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     extract_mesh_from_mask,
+)
+from brainglobe_atlasapi.atlas_generation.structures import (
+    check_struct_consistency,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import (

@@ -3,7 +3,6 @@
 import colorsys
 import re
 from pathlib import Path
-from tkinter import TRUE
 
 import meshio as mio
 import nibabel as nib
@@ -659,7 +658,9 @@ def parse_arm_mesh_filename(mesh_path: Path) -> tuple[str, int, str, int]:
     match = ARM_MESH_RE.match(mesh_path.name)
 
     if match is None:
-        raise ValueError(f"Could not parse ARM mesh filename: {mesh_path.name}")
+        raise ValueError(
+            f"Could not parse ARM mesh filename: {mesh_path.name}"
+        )
 
     source_atlas, level, region_name, region_id = match.groups()
 
@@ -809,7 +810,9 @@ def collect_source_meshes(
                     continue
 
                 expected_domain = canonical_info_by_id[canonical_id]["domain"]
-                expected_atlas = "CHARM" if expected_domain == "cortex" else "SARM"
+                expected_atlas = (
+                    "CHARM" if expected_domain == "cortex" else "SARM"
+                )
 
                 if source_atlas != expected_atlas:
                     raise ValueError(

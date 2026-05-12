@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pandas as pd
 import pooch
-import SimpleITK as sitk
 
 from brainglobe_atlasapi import utils
+from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
@@ -61,37 +61,45 @@ ATLAS_PACKAGER = "Jung Woo Kim"
 
 SKIP_DOWNLOADS_IF_PRESENT = True
 
-REFERENCE_URL = "https://ndownloader.figshare.com/files/58252147"
+REFERENCE_URL = "https://ndownloader.figshare.com/files/58252144"
 ANNOTATION_URL = "https://ndownloader.figshare.com/files/58616818"
 LABELS_URL = "https://ndownloader.figshare.com/files/58252051"
-EX_VIVO_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252144"
+IN_VIVO_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252147"
 MYELIN_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252168"
-NISSL_REFRENCE_URL = "https://ndownloader.figshare.com/files/58252156"
+NISSL_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252156"
+
+# TODO Add DWI in vivo MRI reference? It's ~7GB
 
 
-REFERENCE_FNAME = "BMA2.0_avg_invivo_T2WI.nii.gz"
+REFERENCE_FNAME = "BMA2.0_avg_exvivo_T2WI.nii.gz"
 ANNOTATION_FNAME = "BMA2.0_regions_label_50mu.nii.gz"
 LABELS_FNAME = "BMA2.0_regions_list.ctbl"
-EX_VIVO_REFERENCE_FNAME = "BMA2.0_avg_exvivo_T2WI.nii.gz"
+IN_VIVO_REFERENCE_FNAME = "BMA2.0_avg_invivo_T2WI.nii.gz"
 MYELIN_REFERENCE_FNAME = "BMA2.0_avg_myelin.nii.gz"
-NISSL_REFRENCE_FNAME = "BMA2.0_avg_nissl.nii.gz"
+NISSL_REFERENCE_FNAME = "BMA2.0_avg_nissl.nii.gz"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
+
+REFERENCE_PATH = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+ANNOTATION_PATH = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+LABELS_PATH = DOWNLOAD_DIR_PATH / LABELS_FNAME
+IN_VIVO_REFERENCE_PATH = DOWNLOAD_DIR_PATH / IN_VIVO_REFERENCE_FNAME
+MYELIN_REFERENCE_PATH = DOWNLOAD_DIR_PATH / MYELIN_REFERENCE_FNAME
+NISSL_REFERENCE_PATH = DOWNLOAD_DIR_PATH / NISSL_REFERENCE_FNAME
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
-    labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
-
     needs_download = (
-        (not reference_path.exists())
-        or (not annotation_path.exists())
-        or (not labels_path.exists())
+        (not REFERENCE_PATH.exists())
+        or (not ANNOTATION_PATH.exists())
+        or (not LABELS_PATH.exists())
+        or (not IN_VIVO_REFERENCE_PATH.exists())
+        or (not MYELIN_REFERENCE_PATH.exists())
+        or (not NISSL_REFERENCE_PATH.exists())
     )
     if needs_download:
         utils.check_internet_connection()
@@ -101,32 +109,57 @@ def download_resources():
             return True
         return not SKIP_DOWNLOADS_IF_PRESENT
 
-    if should_fetch(reference_path):
+    if should_fetch(REFERENCE_PATH):
         pooch.retrieve(
             url=REFERENCE_URL,
-            known_hash=None,
+            known_hash="9edd6684945e68aa25a968b444acd2c2a02eea6e85a0971df46b224cc0d9e286",
             path=DOWNLOAD_DIR_PATH,
             fname=REFERENCE_FNAME,
             progressbar=True,
-            processor=pooch.Unzip(extract_dir=""),
         )
 
-    if should_fetch(annotation_path):
+    if should_fetch(ANNOTATION_PATH):
         pooch.retrieve(
             url=ANNOTATION_URL,
-            known_hash=None,
+            known_hash="f511e8fc3cf3e289ed744d480e5556d761203f667d347610c9bb455764df3c00",
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
             progressbar=True,
-            processor=pooch.Unzip(extract_dir=""),
         )
 
-    if should_fetch(labels_path):
+    if should_fetch(LABELS_PATH):
         pooch.retrieve(
             url=LABELS_URL,
-            known_hash=None,
+            known_hash="d3e6d90ae4ddc75adac65c7344f50fb315f336cecc2cc23613831d7caf93a79a",
             path=DOWNLOAD_DIR_PATH,
             fname=LABELS_FNAME,
+            progressbar=True,
+        )
+    
+    if should_fetch(IN_VIVO_REFERENCE_PATH):
+        pooch.retrieve(
+            url=IN_VIVO_REFERENCE_URL,
+            known_hash="308f052a0406e1c67b20e208035e067acb569f9de7b4da1fbb2a92a17bd8cb58",
+            path=DOWNLOAD_DIR_PATH,
+            fname=IN_VIVO_REFERENCE_FNAME,
+            progressbar=True,
+        )
+    
+    if should_fetch(MYELIN_REFERENCE_PATH):
+        pooch.retrieve(
+            url=MYELIN_REFERENCE_URL,
+            known_hash="2764f4483a8770c9c9d5b3e5b0aa474c9eed13f60a04f1130b3246ed86cc9424",
+            path=DOWNLOAD_DIR_PATH,
+            fname=MYELIN_REFERENCE_FNAME,
+            progressbar=True,
+        )
+    
+    if should_fetch(NISSL_REFERENCE_PATH):
+        pooch.retrieve(
+            url=NISSL_REFERENCE_URL,
+            known_hash="c90c8ae5aa626d069e471e817cb7ea3706608975d3a7cbd401568ba8959b94c4",
+            path=DOWNLOAD_DIR_PATH,
+            fname=NISSL_REFERENCE_FNAME,
             progressbar=True,
         )
 
@@ -142,12 +175,8 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference_path = DOWNLOAD_DIR_PATH / "atlasVolume/atlasVolume.mhd"
-    ref_image = sitk.ReadImage(reference_path)
-    reference = sitk.GetArrayFromImage(ref_image)
-    annotation_path = DOWNLOAD_DIR_PATH / "annotation.mhd"
-    ann_image = sitk.ReadImage(annotation_path)
-    annotation = sitk.GetArrayFromImage(ann_image)
+    reference = load_any(REFERENCE_PATH)
+    annotation = load_any(ANNOTATION_PATH)
     return reference, annotation
 
 
@@ -194,6 +223,8 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
+    
+    
     return None
 
 
@@ -274,4 +305,5 @@ if __name__ == "__main__":
         compress=True,
         scale_meshes=True,
         additional_references=additional_references,
+        atlas_packager=ATLAS_PACKAGER,
     )

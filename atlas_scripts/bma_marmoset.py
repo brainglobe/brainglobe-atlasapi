@@ -1,11 +1,20 @@
-"""Template script for generating a BrainGlobe atlas.
+"""Package the BRAIN/Minds Marmoset Brain Atlas.
 
-Use this script as a starting point to package a new BrainGlobe atlas by
-filling in the required functions and metadata.
+This script generates the BRAIN/Minds marmoset brain atlas,
+based on data from BRAIN/Minds. It downloads the necessary
+annotation and structure data, processes it to create an atlas,
+and then wraps it up into the BrainGlobe atlas format.
 """
-
 from pathlib import Path
 
+import pandas as pd
+import pooch
+import SimpleITK as sitk
+
+from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -24,16 +33,16 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "example_mouse"
+ATLAS_NAME = "bma_marmoset"
 
 # DOI of the most relevant citable document
-CITATION = None
+CITATION = "https://doi.org/10.1038/s41597-026-06601-z"
 
 # The scientific name of the species, ie; Rattus norvegicus
-SPECIES = None
+SPECIES = "Callithrix jacchus"
 
 # The URL for the data files
-ATLAS_LINK = None
+ATLAS_LINK = "https://figshare.com/articles/dataset/The_Brain_MINDS_3D_Digital_Marmoset_Brain_Atlas_Version_2_0/29992687/5"
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
@@ -46,16 +55,80 @@ ROOT_ID = None
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
-RESOLUTION = None
+RESOLUTION = 50
 
+ATLAS_PACKAGER = "Jung Woo Kim"
+
+SKIP_DOWNLOADS_IF_PRESENT = True
+
+REFERENCE_URL = "https://ndownloader.figshare.com/files/58252147"
+ANNOTATION_URL = "https://ndownloader.figshare.com/files/58616818"
+LABELS_URL = "https://ndownloader.figshare.com/files/58252051"
+EX_VIVO_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252144"
+MYELIN_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252168"
+NISSL_REFRENCE_URL = "https://ndownloader.figshare.com/files/58252156"
+
+
+REFERENCE_FNAME = "BMA2.0_avg_invivo_T2WI.nii.gz"
+ANNOTATION_FNAME = "BMA2.0_regions_label_50mu.nii.gz"
+LABELS_FNAME = "BMA2.0_regions_list.ctbl"
+EX_VIVO_REFERENCE_FNAME = "BMA2.0_avg_exvivo_T2WI.nii.gz"
+MYELIN_REFERENCE_FNAME = "BMA2.0_avg_myelin.nii.gz"
+NISSL_REFRENCE_FNAME = "BMA2.0_avg_nissl.nii.gz"
+
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 def download_resources():
-    """
-    Download the necessary resources for the atlas.
+    """Download the necessary resources for the atlas with Pooch."""
+    BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
+    DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    If possible, please use the Pooch library to retrieve any resources.
-    """
-    pass
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
+
+    needs_download = (
+        (not reference_path.exists())
+        or (not annotation_path.exists())
+        or (not labels_path.exists())
+    )
+    if needs_download:
+        utils.check_internet_connection()
+
+    def should_fetch(path: Path) -> bool:
+        if not path.exists():
+            return True
+        return not SKIP_DOWNLOADS_IF_PRESENT
+
+    if should_fetch(reference_path):
+        pooch.retrieve(
+            url=REFERENCE_URL,
+            known_hash=None,
+            path=DOWNLOAD_DIR_PATH,
+            fname=REFERENCE_FNAME,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
+
+    if should_fetch(annotation_path):
+        pooch.retrieve(
+            url=ANNOTATION_URL,
+            known_hash=None,
+            path=DOWNLOAD_DIR_PATH,
+            fname=ANNOTATION_FNAME,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
+
+    if should_fetch(labels_path):
+        pooch.retrieve(
+            url=LABELS_URL,
+            known_hash=None,
+            path=DOWNLOAD_DIR_PATH,
+            fname=LABELS_FNAME,
+            progressbar=True,
+        )
 
 
 def retrieve_reference_and_annotation():
@@ -69,8 +142,12 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference = None
-    annotation = None
+    reference_path = DOWNLOAD_DIR_PATH / "atlasVolume/atlasVolume.mhd"
+    ref_image = sitk.ReadImage(reference_path)
+    reference = sitk.GetArrayFromImage(ref_image)
+    annotation_path = DOWNLOAD_DIR_PATH / "annotation.mhd"
+    ann_image = sitk.ReadImage(annotation_path)
+    annotation = sitk.GetArrayFromImage(ann_image)
     return reference, annotation
 
 

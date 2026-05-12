@@ -5,9 +5,9 @@ based on data from BRAIN/Minds. It downloads the necessary
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
+
 from pathlib import Path
 
-import pandas as pd
 import pooch
 
 from brainglobe_atlasapi import utils

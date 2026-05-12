@@ -9,12 +9,9 @@ and then wraps it up into the BrainGlobe atlas format.
 from pathlib import Path
 
 import pooch
+from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
-from brainglobe_utils.IO.image import load_any
-from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    construct_meshes_from_annotation,
-)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -88,6 +85,7 @@ IN_VIVO_REFERENCE_PATH = DOWNLOAD_DIR_PATH / IN_VIVO_REFERENCE_FNAME
 MYELIN_REFERENCE_PATH = DOWNLOAD_DIR_PATH / MYELIN_REFERENCE_FNAME
 NISSL_REFERENCE_PATH = DOWNLOAD_DIR_PATH / NISSL_REFERENCE_FNAME
 
+
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
@@ -135,7 +133,7 @@ def download_resources():
             fname=LABELS_FNAME,
             progressbar=True,
         )
-    
+
     if should_fetch(IN_VIVO_REFERENCE_PATH):
         pooch.retrieve(
             url=IN_VIVO_REFERENCE_URL,
@@ -144,7 +142,7 @@ def download_resources():
             fname=IN_VIVO_REFERENCE_FNAME,
             progressbar=True,
         )
-    
+
     if should_fetch(MYELIN_REFERENCE_PATH):
         pooch.retrieve(
             url=MYELIN_REFERENCE_URL,
@@ -153,7 +151,7 @@ def download_resources():
             fname=MYELIN_REFERENCE_FNAME,
             progressbar=True,
         )
-    
+
     if should_fetch(NISSL_REFERENCE_PATH):
         pooch.retrieve(
             url=NISSL_REFERENCE_URL,
@@ -223,8 +221,6 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
-    
     return None
 
 

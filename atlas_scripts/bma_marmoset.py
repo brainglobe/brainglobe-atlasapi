@@ -5,16 +5,13 @@ based on data from BRAIN/Minds. It downloads the necessary
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
+
 from pathlib import Path
 
-import pandas as pd
 import pooch
 import SimpleITK as sitk
 
 from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    construct_meshes_from_annotation,
-)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -78,6 +75,7 @@ NISSL_REFRENCE_FNAME = "BMA2.0_avg_nissl.nii.gz"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
+
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""

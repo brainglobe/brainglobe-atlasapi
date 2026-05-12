@@ -22,7 +22,7 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 ### Metadata ###
 __version__ = 0
 ATLAS_NAME = "ccfv2_fiber_mouse"
-CITATION = "https://doi.org/10.1038/nature05453"
+CITATION = "https://doi.org/10.1038/nature13186"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://download.alleninstitute.org/informatics-archive/october-2014/annotation/"
 ORIENTATION = "rsa"

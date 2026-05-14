@@ -20,7 +20,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 ### Metadata ###
-__version__ = 0
+__version__ = 1
 ATLAS_NAME = "ccfv2_dev_mouse"
 CITATION = "https://doi.org/10.1038/nature13186"
 SPECIES = "Mus musculus"

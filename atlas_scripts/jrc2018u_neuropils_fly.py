@@ -5,17 +5,13 @@ from pathlib import Path
 
 import pooch
 
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.utils import atlas_name_from_repr
-
 ### Metadata
 __version__ = 0
 
 ATLAS_NAME = "jrc2018u_neuropils_fly"
 
 CITATION = (
-    "Bogovic et al. 2020, "
-    "https://doi.org/10.1371/journal.pone.0236495"
+    "Bogovic et al. 2020, " "https://doi.org/10.1371/journal.pone.0236495"
 )
 
 SPECIES = "Drosophila melanogaster"
@@ -71,7 +67,9 @@ def _load_vfb_term_info(term_info_response_path):
 
     docs = response["response"]["docs"]
     if not docs:
-        raise RuntimeError(f"No VFB term-info record found for {VFB_TEMPLATE_ID}")
+        raise RuntimeError(
+            f"No VFB term-info record found for {VFB_TEMPLATE_ID}"
+        )
 
     term_info = docs[0]["term_info"]
     if isinstance(term_info, list):
@@ -92,10 +90,7 @@ def download_resources():
         Paths to the downloaded VFB template, ROI masks, and mesh files.
     """
     download_dir = (
-        Path.home()
-        / "brainglobe_workingdir"
-        / ATLAS_NAME
-        / "source_data"
+        Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
     )
     roi_volumes_dir = download_dir / "roi_volumes"
     meshes_dir = download_dir / "meshes"
@@ -281,16 +276,6 @@ def retrieve_additional_references():
     """
     additional_references = {}
     return additional_references
-
-
-
-
-
-
-
-
-
-
 
 
 # ### If the code above this line has been filled correctly, nothing needs to be

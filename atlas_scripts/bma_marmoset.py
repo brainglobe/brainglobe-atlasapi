@@ -9,6 +9,7 @@ and then wraps it up into the BrainGlobe atlas format.
 from pathlib import Path
 
 import pooch
+import numpy as np
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
@@ -88,6 +89,25 @@ MYELIN_REFERENCE_PATH = DOWNLOAD_DIR_PATH / MYELIN_REFERENCE_FNAME
 NISSL_REFERENCE_PATH = DOWNLOAD_DIR_PATH / NISSL_REFERENCE_FNAME
 HIERARCHY_PATH = DOWNLOAD_DIR_PATH / HIERARCHY_FNAME
 
+def hex_to_rgb(hex):
+    """Convert a hexadecimal color string to an RGB triplet.
+
+    Parameters
+    ----------
+    hex : str
+        The hexadecimal color string (e.g., "RRGGBB").
+
+    Returns
+    -------
+    list
+        A list of three integers representing the RGB color (0-255).
+    """
+    rgb = []
+    for i in (0, 2, 4):
+        intvalue = int(hex[i : i + 2], 16)
+        rgb.append(intvalue)
+
+    return rgb
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -188,7 +208,9 @@ def retrieve_reference_and_annotation():
     """
     reference = load_any(REFERENCE_PATH)
     annotation = load_any(ANNOTATION_PATH)
-    return reference, annotation
+    annotation_array = np.asarray(annotation)
+    annotation_array = np.where(annotation_array < 10000, annotation_array, annotation_array - 10000)
+    return reference, annotation_array
 
 
 def retrieve_hemisphere_map():
@@ -208,7 +230,7 @@ def retrieve_hemisphere_map():
     return None
 
 
-def retrieve_structure_information():
+def retrieve_structure_information(annotation_volume):
     """
     Return a list of dictionaries with information about the atlas.
 
@@ -235,9 +257,49 @@ def retrieve_structure_information():
         atlas structure.
     """
     
+    # TODO Cross-reference with the regions_list for annotation values, 
+    # and with the regionTree for hierarchy. Collapse left and right 
+    # into the same structure. 
     
-    
-    return None
+    # Filter structures to those actually present.
+    present_ids = set(map(int, np.unique(annotation_volume)))
+
+    structures_by_id: dict[int, dict] = {
+        ROOT_ID: {
+            "id": ROOT_ID,
+            "name": "root",
+            "acronym": "root",
+            "structure_id_path": [ROOT_ID],
+            "rgb_triplet": [255, 255, 255],
+        }
+    }
+
+    with open(labels_path) as f:
+        labels_data = json.load(f)
+        for key, label in labels_data.items():
+            if label[0] not in present_ids:
+                continue
+            if label[0] == 0 or label[2] == "Clear Label":
+                continue
+            id = label[0]
+            hex_colour = label[1]
+            acronym = label[2]
+            name = label[3]
+            rgb_colour = hex_to_rgb(hex_colour)
+            if id not in structures_by_id:
+                structures_by_id[id] = {
+                    "id": id,
+                    "name": name,
+                    "acronym": acronym,
+                    "structure_id_path": [ROOT_ID, id],
+                    "rgb_triplet": rgb_colour,
+                }
+
+    # Return root_id alongside structures.
+    # Sort structures by depth of hierarchy, then ID.
+    structures = list(structures_by_id.values())
+    structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    return structures
 
 
 def retrieve_or_construct_meshes():
@@ -295,7 +357,7 @@ if __name__ == "__main__":
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information()
+    structures = retrieve_structure_information(annotated_volume)
     meshes_dict = retrieve_or_construct_meshes()
 
     output_filename = wrapup_atlas_from_data(

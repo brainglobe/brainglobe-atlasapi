@@ -43,7 +43,7 @@ ATLAS_LINK = "https://figshare.com/articles/dataset/The_Brain_MINDS_3D_Digital_M
 
 # The orientation of the **original** atlas data, in BrainGlobe convention:
 # https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
-ORIENTATION = "asr"
+ORIENTATION = "lpi"
 
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
@@ -64,6 +64,7 @@ LABELS_URL = "https://ndownloader.figshare.com/files/58252051"
 IN_VIVO_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252147"
 MYELIN_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252168"
 NISSL_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252156"
+HIERARCHY_URL = "https://dataportal.brainminds.jp/ZAViewer_BMA_2019/regionTree.json?ver=20230203"
 
 # TODO Add DWI in vivo MRI reference? It's ~7GB
 
@@ -74,6 +75,7 @@ LABELS_FNAME = "BMA2.0_regions_list.ctbl"
 IN_VIVO_REFERENCE_FNAME = "BMA2.0_avg_invivo_T2WI.nii.gz"
 MYELIN_REFERENCE_FNAME = "BMA2.0_avg_myelin.nii.gz"
 NISSL_REFERENCE_FNAME = "BMA2.0_avg_nissl.nii.gz"
+HIERARCHY_FNAME = "regionTree.json"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
@@ -84,6 +86,7 @@ LABELS_PATH = DOWNLOAD_DIR_PATH / LABELS_FNAME
 IN_VIVO_REFERENCE_PATH = DOWNLOAD_DIR_PATH / IN_VIVO_REFERENCE_FNAME
 MYELIN_REFERENCE_PATH = DOWNLOAD_DIR_PATH / MYELIN_REFERENCE_FNAME
 NISSL_REFERENCE_PATH = DOWNLOAD_DIR_PATH / NISSL_REFERENCE_FNAME
+HIERARCHY_PATH = DOWNLOAD_DIR_PATH / HIERARCHY_FNAME
 
 
 def download_resources():
@@ -98,6 +101,7 @@ def download_resources():
         or (not IN_VIVO_REFERENCE_PATH.exists())
         or (not MYELIN_REFERENCE_PATH.exists())
         or (not NISSL_REFERENCE_PATH.exists())
+        or (not HIERARCHY_PATH.exists())
     )
     if needs_download:
         utils.check_internet_connection()
@@ -158,6 +162,15 @@ def download_resources():
             known_hash="c90c8ae5aa626d069e471e817cb7ea3706608975d3a7cbd401568ba8959b94c4",
             path=DOWNLOAD_DIR_PATH,
             fname=NISSL_REFERENCE_FNAME,
+            progressbar=True,
+        )
+    
+    if should_fetch(HIERARCHY_PATH):
+        pooch.retrieve(
+            url=HIERARCHY_URL,
+            known_hash="f74d80d2b982b9d502fc30e8c9d5fdc3830c452408c042ade4a5782d4c77449b",
+            path=DOWNLOAD_DIR_PATH,
+            fname=HIERARCHY_FNAME,
             progressbar=True,
         )
 
@@ -221,6 +234,9 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
+    
+    
+    
     return None
 
 

@@ -164,7 +164,7 @@ def download_resources():
             fname=NISSL_REFERENCE_FNAME,
             progressbar=True,
         )
-    
+
     if should_fetch(HIERARCHY_PATH):
         pooch.retrieve(
             url=HIERARCHY_URL,
@@ -234,9 +234,6 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
-    
-    
     return None
 
 

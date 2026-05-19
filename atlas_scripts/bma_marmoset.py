@@ -9,8 +9,8 @@ and then wraps it up into the BrainGlobe atlas format.
 from pathlib import Path
 import re
 
-import pooch
 import numpy as np
+import pooch
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
@@ -90,6 +90,7 @@ MYELIN_REFERENCE_PATH = DOWNLOAD_DIR_PATH / MYELIN_REFERENCE_FNAME
 NISSL_REFERENCE_PATH = DOWNLOAD_DIR_PATH / NISSL_REFERENCE_FNAME
 HIERARCHY_PATH = DOWNLOAD_DIR_PATH / HIERARCHY_FNAME
 
+
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
 
@@ -109,6 +110,7 @@ def hex_to_rgb(hex):
         rgb.append(intvalue)
 
     return rgb
+
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -210,7 +212,9 @@ def retrieve_reference_and_annotation():
     reference = load_any(REFERENCE_PATH)
     annotation = load_any(ANNOTATION_PATH)
     annotation_array = np.asarray(annotation)
-    annotation_array = np.where(annotation_array < 10000, annotation_array, annotation_array - 10000)
+    annotation_array = np.where(
+        annotation_array < 10000, annotation_array, annotation_array - 10000
+    )
     return reference, annotation_array
 
 
@@ -257,11 +261,10 @@ def retrieve_structure_information(annotation_volume):
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
-    # TODO Cross-reference with the regions_list for annotation values, 
-    # and with the regionTree for hierarchy. Collapse left and right 
-    # into the same structure. 
-    
+    # TODO Cross-reference with the regions_list for annotation values,
+    # and with the regionTree for hierarchy. Collapse left and right
+    # into the same structure.
+
     # Filter structures to those actually present.
     present_ids = set(map(int, np.unique(annotation_volume)))
     

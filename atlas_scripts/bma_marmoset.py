@@ -7,6 +7,7 @@ and then wraps it up into the BrainGlobe atlas format.
 """
 
 from pathlib import Path
+import re
 
 import pooch
 import numpy as np
@@ -49,7 +50,7 @@ ORIENTATION = "lpi"
 # The id of the highest level of the atlas. This is commonly called root or
 # brain. Include some information on what to do if your atlas is not
 # hierarchical
-ROOT_ID = None
+ROOT_ID = 1
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
@@ -263,42 +264,67 @@ def retrieve_structure_information(annotation_volume):
     
     # Filter structures to those actually present.
     present_ids = set(map(int, np.unique(annotation_volume)))
+    
+    # .ctbl label file format:
+    # Index Hemisphere:_Name_(Acronym) R G B A
+    # Use regex parsing to avoid pandas whitespace/quoting edge-cases.
+    line_re = re.compile(
+        r"^(\d+)\s+[LR]H:_(\S+)_\((\S+)\)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
+    )
 
+    # Use the name and acronym used within the label files, 
+    # and then change them back to "root" later
     structures_by_id: dict[int, dict] = {
         ROOT_ID: {
             "id": ROOT_ID,
-            "name": "root",
-            "acronym": "root",
+            "name": "WHOLE BRAIN",
+            "acronym": "WHOLE",
             "structure_id_path": [ROOT_ID],
             "rgb_triplet": [255, 255, 255],
         }
     }
 
-    with open(labels_path) as f:
-        labels_data = json.load(f)
-        for key, label in labels_data.items():
-            if label[0] not in present_ids:
+    # Open regions list file to get structure information
+    with open(LABELS_PATH, "r") as f:
+        labels_data = f.read().splitlines()
+        for key, label in enumerate(labels_data):
+            if not label.strip() or label.lstrip().startswith("#"):
                 continue
-            if label[0] == 0 or label[2] == "Clear Label":
+            m = line_re.match(label)
+            
+            # Skip malformed lines
+            if not m:
                 continue
-            id = label[0]
-            hex_colour = label[1]
-            acronym = label[2]
-            name = label[3]
-            rgb_colour = hex_to_rgb(hex_colour)
+            
+            # Skip background, root and hemisphere specific labels
+            if int(m.group(1)) <= 1 or int(m.group(1)) > 9999:
+                continue
+            
+            id = int(m.group(1))
+            acronym = m.group(3)
+            name = m.group(2).replace("_", " ")
+            rgb_colour = (int(m.group(4)), int(m.group(5)), int(m.group(6)))
+            
             if id not in structures_by_id:
                 structures_by_id[id] = {
                     "id": id,
                     "name": name,
                     "acronym": acronym,
-                    "structure_id_path": [ROOT_ID, id],
+                    "structure_id_path": [],
                     "rgb_triplet": rgb_colour,
                 }
+    
+    #
+    
+    # Change back the root structure details
+    structures_by_id[ROOT_ID]["name"] = "root"
+    structures_by_id[ROOT_ID]["acronym"] = "root"
 
     # Return root_id alongside structures.
     # Sort structures by depth of hierarchy, then ID.
     structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    print(structures)
     return structures
 
 

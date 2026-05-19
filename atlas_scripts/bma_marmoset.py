@@ -298,11 +298,11 @@ def retrieve_structure_information(annotation_volume):
             if not label.strip() or label.lstrip().startswith("#"):
                 continue
             m = line_re.match(label)
-            
+
             # Skip malformed lines
             if not m:
                 continue
-            
+
             # Skip background, root and hemisphere specific labels
             if int(m.group(1)) <= 1 or int(m.group(1)) > 9999:
                 continue

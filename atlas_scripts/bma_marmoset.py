@@ -7,8 +7,8 @@ and then wraps it up into the BrainGlobe atlas format.
 """
 
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 
 import numpy as np
 import pooch
@@ -262,15 +262,13 @@ def retrieve_structure_information(annotation_volume):
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-
     # Filter structures to those actually present.
     present_ids = set(map(int, np.unique(annotation_volume)))
-    
-    #print(present_ids)
-    
-    
+
+    # print(present_ids)
+
     # TODO Update regex to also include cases where there is no name
-    
+
     # .ctbl label file format:
     # Index Hemisphere:_Name_(Acronym) R G B A
     # Use regex parsing to avoid pandas whitespace/quoting edge-cases.
@@ -305,21 +303,23 @@ def retrieve_structure_information(annotation_volume):
             # Skip background, root and hemisphere specific labels
             if int(m.group(1)) <= 1 or int(m.group(1)) > 9999:
                 continue
-            
+
             # List regions not present in annotation volume
             for label_id in present_ids:
                 if int(m.group(1)) == label_id:
-                    print(f"Found label ID {m.group(1)} in labels file",
-                          "present in annotation volume.")
-            '''if int(m.group(1)) not in present_ids:
+                    print(
+                        f"Found label ID {m.group(1)} in labels file",
+                        "present in annotation volume.",
+                    )
+            """if int(m.group(1)) not in present_ids:
                 print(f"Warning: label ID {m.group(1)} in labels file",
-                      "not present in annotation volume.")'''
-            
+                      "not present in annotation volume.")"""
+
             id = int(m.group(1))
             acronym = m.group(3)
             name = m.group(2).replace("_", " ")
             rgb_colour = (int(m.group(4)), int(m.group(5)), int(m.group(6)))
-            
+
             if acronym not in structures_by_acronym:
                 structures_by_acronym[acronym] = {
                     "id": id,
@@ -328,10 +328,9 @@ def retrieve_structure_information(annotation_volume):
                     "structure_id_path": [],
                     "rgb_triplet": rgb_colour,
                 }
-    
-    #print(structures_by_acronym)
-    
-    
+
+    # print(structures_by_acronym)
+
     # Open regionTree file to get hierarchy information
     with open(HIERARCHY_PATH) as f:
         tree_data = json.load(f)
@@ -345,22 +344,23 @@ def retrieve_structure_information(annotation_volume):
             acronym = region["abb"]
             name = region["name"]
             rgb_colour = hex_to_rgb(hex_colour)
-            
+
             if acronym not in structures_by_acronym:
-                print(f"Warning: acronym {acronym} in hierarchy file",
-                    "not present in labels file.")
+                print(
+                    f"Warning: acronym {acronym} in hierarchy file",
+                    "not present in labels file.",
+                )
                 continue
-            
-            if children: 
+
+            if children:
                 for child in children:
                     if child not in structures_by_acronym.values():
                         pass
-                        #print(f"Warning: Missing child {child} in labels file.")
+                        # print(f"Warning: Missing child {child} in labels file.")
                     else:
                         print(f"Found child: {child}")
                         for key, structure in structures_by_acronym.items():
                             continue
-            
 
     # Change back the root structure details
     structures_by_acronym["WHOLE"]["name"] = "root"

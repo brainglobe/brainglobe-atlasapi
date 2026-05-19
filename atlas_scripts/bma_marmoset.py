@@ -6,8 +6,8 @@ annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 import numpy as np
 import pooch
@@ -267,7 +267,7 @@ def retrieve_structure_information(annotation_volume):
 
     # Filter structures to those actually present.
     present_ids = set(map(int, np.unique(annotation_volume)))
-    
+
     # .ctbl label file format:
     # Index Hemisphere:_Name_(Acronym) R G B A
     # Use regex parsing to avoid pandas whitespace/quoting edge-cases.
@@ -275,7 +275,7 @@ def retrieve_structure_information(annotation_volume):
         r"^(\d+)\s+[LR]H:_(\S+)_\((\S+)\)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
     )
 
-    # Use the name and acronym used within the label files, 
+    # Use the name and acronym used within the label files,
     # and then change them back to "root" later
     structures_by_id: dict[int, dict] = {
         ROOT_ID: {
@@ -294,20 +294,20 @@ def retrieve_structure_information(annotation_volume):
             if not label.strip() or label.lstrip().startswith("#"):
                 continue
             m = line_re.match(label)
-            
+
             # Skip malformed lines
             if not m:
                 continue
-            
+
             # Skip background, root and hemisphere specific labels
             if int(m.group(1)) <= 1 or int(m.group(1)) > 9999:
                 continue
-            
+
             id = int(m.group(1))
             acronym = m.group(3)
             name = m.group(2).replace("_", " ")
             rgb_colour = (int(m.group(4)), int(m.group(5)), int(m.group(6)))
-            
+
             if id not in structures_by_id:
                 structures_by_id[id] = {
                     "id": id,
@@ -316,9 +316,9 @@ def retrieve_structure_information(annotation_volume):
                     "structure_id_path": [],
                     "rgb_triplet": rgb_colour,
                 }
-    
+
     #
-    
+
     # Change back the root structure details
     structures_by_id[ROOT_ID]["name"] = "root"
     structures_by_id[ROOT_ID]["acronym"] = "root"

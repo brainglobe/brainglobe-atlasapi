@@ -6,6 +6,7 @@ annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
+import json
 from pathlib import Path
 import re
 
@@ -61,7 +62,7 @@ ATLAS_PACKAGER = "Jung Woo Kim"
 SKIP_DOWNLOADS_IF_PRESENT = True
 
 REFERENCE_URL = "https://ndownloader.figshare.com/files/58252144"
-ANNOTATION_URL = "https://ndownloader.figshare.com/files/58616818"
+ANNOTATION_URL = "https://ndownloader.figshare.com/files/58616815"
 LABELS_URL = "https://ndownloader.figshare.com/files/58252051"
 IN_VIVO_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252147"
 MYELIN_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252168"
@@ -72,7 +73,7 @@ HIERARCHY_URL = "https://dataportal.brainminds.jp/ZAViewer_BMA_2019/regionTree.j
 
 
 REFERENCE_FNAME = "BMA2.0_avg_exvivo_T2WI.nii.gz"
-ANNOTATION_FNAME = "BMA2.0_regions_label_50mu.nii.gz"
+ANNOTATION_FNAME = "BMA2.0_regions_label.nii.gz"
 LABELS_FNAME = "BMA2.0_regions_list.ctbl"
 IN_VIVO_REFERENCE_FNAME = "BMA2.0_avg_invivo_T2WI.nii.gz"
 MYELIN_REFERENCE_FNAME = "BMA2.0_avg_myelin.nii.gz"
@@ -146,7 +147,7 @@ def download_resources():
     if should_fetch(ANNOTATION_PATH):
         pooch.retrieve(
             url=ANNOTATION_URL,
-            known_hash="f511e8fc3cf3e289ed744d480e5556d761203f667d347610c9bb455764df3c00",
+            known_hash="e0b16851bf4cca255e668ec4708855ab0bf95215b4c0dbceacf6b912c9c9f4ea",
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
             progressbar=True,
@@ -261,12 +262,14 @@ def retrieve_structure_information(annotation_volume):
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    # TODO Cross-reference with the regions_list for annotation values,
-    # and with the regionTree for hierarchy. Collapse left and right
-    # into the same structure.
 
     # Filter structures to those actually present.
     present_ids = set(map(int, np.unique(annotation_volume)))
+    
+    #print(present_ids)
+    
+    
+    # TODO Update regex to also include cases where there is no name
     
     # .ctbl label file format:
     # Index Hemisphere:_Name_(Acronym) R G B A
@@ -275,10 +278,11 @@ def retrieve_structure_information(annotation_volume):
         r"^(\d+)\s+[LR]H:_(\S+)_\((\S+)\)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
     )
 
+    # Create a list
     # Use the name and acronym used within the label files, 
     # and then change them back to "root" later
-    structures_by_id: dict[int, dict] = {
-        ROOT_ID: {
+    structures_by_acronym: dict[str, dict] = {
+        "WHOLE": {
             "id": ROOT_ID,
             "name": "WHOLE BRAIN",
             "acronym": "WHOLE",
@@ -287,7 +291,7 @@ def retrieve_structure_information(annotation_volume):
         }
     }
 
-    # Open regions list file to get structure information
+    # Open BMA2.0 regions list file to get structure information
     with open(LABELS_PATH, "r") as f:
         labels_data = f.read().splitlines()
         for key, label in enumerate(labels_data):
@@ -303,13 +307,22 @@ def retrieve_structure_information(annotation_volume):
             if int(m.group(1)) <= 1 or int(m.group(1)) > 9999:
                 continue
             
+            # List regions not present in annotation volume
+            for label_id in present_ids:
+                if int(m.group(1)) == label_id:
+                    print(f"Found label ID {m.group(1)} in labels file",
+                          "present in annotation volume.")
+            '''if int(m.group(1)) not in present_ids:
+                print(f"Warning: label ID {m.group(1)} in labels file",
+                      "not present in annotation volume.")'''
+            
             id = int(m.group(1))
             acronym = m.group(3)
             name = m.group(2).replace("_", " ")
             rgb_colour = (int(m.group(4)), int(m.group(5)), int(m.group(6)))
             
-            if id not in structures_by_id:
-                structures_by_id[id] = {
+            if acronym not in structures_by_acronym:
+                structures_by_acronym[acronym] = {
                     "id": id,
                     "name": name,
                     "acronym": acronym,
@@ -317,17 +330,47 @@ def retrieve_structure_information(annotation_volume):
                     "rgb_triplet": rgb_colour,
                 }
     
-    #
+    #print(structures_by_acronym)
     
+    
+    # Open regionTree file to get hierarchy information
+    with open(HIERARCHY_PATH) as f:
+        tree_data = json.load(f)
+        regions = tree_data["regions"]
+        for region in regions:
+            id = int(region["id"])
+            parent = region["parent"]
+            children = region.get("children", [])
+            acronym = region["abb"]
+            hex_colour = region.get("color", "#FFFFFF").lstrip("#")
+            acronym = region["abb"]
+            name = region["name"]
+            rgb_colour = hex_to_rgb(hex_colour)
+            
+            if acronym not in structures_by_acronym:
+                print(f"Warning: acronym {acronym} in hierarchy file",
+                    "not present in labels file.")
+                continue
+            
+            if children: 
+                for child in children:
+                    if child not in structures_by_acronym.values():
+                        pass
+                        #print(f"Warning: Missing child {child} in labels file.")
+                    else:
+                        print(f"Found child: {child}")
+                        for key, structure in structures_by_acronym.items():
+                            continue
+            
+
     # Change back the root structure details
-    structures_by_id[ROOT_ID]["name"] = "root"
-    structures_by_id[ROOT_ID]["acronym"] = "root"
+    structures_by_acronym["WHOLE"]["name"] = "root"
+    structures_by_acronym["WHOLE"]["acronym"] = "root"
 
     # Return root_id alongside structures.
     # Sort structures by depth of hierarchy, then ID.
-    structures = list(structures_by_id.values())
+    structures = list(structures_by_acronym.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
-    print(structures)
     return structures
 
 

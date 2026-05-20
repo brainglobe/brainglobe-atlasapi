@@ -326,7 +326,11 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
         Path(atlas_path) / meshes_location / descriptors.V2_MESHES_DIRECTORY
     )
 
-    ids_from_mesh_files = [int(Path(f).stem) for f in os.listdir(mesh_path)]
+    ids_from_mesh_files = [
+        int(Path(f).stem)
+        for f in os.listdir(mesh_path)
+        if (Path(f).stem.isdigit())
+    ]
 
     in_bg_not_mesh = []
     for mesh_id in ids_from_bg_atlas_api:
@@ -370,7 +374,11 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
         Path(atlas_path) / meshes_location / descriptors.V2_MESHES_DIRECTORY
     )
 
-    ids_from_mesh_files = [int(Path(f).stem) for f in os.listdir(mesh_path)]
+    ids_from_mesh_files = [
+        int(Path(f).stem)
+        for f in os.listdir(mesh_path)
+        if (Path(f).stem.isdigit())
+    ]
 
     in_mesh_not_bg = []
     for id in ids_from_mesh_files:

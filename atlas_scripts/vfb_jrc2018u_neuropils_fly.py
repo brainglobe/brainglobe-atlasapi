@@ -1,4 +1,4 @@
-"""Atlas generation script for the JRC2018Unisex Neuropils Fly atlas."""
+"""Atlas generation script for the VFB's JRC2018Unisex Neuropils Fly atlas."""
 
 import json
 from pathlib import Path
@@ -8,7 +8,7 @@ import pooch
 ### Metadata
 __version__ = 0
 
-ATLAS_NAME = "jrc2018u_neuropils_fly"
+ATLAS_NAME = "vfb_jrc2018u_neuropils_fly"
 
 CITATION = (
     "Bogovic et al. 2020, " "https://doi.org/10.1371/journal.pone.0236495"
@@ -81,8 +81,6 @@ def _load_vfb_term_info(term_info_response_path):
 def download_resources():
     """
     Download the necessary resources for the atlas.
-
-    If possible, please use the Pooch library to retrieve any resources.
 
     Returns
     -------

@@ -259,10 +259,6 @@ def test_assert_close_negative():
         _assert_close(99.5, 30, 2)
 
 
-@pytest.mark.xfail(
-    reason="This test is currently failing as the validation functions "
-    "have not been updated to work with the new atlas structure."
-)
 def test_catch_missing_mesh_files():
     """Test `catch_missing_mesh_files` raises an error for missing mesh files.
 

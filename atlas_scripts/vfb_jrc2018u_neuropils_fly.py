@@ -1,8 +1,10 @@
 """Atlas generation script for the VFB's JRC2018Unisex Neuropils Fly atlas."""
 
+import gzip
 import json
 from pathlib import Path
 
+import numpy as np
 import pooch
 
 ### Metadata
@@ -76,6 +78,52 @@ def _load_vfb_term_info(term_info_response_path):
         term_info = term_info[0]
 
     return json.loads(term_info)
+
+
+def _load_nrrd_array(nrrd_path):
+    """Load a gzip-encoded NRRD file into a numpy array."""
+    nrrd_path = Path(nrrd_path)
+    file_bytes = nrrd_path.read_bytes()
+
+    header_end = file_bytes.find(b"\n\n")
+    separator_length = 2
+    if header_end == -1:
+        header_end = file_bytes.find(b"\r\n\r\n")
+        separator_length = 4
+
+    if header_end == -1:
+        raise ValueError(f"Could not find NRRD header end in {nrrd_path}")
+
+    header = file_bytes[:header_end].decode("ascii")
+    data = file_bytes[header_end + separator_length :]
+
+    header_fields = {}
+    for line in header.splitlines():
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+
+        key, value = line.split(":", maxsplit=1)
+        header_fields[key.strip()] = value.strip()
+
+    sizes = tuple(int(size) for size in header_fields["sizes"].split())
+    data_type = header_fields["type"]
+    encoding = header_fields.get("encoding", "raw").lower()
+
+    if encoding in {"gzip", "gz"}:
+        data = gzip.decompress(data)
+    elif encoding != "raw":
+        raise ValueError(f"Unsupported NRRD encoding: {encoding}")
+
+    dtype = {
+        "uint8": np.uint8,
+        "uchar": np.uint8,
+        "unsigned char": np.uint8,
+        "uint16": np.uint16,
+        "ushort": np.uint16,
+        "unsigned short": np.uint16,
+    }[data_type]
+
+    return np.frombuffer(data, dtype=dtype).reshape(sizes, order="F")
 
 
 def download_resources():
@@ -176,23 +224,43 @@ def download_resources():
     }
 
 
-if __name__ == "__main__":
-    download_resources()
-
-
 def retrieve_reference_and_annotation():
     """
     Retrieve the reference and annotation volumes.
-
-    If possible, use brainglobe_utils.IO.image.load_any for opening images.
 
     Returns
     -------
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference = None
-    annotation = None
+    download_dir = (
+        Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
+    )
+    reference_path = download_dir / "jrc2018u_template.nrrd"
+    roi_volumes_dir = download_dir / "roi_volumes"
+
+    reference = _load_nrrd_array(reference_path)
+    annotation = np.zeros(reference.shape, dtype=np.uint16)
+
+    roi_paths = sorted(
+        roi_volumes_dir.glob("*.nrrd"),
+        key=lambda path: int(path.stem),
+    )
+    for roi_path in roi_paths:
+        structure_id = int(roi_path.stem)
+        roi_mask = _load_nrrd_array(roi_path)
+        if roi_mask.shape != reference.shape:
+            raise ValueError(
+                f"ROI {structure_id} has shape {roi_mask.shape}, "
+                f"but reference has shape {reference.shape}"
+            )
+
+        mask_voxels = roi_mask > 0
+        if np.any(annotation[mask_voxels] != 0):
+            raise ValueError(f"ROI {structure_id} overlaps another ROI")
+
+        annotation[mask_voxels] = structure_id
+
     return reference, annotation
 
 
@@ -274,6 +342,11 @@ def retrieve_additional_references():
     """
     additional_references = {}
     return additional_references
+
+
+if __name__ == "__main__":
+    download_resources()
+    retrieve_reference_and_annotation()
 
 
 # ### If the code above this line has been filled correctly, nothing needs to be

@@ -381,7 +381,6 @@ def _finalize_atlas_at_resolution(
     resolution: Resolution,
     shape: tuple,
     packaging_data: AtlasPackagingData,
-    additional_references_metadata: List[dict],
     overwrite: bool,
 ) -> Path:
     atlas_version = packaging_data.atlas_version
@@ -410,6 +409,10 @@ def _finalize_atlas_at_resolution(
     # be old files
     atlas_dir.mkdir(parents=True)
 
+    additional_references = [
+        ref_info for ref_info, _ in packaging_data.additional_references
+    ]
+
     metadata_dict = generate_metadata_dict(
         name=atlas_name_with_res,
         location=atlas_location,
@@ -421,12 +424,12 @@ def _finalize_atlas_at_resolution(
         orientation=descriptors.ATLAS_ORIENTATION,
         version=atlas_version,
         shape=shape,
-        additional_references=additional_references_metadata,
+        additional_references=additional_references,
         atlas_packager=packaging_data.atlas_packager,
-        coordinate_space_metadata=packaging_data.coordinate_space_info.metadata,
-        terminology_metadata=packaging_data.terminology_info.metadata,
-        annotation_set_metadata=packaging_data.annotation_info.metadata,
-        template_metadata=packaging_data.template_info.metadata,
+        coordinate_space=packaging_data.coordinate_space_info,
+        terminology=packaging_data.terminology_info,
+        annotation_set=packaging_data.annotation_info,
+        template=packaging_data.template_info,
     )
 
     with open(atlas_dir / "manifest.json", "w") as f:
@@ -712,14 +715,9 @@ def wrapup_atlas_from_data(
         )
 
     for resolution, shape in zip(packaging_data.resolution, shapes):
-        additional_references_metadata = [
-            ref_info.metadata
-            for ref_info, _ in packaging_data.additional_references
-        ]
         _finalize_atlas_at_resolution(
             resolution=resolution,
             shape=shape,
             packaging_data=packaging_data,
-            additional_references_metadata=additional_references_metadata,
             overwrite=overwrite,
         )

@@ -7,6 +7,12 @@ import pytest
 from requests.exceptions import InvalidURL
 
 from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
+    AnnotationInfo,
+    CoordinateSpaceInfo,
+    TemplateInfo,
+    TerminologyInfo,
+)
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     create_metadata_files,
     create_readme,
@@ -24,31 +30,27 @@ def metadata_input_template():
     dict
         A dictionary containing template metadata.
     """
-    template_metadata = {
-        "name": "author_species-template",
-        "version": "1.4",
-        "location": "/stub/location/of/template",
-    }
-    terminology_metadata = {
-        "name": "author_species-terminology",
-        "version": "1.2",
-        "location": "/stub/location/of/terminology",
-    }
+    template = TemplateInfo(
+        name="author_species-template",
+        version="1.4",
+    )
+    terminology = TerminologyInfo(
+        name="author_species-terminology",
+        version="1.2",
+    )
 
-    coordinate_space_metadata = {
-        "name": "author_species-space",
-        "version": "1.0",
-        "location": "/stub/location/of/coordinate/space",
-        "template": template_metadata,
-    }
+    coordinate_space = CoordinateSpaceInfo(
+        name="author_species-space",
+        version="1.0",
+        template=template,
+    )
 
-    annotation_metadata = {
-        "name": "author_species-annotation",
-        "version": "1.3",
-        "location": "/stub/location/of/annotation",
-        "template": template_metadata,
-        "terminology": terminology_metadata,
-    }
+    annotation_set = AnnotationInfo(
+        name="author_species-annotation",
+        version="1.3",
+        template=template,
+        terminology=terminology,
+    )
 
     return {
         "name": "author_species",
@@ -64,10 +66,10 @@ def metadata_input_template():
         "shape": [172, 256, 154],  # Keep as list/tuple input type
         "additional_references": [],
         "atlas_packager": "people who packaged the atlas",
-        "coordinate_space_metadata": coordinate_space_metadata,
-        "terminology_metadata": terminology_metadata,
-        "annotation_set_metadata": annotation_metadata,
-        "template_metadata": template_metadata,
+        "coordinate_space": coordinate_space,
+        "terminology": terminology,
+        "annotation_set": annotation_set,
+        "template": template,
     }
 
 
@@ -97,10 +99,10 @@ def test_generate_metadata_dict(metadata_input_template):
         "shape": "shape",
         "additional_references": "additional_references",
         "atlas_packager": "atlas_packager",
-        "coordinate_space_metadata": "coordinate_space",
-        "terminology_metadata": "terminology",
-        "annotation_set_metadata": "annotation_set",
-        "template_metadata": "template",
+        "coordinate_space": "coordinate_space",
+        "terminology": "terminology",
+        "annotation_set": "annotation_set",
+        "template": "template",
     }
 
     for key in input_data:  # Iterate through keys expected based on input
@@ -126,6 +128,15 @@ def test_generate_metadata_dict(metadata_input_template):
             assert (
                 output[output_key] == "asr"
             ), f"'{key}' value mismatch (expected 'asr')"
+        elif key in [
+            "coordinate_space",
+            "terminology",
+            "annotation_set",
+            "template",
+        ]:
+            assert (
+                output[output_key] == input_data[key].metadata
+            ), f"'{key}' metadata mismatch"
         else:
             # Direct comparison for other keys (name, citation, species, etc.)
             assert (

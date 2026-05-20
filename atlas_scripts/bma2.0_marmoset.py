@@ -33,7 +33,7 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "bma_marmoset"
+ATLAS_NAME = "bma2.0_marmoset"
 
 # DOI of the most relevant citable document
 CITATION = "https://doi.org/10.1038/s41597-026-06601-z"
@@ -273,7 +273,7 @@ def retrieve_structure_information(annotation_volume):
     # Index Hemisphere:_Name_(Acronym) R G B A
     # Use regex parsing to avoid pandas whitespace/quoting edge-cases.
     line_re = re.compile(
-        r"^(\d+)\s+[LR]H:_(\S+)_\((\S+)\)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
+        r"^(\d+)\s+[LR]H:_((\S+)_\((\S+)\)|(\w+\-*\w))\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
     )
 
     # Use the name and acronym used within the label files, 
@@ -305,20 +305,18 @@ def retrieve_structure_information(annotation_volume):
                 continue
 
             # List regions not present in annotation volume
-            for label_id in present_ids:
-                if int(m.group(1)) == label_id:
-                    print(
-                        f"Found label ID {m.group(1)} in labels file",
-                        "present in annotation volume.",
-                    )
-            """if int(m.group(1)) not in present_ids:
+            if int(m.group(1)) not in present_ids:
                 print(f"Warning: label ID {m.group(1)} in labels file",
-                      "not present in annotation volume.")"""
+                      "not present in annotation volume.")
 
             id = int(m.group(1))
-            acronym = m.group(3)
-            name = m.group(2).replace("_", " ")
-            rgb_colour = (int(m.group(4)), int(m.group(5)), int(m.group(6)))
+            if not m.group(5):
+                acronym = m.group(4)
+                name = m.group(3).replace("_", " ")
+            else: 
+                acronym = m.group(5)
+                name = m.group(5)
+            rgb_colour = [int(m.group(6)), int(m.group(7)), int(m.group(8))]
 
             if acronym not in structures_by_acronym:
                 structures_by_acronym[acronym] = {

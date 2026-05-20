@@ -276,7 +276,7 @@ def retrieve_structure_information(annotation_volume):
         r"^(\d+)\s+[LR]H:_((\S+)_\((\S+)\)|(\w+\-*\w))\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
     )
 
-    # Use the name and acronym used within the label files, 
+    # Use the name and acronym used within the label files,
     # and then change them back to "root" later
     structures_by_acronym: dict[str, dict] = {
         "WHOLE": {

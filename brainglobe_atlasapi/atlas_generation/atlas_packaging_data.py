@@ -507,13 +507,27 @@ def _load_stack(
 ) -> List[npt.NDArray]:
     if isinstance(stack, (str, Path)):
         return [tifffile.imread(stack)]
-    elif isinstance(stack, list) and all(
-        isinstance(s, (str, Path)) for s in stack
-    ):
-        return [tifffile.imread(s) for s in stack]
+    elif isinstance(stack, list):
+        output = []
+        for s in stack:
+            if isinstance(s, (str, Path)):
+                output.append(tifffile.imread(s))
+            elif isinstance(s, np.ndarray):
+                output.append(s)
+            else:
+                raise ValueError(
+                    "Invalid stack format. Each item in the list must be a "
+                    "file path or a numpy array."
+                )
+
+        return output
     elif isinstance(stack, np.ndarray):
         return [stack]
-    return stack
+
+    raise ValueError(
+        "Invalid stack format. Each item in the list must be a "
+        "file path or a numpy array."
+    )
 
 
 def _reorient_stacks(

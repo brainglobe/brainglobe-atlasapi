@@ -40,12 +40,9 @@ def check_requested_component(
     component_info : ComponentInfo
         A dictionary containing the component name, version, and a booleans for
         whether the component is published and whether to update existing.
-    local_path : Path
-        The local directory where the component metadata should be saved.
-    component_root : str
-        The root directory in the remote storage where the component is stored.
-    component_file_name : str
-        The name of the component file (e.g., "anatomical_template.ome.zarr").
+    working_dir : Path
+        The local working directory where the component data should be saved if
+        it exists remotely.
 
     Raises
     ------

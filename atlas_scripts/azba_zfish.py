@@ -35,6 +35,32 @@ ADDITIONAL_METADATA = {}
 RESOLUTION = 4
 
 
+def _parse_rgb_triplet(value):
+    """Parse slash-separated RGB values ."""
+    try:
+        rgb_triplet = list(map(int, value.split("/")))
+    except (ValueError, AttributeError):
+        return [255, 255, 255]
+
+    if len(rgb_triplet) != 3:
+        return [255, 255, 255]
+
+    return rgb_triplet
+
+
+def _get_rgb_triplet(structure):
+    """Return RGB triplet, applying known AZBA data corrections first."""
+    # Upstream CSV typo for Cgus (id 18): 15/2/2003 should be 155/2/3.
+    if (
+        structure.get("id") == 18
+        and structure.get("acronym") == "Cgus"
+        and structure.get("rgb_triplet") == "15/2/2003"
+    ):
+        return [155, 2, 3]
+
+    return _parse_rgb_triplet(structure.get("rgb_triplet"))
+
+
 def create_atlas(working_dir, resolution):
     """
     Create the Adult Zebrafish Brain Atlas (AZBA) in Brainglobe format.
@@ -80,17 +106,17 @@ def create_atlas(working_dir, resolution):
     topro = tifffile.imread(reference_topro)
     ADDITIONAL_REFERENCES = {"TO-PRO": topro}
 
-    # open structures.csv and prep for dictionary parsing
+    # open structures.csv and prep it for dictionary parsing
     print("Creating structure tree")
-    zfishFile = open(structures_file)
-    zfishDictReader = csv.DictReader(zfishFile)
+    with open(structures_file) as zfish_file:
+        zfish_dict_reader = csv.DictReader(zfish_file)
 
-    # empty list to populate with dictionaries
-    hierarchy = []
+        # empty list to populate with dictionaries
+        hierarchy = []
 
-    # parse through csv file and populate hierarchy list
-    for row in zfishDictReader:
-        hierarchy.append(row)
+        # parse through csv file and fill the hierarchy list
+        for row in zfish_dict_reader:
+            hierarchy.append(row)
 
     # make string to int and list of int conversions in
     # 'id', 'structure_id_path', and 'rgb_triplet' key values
@@ -99,12 +125,7 @@ def create_atlas(working_dir, resolution):
         hierarchy[i]["structure_id_path"] = list(
             map(int, hierarchy[i]["structure_id_path"].split("/"))
         )
-        try:
-            hierarchy[i]["rgb_triplet"] = list(
-                map(int, hierarchy[i]["rgb_triplet"].split("/"))
-            )
-        except ValueError:
-            hierarchy[i]["rgb_triplet"] = [255, 255, 255]
+        hierarchy[i]["rgb_triplet"] = _get_rgb_triplet(hierarchy[i])
 
     # remove clear label (id 0) from hierarchy.
     # ITK-Snap uses this to label unlabeled areas,

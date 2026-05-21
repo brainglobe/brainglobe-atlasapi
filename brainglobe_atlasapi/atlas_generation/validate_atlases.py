@@ -465,6 +465,48 @@ def validate_unique_acronyms(atlas: BrainGlobeAtlas):
     return True
 
 
+def validate_rgb_triplets(atlas: BrainGlobeAtlas):
+    """Validate that all structure RGB triplets are well formed.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if all RGB triplets are 3-element integer triplets in [0, 255].
+
+    Raises
+    ------
+    AssertionError
+        If any structure has a malformed or out-of-range RGB triplet.
+    """
+    invalid_triplets = []
+
+    for structure_id, structure in atlas.structures.items():
+        rgb_triplet = structure.get("rgb_triplet")
+        is_valid_triplet = (
+            isinstance(rgb_triplet, list)
+            and len(rgb_triplet) == 3
+            and all(
+                isinstance(channel, (int, np.integer)) and 0 <= channel <= 255
+                for channel in rgb_triplet
+            )
+        )
+        if not is_valid_triplet:
+            invalid_triplets.append(
+                (structure_id, structure.get("acronym"), rgb_triplet)
+            )
+
+    assert len(invalid_triplets) == 0, (
+        "Invalid rgb_triplet values found in atlas structures: "
+        f"{invalid_triplets}"
+    )
+    return True
+
+
 def validate_atlas_name(atlas: BrainGlobeAtlas):
     """Validate the naming convention of the atlas.
 
@@ -590,6 +632,7 @@ def get_all_validation_functions():
         validate_reference_image_pixels,
         validate_annotation_symmetry,
         validate_unique_acronyms,
+        validate_rgb_triplets,
         validate_atlas_name,
         validate_atlas_name_listed,
     ]

@@ -38,7 +38,7 @@ def check_requested_component(
     Parameters
     ----------
     component_info : ComponentInfo
-        A dictionary containing the component name, version, and a booleans for
+        A dataclass containing the component name, version, and a booleans for
         whether the component is published and whether to update existing.
     working_dir : Path
         The local working directory where the component data should be saved if

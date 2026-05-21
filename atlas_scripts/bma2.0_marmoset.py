@@ -305,9 +305,9 @@ def retrieve_structure_information(annotation_volume):
                 continue
 
             # List regions not present in annotation volume
-            if int(m.group(1)) not in present_ids:
+            '''if int(m.group(1)) not in present_ids:
                 print(f"Warning: label ID {m.group(1)} in labels file",
-                      "not present in annotation volume.")
+                      "not present in annotation volume.")'''
 
             id = int(m.group(1))
             if not m.group(5):
@@ -333,33 +333,66 @@ def retrieve_structure_information(annotation_volume):
     with open(HIERARCHY_PATH) as f:
         tree_data = json.load(f)
         regions = tree_data["regions"]
+        
+        # Loop through regionTree to add missing regions
         for region in regions:
             id = int(region["id"])
             parent = region["parent"]
-            children = region.get("children", [])
             acronym = region["abb"]
-            hex_colour = region.get("color", "#FFFFFF").lstrip("#")
+            hex_colour = region.get("color", "#7F7F7F").lstrip("#")
             acronym = region["abb"]
             name = region["name"]
             rgb_colour = hex_to_rgb(hex_colour)
 
             if acronym not in structures_by_acronym:
-                print(
-                    f"Warning: acronym {acronym} in hierarchy file",
-                    "not present in labels file.",
-                )
-                continue
-
+                structures_by_acronym[acronym] = {
+                    "id": id + 1000,
+                    "name": name,
+                    "acronym": acronym,
+                    "structure_id_path": [],
+                    "rgb_triplet": rgb_colour,
+                }
+                
+        # Loop through regionTree again to add hierarchy information
+        for region in regions:
+            children = region.get("children", [])
             if children:
                 for child in children:
-                    if child not in structures_by_acronym.values():
-                        pass
-                        # print(f"Warning: Missing child {child} in labels file.")
+                    if child not in structures_by_acronym.keys():
+                        print(f"Warning: Missing child {child} in labels file.")
                     else:
-                        print(f"Found child: {child}")
-                        for key, structure in structures_by_acronym.items():
-                            continue
+                        structures_by_acronym[child]["structure_id_path"].append(structures_by_acronym[region["abb"]]["id"])
+                        
+    
+        
+    ancestry = []
+    # Loop through structures to ensure all have structure_id_path
+    for acronym, structure in structures_by_acronym.items():
+        if acronym == "WHOLE":
+            continue
+        if not structure["structure_id_path"]:
+            #print(structure)
+            structure["structure_id_path"] = [ROOT_ID]
+        structure["structure_id_path"].append(structure["id"])
+        ancestry.append((str(structure["structure_id_path"][1]), str(structure["structure_id_path"][0])))
+    
+    # TODO Figure out how to turn the below tree maker into a way to make structure_id_path work
+    
+    # Code to try and recursively find full hierarchy
+    parents = set()
+    children = {}
+    for c,p in ancestry:
+        parents.add(p)
+        children[c] = p
 
+    # recursively determine parents until child has no parent
+    def ancestors(p):
+        return (ancestors(children[p]) if p in children else []) + [p]
+
+    # for each child that has no children print the geneology
+    for k in (set(children.keys()) - parents):
+        print('/'.join(ancestors(k)))
+    
     # Change back the root structure details
     structures_by_acronym["WHOLE"]["name"] = "root"
     structures_by_acronym["WHOLE"]["acronym"] = "root"
@@ -367,7 +400,12 @@ def retrieve_structure_information(annotation_volume):
     # Return root_id alongside structures.
     # Sort structures by depth of hierarchy, then ID.
     structures = list(structures_by_acronym.values())
-    structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    #structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    structures.sort(key=lambda s: s["id"])
+    with open("test.json", "w") as f:
+        json.dump(structures, f, indent=4)
+    quit()
+    #print(structures)
     return structures
 
 

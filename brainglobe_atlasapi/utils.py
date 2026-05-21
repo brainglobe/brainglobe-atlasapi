@@ -134,7 +134,9 @@ def check_internet_connection(
     timeout: int = 5,
     raise_error: bool = True,
 ) -> bool:
-    """Check that there is an internet connection
+    """
+    Check that there is an internet connection.
+
     url : str
         url to use for testing (Default value = 'http://www.google.com/')
     timeout : int

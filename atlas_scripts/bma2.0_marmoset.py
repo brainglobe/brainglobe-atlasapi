@@ -313,7 +313,7 @@ def retrieve_structure_information(annotation_volume):
             if not m.group(5):
                 acronym = m.group(4)
                 name = m.group(3).replace("_", " ")
-            else: 
+            else:
                 acronym = m.group(5)
                 name = m.group(5)
             rgb_colour = [int(m.group(6)), int(m.group(7)), int(m.group(8))]

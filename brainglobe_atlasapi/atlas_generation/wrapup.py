@@ -479,7 +479,7 @@ def wrapup_atlas_from_data(
     annotation_info: Dict[str, str | bool] | None = None,
     terminology_info: Dict[str, str | bool] | None = None,
     coordinate_space_info: Dict[str, str | bool] | None = None,
-    scale_meshes=True,
+    scale_meshes=False,
     resolution_mapping=None,
     additional_references: (
         List[
@@ -545,7 +545,7 @@ def wrapup_atlas_from_data(
         to lowest resolution.
         If none is provided, atlas is assumed to be symmetric.
     scale_meshes: bool, optional
-        (Default value = True).
+        (Default value = False).
         If True the meshes points are scaled by the resolution
         to ensure that they are specified in microns,
         regardless of the atlas resolution.

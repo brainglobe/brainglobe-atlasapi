@@ -205,7 +205,7 @@ def _save_template_data(
     transformations: List[List[dict]],
 ) -> nz.Multiscales:
     template_info = packaging_data.template_info
-    if not template_info.skip_saving and not template_info.update_existing:
+    if not template_info.use_existing and not template_info.update_existing:
         dest_dir = packaging_data.working_dir / template_info.metadata[
             "location"
         ].lstrip("/")
@@ -248,7 +248,7 @@ def _save_annotation_data(
 ) -> Tuple[nz.Multiscales, nz.Multiscales]:
     annotation_info = packaging_data.annotation_info
 
-    if not annotation_info.skip_saving and not annotation_info.update_existing:
+    if not (annotation_info.use_existing and annotation_info.update_existing):
         dest_dir = packaging_data.working_dir / annotation_info.metadata[
             "location"
         ].lstrip("/")
@@ -328,7 +328,7 @@ def _save_annotation_data(
             packaging_data.working_dir / hemispheres_stub
         )
 
-    if not annotation_info.skip_saving or annotation_info.update_existing:
+    if not (annotation_info.use_existing or annotation_info.update_existing):
         meshes_stub = descriptors.format_meshes_stub(
             annotation_info.name, annotation_info.version
         )
@@ -352,7 +352,7 @@ def _save_additional_references(
     for ref_tuple in packaging_data.additional_references:
         ref_info, additional_template = ref_tuple
 
-        if not ref_info.skip_saving and not ref_info.update_existing:
+        if not ref_info.use_existing and not ref_info.update_existing:
             dest_dir = packaging_data.working_dir / ref_info.metadata[
                 "location"
             ].lstrip("/")
@@ -704,7 +704,7 @@ def wrapup_atlas_from_data(
         transformations,
     )
 
-    if not terminology_info.skip_saving:
+    if not terminology_info.use_existing:
         terminology_dir = working_dir / terminology_info.stub
 
         terminology_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -713,7 +713,7 @@ def wrapup_atlas_from_data(
             terminology_dir,
         )
 
-    if not coordinate_space_info.skip_saving:
+    if not coordinate_space_info.use_existing:
         coordinate_space_path = working_dir / coordinate_space_info.stub
 
         coordinate_space_path.parent.mkdir(parents=True, exist_ok=True)

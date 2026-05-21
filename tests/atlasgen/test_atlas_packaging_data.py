@@ -511,7 +511,7 @@ def test_coordinate_space_info_metadata_contains_template(
 
 def test_check_requested_component_noop(mocker, tmp_path, template_info):
     """Test `check_requested_component` returns without S3 calls when
-    neither skip_saving nor update_existing is set.
+    neither use_existing nor update_existing is set.
 
     Parameters
     ----------
@@ -529,9 +529,9 @@ def test_check_requested_component_noop(mocker, tmp_path, template_info):
     mock_s3.assert_not_called()
 
 
-def test_check_requested_component_skip_saving_fetches(mocker, tmp_path):
+def test_check_requested_component_use_existing_fetches(mocker, tmp_path):
     """Test `check_requested_component` fetches JSON metadata when
-    skip_saving=True.
+    use_existing=True.
 
     Parameters
     ----------
@@ -549,7 +549,7 @@ def test_check_requested_component_skip_saving_fetches(mocker, tmp_path):
     component = TemplateInfo(
         name="test-template",
         version="1.0",
-        skip_saving=True,
+        use_existing=True,
         file_name="test.ome.zarr",
     )
     check_requested_component(component, tmp_path)
@@ -558,11 +558,11 @@ def test_check_requested_component_skip_saving_fetches(mocker, tmp_path):
     assert remote_arg.endswith("/**/*.json")
 
 
-def test_check_requested_component_skip_saving_raises_if_not_found(
+def test_check_requested_component_use_existing_raises_if_not_found(
     mocker, tmp_path
 ):
     """Test `check_requested_component` raises FileNotFoundError when
-    skip_saving=True but the remote component does not exist.
+    use_existing=True but the remote component does not exist.
 
     Parameters
     ----------
@@ -578,7 +578,7 @@ def test_check_requested_component_skip_saving_raises_if_not_found(
         return_value=mock_fs,
     )
     component = TemplateInfo(
-        name="test-template", version="1.0", skip_saving=True
+        name="test-template", version="1.0", use_existing=True
     )
     with pytest.raises(FileNotFoundError, match="not found at"):
         check_requested_component(component, tmp_path)

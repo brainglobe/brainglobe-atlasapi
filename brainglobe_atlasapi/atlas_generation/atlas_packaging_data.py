@@ -30,7 +30,7 @@ def check_requested_component(
     """
     Check if a requested component already exists remotely and fetch it.
 
-    If the component is set to skip_saving, will check if it exists remotely
+    If the component is set to use_existing, will check if it exists remotely
     and fetch all metadata files locally.
     If the component is set to update_existing, will check if the existing
     version exists remotely and fetch all data and metadata files locally.
@@ -58,7 +58,7 @@ def check_requested_component(
                 "must be specified in component_info."
             )
         stub = component_info.existing_stub
-    elif component_info.skip_saving:
+    elif component_info.use_existing:
         stub = component_info.stub
     else:
         return
@@ -78,7 +78,7 @@ def check_requested_component(
 
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if component_info.skip_saving:
+    if component_info.use_existing:
         # Add wildcard to fetch all OME-Zarr metadata files
         if component_info.file_name.endswith(".ome.zarr"):
             remote_path += "/**/*.json"
@@ -110,8 +110,8 @@ class ComponentInfo:
     This dataclass holds information about a specific component of a
     BrainGlobe atlas, such as a template or annotation. It includes
     fields for the component's name, version, and metadata, as well as
-    flags for whether to skip saving the component data or
-    update an existing component.
+    flags for whether to use an existing component or update an existing
+    component.
 
     Attributes
     ----------
@@ -119,8 +119,9 @@ class ComponentInfo:
         The name of the component (e.g., "allen-adult-mouse-stpt-template").
     version : str
         The version of the component (e.g., "0.1.0").
-    skip_saving : bool, optional
-        Whether to skip saving the component data (default is False).
+    use_existing : bool, optional
+        Whether to use the existing component from with the same name and
+        version from the remote (default is False).
     update_existing : bool, optional
         Whether to update an existing component with the same name and version
         (default is False).
@@ -144,7 +145,7 @@ class ComponentInfo:
 
     name: str
     version: str
-    skip_saving: bool = False
+    use_existing: bool = False
     update_existing: bool = False
     existing_version: Optional[str] = None
     root_dir: Optional[str] = None

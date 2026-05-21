@@ -205,7 +205,7 @@ def _save_template_data(
     transformations: List[List[dict]],
 ) -> nz.Multiscales:
     template_info = packaging_data.template_info
-    if not template_info.use_existing and not template_info.update_existing:
+    if not (template_info.use_existing or template_info.update_existing):
         dest_dir = packaging_data.working_dir / template_info.metadata[
             "location"
         ].lstrip("/")
@@ -248,7 +248,7 @@ def _save_annotation_data(
 ) -> Tuple[nz.Multiscales, nz.Multiscales]:
     annotation_info = packaging_data.annotation_info
 
-    if not (annotation_info.use_existing and annotation_info.update_existing):
+    if not (annotation_info.use_existing or annotation_info.update_existing):
         dest_dir = packaging_data.working_dir / annotation_info.metadata[
             "location"
         ].lstrip("/")
@@ -328,7 +328,7 @@ def _save_annotation_data(
             packaging_data.working_dir / hemispheres_stub
         )
 
-    if not (annotation_info.use_existing or annotation_info.update_existing):
+    if not annotation_info.use_existing:
         meshes_stub = descriptors.format_meshes_stub(
             annotation_info.name, annotation_info.version
         )
@@ -431,6 +431,8 @@ def _finalize_atlas_at_resolution(
         annotation_set=packaging_data.annotation_info,
         template=packaging_data.template_info,
     )
+
+    metadata_dict.update(packaging_data.additional_metadata)
 
     with open(atlas_dir / "manifest.json", "w") as f:
         json.dump(metadata_dict, f, indent=4)

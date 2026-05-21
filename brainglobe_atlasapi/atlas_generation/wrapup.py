@@ -661,6 +661,8 @@ def wrapup_atlas_from_data(
         template=template_info, **coordinate_space_info
     )
 
+    additional_metadata = additional_metadata or {}
+
     packaging_data = AtlasPackagingData(
         atlas_name=atlas_name,
         atlas_version=atlas_version,

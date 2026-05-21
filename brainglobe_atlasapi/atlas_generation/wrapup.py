@@ -497,7 +497,7 @@ def wrapup_atlas_from_data(
     overwrite=False,
     cleanup_files=None,
     compress=None,
-):
+) -> Path:
     """
     Finalise an atlas with truly consistent format from all the data.
 
@@ -570,6 +570,11 @@ def wrapup_atlas_from_data(
     compress : deprecated, optional
         (Default value = None).
         Deprecated and has no effect.
+
+    Returns
+    -------
+    Path
+        Path to the finalised atlas directory.
     """  # noqa: E501
     if cleanup_files is not None:
         print(
@@ -663,6 +668,31 @@ def wrapup_atlas_from_data(
 
     additional_metadata = additional_metadata or {}
 
+    for component_info in [
+        template_info,
+        annotation_info,
+        terminology_info,
+        coordinate_space_info,
+        *[ref_info for ref_info, _ in additional_template_list],
+    ]:
+        component_dir = (
+            working_dir
+            / component_info.root_dir
+            / component_info.name
+            / component_info.version
+        )
+        if component_dir.exists() and overwrite:
+            print(
+                f"Component directory already exists, "
+                f"deleting: {component_dir}"
+            )
+            shutil.rmtree(component_dir)
+        elif component_dir.exists():
+            raise FileExistsError(
+                f"Component directory already exists at {component_dir}. "
+                "Try setting overwrite=True"
+            )
+
     packaging_data = AtlasPackagingData(
         atlas_name=atlas_name,
         atlas_version=atlas_version,
@@ -732,3 +762,5 @@ def wrapup_atlas_from_data(
             packaging_data=packaging_data,
             overwrite=overwrite,
         )
+
+    return atlas_dir

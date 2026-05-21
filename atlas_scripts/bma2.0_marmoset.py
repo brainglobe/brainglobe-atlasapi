@@ -305,9 +305,9 @@ def retrieve_structure_information(annotation_volume):
                 continue
 
             # List regions not present in annotation volume
-            '''if int(m.group(1)) not in present_ids:
+            """if int(m.group(1)) not in present_ids:
                 print(f"Warning: label ID {m.group(1)} in labels file",
-                      "not present in annotation volume.")'''
+                      "not present in annotation volume.")"""
 
             id = int(m.group(1))
             if not m.group(5):
@@ -333,7 +333,7 @@ def retrieve_structure_information(annotation_volume):
     with open(HIERARCHY_PATH) as f:
         tree_data = json.load(f)
         regions = tree_data["regions"]
-        
+
         # Loop through regionTree to add missing regions
         for region in regions:
             id = int(region["id"])
@@ -352,36 +352,43 @@ def retrieve_structure_information(annotation_volume):
                     "structure_id_path": [],
                     "rgb_triplet": rgb_colour,
                 }
-                
+
         # Loop through regionTree again to add hierarchy information
         for region in regions:
             children = region.get("children", [])
             if children:
                 for child in children:
                     if child not in structures_by_acronym.keys():
-                        print(f"Warning: Missing child {child} in labels file.")
+                        print(
+                            f"Warning: Missing child {child} in labels file."
+                        )
                     else:
-                        structures_by_acronym[child]["structure_id_path"].append(structures_by_acronym[region["abb"]]["id"])
-                        
-    
-        
+                        structures_by_acronym[child][
+                            "structure_id_path"
+                        ].append(structures_by_acronym[region["abb"]]["id"])
+
     ancestry = []
     # Loop through structures to ensure all have structure_id_path
     for acronym, structure in structures_by_acronym.items():
         if acronym == "WHOLE":
             continue
         if not structure["structure_id_path"]:
-            #print(structure)
+            # print(structure)
             structure["structure_id_path"] = [ROOT_ID]
         structure["structure_id_path"].append(structure["id"])
-        ancestry.append((str(structure["structure_id_path"][1]), str(structure["structure_id_path"][0])))
-    
+        ancestry.append(
+            (
+                str(structure["structure_id_path"][1]),
+                str(structure["structure_id_path"][0]),
+            )
+        )
+
     # TODO Figure out how to turn the below tree maker into a way to make structure_id_path work
-    
+
     # Code to try and recursively find full hierarchy
     parents = set()
     children = {}
-    for c,p in ancestry:
+    for c, p in ancestry:
         parents.add(p)
         children[c] = p
 
@@ -390,9 +397,9 @@ def retrieve_structure_information(annotation_volume):
         return (ancestors(children[p]) if p in children else []) + [p]
 
     # for each child that has no children print the geneology
-    for k in (set(children.keys()) - parents):
-        print('/'.join(ancestors(k)))
-    
+    for k in set(children.keys()) - parents:
+        print("/".join(ancestors(k)))
+
     # Change back the root structure details
     structures_by_acronym["WHOLE"]["name"] = "root"
     structures_by_acronym["WHOLE"]["acronym"] = "root"
@@ -400,12 +407,12 @@ def retrieve_structure_information(annotation_volume):
     # Return root_id alongside structures.
     # Sort structures by depth of hierarchy, then ID.
     structures = list(structures_by_acronym.values())
-    #structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    # structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     structures.sort(key=lambda s: s["id"])
     with open("test.json", "w") as f:
         json.dump(structures, f, indent=4)
     quit()
-    #print(structures)
+    # print(structures)
     return structures
 
 

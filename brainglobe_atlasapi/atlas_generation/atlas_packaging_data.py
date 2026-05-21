@@ -85,6 +85,8 @@ def check_requested_component(
         # Add wildcard to fetch all OME-Zarr metadata files
         if component_info.file_name.endswith(".ome.zarr"):
             remote_path += "/**/*.json"
+        else:
+            remote_path += "/**/*"
 
         fs.get(
             remote_path,
@@ -505,6 +507,10 @@ def _load_stack(
 ) -> List[npt.NDArray]:
     if isinstance(stack, (str, Path)):
         return [tifffile.imread(stack)]
+    elif isinstance(stack, list) and all(
+        isinstance(s, (str, Path)) for s in stack
+    ):
+        return [tifffile.imread(s) for s in stack]
     elif isinstance(stack, np.ndarray):
         return [stack]
     return stack

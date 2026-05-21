@@ -488,6 +488,7 @@ def wrapup_atlas_from_data(
                 ValidComponentData,
             ]
         ]
+        | Dict[str, ValidComponentData]
         | None
     ) = None,
     additional_metadata: dict | None = None,
@@ -552,7 +553,7 @@ def wrapup_atlas_from_data(
     resolution_mapping: List[int], optional
         a list of three mapping the target space axes to the source axes
         only needed for mesh scaling of anisotropic atlases
-    additional_references: List[Tuple[Dict | str, ValidComponentData]] | None
+    additional_references: List[Tuple[Dict | str, ValidComponentData]] | Dict[str, ValidComponentData] | None
         List of tuples containing metadata and arrays for secondary templates.
     additional_metadata: dict, optional
         (Default value = empty dict).
@@ -630,6 +631,9 @@ def wrapup_atlas_from_data(
 
     additional_template_list = []
     if additional_references is not None:
+        if isinstance(additional_references, dict):
+            additional_references = list(additional_references.items())
+
         for ref_tuple in additional_references:
             ref_metadata, _ = ref_tuple
             if isinstance(ref_metadata, str):

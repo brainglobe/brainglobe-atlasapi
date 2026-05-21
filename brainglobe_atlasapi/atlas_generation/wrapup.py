@@ -633,8 +633,11 @@ def wrapup_atlas_from_data(
         for ref_tuple in additional_references:
             ref_metadata, _ = ref_tuple
             if isinstance(ref_metadata, str):
+                if not ref_metadata.endswith("-template"):
+                    ref_metadata += "-template"
+
                 ref_dict = {
-                    "name": f"{ref_metadata}-template",
+                    "name": ref_metadata,
                     "version": atlas_version,
                 }
             else:

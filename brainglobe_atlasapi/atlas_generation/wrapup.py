@@ -645,7 +645,7 @@ def wrapup_atlas_from_data(
             ref_metadata, _ = ref_tuple
             if isinstance(ref_metadata, str):
                 if not ref_metadata.endswith("-template"):
-                    ref_metadata += "-template"
+                    ref_metadata = f"{atlas_name}-{ref_metadata}-template"
 
                 ref_dict = {
                     "name": ref_metadata,

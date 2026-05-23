@@ -126,6 +126,15 @@ def _load_nrrd_array(nrrd_path):
     return np.frombuffer(data, dtype=dtype).reshape(sizes, order="F")
 
 
+def _rgb_triplet_from_id(structure_id):
+    value = (structure_id * 2654435761) % (2**32)
+    return [50 + ((value >> shift) % 180) for shift in (16, 8, 0)]
+
+
+def _acronym_from_domain_label(label):
+    return label.split(" on ", maxsplit=1)[0].replace("\\'", "'")
+
+
 def download_resources():
     """
     Download the necessary resources for the atlas.
@@ -283,11 +292,8 @@ def retrieve_hemisphere_map():
 
 def retrieve_structure_information():
     """
-    Return a list of dictionaries with information about the atlas.
+    Return a flat list of atlas structures.
 
-    Returns a list of dictionaries, where each dictionary represents a
-    structure and contains its ID, name, acronym, hierarchical path,
-    and RGB triplet.
 
     The expected format for each dictionary is:
 
@@ -307,7 +313,38 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    return None
+    download_dir = (
+        Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
+    )
+    domain_metadata_path = download_dir / "jrc2018u_domain_metadata.json"
+
+    with open(domain_metadata_path, encoding="utf-8") as f:
+        domain_metadata = json.load(f)
+
+    structures = [
+        {
+            "id": ROOT_ID,
+            "name": "JRC2018Unisex adult brain",
+            "acronym": "root",
+            "structure_id_path": [ROOT_ID],
+            "rgb_triplet": [255, 255, 255],
+        }
+    ]
+
+    domains = sorted(domain_metadata, key=lambda domain: int(domain["id"]))
+    for domain in domains:
+        structure_id = int(domain["id"])
+        structures.append(
+            {
+                "id": structure_id,
+                "name": domain["type_label"],
+                "acronym": _acronym_from_domain_label(domain["label"]),
+                "structure_id_path": [ROOT_ID, structure_id],
+                "rgb_triplet": _rgb_triplet_from_id(structure_id),
+            }
+        )
+
+    return structures
 
 
 def retrieve_or_construct_meshes():
@@ -347,6 +384,7 @@ def retrieve_additional_references():
 if __name__ == "__main__":
     download_resources()
     retrieve_reference_and_annotation()
+    retrieve_structure_information()
 
 
 # ### If the code above this line has been filled correctly, nothing needs to be

@@ -362,7 +362,11 @@ def retrieve_structure_information(annotation_volume):
         ancestry.append(
             (
                 structure["id"],
-                structures_by_acronym[structure["parent"]]["id"] if "parent" in structure else 1,
+                (
+                    structures_by_acronym[structure["parent"]]["id"]
+                    if "parent" in structure
+                    else 1
+                ),
             )
         )
 
@@ -375,7 +379,9 @@ def retrieve_structure_information(annotation_volume):
 
     # Recursively determine parents until child has no parent
     def ancestors(parent):
-        return (ancestors(children[parent]) if parent in children else []) + [parent]
+        return (ancestors(children[parent]) if parent in children else []) + [
+            parent
+        ]
 
     # For each structure find all its ancestors, and remove parent key
     for acronym, structure in structures_by_acronym.items():
@@ -385,7 +391,7 @@ def retrieve_structure_information(annotation_volume):
     # Change back the root structure details
     structures_by_acronym["WHOLE"]["name"] = "root"
     structures_by_acronym["WHOLE"]["acronym"] = "root"
-    
+
     # Return root_id alongside structures.
     # Sort structures by depth of hierarchy, then ID.
     structures = list(structures_by_acronym.values())

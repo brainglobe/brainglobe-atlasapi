@@ -94,6 +94,57 @@ MYELIN_REFERENCE_PATH = DOWNLOAD_DIR_PATH / MYELIN_REFERENCE_FNAME
 NISSL_REFERENCE_PATH = DOWNLOAD_DIR_PATH / NISSL_REFERENCE_FNAME
 HIERARCHY_PATH = DOWNLOAD_DIR_PATH / HIERARCHY_FNAME
 
+# Hardcoded mapping of acronyms to names
+# Cross referenced from regionTree.json and BMA2.0_regions_list.ctbl
+# Additional alphabetical suffixes added as necessary,
+# (e.g. for different parts of the same lobule)
+ACRONYM_DICT = {
+    "CrI": "Crus1 of the ansiform lobule",
+    "CrII": "Crus2 of the ansiform lobule",
+    "CrIIa": "Crus2a of the ansiform lobule",
+    "CrIIp": "Crus2p of the ansiform lobule",
+    "LI": "Lobule 1 of cerebellar vermis (lingula)",
+    "LIIa": "Lobule 2a of cerebellar vermis",
+    "LIIb": "Lobule 2b of cerebellar vermis",
+    "LIII": "Lobule 3 of cerebellar vermis",
+    "LIIIa": "Lobule 3a of cerebellar vermis",
+    "LIIIb": "Lobule 3b of cerebellar vermis",
+    "LIV": "Lobule 4 of cerebellar vermis",
+    "LIVa": "Lobule 4a of cerebellar vermis",
+    "LIVb": "Lobule 4b of cerebellar vermis",
+    "LIVd": "Lobule 4d of cerebellar vermis",
+    "LVa-d": "Lobule 5a-d of cerebellar vermis",
+    "LVa": "Lobule 5a of cerebellar vermis",
+    "LVb": "Lobule 5b of cerebellar vermis",
+    "LVc": "Lobule 5c of cerebellar vermis",
+    "LVd": "Lobule 5d of cerebellar vermis",
+    "LVe": "Lobule 5e of cerebellar vermis",
+    "LVf": "Lobule 5f of cerebellar vermis",
+    "LVIa-c": "Lobule 6a-c of cerebellar vermis",
+    "LVIa-d": "Lobule 6a-d of cerebellar vermis",
+    "LVId": "Lobule 6d of cerebellar vermis",
+    "LVIf": "Lobule 6f of cerebellar vermis",
+    "LVIIAa": "Lobule 7Aa of cerebellar vermis",
+    "LVIIAb": "Lobule 7Ab of cerebellar vermis",
+    "LVIIAc-d": "Lobule 7Ac-d of cerebellar vermis",
+    "LVIIAb-d": "Lobule 7Ab-d of cerebellar vermis",
+    "LVIIB": "Lobule 7B of cerebellar vermis",
+    "HVIIBa": "HVIIBa",
+    "HVIIBp": "HVIIBp",
+    "HVIIB": "HVIIB",
+    "LVIIIa": "Lobule 8a of cerebellar vermis",
+    "LVIIIb": "Lobule 8b of cerebellar vermis",
+    "LIXa": "Lobule 9a of cerebellar vermis (uvula)",
+    "LIXb": "Lobule 9b of cerebellar vermis (uvula)",
+    "LIXc": "Lobule 9c of cerebellar vermis (uvula)",
+    "LIXd": "Lobule 9d of cerebellar vermis (uvula)",
+    "LXa": "Lobule 10a of cerebellar vermis (nodule)",
+    "LXb": "Lobule 10b of cerebellar vermis (nodule)",
+    "ParA": "Paramedian lobule A",
+    "ParB": "Paramedian lobule B",
+    "FL": "Flocculus",
+    "PFL": "Paraflocculus",
+}
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -307,14 +358,15 @@ def retrieve_structure_information(annotation_volume):
             # Skip background, root and hemisphere specific labels
             if int(m.group(1)) <= 1 or int(m.group(1)) > 9999:
                 continue
-
+            parent = None
             id = int(m.group(1))
             if not m.group(5):
-                acronym = m.group(4)
+                acronym = m.group(4).replace("_", " ")
                 name = m.group(3).replace("_", " ")
             else:
                 acronym = m.group(5)
-                name = m.group(5)
+                name = ACRONYM_DICT.get(acronym, acronym)
+                parent = "Cb"
 
             rgb_colour = [int(m.group(6)), int(m.group(7)), int(m.group(8))]
 
@@ -329,6 +381,7 @@ def retrieve_structure_information(annotation_volume):
                     "acronym": acronym,
                     "structure_id_path": [],
                     "rgb_triplet": rgb_colour,
+                    "parent": parent,
                 }
 
     # Open regionTree file to get hierarchy information
@@ -387,8 +440,6 @@ def retrieve_structure_information(annotation_volume):
             parent
         ]
 
-    # TODO FIX THE REMAINING STRAGGLERS, CEREBELLUM ETC
-
     # For each structure find all its ancestors, and remove parent key
     for acronym, structure in structures_by_acronym.items():
         structure.pop("parent", None)
@@ -402,11 +453,6 @@ def retrieve_structure_information(annotation_volume):
     # Sort structures by depth of hierarchy, then ID.
     structures = list(structures_by_acronym.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
-
-    # Check missing childless children, print them out
-    for childless in set(children.keys()) - parents:
-        if childless not in present_ids:
-            print(structures[childless])
 
     return structures
 
@@ -426,7 +472,6 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
     """
     # Construct meshes from the annotation volume.
     # Requires atlas generation extras: vedo + PyMCubes.
-    quit()
     meshes_dict = construct_meshes_from_annotation(
         save_path=Path(BG_ROOT_DIR),
         volume=annotated_volume,

@@ -15,7 +15,9 @@ import pooch
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.atlas_generation.mesh_utils import construct_meshes_from_annotation
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -272,7 +274,7 @@ def retrieve_structure_information(annotation_volume):
     # Index Hemisphere:_Name_(Acronym) R G B A
     # OR
     # Index Hemisphere:_Name R G B A
-    
+
     # Use regex parsing to avoid pandas whitespace/quoting edge-cases.
     line_re = re.compile(
         r"^(\d+)\s+[LR]H:_((\S+)_\((\S+)\)|(\w+\-*\w))\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"

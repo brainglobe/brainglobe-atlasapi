@@ -4,8 +4,13 @@ import gzip
 import json
 from pathlib import Path
 
+import brainglobe_space as bgs
+import meshio as mio
 import numpy as np
 import pooch
+
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 ### Metadata
 __version__ = 0
@@ -35,10 +40,12 @@ VFB_SOLR_TERM_INFO_URL = (
     f"?q=id:{VFB_TEMPLATE_ID}&fl=id,term_info&rows=1&wt=json"
 )
 
-ORIENTATION = "lps"
+SOURCE_ORIENTATION = "lps"
+SOURCE_RESOLUTION = (0.5189161, 0.5189161, 1.0)  # microns
 
 ROOT_ID = 999
-RESOLUTION = (0.5189161, 0.5189161, 1.0)  # microns
+ORIENTATION = "asr"
+RESOLUTION = (0.5189161, 1.0, 0.5189161)  # microns
 
 ATLAS_PACKAGER = "Amirreza Bahramani"
 
@@ -133,6 +140,30 @@ def _rgb_triplet_from_id(structure_id):
 
 def _acronym_from_domain_label(label):
     return label.split(" on ", maxsplit=1)[0].replace("\\'", "'")
+
+
+def _source_space(source_shape):
+    physical_shape = tuple(
+        size * resolution
+        for size, resolution in zip(source_shape, SOURCE_RESOLUTION)
+    )
+    return bgs.AnatomicalSpace(SOURCE_ORIENTATION, shape=physical_shape)
+
+
+def _map_stack_to_asr(stack):
+    mapped_stack = _source_space(stack.shape).map_stack_to(
+        ORIENTATION, stack, copy=False
+    )
+    return np.ascontiguousarray(mapped_stack)
+
+
+def _map_mesh_to_asr(mesh_path, output_path, source_shape):
+    mesh = mio.read(mesh_path)
+    mesh.points = _source_space(source_shape).map_points_to(
+        ORIENTATION, mesh.points
+    )
+    mio.write(output_path, mesh)
+    return output_path
 
 
 def download_resources():
@@ -270,7 +301,7 @@ def retrieve_reference_and_annotation():
 
         annotation[mask_voxels] = structure_id
 
-    return reference, annotation
+    return _map_stack_to_asr(reference), _map_stack_to_asr(annotation)
 
 
 def retrieve_hemisphere_map():
@@ -349,18 +380,51 @@ def retrieve_structure_information():
 
 def retrieve_or_construct_meshes():
     """
-    Return a dictionary mapping structure IDs to paths of mesh files.
+    Return the VFB mesh files mapped into BrainGlobe ASR space.
 
-    If the atlas is packaged with mesh files, download and use them. Otherwise,
-    construct the meshes using available helper functions.
+    VFB provides OBJ files for this template and each painted ROI, so no mesh
+    construction is needed here.
 
     Returns
     -------
-    dict
+    dict[int, pathlib.Path]
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
-    meshes_dict = {}
+    download_dir = (
+        Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
+    )
+    domain_metadata_path = download_dir / "jrc2018u_domain_metadata.json"
+    meshes_dir = download_dir / "meshes"
+    asr_meshes_dir = download_dir / "asr_meshes"
+    asr_meshes_dir.mkdir(exist_ok=True)
+
+    with open(domain_metadata_path, encoding="utf-8") as f:
+        domain_metadata = json.load(f)
+
+    source_shape = _load_nrrd_array(
+        download_dir / "jrc2018u_template.nrrd"
+    ).shape
+    root_mesh_path = meshes_dir / f"{ROOT_ID}.obj"
+    if not root_mesh_path.is_file():
+        raise FileNotFoundError(f"Missing root mesh: {root_mesh_path}")
+
+    meshes_dict = {
+        ROOT_ID: _map_mesh_to_asr(
+            root_mesh_path, asr_meshes_dir / f"{ROOT_ID}.obj", source_shape
+        )
+    }
+    domains = sorted(domain_metadata, key=lambda domain: int(domain["id"]))
+    for domain in domains:
+        structure_id = int(domain["id"])
+        mesh_path = Path(domain["obj"])
+        if not mesh_path.is_file():
+            raise FileNotFoundError(f"Missing ROI mesh: {mesh_path}")
+
+        meshes_dict[structure_id] = _map_mesh_to_asr(
+            mesh_path, asr_meshes_dir / f"{structure_id}.obj", source_shape
+        )
+
     return meshes_dict
 
 
@@ -382,52 +446,46 @@ def retrieve_additional_references():
 
 
 if __name__ == "__main__":
+    if RESOLUTION is None:
+        raise ValueError("RESOLUTION must be set before running this script.")
+
+    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+    bg_root_dir.mkdir(parents=True, exist_ok=True)
+
+    atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION[0])
+    existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
+    if existing:
+        raise FileExistsError(
+            f"Atlas output already exists in {bg_root_dir}. "
+            "Move it or delete it before running this script again."
+        )
+
     download_resources()
-    retrieve_reference_and_annotation()
-    retrieve_structure_information()
+    reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    additional_references = retrieve_additional_references()
+    hemispheres_stack = retrieve_hemisphere_map()
+    structures = retrieve_structure_information()
+    meshes_dict = retrieve_or_construct_meshes()
 
-
-# ### If the code above this line has been filled correctly, nothing needs to be
-# ### edited below (unless variables need to be passed between the functions).
-# if __name__ == "__main__":
-#     if RESOLUTION is None:
-#         raise ValueError("RESOLUTION must be set before running this script.")
-
-#     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-#     bg_root_dir.mkdir(parents=True, exist_ok=True)
-
-#     # Fail early if any version of this atlas already exists
-#     atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
-#     existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
-
-#     if existing:
-#         raise FileExistsError(
-#             f"Atlas output already exists in {bg_root_dir}. "
-#         )
-#     download_resources()
-#     reference_volume, annotated_volume = retrieve_reference_and_annotation()
-#     additional_references = retrieve_additional_references()
-#     hemispheres_stack = retrieve_hemisphere_map()
-#     structures = retrieve_structure_information()
-#     meshes_dict = retrieve_or_construct_meshes()
-
-#     output_filename = wrapup_atlas_from_data(
-#         atlas_name=ATLAS_NAME,
-#         atlas_minor_version=__version__,
-#         citation=CITATION,
-#         atlas_link=ATLAS_LINK,
-#         species=SPECIES,
-#         resolution=(RESOLUTION,) * 3,
-#         orientation=ORIENTATION,
-#         root_id=ROOT_ID,
-#         reference_stack=reference_volume,
-#         annotation_stack=annotated_volume,
-#         structures_list=structures,
-#         meshes_dict=meshes_dict,
-#         working_dir=bg_root_dir,
-#         hemispheres_stack=None,
-#         cleanup_files=False,
-#         compress=True,
-#         scale_meshes=True,
-#         additional_references=additional_references,
-#     )
+    output_filename = wrapup_atlas_from_data(
+        atlas_name=ATLAS_NAME,
+        atlas_minor_version=__version__,
+        citation=CITATION,
+        atlas_link=ATLAS_LINK,
+        species=SPECIES,
+        resolution=RESOLUTION,
+        orientation=ORIENTATION,
+        root_id=ROOT_ID,
+        reference_stack=reference_volume,
+        annotation_stack=annotated_volume,
+        structures_list=structures,
+        meshes_dict=meshes_dict,
+        working_dir=bg_root_dir,
+        atlas_packager=ATLAS_PACKAGER,
+        hemispheres_stack=hemispheres_stack,
+        cleanup_files=False,
+        compress=True,
+        scale_meshes=False,
+        additional_references=additional_references,
+    )
+    print(f"Atlas packaged: {output_filename}")

@@ -15,6 +15,7 @@ import pooch
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import construct_meshes_from_annotation
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -55,7 +56,7 @@ ROOT_ID = 1
 
 # The resolution of your volume in microns. Details on how to format this
 # parameter for non isotropic datasets or datasets with multiple resolutions.
-RESOLUTION = 50
+RESOLUTION = 100
 
 ATLAS_PACKAGER = "Jung Woo Kim"
 
@@ -267,10 +268,11 @@ def retrieve_structure_information(annotation_volume):
 
     # print(present_ids)
 
-    # TODO Update regex to also include cases where there is no name
-
     # .ctbl label file format:
     # Index Hemisphere:_Name_(Acronym) R G B A
+    # OR
+    # Index Hemisphere:_Name R G B A
+    
     # Use regex parsing to avoid pandas whitespace/quoting edge-cases.
     line_re = re.compile(
         r"^(\d+)\s+[LR]H:_((\S+)_\((\S+)\)|(\w+\-*\w))\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
@@ -303,11 +305,6 @@ def retrieve_structure_information(annotation_volume):
             # Skip background, root and hemisphere specific labels
             if int(m.group(1)) <= 1 or int(m.group(1)) > 9999:
                 continue
-
-            # List regions not present in annotation volume
-            """if int(m.group(1)) not in present_ids:
-                print(f"Warning: label ID {m.group(1)} in labels file",
-                      "not present in annotation volume.")"""
 
             id = int(m.group(1))
             if not m.group(5):
@@ -396,11 +393,10 @@ def retrieve_structure_information(annotation_volume):
     # Sort structures by depth of hierarchy, then ID.
     structures = list(structures_by_acronym.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
-    print(structures)
     return structures
 
 
-def retrieve_or_construct_meshes():
+def retrieve_or_construct_meshes(annotated_volume, structures):
     """
     Return a dictionary mapping structure IDs to paths of mesh files.
 
@@ -413,7 +409,18 @@ def retrieve_or_construct_meshes():
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
-    meshes_dict = {}
+    # Construct meshes from the annotation volume.
+    # Requires atlas generation extras: vedo + PyMCubes.
+    meshes_dict = construct_meshes_from_annotation(
+        save_path=Path(BG_ROOT_DIR),
+        volume=annotated_volume,
+        structures_list=structures,
+        closing_n_iters=2,
+        decimate_fraction=0.2,
+        smooth=False,
+        parallel=True,
+        verbosity=0,
+    )
     return meshes_dict
 
 
@@ -456,7 +463,7 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information(annotated_volume)
-    meshes_dict = retrieve_or_construct_meshes()
+    meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

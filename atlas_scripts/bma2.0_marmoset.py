@@ -381,6 +381,8 @@ def retrieve_structure_information(annotation_volume):
         return (ancestors(children[parent]) if parent in children else []) + [
             parent
         ]
+    
+    # TODO FIX THE REMAINING STRAGGLERS, CEREBELLUM ETC
 
     # For each structure find all its ancestors, and remove parent key
     for acronym, structure in structures_by_acronym.items():

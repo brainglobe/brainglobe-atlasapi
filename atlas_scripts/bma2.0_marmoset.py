@@ -315,7 +315,12 @@ def retrieve_structure_information(annotation_volume):
             else:
                 acronym = m.group(5)
                 name = m.group(5)
+                
             rgb_colour = [int(m.group(6)), int(m.group(7)), int(m.group(8))]
+            
+            # Fix weird unicode error for this region name
+            if id == 570:
+                name = "Intercalated Nucleus"
 
             if acronym not in structures_by_acronym:
                 structures_by_acronym[acronym] = {
@@ -388,6 +393,8 @@ def retrieve_structure_information(annotation_volume):
     for acronym, structure in structures_by_acronym.items():
         structure.pop("parent", None)
         structure["structure_id_path"] = ancestors(structure["id"])
+    
+
 
     # Change back the root structure details
     structures_by_acronym["WHOLE"]["name"] = "root"
@@ -397,6 +404,12 @@ def retrieve_structure_information(annotation_volume):
     # Sort structures by depth of hierarchy, then ID.
     structures = list(structures_by_acronym.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    
+    # Check missing childless children, print them out
+    for childless in (set(children.keys()) - parents):
+        if childless not in present_ids:
+            print(structures[childless])
+    
     return structures
 
 
@@ -415,6 +428,7 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
     """
     # Construct meshes from the annotation volume.
     # Requires atlas generation extras: vedo + PyMCubes.
+    quit()
     meshes_dict = construct_meshes_from_annotation(
         save_path=Path(BG_ROOT_DIR),
         volume=annotated_volume,

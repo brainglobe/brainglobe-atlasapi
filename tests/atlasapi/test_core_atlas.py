@@ -379,6 +379,7 @@ def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
     mock_hemispheres_multiscale = nz.to_multiscales(
         mock_hemispheres, scale_factors=1
     )
+    mock_hemispheres_multiscale.metadata.datasets[0].path = "0"
     mocker.patch(
         "brainglobe_atlasapi.core.nz.from_ngff_zarr",
         return_value=mock_hemispheres_multiscale,

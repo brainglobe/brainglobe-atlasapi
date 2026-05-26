@@ -6,11 +6,18 @@ README files associated with atlases packaged within the BrainGlobe ecosystem.
 import json
 import re
 from datetime import datetime
+from typing import List, Tuple
 
 import requests
 from requests.exceptions import InvalidURL, MissingSchema
 
 from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
+    AnnotationInfo,
+    CoordinateSpaceInfo,
+    TemplateInfo,
+    TerminologyInfo,
+)
 from brainglobe_atlasapi.atlas_generation.structure_json_to_csv import (
     convert_structure_json_to_csv,
 )
@@ -18,17 +25,22 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def generate_metadata_dict(
-    name,
-    citation,
-    atlas_link,
-    species,
-    symmetric,
-    resolution,
-    orientation,
-    version,
-    shape,
-    additional_references,
-    atlas_packager,
+    name: str,
+    location: str,
+    citation: str,
+    atlas_link: str,
+    species: str,
+    symmetric: bool,
+    resolution: Tuple[int, int, int] | Tuple[float, float, float],
+    orientation: str,
+    version: str,
+    shape: Tuple[int, int, int],
+    additional_references: List[TemplateInfo],
+    atlas_packager: str,
+    coordinate_space: CoordinateSpaceInfo,
+    terminology: TerminologyInfo,
+    annotation_set: AnnotationInfo,
+    template: TemplateInfo,
 ):
     """
     Generate a dictionary containing metadata for a BrainGlobe atlas.
@@ -37,6 +49,8 @@ def generate_metadata_dict(
     ----------
     name : str
         The name of the atlas.
+    location : str
+        The relative path to the atlas data within the brainglobe directory.
     citation : str
         The citation for the atlas.
     atlas_link : str
@@ -45,18 +59,27 @@ def generate_metadata_dict(
         The species the atlas belongs to (e.g., "mouse", "rat").
     symmetric : bool
         True if the atlas is symmetric, False otherwise.
-    resolution : tuple of int/float
+    resolution : Tuple[int, int, int] | Tuple[float, float, float]
         The resolution of the atlas in micrometers per voxel.
     orientation : str
         The orientation of the atlas (e.g., "RAS", "LPS").
     version : str
         The version of the atlas.
-    shape : tuple of int
+    shape : Tuple[int, int, int]
         The shape (dimensions) of the atlas volume (e.g., (z, y, x)).
-    additional_references : list of str
+    additional_references : List[TemplateInfo]
         A list of additional reference links or citations.
     atlas_packager : str
         The name of the person or entity packaging the atlas.
+    coordinate_space : CoordinateSpaceInfo
+        Metadata for the coordinate space.
+    terminology : TerminologyInfo
+        Metadata for the terminology.
+    annotation_set : AnnotationInfo
+        Metadata for the annotation set.
+    template : TemplateInfo
+        Metadata for the template.
+
 
     Returns
     -------
@@ -91,8 +114,13 @@ def generate_metadata_dict(
 
     assert isinstance(additional_references, list)
 
+    additional_references_metadata = [
+        ref_info.metadata for ref_info in additional_references
+    ]
+
     return dict(
         name=name,
+        location=location,
         citation=citation,
         atlas_link=atlas_link,
         species=species,
@@ -101,8 +129,12 @@ def generate_metadata_dict(
         orientation=orientation,
         version=version,
         shape=shape,
-        additional_references=additional_references,
+        additional_references=additional_references_metadata,
         atlas_packager=atlas_packager,
+        coordinate_space=coordinate_space.metadata,
+        terminology=terminology.metadata,
+        annotation_set=annotation_set.metadata,
+        template=template.metadata,
     )
 
 

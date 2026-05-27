@@ -390,7 +390,7 @@ def _finalize_atlas_at_resolution(
 
     atlas_name_with_res = f"{atlas_name}_{resolution[0]}um"
     atlas_location = (
-        f"/{descriptors.V2_ATLAS_ROOTDIR}/"
+        f"/{descriptors.V3_ATLAS_ROOTDIR}/"
         f"{atlas_name_with_res}/{atlas_version_underscore}"
     )
     atlas_dir = packaging_data.working_dir / atlas_location.strip("/")
@@ -596,7 +596,7 @@ def wrapup_atlas_from_data(
         atlas_name_with_res = f"{atlas_name}_{res[0]}um"
         atlas_dir = (
             working_dir
-            / descriptors.V2_ATLAS_ROOTDIR
+            / descriptors.V3_ATLAS_ROOTDIR
             / atlas_name_with_res
             / atlas_version_underscore
         )

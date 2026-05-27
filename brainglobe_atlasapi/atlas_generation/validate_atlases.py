@@ -63,15 +63,15 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
     expected_files = [
         (
             "Annotations",
-            root_dir / annotation_location / descriptors.V2_ANNOTATION_NAME,
+            root_dir / annotation_location / descriptors.V3_ANNOTATION_NAME,
         ),
         (
             "Meshes",
-            root_dir / annotation_location / descriptors.V2_MESHES_DIRECTORY,
+            root_dir / annotation_location / descriptors.V3_MESHES_DIRECTORY,
         ),
         (
             "Template",
-            root_dir / template_location / descriptors.V2_TEMPLATE_NAME,
+            root_dir / template_location / descriptors.V3_TEMPLATE_NAME,
         ),
         (
             "Coordinate Space",
@@ -79,7 +79,7 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
         ),
         (
             "Terminology",
-            root_dir / terminology_location / descriptors.V2_TERMINOLOGY_NAME,
+            root_dir / terminology_location / descriptors.V3_TERMINOLOGY_NAME,
         ),
     ]
     for _, expected_path in expected_files:
@@ -323,7 +323,7 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
 
     mesh_path = (
-        Path(atlas_path) / meshes_location / descriptors.V2_MESHES_DIRECTORY
+        Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
     )
 
     ids_from_mesh_files = [
@@ -371,7 +371,7 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
 
     mesh_path = (
-        Path(atlas_path) / meshes_location / descriptors.V2_MESHES_DIRECTORY
+        Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
     )
 
     ids_from_mesh_files = [

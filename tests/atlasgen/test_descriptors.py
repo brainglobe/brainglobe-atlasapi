@@ -24,8 +24,8 @@ def test_format_template_stub():
     """Test that format_template_stub correctly formats template paths."""
     result = descriptors.format_template_stub("my-template", "1.0.0")
     expected = (
-        f"{descriptors.V2_TEMPLATE_ROOTDIR}/my-template/1_0_0"
-        f"/{descriptors.V2_TEMPLATE_NAME}"
+        f"{descriptors.V3_TEMPLATE_ROOTDIR}/my-template/1_0_0"
+        f"/{descriptors.V3_TEMPLATE_NAME}"
     )
     assert result == expected
 
@@ -34,8 +34,8 @@ def test_format_annotation_stub():
     """Test that format_annotation_stub correctly formats annotation paths."""
     result = descriptors.format_annotation_stub("my-annotation", "2.1.0")
     expected = (
-        f"{descriptors.V2_ANNOTATION_ROOTDIR}/my-annotation/2_1_0"
-        f"/{descriptors.V2_ANNOTATION_NAME}"
+        f"{descriptors.V3_ANNOTATION_ROOTDIR}/my-annotation/2_1_0"
+        f"/{descriptors.V3_ANNOTATION_NAME}"
     )
     assert result == expected
 
@@ -44,8 +44,8 @@ def test_format_hemispheres_stub():
     """Test that format_hemispheres_stub correctly formats paths."""
     result = descriptors.format_hemispheres_stub("my-annotation", "1.0.0")
     expected = (
-        f"{descriptors.V2_ANNOTATION_ROOTDIR}/my-annotation/1_0_0"
-        f"/{descriptors.V2_HEMISPHERES_NAME}"
+        f"{descriptors.V3_ANNOTATION_ROOTDIR}/my-annotation/1_0_0"
+        f"/{descriptors.V3_HEMISPHERES_NAME}"
     )
     assert result == expected
 
@@ -54,8 +54,8 @@ def test_format_terminology_stub():
     """Test that format_terminology_stub correctly formats paths."""
     result = descriptors.format_terminology_stub("my-terminology", "1.0.0")
     expected = (
-        f"{descriptors.V2_TERMINOLOGY_ROOTDIR}/my-terminology/1_0_0"
-        f"/{descriptors.V2_TERMINOLOGY_NAME}"
+        f"{descriptors.V3_TERMINOLOGY_ROOTDIR}/my-terminology/1_0_0"
+        f"/{descriptors.V3_TERMINOLOGY_NAME}"
     )
     assert result == expected
 
@@ -64,7 +64,7 @@ def test_format_meshes_stub():
     """Test that format_meshes_stub correctly formats meshes paths."""
     result = descriptors.format_meshes_stub("my-annotation", "1.0.0")
     expected = (
-        f"{descriptors.V2_ANNOTATION_ROOTDIR}/my-annotation/1_0_0"
-        f"/{descriptors.V2_MESHES_DIRECTORY}"
+        f"{descriptors.V3_ANNOTATION_ROOTDIR}/my-annotation/1_0_0"
+        f"/{descriptors.V3_MESHES_DIRECTORY}"
     )
     assert result == expected

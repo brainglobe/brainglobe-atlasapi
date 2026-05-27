@@ -3,9 +3,10 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 import brainglobe_space as bgs
+import dask.array as da
 import meshio as mio
 import ngff_zarr as nz
 import numpy as np
@@ -39,7 +40,14 @@ from brainglobe_atlasapi.descriptors import (
     ResolutionList,
     ValidComponentData,
 )
+from brainglobe_atlasapi.structure_tree_util import (
+    get_structures_tree,
+    preorder_breadth_first_search,
+)
 from brainglobe_atlasapi.utils import atlas_name_from_repr
+
+if TYPE_CHECKING:
+    from treelib import Tree
 
 # This should be changed every time we make changes in the atlas
 # structure:
@@ -343,6 +351,31 @@ def _save_annotation_data(
         )
 
     return annotation_multiscale, hemispheres_multiscale
+
+
+def _generate_4d_annotation(
+    packaging_data: AtlasPackagingData,
+    transformations: List[List[dict]],
+):
+    structures_tree = get_structures_tree(packaging_data.structures_list)
+    mapping = _generate_annotation_mapping(structures_tree)
+
+    annotation_4d_array = da.zeros(
+        shape=(len(mapping),) + packaging_data.annotation_stack.shape,
+        chunks=(1,) + packaging_data.annotation_stack.shape,
+        dtype=np.uint8,
+    )
+
+    return annotation_4d_array
+
+
+def _generate_annotation_mapping(tree: Tree):
+    mapping = {}
+
+    for i, node in enumerate(preorder_breadth_first_search(tree)):
+        mapping[node.identifier] = i
+
+    return mapping
 
 
 def _save_additional_references(

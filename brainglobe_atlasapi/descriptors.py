@@ -60,9 +60,10 @@ V2_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
 V2_TEMPLATE_ROOTDIR = "templates"
 V2_TERMINOLOGY_ROOTDIR = "terminologies"
 V2_TERMINOLOGY_NAME = "terminology.csv"
-V2_MESHES_DIRECTORY = "annotation.precomputed"
+V2_MESHES_DIRECTORY = "annotations.precomputed"
 V2_TEMPLATE_NAME = "anatomical_template.ome.zarr"
-V2_ANNOTATION_NAME = "annotation.ome.zarr"
+V2_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
+V3_ANNOTATION_NAME_MASKS = "annotations.ome.zarr"
 V2_HEMISPHERES_NAME = "hemispheres.ome.zarr"
 
 # Types for the atlas stacks:

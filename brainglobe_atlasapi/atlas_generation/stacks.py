@@ -5,6 +5,7 @@ atlas generation.
 from pathlib import Path
 from typing import Dict, List
 
+import numpy as np
 import numpy.typing as npt
 import tifffile
 import zarr
@@ -41,6 +42,13 @@ BG_OME_ZARR_AXES = [
             "value": "right-to-left",
         },
     },
+]
+
+BG_OME_ZARR_4D_AXES = [
+    {"name": "i", "type": "annotation"},
+    {"name": "z", "type": "space", "unit": "millimeter"},
+    {"name": "y", "type": "space", "unit": "millimeter"},
+    {"name": "x", "type": "space", "unit": "millimeter"},
 ]
 
 
@@ -197,4 +205,33 @@ def save_hemispheres(
         descriptors.HEMISPHERES_DTYPE,
         output_dir / descriptors.V2_HEMISPHERES_NAME,
         transformations,
+    )
+
+
+def save_annotation_masks(
+    stack: List[npt.NDArray],
+    output_dir: Path,
+    transformations: List[List[Dict]],
+) -> None:
+    """Save the 4D annotation masks array.
+
+    Parameters
+    ----------
+    stack : List[np.ndarray]
+        List of 4D (N, Z, Y, X) arrays, one per scale level.
+    output_dir : Path
+        Directory in which to create annotations.ome.zarr.
+    transformations : List[List[Dict]]
+        OME-Zarr coordinate transformations, one list per scale level.
+        Each scale must be 4-element: [1, z_mm, y_mm, x_mm].
+    """
+    assert len(transformations) == len(
+        stack
+    ), "Number of transformation sets must match number of scales in stack."
+    stack = [s.astype(np.uint8) for s in stack]
+    write_multiscale_ome_zarr(
+        images=stack,
+        output_path=output_dir / descriptors.V3_ANNOTATION_NAME_MASKS,
+        transformations=transformations,
+        axes=BG_OME_ZARR_4D_AXES,
     )

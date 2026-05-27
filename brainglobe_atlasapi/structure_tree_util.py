@@ -107,3 +107,14 @@ def preorder_breadth_first_search(tree: Tree) -> Generator[Node, None, None]:
 
         for child in tree.children(current_node.identifier):
             queue.append(child)
+
+
+def postorder_depth_first_search(tree: Tree) -> Generator[Node, None, None]:
+    """Yield nodes in post-order depth first traversal (leaves first)."""
+
+    def _postorder(node_id):
+        for child in tree.children(node_id):
+            yield from _postorder(child.identifier)
+        yield tree.get_node(node_id)
+
+    yield from _postorder(tree.root)

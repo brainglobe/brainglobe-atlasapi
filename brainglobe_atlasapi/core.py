@@ -22,11 +22,11 @@ from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
     REFERENCE_DTYPE,
-    V2_ANNOTATION_NAME,
-    V2_HEMISPHERES_NAME,
-    V2_MESHES_DIRECTORY,
-    V2_TEMPLATE_NAME,
-    V2_TERMINOLOGY_NAME,
+    V3_ANNOTATION_NAME,
+    V3_HEMISPHERES_NAME,
+    V3_MESHES_DIRECTORY,
+    V3_TEMPLATE_NAME,
+    V3_TERMINOLOGY_NAME,
     remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
@@ -73,19 +73,19 @@ class Atlas:
         structures_path = (
             self.root_dir
             / self.metadata["terminology"]["location"][1:]
-            / V2_TERMINOLOGY_NAME
+            / V3_TERMINOLOGY_NAME
         )
         structures_list = load_structures_from_csv(structures_path)
         meshes_path = (
             self.root_dir
             / self.metadata["annotation_set"]["location"][1:]
-            / V2_MESHES_DIRECTORY
+            / V3_MESHES_DIRECTORY
         )
 
         template_location = self.metadata["annotation_set"]["template"][
             "location"
         ][1:]
-        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
+        template_path = self.root_dir / template_location / V3_TEMPLATE_NAME
 
         multiscale = nz.from_ngff_zarr(template_path)
         self._template_pyramid_level = _determine_pyramid_level(
@@ -93,7 +93,7 @@ class Atlas:
         )
         annotation_location = self.metadata["annotation_set"]["location"][1:]
         annotation_path = (
-            self.root_dir / annotation_location / V2_ANNOTATION_NAME
+            self.root_dir / annotation_location / V3_ANNOTATION_NAME
         )
         multiscale = nz.from_ngff_zarr(annotation_path)
         self._annotation_pyramid_level = _determine_pyramid_level(
@@ -187,7 +187,7 @@ class Atlas:
             "location"
         ][1:]
 
-        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
+        template_path = self.root_dir / template_location / V3_TEMPLATE_NAME
 
         multiscale = nz.from_ngff_zarr(template_path)
         dataset_path = multiscale.metadata.datasets[
@@ -198,7 +198,7 @@ class Atlas:
         if not (resolution_path / "c").exists():
             print("Downloading template...")
             remote_path = remote_url_s3.format(
-                f"{template_location}/{V2_TEMPLATE_NAME}/{dataset_path}/"
+                f"{template_location}/{V3_TEMPLATE_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -234,7 +234,7 @@ class Atlas:
 
         annotation_location = self.metadata["annotation_set"]["location"][1:]
         annotation_path = (
-            self.root_dir / annotation_location / V2_ANNOTATION_NAME
+            self.root_dir / annotation_location / V3_ANNOTATION_NAME
         )
 
         multiscale = nz.from_ngff_zarr(annotation_path)
@@ -246,7 +246,7 @@ class Atlas:
         if not (resolution_path / "c").exists():
             print("Downloading annotations...")
             remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V2_ANNOTATION_NAME}/{dataset_path}/"
+                f"{annotation_location}/{V3_ANNOTATION_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -295,7 +295,7 @@ class Atlas:
                 1:
             ]
             hemispheres_path = (
-                self.root_dir / annotation_location / V2_HEMISPHERES_NAME
+                self.root_dir / annotation_location / V3_HEMISPHERES_NAME
             )
 
             multiscale = nz.from_ngff_zarr(hemispheres_path)
@@ -307,7 +307,7 @@ class Atlas:
             if not (resolution_path / "c").exists():
                 print("Downloading hemispheres...")
                 remote_path = remote_url_s3.format(
-                    f"{annotation_location}/{V2_HEMISPHERES_NAME}/{dataset_path}/"
+                    f"{annotation_location}/{V3_HEMISPHERES_NAME}/{dataset_path}/"
                 )
                 self.fs.get(
                     remote_path,
@@ -733,7 +733,7 @@ class AdditionalRefDict(UserDict):
 
             additional_ref_location = additional_ref_data["location"][1:]
             local_path: Path = (
-                self.data_path / additional_ref_location / V2_TEMPLATE_NAME
+                self.data_path / additional_ref_location / V3_TEMPLATE_NAME
             )
 
             multiscale = nz.from_ngff_zarr(local_path)
@@ -747,7 +747,7 @@ class AdditionalRefDict(UserDict):
             if not (resolution_path / "c").exists():
                 print("Downloading template...")
                 remote_path = remote_url_s3.format(
-                    f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{dataset_path}/"
+                    f"{additional_ref_location}/{V3_TEMPLATE_NAME}/{dataset_path}/"
                 )
                 fs = s3fs.S3FileSystem(anon=True)
                 fs.get(

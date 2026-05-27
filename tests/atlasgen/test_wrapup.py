@@ -327,7 +327,7 @@ def template_stub(atlas_version):
     """Provide the path stub for the template zarr in the atlas directory."""
     return (
         f"templates/{ATLAS_NAME}-template/{atlas_version}"
-        f"/{descriptors.V2_TEMPLATE_NAME}"
+        f"/{descriptors.V3_TEMPLATE_NAME}"
     )
 
 
@@ -351,21 +351,21 @@ def test_template_zarr_exists(wrapup_dir, template_stub):
 def test_annotation_zarr_exists(wrapup_dir, annotation_dir):
     """Test that the annotation zarr file exists at the expected location."""
     assert (
-        wrapup_dir / annotation_dir / descriptors.V2_ANNOTATION_NAME
+        wrapup_dir / annotation_dir / descriptors.V3_ANNOTATION_NAME
     ).exists()
 
 
 def test_hemispheres_zarr_exists(wrapup_dir, annotation_dir):
     """Test that the hemispheres zarr file exists at the expected location."""
     assert (
-        wrapup_dir / annotation_dir / descriptors.V2_HEMISPHERES_NAME
+        wrapup_dir / annotation_dir / descriptors.V3_HEMISPHERES_NAME
     ).exists()
 
 
 def test_mesh_directory_exists(wrapup_dir, annotation_dir):
     """Test that the mesh directory exists at the expected location."""
     assert (
-        wrapup_dir / annotation_dir / descriptors.V2_MESHES_DIRECTORY
+        wrapup_dir / annotation_dir / descriptors.V3_MESHES_DIRECTORY
     ).exists()
 
 
@@ -374,7 +374,7 @@ def test_root_mesh_file_exists(wrapup_dir, annotation_dir):
     assert (
         wrapup_dir
         / annotation_dir
-        / descriptors.V2_MESHES_DIRECTORY
+        / descriptors.V3_MESHES_DIRECTORY
         / str(ROOT_ID)
     ).exists()
 
@@ -384,7 +384,7 @@ def test_terminology_csv_exists(wrapup_dir, atlas_version):
     assert (
         wrapup_dir
         / f"terminologies/{ATLAS_NAME}-terminology/{atlas_version}"
-        / descriptors.V2_TERMINOLOGY_NAME
+        / descriptors.V3_TERMINOLOGY_NAME
     ).exists()
 
 
@@ -407,7 +407,7 @@ def test_additional_reference_zarr_exists(wrapup_dir, atlas_version):
     assert (
         wrapup_dir
         / f"templates/{ATLAS_NAME}-secondary-template/{atlas_version}"
-        / descriptors.V2_TEMPLATE_NAME
+        / descriptors.V3_TEMPLATE_NAME
     ).exists()
 
 
@@ -422,7 +422,7 @@ def test_template_zarr_shape_and_dtype(wrapup_dir, template_stub):
 def test_annotation_zarr_shape_and_dtype(wrapup_dir, annotation_dir):
     """Annotation zarr is readable and uses the annotation dtype."""
     ms = nz.from_ngff_zarr(
-        wrapup_dir / annotation_dir / descriptors.V2_ANNOTATION_NAME
+        wrapup_dir / annotation_dir / descriptors.V3_ANNOTATION_NAME
     )
     data = ms.images[0].data.compute()
     assert data.shape == (15, 15, 15)
@@ -432,7 +432,7 @@ def test_annotation_zarr_shape_and_dtype(wrapup_dir, annotation_dir):
 def test_annotation_zarr_values(wrapup_dir, annotation_dir):
     """Annotation contains root and Region 1 labels; root is dominant."""
     ms = nz.from_ngff_zarr(
-        wrapup_dir / annotation_dir / descriptors.V2_ANNOTATION_NAME
+        wrapup_dir / annotation_dir / descriptors.V3_ANNOTATION_NAME
     )
     data = ms.images[0].data.compute()
     unique = set(np.unique(data).tolist())
@@ -443,7 +443,7 @@ def test_annotation_zarr_values(wrapup_dir, annotation_dir):
 def test_hemispheres_zarr_two_halves(wrapup_dir, annotation_dir):
     """Auto-generated hemispheres volume has exactly two unique labels."""
     ms = nz.from_ngff_zarr(
-        wrapup_dir / annotation_dir / descriptors.V2_HEMISPHERES_NAME
+        wrapup_dir / annotation_dir / descriptors.V3_HEMISPHERES_NAME
     )
     data = ms.images[0].data.compute()
     assert set(np.unique(data)) == {1, 2}
@@ -454,7 +454,7 @@ def test_additional_reference_zarr_shape(wrapup_dir, atlas_version):
     ms = nz.from_ngff_zarr(
         wrapup_dir
         / f"templates/{ATLAS_NAME}-secondary-template/{atlas_version}"
-        / descriptors.V2_TEMPLATE_NAME
+        / descriptors.V3_TEMPLATE_NAME
     )
     data = ms.images[0].data.compute()
     assert data.shape == (15, 15, 15)
@@ -465,7 +465,7 @@ def test_terminology_csv_columns(wrapup_dir, atlas_version):
     csv_path = (
         wrapup_dir
         / f"terminologies/{ATLAS_NAME}-terminology/{atlas_version}"
-        / descriptors.V2_TERMINOLOGY_NAME
+        / descriptors.V3_TERMINOLOGY_NAME
     )
     df = pd.read_csv(csv_path)
     expected_columns = [
@@ -485,7 +485,7 @@ def test_terminology_csv_row_count(wrapup_dir, atlas_version):
     csv_path = (
         wrapup_dir
         / f"terminologies/{ATLAS_NAME}-terminology/{atlas_version}"
-        / descriptors.V2_TERMINOLOGY_NAME
+        / descriptors.V3_TERMINOLOGY_NAME
     )
     df = pd.read_csv(csv_path)
     assert len(df) == 2  # root + Region 1
@@ -496,7 +496,7 @@ def test_terminology_csv_root_has_no_parent(wrapup_dir, atlas_version):
     csv_path = (
         wrapup_dir
         / f"terminologies/{ATLAS_NAME}-terminology/{atlas_version}"
-        / descriptors.V2_TERMINOLOGY_NAME
+        / descriptors.V3_TERMINOLOGY_NAME
     )
     df = pd.read_csv(csv_path)
     root_row = df[df["identifier"] == ROOT_ID].iloc[0]
@@ -508,7 +508,7 @@ def test_terminology_csv_child_has_correct_parent(wrapup_dir, atlas_version):
     csv_path = (
         wrapup_dir
         / f"terminologies/{ATLAS_NAME}-terminology/{atlas_version}"
-        / descriptors.V2_TERMINOLOGY_NAME
+        / descriptors.V3_TERMINOLOGY_NAME
     )
     df = pd.read_csv(csv_path)
     child_row = df[df["identifier"] == 1].iloc[0]

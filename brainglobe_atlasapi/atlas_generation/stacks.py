@@ -147,7 +147,7 @@ def save_template(
     _save_as_ome_zarr(
         stack,
         descriptors.REFERENCE_DTYPE,
-        output_dir / descriptors.V2_TEMPLATE_NAME,
+        output_dir / descriptors.V3_TEMPLATE_NAME,
         transformations,
     )
 
@@ -171,7 +171,7 @@ def save_annotation(
     _save_as_ome_zarr(
         stack,
         descriptors.ANNOTATION_DTYPE,
-        output_dir / descriptors.V2_ANNOTATION_NAME,
+        output_dir / descriptors.V3_ANNOTATION_NAME,
         transformations,
     )
 
@@ -195,6 +195,6 @@ def save_hemispheres(
     _save_as_ome_zarr(
         stack,
         descriptors.HEMISPHERES_DTYPE,
-        output_dir / descriptors.V2_HEMISPHERES_NAME,
+        output_dir / descriptors.V3_HEMISPHERES_NAME,
         transformations,
     )

@@ -374,69 +374,69 @@ def coordinate_space_info(template_info):
 
 
 def test_template_info_default_root_dir(template_info):
-    """Test TemplateInfo uses V2_TEMPLATE_ROOTDIR as default root_dir.
+    """Test TemplateInfo uses V3_TEMPLATE_ROOTDIR as default root_dir.
 
     Parameters
     ----------
     template_info : TemplateInfo
         A TemplateInfo instance for testing.
     """
-    assert template_info.root_dir == descriptors.V2_TEMPLATE_ROOTDIR
+    assert template_info.root_dir == descriptors.V3_TEMPLATE_ROOTDIR
 
 
 def test_template_info_default_file_name(template_info):
-    """Test TemplateInfo uses V2_TEMPLATE_NAME as default file_name.
+    """Test TemplateInfo uses V3_TEMPLATE_NAME as default file_name.
 
     Parameters
     ----------
     template_info : TemplateInfo
         A TemplateInfo instance for testing.
     """
-    assert template_info.file_name == descriptors.V2_TEMPLATE_NAME
+    assert template_info.file_name == descriptors.V3_TEMPLATE_NAME
 
 
 def test_terminology_info_default_root_dir(terminology_info):
-    """Test TerminologyInfo uses V2_TERMINOLOGY_ROOTDIR as default root_dir.
+    """Test TerminologyInfo uses V3_TERMINOLOGY_ROOTDIR as default root_dir.
 
     Parameters
     ----------
     terminology_info : TerminologyInfo
         A TerminologyInfo instance for testing.
     """
-    assert terminology_info.root_dir == descriptors.V2_TERMINOLOGY_ROOTDIR
+    assert terminology_info.root_dir == descriptors.V3_TERMINOLOGY_ROOTDIR
 
 
 def test_terminology_info_default_file_name(terminology_info):
-    """Test TerminologyInfo uses V2_TERMINOLOGY_NAME as default file_name.
+    """Test TerminologyInfo uses V3_TERMINOLOGY_NAME as default file_name.
 
     Parameters
     ----------
     terminology_info : TerminologyInfo
         A TerminologyInfo instance for testing.
     """
-    assert terminology_info.file_name == descriptors.V2_TERMINOLOGY_NAME
+    assert terminology_info.file_name == descriptors.V3_TERMINOLOGY_NAME
 
 
 def test_annotation_info_default_root_dir(annotation_info):
-    """Test AnnotationInfo uses V2_ANNOTATION_ROOTDIR as default root_dir.
+    """Test AnnotationInfo uses V3_ANNOTATION_ROOTDIR as default root_dir.
 
     Parameters
     ----------
     annotation_info : AnnotationInfo
         An AnnotationInfo instance for testing.
     """
-    assert annotation_info.root_dir == descriptors.V2_ANNOTATION_ROOTDIR
+    assert annotation_info.root_dir == descriptors.V3_ANNOTATION_ROOTDIR
 
 
 def test_annotation_info_default_file_name(annotation_info):
-    """Test AnnotationInfo uses V2_ANNOTATION_NAME as default file_name.
+    """Test AnnotationInfo uses V3_ANNOTATION_NAME as default file_name.
 
     Parameters
     ----------
     annotation_info : AnnotationInfo
         An AnnotationInfo instance for testing.
     """
-    assert annotation_info.file_name == descriptors.V2_ANNOTATION_NAME
+    assert annotation_info.file_name == descriptors.V3_ANNOTATION_NAME
 
 
 def test_annotation_info_metadata_contains_template(annotation_info):
@@ -466,7 +466,7 @@ def test_annotation_info_metadata_contains_terminology(annotation_info):
 
 
 def test_coordinate_space_info_default_root_dir(coordinate_space_info):
-    """Test CoordinateSpaceInfo uses V2_COORDINATE_SPACE_ROOTDIR as root_dir.
+    """Test CoordinateSpaceInfo uses V3_COORDINATE_SPACE_ROOTDIR as root_dir.
 
     Parameters
     ----------
@@ -475,7 +475,7 @@ def test_coordinate_space_info_default_root_dir(coordinate_space_info):
     """
     assert (
         coordinate_space_info.root_dir
-        == descriptors.V2_COORDINATE_SPACE_ROOTDIR
+        == descriptors.V3_COORDINATE_SPACE_ROOTDIR
     )
 
 

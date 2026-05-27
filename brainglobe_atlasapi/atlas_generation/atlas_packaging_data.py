@@ -218,14 +218,14 @@ class TemplateInfo(ComponentInfo):
     ----------
     root_dir : str, optional
         The root directory for template components
-        (default is descriptors.V2_TEMPLATE_ROOTDIR).
+        (default is descriptors.V3_TEMPLATE_ROOTDIR).
     file_name : str, optional
         The name of the template component file
-        (default is descriptors.V2_TEMPLATE_NAME).
+        (default is descriptors.V3_TEMPLATE_NAME).
     """
 
-    root_dir: str = descriptors.V2_TEMPLATE_ROOTDIR
-    file_name: str = descriptors.V2_TEMPLATE_NAME
+    root_dir: str = descriptors.V3_TEMPLATE_ROOTDIR
+    file_name: str = descriptors.V3_TEMPLATE_NAME
 
 
 @dataclass(kw_only=True)
@@ -241,14 +241,14 @@ class TerminologyInfo(ComponentInfo):
     ----------
     root_dir : str, optional
         The root directory for terminology components
-        (default is descriptors.V2_TERMINOLOGY_ROOTDIR).
+        (default is descriptors.V3_TERMINOLOGY_ROOTDIR).
     file_name : str, optional
         The name of the terminology component file
-        (default is descriptors.V2_TERMINOLOGY_NAME).
+        (default is descriptors.V3_TERMINOLOGY_NAME).
     """
 
-    root_dir: str = descriptors.V2_TERMINOLOGY_ROOTDIR
-    file_name: str = descriptors.V2_TERMINOLOGY_NAME
+    root_dir: str = descriptors.V3_TERMINOLOGY_ROOTDIR
+    file_name: str = descriptors.V3_TERMINOLOGY_NAME
 
 
 @dataclass(kw_only=True)
@@ -271,16 +271,16 @@ class AnnotationInfo(ComponentInfo):
         The TerminologyInfo object associated with this annotation component.
     root_dir : str, optional
         The root directory for annotation components
-        (default is descriptors.V2_ANNOTATION_ROOTDIR).
+        (default is descriptors.V3_ANNOTATION_ROOTDIR).
     file_name : str, optional
         The name of the annotation component file
-        (default is descriptors.V2_ANNOTATION_NAME).
+        (default is descriptors.V3_ANNOTATION_NAME).
     """
 
     template: TemplateInfo
     terminology: TerminologyInfo
-    root_dir: str = descriptors.V2_ANNOTATION_ROOTDIR
-    file_name: str = descriptors.V2_ANNOTATION_NAME
+    root_dir: str = descriptors.V3_ANNOTATION_ROOTDIR
+    file_name: str = descriptors.V3_ANNOTATION_NAME
 
     def __post_init__(self):
         """
@@ -315,14 +315,14 @@ class CoordinateSpaceInfo(ComponentInfo):
         The TemplateInfo object associated with this coordinate space.
     root_dir : str, optional
         The root directory for coordinate space components
-        (default is descriptors.V2_COORDINATE_SPACE_ROOTDIR).
+        (default is descriptors.V3_COORDINATE_SPACE_ROOTDIR).
     file_name : str, optional
         The name of the coordinate space component file
         (default is "manifest.json").
     """
 
     template: TemplateInfo
-    root_dir: str = descriptors.V2_COORDINATE_SPACE_ROOTDIR
+    root_dir: str = descriptors.V3_COORDINATE_SPACE_ROOTDIR
     file_name: str = "manifest.json"
 
     def __post_init__(self):

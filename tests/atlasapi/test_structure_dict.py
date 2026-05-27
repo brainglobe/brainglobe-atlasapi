@@ -76,7 +76,7 @@ def test_mesh_loading(atlas_path):
         / "terminologies"
         / "example_mouse-terminology"
         / "1_2"
-        / descriptors.V2_TERMINOLOGY_NAME
+        / descriptors.V3_TERMINOLOGY_NAME
     )
 
     mesh_root_path = (
@@ -84,7 +84,7 @@ def test_mesh_loading(atlas_path):
         / "annotation-sets"
         / "example_mouse-annotation"
         / "1_2"
-        / descriptors.V2_MESHES_DIRECTORY
+        / descriptors.V3_MESHES_DIRECTORY
     )
 
     # Add entry for file paths:

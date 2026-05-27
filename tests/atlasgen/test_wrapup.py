@@ -406,7 +406,7 @@ def test_additional_reference_zarr_exists(wrapup_dir, atlas_version):
     """Test that the additional reference zarr is at the expected location."""
     assert (
         wrapup_dir
-        / f"templates/secondary-template/{atlas_version}"
+        / f"templates/{ATLAS_NAME}-secondary-template/{atlas_version}"
         / descriptors.V2_TEMPLATE_NAME
     ).exists()
 
@@ -453,7 +453,7 @@ def test_additional_reference_zarr_shape(wrapup_dir, atlas_version):
     """Additional reference zarr has the same spatial shape as the template."""
     ms = nz.from_ngff_zarr(
         wrapup_dir
-        / f"templates/secondary-template/{atlas_version}"
+        / f"templates/{ATLAS_NAME}-secondary-template/{atlas_version}"
         / descriptors.V2_TEMPLATE_NAME
     )
     data = ms.images[0].data.compute()
@@ -556,4 +556,7 @@ def test_atlas_manifest_additional_references(wrapup_dir, atlas_dir):
         manifest = json.load(f)
     assert "additional_references" in manifest
     assert len(manifest["additional_references"]) == 1
-    assert manifest["additional_references"][0]["name"] == "secondary-template"
+    assert (
+        manifest["additional_references"][0]["name"]
+        == f"{ATLAS_NAME}-secondary-template"
+    )

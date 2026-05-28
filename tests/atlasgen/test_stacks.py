@@ -103,6 +103,7 @@ def test_write_multiscale_ome_zarr_creates_zarr(
         images=[image_uint16],
         output_path=output_path,
         transformations=transformations,
+        axes=BG_OME_ZARR_AXES,
     )
     assert output_path.exists()
     root = zarr.open_group(str(output_path), mode="r")
@@ -120,6 +121,7 @@ def test_write_multiscale_ome_zarr_default_axes(
         images=[image_uint16],
         output_path=output_path,
         transformations=transformations,
+        axes=BG_OME_ZARR_AXES,
     )
 
     out_zarr = zarr.open(str(output_path), mode="r")

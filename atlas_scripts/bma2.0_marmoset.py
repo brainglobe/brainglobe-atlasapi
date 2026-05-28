@@ -376,7 +376,7 @@ def retrieve_structure_information(annotation_volume):
             # Fix weird unicode error for this region name
             if id == 570:
                 name = "Intercalated Nucleus"
-                
+
             if id not in present_ids:
                 continue
 
@@ -507,14 +507,14 @@ def retrieve_additional_references():
     in_vivo_reference = np.asarray(load_any(IN_VIVO_REFERENCE_PATH))
     myelin_reference = np.asarray(load_any(MYELIN_REFERENCE_PATH))
     nissl_reference = np.asarray(load_any(NISSL_REFERENCE_PATH))
-    
+
     # Shift all additional references to non-negative ranges before converting to UINT16
     in_vivo_reference -= np.min(in_vivo_reference)
     in_vivo_reference = in_vivo_reference.astype(np.uint16)
-    
+
     myelin_reference -= np.min(myelin_reference)
     myelin_reference = myelin_reference.astype(np.uint16)
-    
+
     nissl_reference -= np.min(nissl_reference)
     nissl_reference = nissl_reference.astype(np.uint16)
 
@@ -523,7 +523,7 @@ def retrieve_additional_references():
         "myelin_reference": myelin_reference,
         "nissl_reference": nissl_reference,
     }
-    
+
     additional_references = {}
     return additional_references
 

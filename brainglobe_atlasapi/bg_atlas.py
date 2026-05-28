@@ -1,4 +1,4 @@
-"""Defines the BrainGlobe Atlas API v2 classes and functions."""
+"""Defines the BrainGlobe Atlas API V3 classes and functions."""
 
 import re
 from collections.abc import Callable
@@ -14,12 +14,12 @@ from rich.console import Console
 from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
-    V2_ANNOTATION_NAME,
-    V2_ATLAS_ROOTDIR,
-    V2_HEMISPHERES_NAME,
-    V2_MESHES_DIRECTORY,
-    V2_TEMPLATE_NAME,
     V3_ANNOTATION_MASKS_NAME,
+    V3_ANNOTATION_NAME,
+    V3_ATLAS_ROOTDIR,
+    V3_HEMISPHERES_NAME,
+    V3_MESHES_DIRECTORY,
+    V3_TEMPLATE_NAME,
     remote_url_s3,
 )
 from brainglobe_atlasapi.utils import (
@@ -130,22 +130,22 @@ class BrainGlobeAtlas(core.Atlas):
         if self._local_full_name is not None:
             return self._local_full_name
 
-        (self.brainglobe_dir / V2_ATLAS_ROOTDIR).mkdir(
+        (self.brainglobe_dir / V3_ATLAS_ROOTDIR).mkdir(
             parents=True, exist_ok=True
         )
 
         if self._requested_version is not None:
             pattern = (
-                f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
+                f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
                 f"{self._requested_version}/manifest.json"
             )
         else:
             pattern = (
-                rf"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
+                rf"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
                 rf"\d+(?:_\d+)?/manifest.json"
             )
 
-        glob_pattern = f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/*/manifest.json"
+        glob_pattern = f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/*/manifest.json"
 
         available_versions: List[str] = [
             p.parent.name
@@ -159,7 +159,7 @@ class BrainGlobeAtlas(core.Atlas):
         latest_version = get_latest_version(available_versions)
 
         self._local_full_name = (
-            f"{V2_ATLAS_ROOTDIR}/"
+            f"{V3_ATLAS_ROOTDIR}/"
             f"{self.atlas_name}/"
             f"{latest_version}/"
             f"manifest.json"
@@ -233,7 +233,7 @@ class BrainGlobeAtlas(core.Atlas):
 
         remote_version_str = _version_str_from_tuple(self.remote_version)
         key_name = (
-            f"{V2_ATLAS_ROOTDIR}/{self.atlas_name}/"
+            f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
             f"{remote_version_str}/manifest.json"
         )
 
@@ -294,7 +294,7 @@ class BrainGlobeAtlas(core.Atlas):
             local_annotation_path = self.brainglobe_dir / annotation_location
             if not local_annotation_path.exists():
                 root_metadata_path = (
-                    annotation_location + f"/{V2_ANNOTATION_NAME}/**/*.json"
+                    annotation_location + f"/{V3_ANNOTATION_NAME}/**/*.json"
                 )
                 remote_root_metadata_path = remote_url_s3.format(
                     root_metadata_path
@@ -305,10 +305,10 @@ class BrainGlobeAtlas(core.Atlas):
                 )
                 self.fs.get(
                     remote_root_metadata_path,
-                    local_annotation_path / V2_ANNOTATION_NAME,
+                    local_annotation_path / V3_ANNOTATION_NAME,
                     callback=TqdmCallback(),
                 )
-                mesh_path = local_annotation_path / V2_MESHES_DIRECTORY
+                mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
                 mesh_path.mkdir(exist_ok=True)
 
                 # Download 4D masks metadata (JSON only; chunk data is lazy)
@@ -331,14 +331,14 @@ class BrainGlobeAtlas(core.Atlas):
                 if not self.metadata["symmetric"]:
                     root_hemisphere_path = (
                         annotation_location
-                        + f"/{V2_HEMISPHERES_NAME}/**/*.json"
+                        + f"/{V3_HEMISPHERES_NAME}/**/*.json"
                     )
                     remote_root_hemisphere_path = remote_url_s3.format(
                         root_hemisphere_path
                     )
                     self.fs.get(
                         remote_root_hemisphere_path,
-                        local_annotation_path / V2_HEMISPHERES_NAME,
+                        local_annotation_path / V3_HEMISPHERES_NAME,
                     )
 
             # Download template metadata files
@@ -348,7 +348,7 @@ class BrainGlobeAtlas(core.Atlas):
             local_template_path = self.brainglobe_dir / template_location
             if not local_template_path.exists():
                 root_metadata_path = (
-                    template_location + f"/{V2_TEMPLATE_NAME}/**/*.json"
+                    template_location + f"/{V3_TEMPLATE_NAME}/**/*.json"
                 )
                 remote_root_metadata_path = remote_url_s3.format(
                     root_metadata_path
@@ -360,7 +360,7 @@ class BrainGlobeAtlas(core.Atlas):
                 )
                 self.fs.get(
                     remote_root_metadata_path,
-                    local_template_path / V2_TEMPLATE_NAME,
+                    local_template_path / V3_TEMPLATE_NAME,
                     callback=TqdmCallback(),
                 )
 
@@ -374,7 +374,7 @@ class BrainGlobeAtlas(core.Atlas):
 
                 if not local_template_path.exists():
                     root_metadata_path = (
-                        template_location + f"/{V2_TEMPLATE_NAME}/**/*.json"
+                        template_location + f"/{V3_TEMPLATE_NAME}/**/*.json"
                     )
                     remote_root_metadata_path = remote_url_s3.format(
                         root_metadata_path
@@ -385,7 +385,7 @@ class BrainGlobeAtlas(core.Atlas):
                     )
                     self.fs.get(
                         remote_root_metadata_path,
-                        local_template_path / V2_TEMPLATE_NAME,
+                        local_template_path / V3_TEMPLATE_NAME,
                         callback=TqdmCallback(),
                     )
             # Reset local_full_name to ensure it is updated with new location

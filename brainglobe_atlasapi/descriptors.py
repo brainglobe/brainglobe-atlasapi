@@ -53,18 +53,18 @@ ANNOTATION_FILENAME = "annotation.tiff"
 HEMISPHERES_FILENAME = "hemispheres.tiff"
 MESHES_DIRNAME = "meshes"
 
-# V2 file names
-V2_ATLAS_ROOTDIR = "atlases"
-V2_ANNOTATION_ROOTDIR = "annotation-sets"
-V2_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
-V2_TEMPLATE_ROOTDIR = "templates"
-V2_TERMINOLOGY_ROOTDIR = "terminologies"
-V2_TERMINOLOGY_NAME = "terminology.csv"
-V2_MESHES_DIRECTORY = "annotations.precomputed"
-V2_TEMPLATE_NAME = "anatomical_template.ome.zarr"
-V2_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
+# V3 file names
+V3_ATLAS_ROOTDIR = "atlases"
+V3_ANNOTATION_ROOTDIR = "annotation-sets"
+V3_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
+V3_TEMPLATE_ROOTDIR = "templates"
+V3_TERMINOLOGY_ROOTDIR = "terminologies"
+V3_TERMINOLOGY_NAME = "terminology.csv"
+V3_MESHES_DIRECTORY = "annotations.precomputed"
+V3_TEMPLATE_NAME = "anatomical_template.ome.zarr"
+V3_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
 V3_ANNOTATION_MASKS_NAME = "annotations.ome.zarr"
-V2_HEMISPHERES_NAME = "hemispheres.ome.zarr"
+V3_HEMISPHERES_NAME = "hemispheres.ome.zarr"
 
 # Types for the atlas stacks:
 REFERENCE_DTYPE = np.uint16
@@ -135,7 +135,7 @@ def format_template_stub(template_name: str, version: str) -> str:
         The formatted template stub.
     """
     return format_component_stub(
-        template_name, version, V2_TEMPLATE_ROOTDIR, V2_TEMPLATE_NAME
+        template_name, version, V3_TEMPLATE_ROOTDIR, V3_TEMPLATE_NAME
     )
 
 
@@ -156,7 +156,7 @@ def format_annotation_stub(annotation_name: str, version: str) -> str:
         The formatted annotation stub.
     """
     return format_component_stub(
-        annotation_name, version, V2_ANNOTATION_ROOTDIR, V2_ANNOTATION_NAME
+        annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_ANNOTATION_NAME
     )
 
 
@@ -177,7 +177,7 @@ def format_hemispheres_stub(annotation_name: str, version: str) -> str:
         The formatted hemispheres stub.
     """
     return format_component_stub(
-        annotation_name, version, V2_ANNOTATION_ROOTDIR, V2_HEMISPHERES_NAME
+        annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_HEMISPHERES_NAME
     )
 
 
@@ -198,7 +198,7 @@ def format_terminology_stub(terminology_name: str, version: str) -> str:
         The formatted terminology stub.
     """
     return format_component_stub(
-        terminology_name, version, V2_TERMINOLOGY_ROOTDIR, V2_TERMINOLOGY_NAME
+        terminology_name, version, V3_TERMINOLOGY_ROOTDIR, V3_TERMINOLOGY_NAME
     )
 
 
@@ -219,5 +219,5 @@ def format_meshes_stub(annotation_name: str, version: str) -> str:
         The formatted meshes stub.
     """
     return format_component_stub(
-        annotation_name, version, V2_ANNOTATION_ROOTDIR, V2_MESHES_DIRECTORY
+        annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_MESHES_DIRECTORY
     )

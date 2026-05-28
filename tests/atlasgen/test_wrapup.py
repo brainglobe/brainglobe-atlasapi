@@ -15,7 +15,7 @@ import ngff_zarr as nz
 import numpy as np
 import pandas as pd
 import pytest
-import zarr as _zarr
+import zarr
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation import __version__ as ATLAS_VERSION
@@ -248,7 +248,7 @@ def test_save_4d_annotation_data_mapping_in_zarr_json(
         / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
         / descriptors.V3_ANNOTATION_NAME_MASKS
     )
-    root = _zarr.open_group(str(dest), mode="r")
+    root = zarr.open_group(str(dest), mode="r")
     raw = dict(root.attrs)
     mapping = raw.get("annotation_mapping")
     assert mapping is not None

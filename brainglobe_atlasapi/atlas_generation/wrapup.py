@@ -12,7 +12,7 @@ import ngff_zarr as nz
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import zarr as _zarr
+import zarr
 
 from brainglobe_atlasapi import atlas_generation, descriptors
 from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
@@ -355,7 +355,7 @@ def _save_annotation_data(
     return annotation_multiscale, hemispheres_multiscale
 
 
-def _generate_annotation_mapping(tree: "Tree") -> dict:
+def _generate_annotation_mapping(tree: "Tree") -> Dict[int, int]:
     """Return {structure_id: index} in post-order (leaves first)."""
     return {
         node.identifier: i
@@ -409,7 +409,7 @@ def _save_4d_annotation_data(
 
     save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
 
-    root = _zarr.open_group(str(masks_path), mode="r+")
+    root = zarr.open_group(str(masks_path), mode="r+")
     root.attrs["annotation_mapping"] = {str(k): v for k, v in mapping.items()}
 
 

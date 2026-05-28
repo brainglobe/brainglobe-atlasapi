@@ -436,7 +436,7 @@ def atlas_with_masks(tmp_path_factory):
     Structure tree: root (999) → region_a (1) → leaf_b (2)
     Post-order mapping: leaf_b→0, region_a→1, root→2
 
-    Annotation (5x5x5):
+    Annotation (15x15x15):
       - [0,0,0] = 1  (region_a)
       - [0,0,1] = 2  (leaf_b)
       - rest   = 999 (root)

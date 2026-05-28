@@ -129,9 +129,9 @@ ACRONYM_DICT = {
     "LVIIAc-d": "Lobule 7Ac-d of cerebellar vermis",
     "LVIIAb-d": "Lobule 7Ab-d of cerebellar vermis",
     "LVIIB": "Lobule 7B of cerebellar vermis",
-    "HVIIBa": "HVIIBa",
-    "HVIIBp": "HVIIBp",
-    "HVIIB": "HVIIB",
+    "HVIIBa": "Lobule 7Ba of cerebellar hemisphere",
+    "HVIIBp": "Lobule 7Bp of cerebellar hemisphere",
+    "HVIIB": "Lobule 7B of cerebellar hemisphere",
     "LVIIIa": "Lobule 8a of cerebellar vermis",
     "LVIIIb": "Lobule 8b of cerebellar vermis",
     "LIXa": "Lobule 9a of cerebellar vermis (uvula)",
@@ -324,7 +324,7 @@ def retrieve_structure_information(annotation_volume):
     # .ctbl label file format:
     # Index Hemisphere:_Name_(Acronym) R G B A
     # OR
-    # Index Hemisphere:_Name R G B A
+    # Index Hemisphere:_Acronym R G B A
 
     # Use regex parsing to avoid pandas whitespace/quoting edge-cases.
     line_re = re.compile(
@@ -498,7 +498,14 @@ def retrieve_additional_references():
     dict
         A dictionary mapping reference image names to their image stack data.
     """
-    additional_references = {}
+    in_vivo_reference = load_any(IN_VIVO_REFERENCE_PATH)
+    myelin_reference = load_any(MYELIN_REFERENCE_PATH)
+    nissl_reference = load_any(NISSL_REFERENCE_PATH)
+    additional_references = {
+        "in_vivo_reference": in_vivo_reference,
+        "myelin_reference": myelin_reference,
+        "nissl_reference": nissl_reference,
+    }
     return additional_references
 
 

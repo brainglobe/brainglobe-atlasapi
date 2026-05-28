@@ -188,7 +188,7 @@ def test_save_4d_annotation_data_creates_zarr(mask_packaging_data, tmp_path):
     dest = (
         tmp_path
         / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
-        / descriptors.V3_ANNOTATION_NAME_MASKS
+        / descriptors.V3_ANNOTATION_MASKS_NAME
     )
     assert dest.exists()
 
@@ -202,7 +202,7 @@ def test_save_4d_annotation_data_shape_and_dtype(
     dest = (
         tmp_path
         / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
-        / descriptors.V3_ANNOTATION_NAME_MASKS
+        / descriptors.V3_ANNOTATION_MASKS_NAME
     )
     ms = nz.from_ngff_zarr(dest)
     data = ms.images[0].data
@@ -217,7 +217,7 @@ def test_save_4d_annotation_data_mask_values(mask_packaging_data, tmp_path):
     dest = (
         tmp_path
         / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
-        / descriptors.V3_ANNOTATION_NAME_MASKS
+        / descriptors.V3_ANNOTATION_MASKS_NAME
     )
     ms = nz.from_ngff_zarr(dest)
     data = ms.images[0].data.compute()  # (3, 5, 5, 5)
@@ -246,7 +246,7 @@ def test_save_4d_annotation_data_mapping_in_zarr_json(
     dest = (
         tmp_path
         / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
-        / descriptors.V3_ANNOTATION_NAME_MASKS
+        / descriptors.V3_ANNOTATION_MASKS_NAME
     )
     root = zarr.open_group(str(dest), mode="r")
     raw = dict(root.attrs)
@@ -264,7 +264,7 @@ def test_save_4d_annotation_data_skip_if_exists(mask_packaging_data, tmp_path):
     dest = (
         tmp_path
         / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
-        / descriptors.V3_ANNOTATION_NAME_MASKS
+        / descriptors.V3_ANNOTATION_MASKS_NAME
     )
     mtime_before = dest.stat().st_mtime
     _save_4d_annotation_data(mask_packaging_data, transformations)
@@ -556,7 +556,7 @@ def test_hemispheres_zarr_exists(wrapup_dir, annotation_dir):
 def test_4d_annotation_masks_zarr_exists(wrapup_dir, annotation_dir):
     """The 4D annotation masks zarr is created by wrapup_atlas_from_data."""
     assert (
-        wrapup_dir / annotation_dir / descriptors.V3_ANNOTATION_NAME_MASKS
+        wrapup_dir / annotation_dir / descriptors.V3_ANNOTATION_MASKS_NAME
     ).exists()
 
 

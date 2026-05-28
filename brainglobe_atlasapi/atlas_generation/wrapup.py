@@ -372,7 +372,7 @@ def _save_4d_annotation_data(
     dest_dir = packaging_data.working_dir / annotation_info.metadata[
         "location"
     ].lstrip("/")
-    masks_path = dest_dir / descriptors.V3_ANNOTATION_NAME_MASKS
+    masks_path = dest_dir / descriptors.V3_ANNOTATION_MASKS_NAME
     if masks_path.exists():
         return
 

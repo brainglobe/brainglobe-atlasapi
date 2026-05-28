@@ -28,7 +28,7 @@ from brainglobe_atlasapi.descriptors import (
     V2_MESHES_DIRECTORY,
     V2_TEMPLATE_NAME,
     V2_TERMINOLOGY_NAME,
-    V3_ANNOTATION_NAME_MASKS,
+    V3_ANNOTATION_MASKS_NAME,
     remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
@@ -183,7 +183,7 @@ class Atlas:
     @property
     def _annotation_masks_path(self) -> Path:
         annotation_location = self.metadata["annotation_set"]["location"][1:]
-        return self.root_dir / annotation_location / V3_ANNOTATION_NAME_MASKS
+        return self.root_dir / annotation_location / V3_ANNOTATION_MASKS_NAME
 
     @property
     def orientation(self):
@@ -733,7 +733,7 @@ class Atlas:
                 1:
             ]
             remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V3_ANNOTATION_NAME_MASKS}"
+                f"{annotation_location}/{V3_ANNOTATION_MASKS_NAME}"
                 f"/{dataset_path}/c/{index}/0/0/0"
             )
             chunk_path.parent.mkdir(parents=True, exist_ok=True)

@@ -5,7 +5,6 @@ atlas generation.
 from pathlib import Path
 from typing import Dict, List
 
-import numpy as np
 import numpy.typing as npt
 import tifffile
 import zarr
@@ -69,7 +68,7 @@ def write_multiscale_ome_zarr(
     images: List[npt.NDArray],
     output_path: Path,
     transformations: List[List[dict]],
-    axes: List[dict] = BG_OME_ZARR_AXES,
+    axes: List[dict],
 ):
     """Write a multiscale image pyramid to an OME-Zarr file.
 
@@ -123,6 +122,7 @@ def _save_as_ome_zarr(
     dtype: npt.DTypeLike,
     output_path: Path,
     transformations: List[List[Dict]],
+    axes: List[Dict] = BG_OME_ZARR_AXES,
 ) -> None:
     stack = [s.astype(dtype) for s in stack]
 
@@ -133,6 +133,7 @@ def _save_as_ome_zarr(
         images=stack,
         output_path=output_path,
         transformations=transformations,
+        axes=axes,
     )
 
 
@@ -225,13 +226,10 @@ def save_annotation_masks(
         OME-Zarr coordinate transformations, one list per scale level.
         Each scale must be 4-element: [1, z_mm, y_mm, x_mm].
     """
-    assert len(transformations) == len(
-        stack
-    ), "Number of transformation sets must match number of scales in stack."
-    stack = [s.astype(np.uint8) for s in stack]
-    write_multiscale_ome_zarr(
-        images=stack,
-        output_path=output_dir / descriptors.V3_ANNOTATION_NAME_MASKS,
-        transformations=transformations,
+    _save_as_ome_zarr(
+        stack,
+        descriptors.ANNOTATION_MASKS_DTYPE,
+        output_dir / descriptors.V3_ANNOTATION_MASKS_NAME,
+        transformations,
         axes=BG_OME_ZARR_4D_AXES,
     )

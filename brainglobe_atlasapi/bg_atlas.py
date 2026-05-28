@@ -19,7 +19,7 @@ from brainglobe_atlasapi.descriptors import (
     V2_HEMISPHERES_NAME,
     V2_MESHES_DIRECTORY,
     V2_TEMPLATE_NAME,
-    V3_ANNOTATION_NAME_MASKS,
+    V3_ANNOTATION_MASKS_NAME,
     remote_url_s3,
 )
 from brainglobe_atlasapi.utils import (
@@ -315,14 +315,14 @@ class BrainGlobeAtlas(core.Atlas):
                 try:
                     masks_metadata_glob = (
                         annotation_location
-                        + f"/{V3_ANNOTATION_NAME_MASKS}/**/*.json"
+                        + f"/{V3_ANNOTATION_MASKS_NAME}/**/*.json"
                     )
                     remote_masks_metadata = remote_url_s3.format(
                         masks_metadata_glob
                     )
                     self.fs.get(
                         remote_masks_metadata,
-                        str(local_annotation_path / V3_ANNOTATION_NAME_MASKS),
+                        str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
                         callback=TqdmCallback(),
                     )
                 except FileNotFoundError:

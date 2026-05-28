@@ -63,13 +63,14 @@ V2_TERMINOLOGY_NAME = "terminology.csv"
 V2_MESHES_DIRECTORY = "annotations.precomputed"
 V2_TEMPLATE_NAME = "anatomical_template.ome.zarr"
 V2_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
-V3_ANNOTATION_NAME_MASKS = "annotations.ome.zarr"
+V3_ANNOTATION_MASKS_NAME = "annotations.ome.zarr"
 V2_HEMISPHERES_NAME = "hemispheres.ome.zarr"
 
 # Types for the atlas stacks:
 REFERENCE_DTYPE = np.uint16
 ANNOTATION_DTYPE = np.uint32
 HEMISPHERES_DTYPE = np.uint8
+ANNOTATION_MASKS_DTYPE = np.uint8
 
 # Standard orientation origin: Anterior, Superior, Right
 # (using brainglobe-space definition)

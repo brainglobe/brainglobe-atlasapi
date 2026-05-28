@@ -287,7 +287,7 @@ def test_save_annotation_masks_creates_zarr(tmp_path):
         [{"type": "scale", "scale": [1.0, 0.025, 0.025, 0.025]}]
     ]
     save_annotation_masks([arr], tmp_path, transformations)
-    assert (tmp_path / descriptors.V3_ANNOTATION_NAME_MASKS).exists()
+    assert (tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME).exists()
 
 
 def test_save_annotation_masks_chunk_shape(tmp_path):
@@ -298,7 +298,7 @@ def test_save_annotation_masks_chunk_shape(tmp_path):
     ]
     save_annotation_masks([arr], tmp_path, transformations)
     root = zarr.open_group(
-        str(tmp_path / descriptors.V3_ANNOTATION_NAME_MASKS), mode="r"
+        str(tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME), mode="r"
     )
     s0 = root["s0"]
     assert s0.chunks == (1, 5, 5, 5)
@@ -311,7 +311,7 @@ def test_save_annotation_masks_uses_4d_axes(tmp_path):
         [{"type": "scale", "scale": [1.0, 0.025, 0.025, 0.025]}]
     ]
     save_annotation_masks([arr], tmp_path, transformations)
-    ms = nz.from_ngff_zarr(tmp_path / descriptors.V3_ANNOTATION_NAME_MASKS)
+    ms = nz.from_ngff_zarr(tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME)
     axes = ms.metadata.axes
     assert len(axes) == 4
     assert axes[0].name == "i"

@@ -126,7 +126,7 @@ def retrieve_structure_information():
         for s in oapi.get_structure_sets()
         if s["description"] == select_set
     ]
-    structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)[:3]
+    structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)[:8]
 
     # Loop over structures, remove entries not used
     for struct in structs_with_mesh:
@@ -179,6 +179,19 @@ reference_volume, annotated_volume = retrieve_reference_and_annotation()
 hemispheres_stack = retrieve_hemisphere_map()
 structures = retrieve_structure_information()
 meshes_dict = retrieve_or_construct_meshes()
+
+template_info = {
+    "name": "allen-adult-mouse-stpt-template",
+    "version": "2015",
+    "use_existing": True,
+}
+
+coordinate_space_info = {
+    "name": "allen-adult-mouse-ccf-space",
+    "version": "2015",
+    "use_existing": True,
+}
+
 if __name__ == "__main__":
 
     output_filename = wrapup_atlas_from_data(
@@ -192,11 +205,14 @@ if __name__ == "__main__":
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
+        template_info=template_info,
+        coordinate_space_info=coordinate_space_info,
         structures_list=structures,
         meshes_dict=meshes_dict,
         working_dir=BG_ROOT_DIR,
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
-        scale_meshes=True,
+        scale_meshes=False,
+        overwrite=True,
     )

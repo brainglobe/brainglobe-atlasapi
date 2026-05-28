@@ -125,6 +125,11 @@ def test_structures(atlas):
         "root": 997,
         "grey": 8,
         "CH": 567,
+        "CTX": 688,
+        "CTXpl": 695,
+        "Isocortex": 315,
+        "FRP": 184,
+        "FRP1": 68,
     }
     assert atlas._get_from_structure([997, 8, 567], "acronym") == [
         "root",
@@ -202,7 +207,7 @@ def test_meshfile_from_id(atlas):
     mesh_root_path = (
         atlas.root_dir
         / atlas.metadata["annotation_set"]["location"][1:]
-        / "annotation.precomputed"
+        / "annotations.precomputed"
     )
     assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567"
     assert atlas.root_meshfile() == mesh_root_path / "997"
@@ -237,9 +242,27 @@ def test_lookup_df(atlas):
     df_lookup = atlas.lookup_df
     df = pd.DataFrame(
         dict(
-            acronym=["root", "grey", "CH"],
-            id=[997, 8, 567],
-            name=["root", "Basic cell groups and regions", "Cerebrum"],
+            acronym=[
+                "root",
+                "grey",
+                "CH",
+                "CTX",
+                "CTXpl",
+                "Isocortex",
+                "FRP",
+                "FRP1",
+            ],
+            id=[997, 8, 567, 688, 695, 315, 184, 68],
+            name=[
+                "root",
+                "Basic cell groups and regions",
+                "Cerebrum",
+                "Cerebral cortex",
+                "Cortical plate",
+                "Isocortex",
+                "Frontal pole, cerebral cortex",
+                "Frontal pole, layer 1",
+            ],
         )
     )
 
@@ -259,12 +282,22 @@ def test_hierarchy(atlas):
     with contextlib.redirect_stdout(temp_stdout):
         print(hier)
     output = temp_stdout.getvalue().strip()
-    assert output == "root (997)\n└── grey (8)\n    └── CH (567)"
+    assert output == (
+        "root (997)\n└── grey (8)\n    └── CH (567)\n        "
+        "└── CTX (688)\n            └── CTXpl (695)\n                "
+        "└── Isocortex (315)\n                    └── FRP (184)\n"
+        "                        └── FRP1 (68)"
+    )
 
     assert {k: v.tag for k, v in hier.nodes.items()} == {
         997: "root (997)",
         8: "grey (8)",
         567: "CH (567)",
+        688: "CTX (688)",
+        695: "CTXpl (695)",
+        315: "Isocortex (315)",
+        184: "FRP (184)",
+        68: "FRP1 (68)",
     }
 
 
@@ -280,7 +313,7 @@ def test_descendants(atlas):
     assert anc == ["root", "grey"]
 
     desc = atlas.get_structure_descendants("root")
-    assert desc == ["grey", "CH"]
+    assert desc == ["grey", "CH", "CTX", "CTXpl", "Isocortex", "FRP", "FRP1"]
 
 
 def test_odd_hemisphere_size(atlas):
@@ -308,14 +341,6 @@ def test_even_hemisphere_size(atlas):
     assert atlas.hemispheres.shape == (132, 80, 114)
     assert (atlas.hemispheres[:, :, 56] == 2).all()
     assert (atlas.hemispheres[:, :, 57] == 1).all()
-
-
-def test_get_structure_mask_raises_without_4d_array(atlas):
-    """get_structure_mask raises FileNotFoundError when annotations.ome.zarr
-    is absent (the example_mouse atlas pre-dates the 4D array feature).
-    """
-    with pytest.raises(FileNotFoundError, match="4D mask array"):
-        atlas.get_structure_mask("grey")
 
 
 @pytest.mark.parametrize(
@@ -395,7 +420,16 @@ def test_get_structures_at_hierarchy_level_none(atlas):
     result = atlas.get_structures_at_hierarchy_level(
         "root", None, as_acronym=True
     )
-    assert result == ["root", "grey", "CH"]
+    assert result == [
+        "root",
+        "grey",
+        "CH",
+        "CTX",
+        "CTXpl",
+        "Isocortex",
+        "FRP",
+        "FRP1",
+    ]
 
 
 def test_get_structures_at_hierarchy_level_invalid_structure(atlas):

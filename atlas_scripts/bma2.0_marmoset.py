@@ -73,6 +73,8 @@ NISSL_REFERENCE_URL = "https://ndownloader.figshare.com/files/58252156"
 HIERARCHY_URL = "https://dataportal.brainminds.jp/ZAViewer_BMA_2019/regionTree.json?ver=20230203"
 
 # TODO Add DWI in vivo MRI reference? It's ~7GB
+# TODO Add more details on the expected format of the additional references dictionary if necessary
+# TODO Remove unimportant regions from structures list
 
 
 REFERENCE_FNAME = "BMA2.0_avg_exvivo_T2WI.nii.gz"
@@ -266,6 +268,7 @@ def retrieve_reference_and_annotation():
         A tuple containing the reference volume and the annotation volume.
     """
     reference = load_any(REFERENCE_PATH)
+    reference = np.asarray(reference).astype(np.uint16)
     annotation = load_any(ANNOTATION_PATH)
     annotation_array = np.asarray(annotation)
     annotation_array = np.where(
@@ -320,8 +323,6 @@ def retrieve_structure_information(annotation_volume):
     # Filter structures to those actually present.
     present_ids = set(map(int, np.unique(annotation_volume)))
 
-    # print(present_ids)
-
     # .ctbl label file format:
     # Index Hemisphere:_Name_(Acronym) R G B A
     # OR
@@ -365,6 +366,7 @@ def retrieve_structure_information(annotation_volume):
                 acronym = m.group(4).replace("_", " ")
                 name = m.group(3).replace("_", " ")
             else:
+                # Add parent information for cerebellar cortex regions
                 acronym = m.group(5)
                 name = ACRONYM_DICT.get(acronym, acronym)
                 parent = "Cb"
@@ -374,6 +376,9 @@ def retrieve_structure_information(annotation_volume):
             # Fix weird unicode error for this region name
             if id == 570:
                 name = "Intercalated Nucleus"
+                
+            if id not in present_ids:
+                continue
 
             if acronym not in structures_by_acronym:
                 structures_by_acronym[acronym] = {
@@ -400,9 +405,9 @@ def retrieve_structure_information(annotation_volume):
             name = region["name"]
             rgb_colour = hex_to_rgb(hex_colour)
 
-            if acronym in structures_by_acronym:
+            if acronym in structures_by_acronym.keys():
                 structures_by_acronym[acronym]["parent"] = parent
-            elif acronym not in structures_by_acronym:
+            else:
                 structures_by_acronym[acronym] = {
                     "id": id + 1000,
                     "name": name,
@@ -499,14 +504,27 @@ def retrieve_additional_references():
     dict
         A dictionary mapping reference image names to their image stack data.
     """
-    in_vivo_reference = load_any(IN_VIVO_REFERENCE_PATH)
-    myelin_reference = load_any(MYELIN_REFERENCE_PATH)
-    nissl_reference = load_any(NISSL_REFERENCE_PATH)
+    in_vivo_reference = np.asarray(load_any(IN_VIVO_REFERENCE_PATH))
+    myelin_reference = np.asarray(load_any(MYELIN_REFERENCE_PATH))
+    nissl_reference = np.asarray(load_any(NISSL_REFERENCE_PATH))
+    
+    # Shift all additional references to non-negative ranges before converting to UINT16
+    in_vivo_reference -= np.min(in_vivo_reference)
+    in_vivo_reference = in_vivo_reference.astype(np.uint16)
+    
+    myelin_reference -= np.min(myelin_reference)
+    myelin_reference = myelin_reference.astype(np.uint16)
+    
+    nissl_reference -= np.min(nissl_reference)
+    nissl_reference = nissl_reference.astype(np.uint16)
+
     additional_references = {
         "in_vivo_reference": in_vivo_reference,
         "myelin_reference": myelin_reference,
         "nissl_reference": nissl_reference,
     }
+    
+    additional_references = {}
     return additional_references
 
 

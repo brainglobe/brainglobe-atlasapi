@@ -146,6 +146,7 @@ ACRONYM_DICT = {
     "PFL": "Paraflocculus",
 }
 
+
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
 

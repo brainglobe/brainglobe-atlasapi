@@ -482,7 +482,7 @@ def _finalize_atlas_at_resolution(
     ]
 
     metadata_dict = generate_metadata_dict(
-        name=atlas_name_with_res,
+        name=atlas_name,
         location=atlas_location,
         citation=packaging_data.citation,
         atlas_link=packaging_data.atlas_link,
@@ -792,7 +792,23 @@ def wrapup_atlas_from_data(
         transformations,
     )
 
-    shapes = [image.data.shape for image in template_multiscale.images]
+    shapes = {}
+
+    for resolution in packaging_data.resolution:
+        # Find the closest matching resolution in the template multiscale
+        template_resolutions = [
+            tuple(im.scale.values()) for im in template_multiscale.images
+        ]
+        closest_template_idx = np.argmin(
+            [
+                np.linalg.norm(np.array(res) * 1000 - np.array(resolution))
+                for res in template_resolutions
+            ]
+        )
+        closest_template_shape = template_multiscale.images[
+            closest_template_idx
+        ].data.shape
+        shapes[resolution] = closest_template_shape
 
     _save_annotation_data(
         packaging_data,
@@ -828,7 +844,8 @@ def wrapup_atlas_from_data(
             coordinate_space_info.metadata, coordinate_space_path
         )
 
-    for resolution, shape in zip(packaging_data.resolution, shapes):
+    for resolution in packaging_data.resolution:
+        shape = shapes[resolution]
         _finalize_atlas_at_resolution(
             resolution=resolution,
             shape=shape,

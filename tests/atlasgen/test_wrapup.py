@@ -8,23 +8,28 @@ exists, and that the overwrite flag correctly replaces existing output.
 """
 
 import json
+from types import SimpleNamespace
 
 import meshio
 import ngff_zarr as nz
 import numpy as np
 import pandas as pd
 import pytest
+import zarr as _zarr
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation import __version__ as ATLAS_VERSION
 from brainglobe_atlasapi.atlas_generation.wrapup import (
     _build_transformations,
+    _generate_annotation_mapping,
     _merge_resolutions_list,
+    _save_4d_annotation_data,
     _save_coordinate_space_manifest,
     _save_if_not_exists,
     _save_terminology_csv,
     wrapup_atlas_from_data,
 )
+from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 ATLAS_NAME = "test_atlas"
 RESOLUTION = (25, 25, 25)
@@ -78,6 +83,192 @@ def test_build_transformations_anisotropic():
     """Test that anisotropic resolutions are handled per-axis."""
     result = _build_transformations([(10, 20, 30)])
     assert result == [[{"type": "scale", "scale": [0.01, 0.02, 0.03]}]]
+
+
+# --- _generate_annotation_mapping ---
+
+MAPPING_STRUCTURES = [
+    {
+        "id": 999,
+        "acronym": "root",
+        "name": "root",
+        "rgb_triplet": [255, 255, 255],
+        "structure_id_path": [999],
+    },
+    {
+        "id": 1,
+        "acronym": "region_a",
+        "name": "Region A",
+        "rgb_triplet": [100, 150, 200],
+        "structure_id_path": [999, 1],
+    },
+    {
+        "id": 2,
+        "acronym": "leaf_b",
+        "name": "Leaf B",
+        "rgb_triplet": [200, 100, 50],
+        "structure_id_path": [999, 1, 2],
+    },
+]
+
+
+def test_generate_annotation_mapping_postorder():
+    """_generate_annotation_mapping returns post-order indices (leaf first)."""
+    tree = get_structures_tree(MAPPING_STRUCTURES)
+    mapping = _generate_annotation_mapping(tree)
+    # Post-order: leaf_b (2) → region_a (1) → root (999)
+    assert mapping[2] == 0
+    assert mapping[1] == 1
+    assert mapping[999] == 2
+
+
+def test_generate_annotation_mapping_covers_all_structures():
+    """Every structure in the tree gets a unique index."""
+    tree = get_structures_tree(MAPPING_STRUCTURES)
+    mapping = _generate_annotation_mapping(tree)
+    assert set(mapping.keys()) == {999, 1, 2}
+    assert set(mapping.values()) == {0, 1, 2}
+
+
+# --- _save_4d_annotation_data ---
+
+
+@pytest.fixture
+def mask_packaging_data(tmp_path):
+    """Minimal packaging data for a 3-structure atlas: root→region_a→leaf_b."""
+    shape = (5, 5, 5)
+    annotation = np.full(shape, 999, dtype=np.uint32)
+    annotation[0, 0, 0] = 1  # region_a voxel
+    annotation[0, 0, 1] = 2  # leaf_b voxel
+
+    structures_list = [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 1,
+            "acronym": "region_a",
+            "name": "Region A",
+            "rgb_triplet": [100, 150, 200],
+            "structure_id_path": [999, 1],
+        },
+        {
+            "id": 2,
+            "acronym": "leaf_b",
+            "name": "Leaf B",
+            "rgb_triplet": [200, 100, 50],
+            "structure_id_path": [999, 1, 2],
+        },
+    ]
+
+    annotation_info_meta = {
+        "location": "/annotation-sets/test-annotation/0_0_0",
+    }
+    annotation_info = SimpleNamespace(metadata=annotation_info_meta)
+
+    dest_dir = tmp_path / annotation_info_meta["location"].lstrip("/")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    return SimpleNamespace(
+        annotation_stack=[annotation],
+        structures_list=structures_list,
+        working_dir=tmp_path,
+        annotation_info=annotation_info,
+    )
+
+
+def test_save_4d_annotation_data_creates_zarr(mask_packaging_data, tmp_path):
+    """_save_4d_annotation_data writes annotations.ome.zarr."""
+    transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
+    _save_4d_annotation_data(mask_packaging_data, transformations)
+    dest = (
+        tmp_path
+        / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
+        / descriptors.V3_ANNOTATION_NAME_MASKS
+    )
+    assert dest.exists()
+
+
+def test_save_4d_annotation_data_shape_and_dtype(
+    mask_packaging_data, tmp_path
+):
+    """The written array has shape (3, 5, 5, 5) and dtype uint8."""
+    transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
+    _save_4d_annotation_data(mask_packaging_data, transformations)
+    dest = (
+        tmp_path
+        / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
+        / descriptors.V3_ANNOTATION_NAME_MASKS
+    )
+    ms = nz.from_ngff_zarr(dest)
+    data = ms.images[0].data
+    assert data.shape == (3, 5, 5, 5)
+    assert data.dtype == np.uint8
+
+
+def test_save_4d_annotation_data_mask_values(mask_packaging_data, tmp_path):
+    """Leaf mask has 1 voxel; parent mask is union; root mask covers all."""
+    transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
+    _save_4d_annotation_data(mask_packaging_data, transformations)
+    dest = (
+        tmp_path
+        / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
+        / descriptors.V3_ANNOTATION_NAME_MASKS
+    )
+    ms = nz.from_ngff_zarr(dest)
+    data = ms.images[0].data.compute()  # (3, 5, 5, 5)
+
+    # Post-order: leaf_b→0, region_a→1, root→2
+    leaf_b_mask = data[0]
+    region_a_mask = data[1]
+    root_mask = data[2]
+
+    assert leaf_b_mask[0, 0, 1] == 1
+    assert leaf_b_mask.sum() == 1
+
+    assert region_a_mask[0, 0, 0] == 1
+    assert region_a_mask[0, 0, 1] == 1
+    assert region_a_mask.sum() == 2
+
+    assert root_mask.sum() == 125
+
+
+def test_save_4d_annotation_data_mapping_in_zarr_json(
+    mask_packaging_data, tmp_path
+):
+    """annotation_mapping is stored in zarr.json attributes."""
+    transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
+    _save_4d_annotation_data(mask_packaging_data, transformations)
+    dest = (
+        tmp_path
+        / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
+        / descriptors.V3_ANNOTATION_NAME_MASKS
+    )
+    root = _zarr.open_group(str(dest), mode="r")
+    raw = dict(root.attrs)
+    mapping = raw.get("annotation_mapping")
+    assert mapping is not None
+    assert mapping["2"] == 0  # leaf_b
+    assert mapping["1"] == 1  # region_a
+    assert mapping["999"] == 2  # root
+
+
+def test_save_4d_annotation_data_skip_if_exists(mask_packaging_data, tmp_path):
+    """_save_4d_annotation_data skips when annotations.ome.zarr exists."""
+    transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
+    _save_4d_annotation_data(mask_packaging_data, transformations)
+    dest = (
+        tmp_path
+        / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
+        / descriptors.V3_ANNOTATION_NAME_MASKS
+    )
+    mtime_before = dest.stat().st_mtime
+    _save_4d_annotation_data(mask_packaging_data, transformations)
+    assert dest.stat().st_mtime == mtime_before  # not re-written
 
 
 # --- _save_terminology_csv ---
@@ -359,6 +550,13 @@ def test_hemispheres_zarr_exists(wrapup_dir, annotation_dir):
     """Test that the hemispheres zarr file exists at the expected location."""
     assert (
         wrapup_dir / annotation_dir / descriptors.V2_HEMISPHERES_NAME
+    ).exists()
+
+
+def test_4d_annotation_masks_zarr_exists(wrapup_dir, annotation_dir):
+    """The 4D annotation masks zarr is created by wrapup_atlas_from_data."""
+    assert (
+        wrapup_dir / annotation_dir / descriptors.V3_ANNOTATION_NAME_MASKS
     ).exists()
 
 

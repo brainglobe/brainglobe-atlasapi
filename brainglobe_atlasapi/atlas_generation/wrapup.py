@@ -26,6 +26,7 @@ from brainglobe_atlasapi.atlas_generation.metadata_utils import (
 )
 from brainglobe_atlasapi.atlas_generation.stacks import (
     save_annotation,
+    save_annotation_masks,
     save_hemispheres,
     save_template,
     write_multiscale_ome_zarr,
@@ -42,7 +43,7 @@ from brainglobe_atlasapi.descriptors import (
 )
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
-    preorder_breadth_first_search,
+    postorder_depth_first_search,
 )
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -353,29 +354,66 @@ def _save_annotation_data(
     return annotation_multiscale, hemispheres_multiscale
 
 
-def _generate_4d_annotation(
+def _generate_annotation_mapping(tree: "Tree") -> dict:
+    """Return {structure_id: index} in post-order (leaves first)."""
+    return {
+        node.identifier: i
+        for i, node in enumerate(postorder_depth_first_search(tree))
+    }
+
+
+def _save_4d_annotation_data(
     packaging_data: AtlasPackagingData,
     transformations: List[List[dict]],
-):
+) -> None:
+    """Write the 4D annotation masks array alongside annotations_compressed."""
+    annotation_info = packaging_data.annotation_info
+    dest_dir = packaging_data.working_dir / annotation_info.metadata[
+        "location"
+    ].lstrip("/")
+    masks_path = dest_dir / descriptors.V3_ANNOTATION_NAME_MASKS
+    if masks_path.exists():
+        return
+
     structures_tree = get_structures_tree(packaging_data.structures_list)
     mapping = _generate_annotation_mapping(structures_tree)
 
-    annotation_4d_array = da.zeros(
-        shape=(len(mapping),) + packaging_data.annotation_stack.shape,
-        chunks=(1,) + packaging_data.annotation_stack.shape,
-        dtype=np.uint8,
-    )
+    masks_per_scale = []
+    for annotation_scale in packaging_data.annotation_stack:
+        annotation_da = da.from_array(
+            annotation_scale, chunks=annotation_scale.shape
+        )
+        structure_masks = {}
+        for node in postorder_depth_first_search(structures_tree):
+            node_id = node.identifier
+            children = structures_tree.children(node_id)
+            direct = (annotation_da == node_id).astype(np.uint8)
+            if not children:
+                structure_masks[node_id] = direct
+            else:
+                combined = direct
+                for child in children:
+                    combined = combined | structure_masks[child.identifier]
+                structure_masks[node_id] = combined
 
-    return annotation_4d_array
+        index_to_mask = {
+            mapping[nid]: mask for nid, mask in structure_masks.items()
+        }
+        masks_4d = da.stack([index_to_mask[i] for i in range(len(mapping))])
+        masks_4d = masks_4d.rechunk((1,) + masks_4d.shape[1:])
+        masks_per_scale.append(masks_4d.compute())
 
+    transformations_4d = [
+        [{"type": "scale", "scale": [1.0] + t[0]["scale"]}]
+        for t in transformations
+    ]
 
-def _generate_annotation_mapping(tree: Tree):
-    mapping = {}
+    save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
 
-    for i, node in enumerate(preorder_breadth_first_search(tree)):
-        mapping[node.identifier] = i
+    import zarr as _zarr
 
-    return mapping
+    root = _zarr.open_group(str(masks_path), mode="r+")
+    root.attrs["annotation_mapping"] = {str(k): v for k, v in mapping.items()}
 
 
 def _save_additional_references(
@@ -764,6 +802,11 @@ def wrapup_atlas_from_data(
         transformations,
         scale_meshes,
         resolution_mapping,
+    )
+
+    _save_4d_annotation_data(
+        packaging_data,
+        transformations,
     )
 
     _save_additional_references(

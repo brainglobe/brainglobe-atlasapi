@@ -19,6 +19,7 @@ from brainglobe_atlasapi.descriptors import (
     V2_HEMISPHERES_NAME,
     V2_MESHES_DIRECTORY,
     V2_TEMPLATE_NAME,
+    V3_ANNOTATION_NAME_MASKS,
     remote_url_s3,
 )
 from brainglobe_atlasapi.utils import (
@@ -309,6 +310,23 @@ class BrainGlobeAtlas(core.Atlas):
                 )
                 mesh_path = local_annotation_path / V2_MESHES_DIRECTORY
                 mesh_path.mkdir(exist_ok=True)
+
+                # Download 4D masks metadata (JSON only; chunk data is lazy)
+                try:
+                    masks_metadata_glob = (
+                        annotation_location
+                        + f"/{V3_ANNOTATION_NAME_MASKS}/**/*.json"
+                    )
+                    remote_masks_metadata = remote_url_s3.format(
+                        masks_metadata_glob
+                    )
+                    self.fs.get(
+                        remote_masks_metadata,
+                        str(local_annotation_path / V3_ANNOTATION_NAME_MASKS),
+                        callback=TqdmCallback(),
+                    )
+                except FileNotFoundError:
+                    pass  # Atlas predates 4D masks feature
 
                 if not self.metadata["symmetric"]:
                     root_hemisphere_path = (

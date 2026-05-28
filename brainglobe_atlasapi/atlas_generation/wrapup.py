@@ -12,6 +12,7 @@ import ngff_zarr as nz
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import zarr as _zarr
 
 from brainglobe_atlasapi import atlas_generation, descriptors
 from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
@@ -380,14 +381,11 @@ def _save_4d_annotation_data(
 
     masks_per_scale = []
     for annotation_scale in packaging_data.annotation_stack:
-        annotation_da = da.from_array(
-            annotation_scale, chunks=annotation_scale.shape
-        )
         structure_masks = {}
         for node in postorder_depth_first_search(structures_tree):
             node_id = node.identifier
             children = structures_tree.children(node_id)
-            direct = (annotation_da == node_id).astype(np.uint8)
+            direct = (annotation_scale == node_id).astype(np.uint8)
             if not children:
                 structure_masks[node_id] = direct
             else:
@@ -399,9 +397,10 @@ def _save_4d_annotation_data(
         index_to_mask = {
             mapping[nid]: mask for nid, mask in structure_masks.items()
         }
-        masks_4d = da.stack([index_to_mask[i] for i in range(len(mapping))])
-        masks_4d = masks_4d.rechunk((1,) + masks_4d.shape[1:])
-        masks_per_scale.append(masks_4d.compute())
+        masks_4d = np.stack([index_to_mask[i] for i in range(len(mapping))])
+        masks_per_scale.append(
+            da.from_array(masks_4d, chunks=(1,) + masks_4d.shape[1:])
+        )
 
     transformations_4d = [
         [{"type": "scale", "scale": [1.0] + t[0]["scale"]}]
@@ -409,8 +408,6 @@ def _save_4d_annotation_data(
     ]
 
     save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
-
-    import zarr as _zarr
 
     root = _zarr.open_group(str(masks_path), mode="r+")
     root.attrs["annotation_mapping"] = {str(k): v for k, v in mapping.items()}

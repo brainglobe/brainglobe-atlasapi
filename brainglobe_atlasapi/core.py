@@ -15,6 +15,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import s3fs
+import zarr
 from brainglobe_space import AnatomicalSpace
 from fsspec.callbacks import TqdmCallback
 
@@ -27,6 +28,7 @@ from brainglobe_atlasapi.descriptors import (
     V2_MESHES_DIRECTORY,
     V2_TEMPLATE_NAME,
     V2_TERMINOLOGY_NAME,
+    V3_ANNOTATION_NAME_MASKS,
     remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
@@ -48,6 +50,23 @@ def _determine_pyramid_level(
             return idx
 
     raise ValueError(f"Requested resolution {resolution} um is invalid.")
+
+
+def _determine_masks_pyramid_level(
+    multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
+) -> int:
+    for idx, metadata in enumerate(multiscale.metadata.datasets):
+        scales = metadata.coordinateTransformations[0].scale[
+            1:
+        ]  # skip annotation axis
+        if all(
+            np.isclose(res / 1000, scale)
+            for res, scale in zip(resolution, scales)
+        ):
+            return idx
+    raise ValueError(
+        f"Requested resolution {resolution} um not found in 4D masks pyramid."
+    )
 
 
 class Atlas:
@@ -100,6 +119,23 @@ class Atlas:
             multiscale, self.resolution
         )
 
+        self._annotation_mapping = None
+        self._annotation_masks_pyramid_level = None
+        masks_path = self._annotation_masks_path
+        if masks_path.exists():
+            masks_multiscale = nz.from_ngff_zarr(masks_path)
+            self._annotation_masks_pyramid_level = (
+                _determine_masks_pyramid_level(
+                    masks_multiscale, self.resolution
+                )
+            )
+            root = zarr.open_group(str(masks_path), mode="r")
+            raw_mapping = dict(root.attrs).get("annotation_mapping", None)
+            if raw_mapping is not None:
+                self._annotation_mapping = {
+                    int(k): v for k, v in raw_mapping.items()
+                }
+
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list
 
@@ -143,6 +179,11 @@ class Atlas:
     def resolution(self):
         """Make resolution more accessible from class."""
         return tuple(self.metadata["resolution"])
+
+    @property
+    def _annotation_masks_path(self) -> Path:
+        annotation_location = self.metadata["annotation_set"]["location"][1:]
+        return self.root_dir / annotation_location / V3_ANNOTATION_NAME_MASKS
 
     @property
     def orientation(self):
@@ -642,36 +683,75 @@ class Atlas:
             return [self.structures[sid]["acronym"] for sid in result]
         return result
 
-    def get_structure_mask(self, structure):
-        """
-        Return a stack with the mask for a specific structure (including all
-        sub-structures).
+    def get_structure_mask(self, structure) -> npt.NDArray[np.uint8]:
+        """Return binary uint8 mask for the given structure.
 
-        This function might take a few seconds for structures with many
-        children.
+        Reads directly from the pre-built 4D annotation masks array.
 
         Parameters
         ----------
         structure : str or int
-            Structure id or acronym
+            Structure acronym or id.
 
         Returns
         -------
-        np.array
-            stack containing the mask array.
+        np.ndarray
+            Binary uint8 array; 1 where the structure (or a descendant)
+            has a voxel, 0 elsewhere.
+
+        Raises
+        ------
+        FileNotFoundError
+            If this atlas does not have a 4D mask array on disk.
+        KeyError
+            If the structure is not present in the annotation mapping.
         """
+        if self._annotation_mapping is None:
+            raise FileNotFoundError(
+                "This atlas does not have a 4D mask array. "
+                "Re-download the atlas to get the latest version."
+            )
         structure_id = self.structures[structure]["id"]
-        descendants = self.get_structure_descendants(structure)
+        if structure_id not in self._annotation_mapping:
+            raise KeyError(
+                f"Structure {structure} (id={structure_id}) not found in "
+                "annotation mapping."
+            )
 
-        descendant_ids = [
-            self.structures[descendant]["id"] for descendant in descendants
-        ]
-        descendant_ids.append(structure_id)
+        index = self._annotation_mapping[structure_id]
+        masks_path = self._annotation_masks_path
+        multiscale = nz.from_ngff_zarr(masks_path)
+        dataset_path = multiscale.metadata.datasets[
+            self._annotation_masks_pyramid_level
+        ].path
+        # Zarr v3 stores chunk i of a (1,Z,Y,X) array at c/i/0/0/0
+        chunk_path = (
+            masks_path / dataset_path / "c" / str(index) / "0" / "0" / "0"
+        )
+        if not chunk_path.exists():
+            annotation_location = self.metadata["annotation_set"]["location"][
+                1:
+            ]
+            remote_path = remote_url_s3.format(
+                f"{annotation_location}/{V3_ANNOTATION_NAME_MASKS}"
+                f"/{dataset_path}/c/{index}/0/0/0"
+            )
+            chunk_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                self.fs.get(
+                    remote_path,
+                    str(chunk_path),
+                    callback=TqdmCallback(),
+                )
+            except FileNotFoundError:
+                # All-zero mask: zarr returns fill_value=0 for missing chunks
+                pass
 
-        mask_stack = np.zeros(self.shape, self.annotation.dtype)
-        mask_stack[np.isin(self.annotation, descendant_ids)] = structure_id
-
-        return mask_stack
+        return (
+            multiscale.images[self._annotation_masks_pyramid_level]
+            .data[index]
+            .compute()
+        )
 
 
 class AdditionalRefDict(UserDict):

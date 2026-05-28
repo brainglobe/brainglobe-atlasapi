@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from brainglobe_atlasapi import core
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
 
@@ -309,50 +310,12 @@ def test_even_hemisphere_size(atlas):
     assert (atlas.hemispheres[:, :, 57] == 1).all()
 
 
-def test_get_structure_mask(atlas):
-    """Generate a structure mask and verify its properties.
-
-    >>> atlas.structures
-    root (997)
-      └── grey (8)
-            └── CH (567)
-
-    The 'structures' "grey" and "CH" are present in the example atlas. Their
-    respective ids are 8 and 567. These labels are not present in the
-    annotation of the example atlas however. Because the labels 7 and 566
-    are present, we reassign the parent and substructure ids to match the
-    annotation for testing purposes.
-
-    Because the "CH" structure is a sub-structure of "grey" it should adopt
-    the parent structure id (7) in the mask where its label (566) is present
-    when get_structure_mask is applied.
-
-    After applying get_structure_mask only the parent structure id (7) should
-    remain in the mask for the regions corresponding to "CH" and "grey".
-
-    All labels belonging to structures that are outside of the parent structure
-    should be set to 0.
-
-    Parameters
-    ----------
-    atlas : brainglobe_atlasapi.core.Atlas
-        The atlas fixture.
+def test_get_structure_mask_raises_without_4d_array(atlas):
+    """get_structure_mask raises FileNotFoundError when annotations.ome.zarr
+    is absent (the example_mouse atlas pre-dates the 4D array feature).
     """
-    atlas.structures["grey"]["id"] = 7
-    atlas.structures["CH"]["id"] = 566
-    loc_ch = np.where(atlas.annotation == 566)
-
-    grey_structure_mask = atlas.get_structure_mask("grey")
-
-    assert (
-        atlas.annotation.shape == grey_structure_mask.shape
-    ), "Mask shape should match annotation shape"
-    assert np.all(
-        grey_structure_mask[loc_ch] == 7
-    ), "Substructure id (566; CH) should adopt parent structure id (7; grey)"
-    assert np.all(
-        (grey_structure_mask == 0) | (grey_structure_mask == 7)
-    ), "Values in grey_structure_mask should be either 0 or 7"
+    with pytest.raises(FileNotFoundError, match="4D mask array"):
+        atlas.get_structure_mask("grey")
 
 
 @pytest.mark.parametrize(
@@ -464,3 +427,111 @@ def test_get_structures_at_hierarchy_level_leaf_node(atlas):
     # CH is the deepest node in the test atlas
     result = atlas.get_structures_at_hierarchy_level("CH", 0)
     assert result == [997]  # root ID
+
+
+@pytest.fixture(scope="module")
+def atlas_with_masks(tmp_path_factory):
+    """Create a minimal 3-structure atlas with annotations.ome.zarr via wrapup.
+
+    Structure tree: root (999) → region_a (1) → leaf_b (2)
+    Post-order mapping: leaf_b→0, region_a→1, root→2
+
+    Annotation (5x5x5):
+      - [0,0,0] = 1  (region_a)
+      - [0,0,1] = 2  (leaf_b)
+      - rest   = 999 (root)
+    """
+    import meshio
+
+    working_dir = tmp_path_factory.mktemp("atlas_masks")
+    shape = (15, 15, 15)
+    reference = np.full(shape, 200, dtype=np.uint16)
+    annotation = np.full(shape, 999, dtype=np.uint32)
+    annotation[0, 0, 0] = 1
+    annotation[0, 0, 1] = 2
+
+    structures_list = [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 1,
+            "acronym": "region_a",
+            "name": "Region A",
+            "rgb_triplet": [100, 150, 200],
+            "structure_id_path": [999, 1],
+        },
+        {
+            "id": 2,
+            "acronym": "leaf_b",
+            "name": "Leaf B",
+            "rgb_triplet": [200, 100, 50],
+            "structure_id_path": [999, 1, 2],
+        },
+    ]
+
+    mesh_path = working_dir / "root.obj"
+    points = np.array(
+        [[0, 0, 0], [10, 0, 0], [0, 10, 0], [0, 0, 10]], dtype=float
+    )
+    cells = [
+        ("triangle", np.array([[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]))
+    ]
+    meshio.write(str(mesh_path), meshio.Mesh(points=points, cells=cells))
+    meshes = {999: mesh_path, 1: mesh_path, 2: mesh_path}
+
+    wrapup_atlas_from_data(
+        atlas_name="mask_test",
+        atlas_minor_version="0",
+        citation="unpublished",
+        atlas_link="https://example.com",
+        species="Mus musculus",
+        resolution=(25, 25, 25),
+        orientation="asr",
+        root_id=999,
+        reference_stack=reference,
+        annotation_stack=annotation,
+        structures_list=structures_list,
+        meshes_dict=meshes,
+        working_dir=working_dir,
+    )
+
+    manifests = list(
+        (working_dir / "brainglobe-atlasapi" / "atlases").glob(
+            "**/manifest.json"
+        )
+    )
+    assert len(manifests) == 1
+    return core.Atlas(manifests[0])
+
+
+def test_get_structure_mask_returns_binary_uint8(atlas_with_masks):
+    """get_structure_mask returns a uint8 array with values 0 or 1."""
+    mask = atlas_with_masks.get_structure_mask("leaf_b")
+    assert mask.dtype == np.uint8
+    assert set(np.unique(mask)).issubset({0, 1})
+
+
+def test_get_structure_mask_leaf_correct_voxels(atlas_with_masks):
+    """Leaf mask has exactly the voxels assigned to that structure."""
+    mask = atlas_with_masks.get_structure_mask("leaf_b")
+    assert mask[0, 0, 1] == 1
+    assert mask.sum() == 1
+
+
+def test_get_structure_mask_parent_includes_children(atlas_with_masks):
+    """Parent mask includes its own voxels plus all descendant voxels."""
+    mask = atlas_with_masks.get_structure_mask("region_a")
+    assert mask[0, 0, 0] == 1
+    assert mask[0, 0, 1] == 1
+    assert mask.sum() == 2
+
+
+def test_get_structure_mask_raises_for_unknown_structure(atlas_with_masks):
+    """get_structure_mask raises KeyError for an unknown structure."""
+    with pytest.raises(KeyError):
+        atlas_with_masks.get_structure_mask("nonexistent_region")

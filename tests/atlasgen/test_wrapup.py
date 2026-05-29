@@ -378,16 +378,22 @@ def test_save_4d_annotation_data_mapping_in_zarr_json(
 def test_save_4d_annotation_data_skips_when_use_existing(
     mask_packaging_data, tmp_path
 ):
-    """_save_4d_annotation_data skips when use_existing=True."""
+    """Pre-existing zarr is untouched when use_existing=True."""
     transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
     dest = (
         tmp_path
         / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
         / descriptors.V3_ANNOTATION_MASKS_NAME
     )
+    # First write establishes the zarr
+    _save_4d_annotation_data(mask_packaging_data, transformations)
+    assert dest.exists()
+    mtime_before = dest.stat().st_mtime
+
+    # Second call with use_existing=True must not modify the zarr
     mask_packaging_data.annotation_info.use_existing = True
     _save_4d_annotation_data(mask_packaging_data, transformations)
-    assert not dest.exists()
+    assert dest.stat().st_mtime == mtime_before
 
 
 # --- _insert_into_4d_masks ---

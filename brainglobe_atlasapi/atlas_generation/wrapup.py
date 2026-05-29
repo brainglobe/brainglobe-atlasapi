@@ -424,6 +424,86 @@ def _save_4d_annotation_data(
     root.attrs["annotation_mapping"] = {str(k): v for k, v in mapping.items()}
 
 
+def _insert_into_4d_masks(
+    packaging_data: AtlasPackagingData,
+    transformations: List[List[dict]],
+) -> None:
+    """Insert new resolution levels into an existing annotations.ome.zarr.
+
+    Reads the existing zarr from the previous version's directory, validates
+    that the annotation_mapping is unchanged, computes 4D masks for the new
+    scales, merges all scale levels, and writes to the new versioned directory.
+    """
+    annotation_info = packaging_data.annotation_info
+    existing_masks_path = (
+        packaging_data.working_dir
+        / Path(annotation_info.existing_stub).parent
+        / descriptors.V3_ANNOTATION_MASKS_NAME
+    )
+    target_dir = packaging_data.working_dir / Path(annotation_info.stub).parent
+    target_masks_path = target_dir / descriptors.V3_ANNOTATION_MASKS_NAME
+
+    if not existing_masks_path.exists():
+        raise ValueError(
+            f"No existing 4D masks zarr found at {existing_masks_path}. "
+            "This atlas may predate the 4D masks feature — "
+            "re-run without update_existing to build from scratch."
+        )
+
+    existing_root = zarr.open_group(str(existing_masks_path), mode="r")
+    stored_mapping = {
+        int(k): v
+        for k, v in dict(existing_root.attrs)
+        .get("annotation_mapping", {})
+        .items()
+    }
+
+    structures_tree = get_structures_tree(packaging_data.structures_list)
+    expected_mapping = _generate_annotation_mapping(structures_tree)
+
+    if stored_mapping != expected_mapping:
+        raise ValueError(
+            "The annotation_mapping in the existing 4D masks zarr does not "
+            "match the structures_list for this atlas version. "
+            "Re-run without update_existing to rebuild from scratch."
+        )
+
+    existing_multiscale = nz.from_ngff_zarr(existing_masks_path)
+    resolution_to_data: Dict[tuple, da.Array] = {
+        tuple(im.scale.values())[1:]: im.data
+        for im in existing_multiscale.images
+    }
+
+    new_resolutions = [tuple(t[0]["scale"]) for t in transformations]
+    for res, annotation_scale in zip(
+        new_resolutions, packaging_data.annotation_stack
+    ):
+        resolution_to_data[res] = _compute_4d_masks_for_scale(
+            annotation_scale, structures_tree, expected_mapping
+        )
+
+    existing_resolutions = [
+        tuple(im.scale.values())[1:] for im in existing_multiscale.images
+    ]
+    merged_resolutions = _merge_resolutions_list(
+        existing_resolutions, new_resolutions
+    )
+
+    merged_stack = [resolution_to_data[res] for res in merged_resolutions]
+    transformations_4d = [
+        [{"type": "scale", "scale": [1.0] + list(res)}]
+        for res in merged_resolutions
+    ]
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    save_annotation_masks(merged_stack, target_dir, transformations_4d)
+
+    new_root = zarr.open_group(str(target_masks_path), mode="r+")
+    new_root.attrs["annotation_mapping"] = {
+        str(k): v for k, v in expected_mapping.items()
+    }
+
+
 def _save_additional_references(
     packaging_data: AtlasPackagingData,
     transformations: List[List[dict]],

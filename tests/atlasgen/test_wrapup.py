@@ -8,6 +8,7 @@ exists, and that the overwrite flag correctly replaces existing output.
 """
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import meshio
@@ -21,12 +22,14 @@ from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation import __version__ as ATLAS_VERSION
 from brainglobe_atlasapi.atlas_generation.stacks import (
     BG_OME_ZARR_AXES,
+    save_annotation_masks,
     write_multiscale_ome_zarr,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import (
     _build_transformations,
     _compute_4d_masks_for_scale,
     _generate_annotation_mapping,
+    _insert_into_4d_masks,
     _insert_into_multiscale,
     _merge_resolutions_list,
     _save_4d_annotation_data,
@@ -380,6 +383,191 @@ def test_save_4d_annotation_data_skip_if_exists(mask_packaging_data, tmp_path):
     mtime_before = dest.stat().st_mtime
     _save_4d_annotation_data(mask_packaging_data, transformations)
     assert dest.stat().st_mtime == mtime_before  # not re-written
+
+
+# --- _insert_into_4d_masks ---
+
+
+@pytest.fixture
+def update_masks_fixture(tmp_path):
+    """Create packaging data for an update_existing=True scenario.
+
+    Builds an existing annotations.ome.zarr with one scale (0.025 mm),
+    and provides a second annotation array at 0.050 mm to insert.
+    """
+    annotation_v1 = np.full((5, 5, 5), 999, dtype=np.uint32)
+    annotation_v1[0, 0, 0] = 1
+    annotation_v1[0, 0, 1] = 2
+
+    annotation_v2 = np.full((3, 3, 3), 999, dtype=np.uint32)
+    annotation_v2[0, 0, 0] = 1
+
+    structures_list = [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 1,
+            "acronym": "region_a",
+            "name": "Region A",
+            "rgb_triplet": [100, 150, 200],
+            "structure_id_path": [999, 1],
+        },
+        {
+            "id": 2,
+            "acronym": "leaf_b",
+            "name": "Leaf B",
+            "rgb_triplet": [200, 100, 50],
+            "structure_id_path": [999, 1, 2],
+        },
+    ]
+
+    existing_stub = (
+        "annotation-sets/test/0_0_0/annotations_compressed.ome.zarr"
+    )
+    stub = "annotation-sets/test/1_0_0/annotations_compressed.ome.zarr"
+
+    # Build the existing masks zarr at the v0 path
+    existing_dir = tmp_path / Path(existing_stub).parent
+    existing_dir.mkdir(parents=True, exist_ok=True)
+
+    tree = get_structures_tree(structures_list)
+    mapping = _generate_annotation_mapping(tree)
+    masks_v1 = _compute_4d_masks_for_scale(annotation_v1, tree, mapping)
+    save_annotation_masks(
+        [masks_v1],
+        existing_dir,
+        [[{"type": "scale", "scale": [1.0, 0.025, 0.025, 0.025]}]],
+    )
+    existing_masks_path = existing_dir / descriptors.V3_ANNOTATION_MASKS_NAME
+    root_zarr = zarr.open_group(str(existing_masks_path), mode="r+")
+    root_zarr.attrs["annotation_mapping"] = {
+        str(k): v for k, v in mapping.items()
+    }
+
+    annotation_info = SimpleNamespace(
+        existing_stub=existing_stub,
+        stub=stub,
+        use_existing=False,
+        update_existing=True,
+        metadata={"location": "/" + str(Path(stub).parent)},
+    )
+
+    return SimpleNamespace(
+        annotation_stack=[annotation_v2],
+        structures_list=structures_list,
+        working_dir=tmp_path,
+        annotation_info=annotation_info,
+    )
+
+
+def test_insert_into_4d_masks_creates_target_zarr(update_masks_fixture):
+    """_insert_into_4d_masks writes annotations.ome.zarr at the new path."""
+    transformations = [[{"type": "scale", "scale": [0.050, 0.050, 0.050]}]]
+    _insert_into_4d_masks(update_masks_fixture, transformations)
+    target = (
+        update_masks_fixture.working_dir
+        / Path(update_masks_fixture.annotation_info.stub).parent
+        / descriptors.V3_ANNOTATION_MASKS_NAME
+    )
+    assert target.exists()
+
+
+def test_insert_into_4d_masks_has_two_scale_levels(update_masks_fixture):
+    """Output zarr contains both the existing and the new scale level."""
+    transformations = [[{"type": "scale", "scale": [0.050, 0.050, 0.050]}]]
+    _insert_into_4d_masks(update_masks_fixture, transformations)
+    target = (
+        update_masks_fixture.working_dir
+        / Path(update_masks_fixture.annotation_info.stub).parent
+        / descriptors.V3_ANNOTATION_MASKS_NAME
+    )
+    ms = nz.from_ngff_zarr(target)
+    assert len(ms.images) == 2
+
+
+def test_insert_into_4d_masks_preserves_annotation_mapping(
+    update_masks_fixture,
+):
+    """annotation_mapping attr is written to the new zarr root."""
+    transformations = [[{"type": "scale", "scale": [0.050, 0.050, 0.050]}]]
+    _insert_into_4d_masks(update_masks_fixture, transformations)
+    target = (
+        update_masks_fixture.working_dir
+        / Path(update_masks_fixture.annotation_info.stub).parent
+        / descriptors.V3_ANNOTATION_MASKS_NAME
+    )
+    root = zarr.open_group(str(target), mode="r")
+    mapping = dict(root.attrs).get("annotation_mapping")
+    assert mapping is not None
+    assert mapping["2"] == 0  # leaf_b (post-order first)
+    assert mapping["1"] == 1  # region_a
+    assert mapping["999"] == 2  # root
+
+
+def test_insert_into_4d_masks_raises_if_existing_zarr_absent(tmp_path):
+    """ValueError when the existing annotations.ome.zarr does not exist."""
+    structures_list = [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+    ]
+    annotation_info = SimpleNamespace(
+        existing_stub="annotation-sets/test/0_0_0/annotations_compressed.ome.zarr",
+        stub="annotation-sets/test/1_0_0/annotations_compressed.ome.zarr",
+        use_existing=False,
+        update_existing=True,
+    )
+    packaging_data = SimpleNamespace(
+        annotation_stack=[np.full((3, 3, 3), 999, dtype=np.uint32)],
+        structures_list=structures_list,
+        working_dir=tmp_path,
+        annotation_info=annotation_info,
+    )
+    with pytest.raises(ValueError, match="No existing 4D masks zarr"):
+        _insert_into_4d_masks(
+            packaging_data,
+            [[{"type": "scale", "scale": [0.050, 0.050, 0.050]}]],
+        )
+
+
+def test_insert_into_4d_masks_raises_on_mapping_mismatch(update_masks_fixture):
+    """ValueError when structures_list mapping differs from stored."""
+    different_structures = [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 3,
+            "acronym": "new_region",
+            "name": "New Region",
+            "rgb_triplet": [0, 0, 0],
+            "structure_id_path": [999, 3],
+        },
+    ]
+    packaging_data = SimpleNamespace(
+        annotation_stack=update_masks_fixture.annotation_stack,
+        structures_list=different_structures,
+        working_dir=update_masks_fixture.working_dir,
+        annotation_info=update_masks_fixture.annotation_info,
+    )
+    with pytest.raises(ValueError, match="annotation_mapping"):
+        _insert_into_4d_masks(
+            packaging_data,
+            [[{"type": "scale", "scale": [0.050, 0.050, 0.050]}]],
+        )
 
 
 # --- _save_terminology_csv ---

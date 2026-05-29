@@ -103,7 +103,7 @@ def temp_path():
     shutil.rmtree(path)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def atlas_path():
     """Provide the root directory path of the default atlas.
 

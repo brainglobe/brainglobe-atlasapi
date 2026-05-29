@@ -75,7 +75,7 @@ def test_mesh_loading(atlas_path):
         atlas_path
         / "terminologies"
         / "example_mouse-terminology"
-        / "1_2"
+        / "3_0"
         / descriptors.V3_TERMINOLOGY_NAME
     )
 
@@ -83,7 +83,7 @@ def test_mesh_loading(atlas_path):
         atlas_path
         / "annotation-sets"
         / "example_mouse-annotation"
-        / "1_2"
+        / "3_0"
         / descriptors.V3_MESHES_DIRECTORY
     )
 

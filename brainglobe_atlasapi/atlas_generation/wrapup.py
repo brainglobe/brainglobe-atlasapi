@@ -366,6 +366,32 @@ def _generate_annotation_mapping(tree: "Tree") -> Dict[int, int]:
     }
 
 
+def _compute_4d_masks_for_scale(
+    annotation_scale: npt.NDArray,
+    structures_tree: "Tree",
+    mapping: Dict[int, int],
+) -> da.Array:
+    """Compute (N, Z, Y, X) uint8 mask array for one annotation scale level."""
+    structure_masks: Dict[int, npt.NDArray] = {}
+    for node in postorder_depth_first_search(structures_tree):
+        node_id = node.identifier
+        children = structures_tree.children(node_id)
+        direct = (annotation_scale == node_id).astype(np.uint8)
+        if not children:
+            structure_masks[node_id] = direct
+        else:
+            combined = direct
+            for child in children:
+                combined = combined | structure_masks[child.identifier]
+            structure_masks[node_id] = combined
+
+    index_to_mask = {
+        mapping[nid]: mask for nid, mask in structure_masks.items()
+    }
+    masks_4d = np.stack([index_to_mask[i] for i in range(len(mapping))])
+    return da.from_array(masks_4d, chunks=(1,) + masks_4d.shape[1:])
+
+
 def _save_4d_annotation_data(
     packaging_data: AtlasPackagingData,
     transformations: List[List[dict]],
@@ -382,28 +408,10 @@ def _save_4d_annotation_data(
     structures_tree = get_structures_tree(packaging_data.structures_list)
     mapping = _generate_annotation_mapping(structures_tree)
 
-    masks_per_scale = []
-    for annotation_scale in packaging_data.annotation_stack:
-        structure_masks = {}
-        for node in postorder_depth_first_search(structures_tree):
-            node_id = node.identifier
-            children = structures_tree.children(node_id)
-            direct = (annotation_scale == node_id).astype(np.uint8)
-            if not children:
-                structure_masks[node_id] = direct
-            else:
-                combined = direct
-                for child in children:
-                    combined = combined | structure_masks[child.identifier]
-                structure_masks[node_id] = combined
-
-        index_to_mask = {
-            mapping[nid]: mask for nid, mask in structure_masks.items()
-        }
-        masks_4d = np.stack([index_to_mask[i] for i in range(len(mapping))])
-        masks_per_scale.append(
-            da.from_array(masks_4d, chunks=(1,) + masks_4d.shape[1:])
-        )
+    masks_per_scale = [
+        _compute_4d_masks_for_scale(ann_scale, structures_tree, mapping)
+        for ann_scale in packaging_data.annotation_stack
+    ]
 
     transformations_4d = [
         [{"type": "scale", "scale": [1.0] + t[0]["scale"]}]

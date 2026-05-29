@@ -25,6 +25,7 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import (
     _build_transformations,
+    _compute_4d_masks_for_scale,
     _generate_annotation_mapping,
     _insert_into_multiscale,
     _merge_resolutions_list,
@@ -159,6 +160,85 @@ def test_generate_annotation_mapping_covers_all_structures():
     mapping = _generate_annotation_mapping(tree)
     assert set(mapping.keys()) == {999, 1, 2}
     assert set(mapping.values()) == {0, 1, 2}
+
+
+# --- _compute_4d_masks_for_scale ---
+
+
+def test_compute_4d_masks_for_scale_shape(tmp_path):
+    """_compute_4d_masks_for_scale returns (N, Z, Y, X) dask array."""
+    annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
+    annotation[0, 0, 0] = 1
+    annotation[0, 0, 1] = 2
+    structures_list = [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 1,
+            "acronym": "region_a",
+            "name": "Region A",
+            "rgb_triplet": [100, 150, 200],
+            "structure_id_path": [999, 1],
+        },
+        {
+            "id": 2,
+            "acronym": "leaf_b",
+            "name": "Leaf B",
+            "rgb_triplet": [200, 100, 50],
+            "structure_id_path": [999, 1, 2],
+        },
+    ]
+    tree = get_structures_tree(structures_list)
+    mapping = _generate_annotation_mapping(tree)
+
+    result = _compute_4d_masks_for_scale(annotation, tree, mapping)
+
+    assert result.shape == (3, 5, 5, 5)
+    assert result.dtype == np.uint8
+
+
+def test_compute_4d_masks_for_scale_leaf_has_one_voxel(tmp_path):
+    """Leaf mask covers one voxel; parent mask is union of child + own."""
+    annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
+    annotation[0, 0, 0] = 1
+    annotation[0, 0, 1] = 2
+    structures_list = [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 1,
+            "acronym": "region_a",
+            "name": "Region A",
+            "rgb_triplet": [100, 150, 200],
+            "structure_id_path": [999, 1],
+        },
+        {
+            "id": 2,
+            "acronym": "leaf_b",
+            "name": "Leaf B",
+            "rgb_triplet": [200, 100, 50],
+            "structure_id_path": [999, 1, 2],
+        },
+    ]
+    tree = get_structures_tree(structures_list)
+    mapping = _generate_annotation_mapping(tree)
+
+    result = _compute_4d_masks_for_scale(annotation, tree, mapping).compute()
+
+    # Post-order: leaf_b→0, region_a→1, root→2
+    assert result[0].sum() == 1  # leaf_b: one voxel
+    assert result[1].sum() == 2  # region_a: own voxel + leaf_b voxel
+    assert result[2].sum() == 125  # root: entire volume
 
 
 # --- _save_4d_annotation_data ---

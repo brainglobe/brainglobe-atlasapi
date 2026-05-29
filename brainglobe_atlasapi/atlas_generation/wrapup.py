@@ -26,6 +26,7 @@ from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     generate_metadata_dict,
 )
 from brainglobe_atlasapi.atlas_generation.stacks import (
+    BG_OME_ZARR_AXES,
     save_annotation,
     save_annotation_masks,
     save_hemispheres,
@@ -84,6 +85,7 @@ def _insert_into_multiscale(
     transformations: List[List[dict]],
     new_data: List[npt.NDArray],
     working_dir: Path,
+    axes: List[dict] = BG_OME_ZARR_AXES,
 ) -> None:
     requested_resolutions = [
         tuple(transform[0]["scale"]) for transform in transformations
@@ -118,6 +120,7 @@ def _insert_into_multiscale(
         images=stack_list,
         output_path=working_dir,
         transformations=new_transformations,
+        axes=axes,
     )
 
 

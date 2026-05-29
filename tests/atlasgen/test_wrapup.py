@@ -19,9 +19,14 @@ import zarr
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation import __version__ as ATLAS_VERSION
+from brainglobe_atlasapi.atlas_generation.stacks import (
+    BG_OME_ZARR_AXES,
+    write_multiscale_ome_zarr,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import (
     _build_transformations,
     _generate_annotation_mapping,
+    _insert_into_multiscale,
     _merge_resolutions_list,
     _save_4d_annotation_data,
     _save_coordinate_space_manifest,
@@ -60,6 +65,32 @@ def test_merge_resolutions_list_empty_new():
     existing = [(10, 10, 10)]
     result = _merge_resolutions_list(existing, [])
     assert result == [(10, 10, 10)]
+
+
+# --- _insert_into_multiscale ---
+
+
+def test_insert_into_multiscale_merges_two_scale_levels(tmp_path):
+    """_insert_into_multiscale merges existing and new scale levels."""
+    existing_zarr = tmp_path / "existing.ome.zarr"
+    write_multiscale_ome_zarr(
+        images=[np.zeros((5, 5, 5), dtype=np.uint32)],
+        output_path=existing_zarr,
+        transformations=[[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]],
+        axes=BG_OME_ZARR_AXES,
+    )
+    existing = nz.from_ngff_zarr(existing_zarr)
+    target = tmp_path / "target.ome.zarr"
+
+    _insert_into_multiscale(
+        multiscale=existing,
+        transformations=[[{"type": "scale", "scale": [0.050, 0.050, 0.050]}]],
+        new_data=[np.zeros((3, 3, 3), dtype=np.uint32)],
+        working_dir=target,
+    )
+
+    result = nz.from_ngff_zarr(target)
+    assert len(result.images) == 2
 
 
 # --- _build_transformations ---

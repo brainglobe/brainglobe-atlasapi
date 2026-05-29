@@ -165,7 +165,7 @@ def test_generate_annotation_mapping_covers_all_structures():
 # --- _compute_4d_masks_for_scale ---
 
 
-def test_compute_4d_masks_for_scale_shape(tmp_path):
+def test_compute_4d_masks_for_scale_shape():
     """_compute_4d_masks_for_scale returns (N, Z, Y, X) dask array."""
     annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
     annotation[0, 0, 0] = 1
@@ -202,7 +202,7 @@ def test_compute_4d_masks_for_scale_shape(tmp_path):
     assert result.dtype == np.uint8
 
 
-def test_compute_4d_masks_for_scale_leaf_has_one_voxel(tmp_path):
+def test_compute_4d_masks_for_scale_leaf_has_one_voxel():
     """Leaf mask covers one voxel; parent mask is union of child + own."""
     annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
     annotation[0, 0, 0] = 1

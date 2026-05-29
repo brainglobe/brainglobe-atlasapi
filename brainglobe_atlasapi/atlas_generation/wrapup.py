@@ -398,12 +398,17 @@ def _save_4d_annotation_data(
 ) -> None:
     """Write the 4D annotation masks array alongside annotations_compressed."""
     annotation_info = packaging_data.annotation_info
+
+    if annotation_info.use_existing:
+        return
+
+    if annotation_info.update_existing:
+        _insert_into_4d_masks(packaging_data, transformations)
+        return
+
     dest_dir = packaging_data.working_dir / annotation_info.metadata[
         "location"
     ].lstrip("/")
-    masks_path = dest_dir / descriptors.V3_ANNOTATION_MASKS_NAME
-    if masks_path.exists():
-        return
 
     structures_tree = get_structures_tree(packaging_data.structures_list)
     mapping = _generate_annotation_mapping(structures_tree)
@@ -418,6 +423,7 @@ def _save_4d_annotation_data(
         for t in transformations
     ]
 
+    masks_path = dest_dir / descriptors.V3_ANNOTATION_MASKS_NAME
     save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
 
     root = zarr.open_group(str(masks_path), mode="r+")

@@ -282,7 +282,11 @@ def mask_packaging_data(tmp_path):
     annotation_info_meta = {
         "location": "/annotation-sets/test-annotation/0_0_0",
     }
-    annotation_info = SimpleNamespace(metadata=annotation_info_meta)
+    annotation_info = SimpleNamespace(
+        metadata=annotation_info_meta,
+        use_existing=False,
+        update_existing=False,
+    )
 
     dest_dir = tmp_path / annotation_info_meta["location"].lstrip("/")
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -371,18 +375,19 @@ def test_save_4d_annotation_data_mapping_in_zarr_json(
     assert mapping["999"] == 2  # root
 
 
-def test_save_4d_annotation_data_skip_if_exists(mask_packaging_data, tmp_path):
-    """_save_4d_annotation_data skips when annotations.ome.zarr exists."""
+def test_save_4d_annotation_data_skips_when_use_existing(
+    mask_packaging_data, tmp_path
+):
+    """_save_4d_annotation_data skips when use_existing=True."""
     transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
-    _save_4d_annotation_data(mask_packaging_data, transformations)
     dest = (
         tmp_path
         / mask_packaging_data.annotation_info.metadata["location"].lstrip("/")
         / descriptors.V3_ANNOTATION_MASKS_NAME
     )
-    mtime_before = dest.stat().st_mtime
+    mask_packaging_data.annotation_info.use_existing = True
     _save_4d_annotation_data(mask_packaging_data, transformations)
-    assert dest.stat().st_mtime == mtime_before  # not re-written
+    assert not dest.exists()
 
 
 # --- _insert_into_4d_masks ---

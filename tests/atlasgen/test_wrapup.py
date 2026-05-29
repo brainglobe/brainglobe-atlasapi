@@ -396,6 +396,21 @@ def test_save_4d_annotation_data_skips_when_use_existing(
     assert dest.stat().st_mtime == mtime_before
 
 
+def test_save_4d_annotation_data_delegates_when_update_existing(
+    update_masks_fixture,
+):
+    """_save_4d_annotation_data dispatches to _insert_into_4d_masks."""
+    transformations = [[{"type": "scale", "scale": [0.050, 0.050, 0.050]}]]
+    _save_4d_annotation_data(update_masks_fixture, transformations)
+    target = (
+        update_masks_fixture.working_dir
+        / Path(update_masks_fixture.annotation_info.stub).parent
+        / descriptors.V3_ANNOTATION_MASKS_NAME
+    )
+    ms = nz.from_ngff_zarr(target)
+    assert len(ms.images) == 2
+
+
 # --- _insert_into_4d_masks ---
 
 

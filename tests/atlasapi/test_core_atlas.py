@@ -464,7 +464,7 @@ def test_get_structures_at_hierarchy_level_leaf_node(atlas):
 
 
 @pytest.fixture(scope="module")
-def atlas_with_masks(tmp_path_factory):
+def atlas_with_masks(tmp_path_factory, mask_structures, tetrahedron_mesh_file):
     """Create a minimal 3-structure atlas with annotations.ome.zarr via wrapup.
 
     Structure tree: root (999) → region_a (1) → leaf_b (2)
@@ -475,8 +475,6 @@ def atlas_with_masks(tmp_path_factory):
       - [0,0,1] = 2  (leaf_b)
       - rest   = 999 (root)
     """
-    import meshio
-
     working_dir = tmp_path_factory.mktemp("atlas_masks")
     shape = (15, 15, 15)
     reference = np.full(shape, 200, dtype=np.uint16)
@@ -484,39 +482,11 @@ def atlas_with_masks(tmp_path_factory):
     annotation[0, 0, 0] = 1
     annotation[0, 0, 1] = 2
 
-    structures_list = [
-        {
-            "id": 999,
-            "acronym": "root",
-            "name": "root",
-            "rgb_triplet": [255, 255, 255],
-            "structure_id_path": [999],
-        },
-        {
-            "id": 1,
-            "acronym": "region_a",
-            "name": "Region A",
-            "rgb_triplet": [100, 150, 200],
-            "structure_id_path": [999, 1],
-        },
-        {
-            "id": 2,
-            "acronym": "leaf_b",
-            "name": "Leaf B",
-            "rgb_triplet": [200, 100, 50],
-            "structure_id_path": [999, 1, 2],
-        },
-    ]
-
-    mesh_path = working_dir / "root.obj"
-    points = np.array(
-        [[0, 0, 0], [10, 0, 0], [0, 10, 0], [0, 0, 10]], dtype=float
-    )
-    cells = [
-        ("triangle", np.array([[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]))
-    ]
-    meshio.write(str(mesh_path), meshio.Mesh(points=points, cells=cells))
-    meshes = {999: mesh_path, 1: mesh_path, 2: mesh_path}
+    meshes = {
+        999: tetrahedron_mesh_file,
+        1: tetrahedron_mesh_file,
+        2: tetrahedron_mesh_file,
+    }
 
     wrapup_atlas_from_data(
         atlas_name="mask_test",
@@ -529,7 +499,7 @@ def atlas_with_masks(tmp_path_factory):
         root_id=999,
         reference_stack=reference,
         annotation_stack=annotation,
-        structures_list=structures_list,
+        structures_list=mask_structures,
         meshes_dict=meshes,
         working_dir=working_dir,
     )

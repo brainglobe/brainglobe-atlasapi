@@ -5,6 +5,8 @@ import shutil
 import tempfile
 from pathlib import Path
 
+import meshio
+import numpy as np
 import pytest
 
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas, config
@@ -116,3 +118,69 @@ def atlas_path():
     update_atlas("example_mouse_100um")
 
     return BrainGlobeAtlas("example_mouse_100um").root_dir
+
+
+@pytest.fixture(scope="session")
+def mask_structures():
+    """Provide a nested 3-structure list used by 4D-mask tests.
+
+    The structure tree is::
+
+        root (999)
+        └── region_a (1)
+            └── leaf_b (2)
+
+    Post-order mapping (leaf first): leaf_b -> 0, region_a -> 1, root -> 2.
+
+    Returns
+    -------
+    list
+        Structure dictionaries with id, acronym, name, RGB triplet and
+        structure ID path.
+    """
+    return [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 1,
+            "acronym": "region_a",
+            "name": "Region A",
+            "rgb_triplet": [100, 150, 200],
+            "structure_id_path": [999, 1],
+        },
+        {
+            "id": 2,
+            "acronym": "leaf_b",
+            "name": "Leaf B",
+            "rgb_triplet": [200, 100, 50],
+            "structure_id_path": [999, 1, 2],
+        },
+    ]
+
+
+@pytest.fixture(scope="session")
+def tetrahedron_mesh_file(tmp_path_factory):
+    """Write a minimal tetrahedron surface mesh as an .obj file.
+
+    The mesh content is independent of any structure ID; callers map whatever
+    IDs they need to the returned path when building a ``meshes_dict``.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the written .obj mesh.
+    """
+    mesh_path = tmp_path_factory.mktemp("meshes") / "tetrahedron.obj"
+    points = np.array(
+        [[0, 0, 0], [10, 0, 0], [0, 10, 0], [0, 0, 10]], dtype=float
+    )
+    cells = [
+        ("triangle", np.array([[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]))
+    ]
+    meshio.write(str(mesh_path), meshio.Mesh(points=points, cells=cells))
+    return mesh_path

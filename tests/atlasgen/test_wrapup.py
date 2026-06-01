@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import meshio
 import ngff_zarr as nz
 import numpy as np
 import pandas as pd
@@ -44,6 +43,20 @@ ATLAS_NAME = "test_atlas"
 RESOLUTION = (25, 25, 25)
 MINOR_VERSION = "0"
 ROOT_ID = 999
+
+
+@pytest.fixture
+def small_annotation():
+    """Build a (5, 5, 5) annotation for the root -> region_a -> leaf_b tree.
+
+    Voxel [0, 0, 0] is region_a (1), [0, 0, 1] is leaf_b (2), and the rest is
+    root (999).
+    """
+    annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
+    annotation[0, 0, 0] = 1  # region_a voxel
+    annotation[0, 0, 1] = 2  # leaf_b voxel
+    return annotation
+
 
 # --- _merge_resolutions_list ---
 
@@ -122,34 +135,10 @@ def test_build_transformations_anisotropic():
 
 # --- _generate_annotation_mapping ---
 
-MAPPING_STRUCTURES = [
-    {
-        "id": 999,
-        "acronym": "root",
-        "name": "root",
-        "rgb_triplet": [255, 255, 255],
-        "structure_id_path": [999],
-    },
-    {
-        "id": 1,
-        "acronym": "region_a",
-        "name": "Region A",
-        "rgb_triplet": [100, 150, 200],
-        "structure_id_path": [999, 1],
-    },
-    {
-        "id": 2,
-        "acronym": "leaf_b",
-        "name": "Leaf B",
-        "rgb_triplet": [200, 100, 50],
-        "structure_id_path": [999, 1, 2],
-    },
-]
 
-
-def test_generate_annotation_mapping_postorder():
+def test_generate_annotation_mapping_postorder(mask_structures):
     """_generate_annotation_mapping returns post-order indices (leaf first)."""
-    tree = get_structures_tree(MAPPING_STRUCTURES)
+    tree = get_structures_tree(mask_structures)
     mapping = _generate_annotation_mapping(tree)
     # Post-order: leaf_b (2) → region_a (1) → root (999)
     assert mapping[2] == 0
@@ -157,9 +146,9 @@ def test_generate_annotation_mapping_postorder():
     assert mapping[999] == 2
 
 
-def test_generate_annotation_mapping_covers_all_structures():
+def test_generate_annotation_mapping_covers_all_structures(mask_structures):
     """Every structure in the tree gets a unique index."""
-    tree = get_structures_tree(MAPPING_STRUCTURES)
+    tree = get_structures_tree(mask_structures)
     mapping = _generate_annotation_mapping(tree)
     assert set(mapping.keys()) == {999, 1, 2}
     assert set(mapping.values()) == {0, 1, 2}
@@ -168,78 +157,30 @@ def test_generate_annotation_mapping_covers_all_structures():
 # --- _compute_4d_masks_for_scale ---
 
 
-def test_compute_4d_masks_for_scale_shape(tmp_path):
+def test_compute_4d_masks_for_scale_shape(
+    tmp_path, small_annotation, mask_structures
+):
     """_compute_4d_masks_for_scale returns (N, Z, Y, X) dask array."""
-    annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
-    annotation[0, 0, 0] = 1
-    annotation[0, 0, 1] = 2
-    structures_list = [
-        {
-            "id": 999,
-            "acronym": "root",
-            "name": "root",
-            "rgb_triplet": [255, 255, 255],
-            "structure_id_path": [999],
-        },
-        {
-            "id": 1,
-            "acronym": "region_a",
-            "name": "Region A",
-            "rgb_triplet": [100, 150, 200],
-            "structure_id_path": [999, 1],
-        },
-        {
-            "id": 2,
-            "acronym": "leaf_b",
-            "name": "Leaf B",
-            "rgb_triplet": [200, 100, 50],
-            "structure_id_path": [999, 1, 2],
-        },
-    ]
-    tree = get_structures_tree(structures_list)
+    tree = get_structures_tree(mask_structures)
     mapping = _generate_annotation_mapping(tree)
 
     result = _compute_4d_masks_for_scale(
-        annotation, tree, mapping, tmp_path / "scratch.zarr"
+        small_annotation, tree, mapping, tmp_path / "scratch.zarr"
     )
 
     assert result.shape == (3, 5, 5, 5)
     assert result.dtype == np.uint8
 
 
-def test_compute_4d_masks_for_scale_leaf_has_one_voxel(tmp_path):
+def test_compute_4d_masks_for_scale_leaf_has_one_voxel(
+    tmp_path, small_annotation, mask_structures
+):
     """Leaf mask covers one voxel; parent mask is union of child + own."""
-    annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
-    annotation[0, 0, 0] = 1
-    annotation[0, 0, 1] = 2
-    structures_list = [
-        {
-            "id": 999,
-            "acronym": "root",
-            "name": "root",
-            "rgb_triplet": [255, 255, 255],
-            "structure_id_path": [999],
-        },
-        {
-            "id": 1,
-            "acronym": "region_a",
-            "name": "Region A",
-            "rgb_triplet": [100, 150, 200],
-            "structure_id_path": [999, 1],
-        },
-        {
-            "id": 2,
-            "acronym": "leaf_b",
-            "name": "Leaf B",
-            "rgb_triplet": [200, 100, 50],
-            "structure_id_path": [999, 1, 2],
-        },
-    ]
-    tree = get_structures_tree(structures_list)
+    tree = get_structures_tree(mask_structures)
     mapping = _generate_annotation_mapping(tree)
 
     result = _compute_4d_masks_for_scale(
-        annotation, tree, mapping, tmp_path / "scratch.zarr"
+        small_annotation, tree, mapping, tmp_path / "scratch.zarr"
     ).compute()
 
     # Post-order: leaf_b→0, region_a→1, root→2
@@ -301,36 +242,9 @@ def test_compute_4d_masks_for_scale_unions_multiple_children(tmp_path):
 
 
 @pytest.fixture
-def mask_packaging_data(tmp_path):
+def mask_packaging_data(tmp_path, small_annotation, mask_structures):
     """Minimal packaging data for a 3-structure atlas: root→region_a→leaf_b."""
-    shape = (5, 5, 5)
-    annotation = np.full(shape, 999, dtype=np.uint32)
-    annotation[0, 0, 0] = 1  # region_a voxel
-    annotation[0, 0, 1] = 2  # leaf_b voxel
-
-    structures_list = [
-        {
-            "id": 999,
-            "acronym": "root",
-            "name": "root",
-            "rgb_triplet": [255, 255, 255],
-            "structure_id_path": [999],
-        },
-        {
-            "id": 1,
-            "acronym": "region_a",
-            "name": "Region A",
-            "rgb_triplet": [100, 150, 200],
-            "structure_id_path": [999, 1],
-        },
-        {
-            "id": 2,
-            "acronym": "leaf_b",
-            "name": "Leaf B",
-            "rgb_triplet": [200, 100, 50],
-            "structure_id_path": [999, 1, 2],
-        },
-    ]
+    annotation = small_annotation
 
     annotation_info_meta = {
         "location": "/annotation-sets/test-annotation/0_0_0",
@@ -346,7 +260,7 @@ def mask_packaging_data(tmp_path):
 
     return SimpleNamespace(
         annotation_stack=[annotation],
-        structures_list=structures_list,
+        structures_list=mask_structures,
         working_dir=tmp_path,
         annotation_info=annotation_info,
     )
@@ -480,42 +394,18 @@ def test_save_4d_annotation_data_removes_scratch_dir(
 
 
 @pytest.fixture
-def update_masks_fixture(tmp_path):
+def update_masks_fixture(tmp_path, small_annotation, mask_structures):
     """Create packaging data for an update_existing=True scenario.
 
     Builds an existing annotations.ome.zarr with one scale (0.025 mm),
     and provides a second annotation array at 0.050 mm to insert.
     """
-    annotation_v1 = np.full((5, 5, 5), 999, dtype=np.uint32)
-    annotation_v1[0, 0, 0] = 1
-    annotation_v1[0, 0, 1] = 2
+    annotation_v1 = small_annotation
 
     annotation_v2 = np.full((3, 3, 3), 999, dtype=np.uint32)
     annotation_v2[0, 0, 0] = 1
 
-    structures_list = [
-        {
-            "id": 999,
-            "acronym": "root",
-            "name": "root",
-            "rgb_triplet": [255, 255, 255],
-            "structure_id_path": [999],
-        },
-        {
-            "id": 1,
-            "acronym": "region_a",
-            "name": "Region A",
-            "rgb_triplet": [100, 150, 200],
-            "structure_id_path": [999, 1],
-        },
-        {
-            "id": 2,
-            "acronym": "leaf_b",
-            "name": "Leaf B",
-            "rgb_triplet": [200, 100, 50],
-            "structure_id_path": [999, 1, 2],
-        },
-    ]
+    structures_list = mask_structures
 
     existing_stub = (
         "annotation-sets/test/0_0_0/annotations_compressed.ome.zarr"
@@ -866,22 +756,8 @@ def fake_volumes():
 
 
 @pytest.fixture(scope="module")
-def root_mesh_file(tmp_path_factory):
-    """Write a minimal surface mesh for the root structure as an .obj file."""
-    mesh_path = tmp_path_factory.mktemp("meshes") / f"{ROOT_ID}.obj"
-    points = np.array(
-        [[0, 0, 0], [10, 0, 0], [0, 10, 0], [0, 0, 10]], dtype=float
-    )
-    cells = [
-        ("triangle", np.array([[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]))
-    ]
-    meshio.write(str(mesh_path), meshio.Mesh(points=points, cells=cells))
-    return mesh_path
-
-
-@pytest.fixture(scope="module")
 def wrapup_dir(
-    tmp_path_factory, structures_list, fake_volumes, root_mesh_file
+    tmp_path_factory, structures_list, fake_volumes, tetrahedron_mesh_file
 ):
     """Run wrapup_atlas_from_data once; return the brainglobe-atlasapi dir."""
     working_dir = tmp_path_factory.mktemp("wrapup_e2e")
@@ -899,7 +775,7 @@ def wrapup_dir(
         reference_stack=reference,
         annotation_stack=annotation,
         structures_list=structures_list,
-        meshes_dict={ROOT_ID: root_mesh_file, 1: root_mesh_file},
+        meshes_dict={ROOT_ID: tetrahedron_mesh_file, 1: tetrahedron_mesh_file},
         scale_meshes=False,
         working_dir=working_dir,
         hemispheres_stack=None,

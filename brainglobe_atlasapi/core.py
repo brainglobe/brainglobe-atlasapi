@@ -725,6 +725,8 @@ class Atlas:
             self._annotation_masks_pyramid_level
         ].path
         # Zarr v3 stores chunk i of a (1,Z,Y,X) array at c/i/0/0/0
+        # Use the presence of the corner chunk as a proxy for
+        # existance, if not, download recursively the whole mask
         chunk_path = (
             masks_path / dataset_path / "c" / str(index) / "0" / "0" / "0"
         )
@@ -734,13 +736,15 @@ class Atlas:
             ]
             remote_path = remote_url_s3.format(
                 f"{annotation_location}/{V3_ANNOTATION_MASKS_NAME}"
-                f"/{dataset_path}/c/{index}/0/0/0"
+                f"/{dataset_path}/c/{index}/"
             )
+            local_path = masks_path / dataset_path / "c" / str(index)
             chunk_path.parent.mkdir(parents=True, exist_ok=True)
             try:
                 self.fs.get(
                     remote_path,
-                    str(chunk_path),
+                    local_path,
+                    recursive=True,
                     callback=TqdmCallback(),
                 )
             except FileNotFoundError as e:

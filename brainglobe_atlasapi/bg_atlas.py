@@ -325,8 +325,12 @@ class BrainGlobeAtlas(core.Atlas):
                         str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
                         callback=TqdmCallback(),
                     )
-                except FileNotFoundError:
-                    pass  # Atlas predates 4D masks feature
+                except FileNotFoundError as e:
+                    raise FileNotFoundError(
+                        f"Annotation masks metadata not found for atlas "
+                        f"{self.atlas_name} "
+                        f"v{remote_version_str.replace('_', '.')}."
+                    ) from e
 
                 if not self.metadata["symmetric"]:
                     root_hemisphere_path = (

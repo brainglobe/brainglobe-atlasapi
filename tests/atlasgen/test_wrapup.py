@@ -464,6 +464,18 @@ def test_save_4d_annotation_data_delegates_when_update_existing(
     assert len(ms.images) == 2
 
 
+def test_save_4d_annotation_data_removes_scratch_dir(
+    mask_packaging_data, tmp_path
+):
+    """The .mask_scratch dir is deleted after a successful save."""
+    transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
+    _save_4d_annotation_data(mask_packaging_data, transformations)
+    dest_dir = tmp_path / mask_packaging_data.annotation_info.metadata[
+        "location"
+    ].lstrip("/")
+    assert not (dest_dir / ".mask_scratch").exists()
+
+
 # --- _insert_into_4d_masks ---
 
 
@@ -556,6 +568,17 @@ def test_insert_into_4d_masks_creates_target_zarr(update_masks_fixture):
         / descriptors.V3_ANNOTATION_MASKS_NAME
     )
     assert target.exists()
+
+
+def test_insert_into_4d_masks_removes_scratch_dir(update_masks_fixture):
+    """The .mask_scratch dir is deleted after a successful insert."""
+    transformations = [[{"type": "scale", "scale": [0.050, 0.050, 0.050]}]]
+    _insert_into_4d_masks(update_masks_fixture, transformations)
+    target_dir = (
+        update_masks_fixture.working_dir
+        / Path(update_masks_fixture.annotation_info.stub).parent
+    )
+    assert not (target_dir / ".mask_scratch").exists()
 
 
 def test_insert_into_4d_masks_has_two_scale_levels(update_masks_fixture):

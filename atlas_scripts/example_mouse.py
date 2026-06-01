@@ -214,5 +214,4 @@ if __name__ == "__main__":
         cleanup_files=False,
         compress=True,
         scale_meshes=False,
-        overwrite=True,
     )

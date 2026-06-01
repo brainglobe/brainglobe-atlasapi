@@ -40,9 +40,10 @@ from brainglobe_atlasapi.utils import (
 
 def _determine_pyramid_level(
     multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
-):
+) -> int:
     for idx, metadata in enumerate(multiscale.metadata.datasets):
-        scales = metadata.coordinateTransformations[0].scale
+        # Only check spatial scale against resolution
+        scales = metadata.coordinateTransformations[0].scale[-3:]
         if all(
             np.isclose(res / 1000, scale)
             for res, scale in zip(resolution, scales)
@@ -50,23 +51,6 @@ def _determine_pyramid_level(
             return idx
 
     raise ValueError(f"Requested resolution {resolution} um is invalid.")
-
-
-def _determine_masks_pyramid_level(
-    multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
-) -> int:
-    for idx, metadata in enumerate(multiscale.metadata.datasets):
-        scales = metadata.coordinateTransformations[0].scale[
-            1:
-        ]  # skip annotation axis
-        if all(
-            np.isclose(res / 1000, scale)
-            for res, scale in zip(resolution, scales)
-        ):
-            return idx
-    raise ValueError(
-        f"Requested resolution {resolution} um not found in 4D masks pyramid."
-    )
 
 
 class Atlas:
@@ -124,13 +108,11 @@ class Atlas:
         masks_path = self._annotation_masks_path
         if masks_path.exists():
             masks_multiscale = nz.from_ngff_zarr(masks_path)
-            self._annotation_masks_pyramid_level = (
-                _determine_masks_pyramid_level(
-                    masks_multiscale, self.resolution
-                )
+            self._annotation_masks_pyramid_level = _determine_pyramid_level(
+                masks_multiscale, self.resolution
             )
             root = zarr.open_group(str(masks_path), mode="r")
-            raw_mapping = dict(root.attrs).get("annotation_mapping", None)
+            raw_mapping = root.attrs.get("annotation_mapping", None)
             if raw_mapping is not None:
                 self._annotation_mapping = {
                     int(k): v for k, v in raw_mapping.items()

@@ -443,9 +443,7 @@ def _save_4d_annotation_data(
         save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
 
         root = zarr.open_group(masks_path, mode="r+")
-        root.attrs["annotation_mapping"] = {
-            str(k): v for k, v in mapping.items()
-        }
+        root.attrs["annotation_mapping"] = mapping
     finally:
         shutil.rmtree(scratch_dir, ignore_errors=True)
 
@@ -531,9 +529,7 @@ def _insert_into_4d_masks(
         save_annotation_masks(merged_stack, target_dir, transformations_4d)
 
         new_root = zarr.open_group(target_masks_path, mode="r+")
-        new_root.attrs["annotation_mapping"] = {
-            str(k): v for k, v in expected_mapping.items()
-        }
+        new_root.attrs["annotation_mapping"] = expected_mapping
     finally:
         shutil.rmtree(scratch_dir, ignore_errors=True)
 

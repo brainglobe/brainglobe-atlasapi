@@ -743,9 +743,11 @@ class Atlas:
                     str(chunk_path),
                     callback=TqdmCallback(),
                 )
-            except FileNotFoundError:
-                # All-zero mask: zarr returns fill_value=0 for missing chunks
-                pass
+            except FileNotFoundError as e:
+                raise FileNotFoundError(
+                    f"Mask for structure {structure} (id={structure_id}) "
+                    f"not found at {remote_path}"
+                ) from e
 
         return (
             multiscale.images[self._annotation_masks_pyramid_level]

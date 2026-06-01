@@ -168,7 +168,7 @@ def test_generate_annotation_mapping_covers_all_structures():
 # --- _compute_4d_masks_for_scale ---
 
 
-def test_compute_4d_masks_for_scale_shape():
+def test_compute_4d_masks_for_scale_shape(tmp_path):
     """_compute_4d_masks_for_scale returns (N, Z, Y, X) dask array."""
     annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
     annotation[0, 0, 0] = 1
@@ -199,13 +199,15 @@ def test_compute_4d_masks_for_scale_shape():
     tree = get_structures_tree(structures_list)
     mapping = _generate_annotation_mapping(tree)
 
-    result = _compute_4d_masks_for_scale(annotation, tree, mapping)
+    result = _compute_4d_masks_for_scale(
+        annotation, tree, mapping, tmp_path / "scratch.zarr"
+    )
 
     assert result.shape == (3, 5, 5, 5)
     assert result.dtype == np.uint8
 
 
-def test_compute_4d_masks_for_scale_leaf_has_one_voxel():
+def test_compute_4d_masks_for_scale_leaf_has_one_voxel(tmp_path):
     """Leaf mask covers one voxel; parent mask is union of child + own."""
     annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
     annotation[0, 0, 0] = 1
@@ -236,12 +238,63 @@ def test_compute_4d_masks_for_scale_leaf_has_one_voxel():
     tree = get_structures_tree(structures_list)
     mapping = _generate_annotation_mapping(tree)
 
-    result = _compute_4d_masks_for_scale(annotation, tree, mapping).compute()
+    result = _compute_4d_masks_for_scale(
+        annotation, tree, mapping, tmp_path / "scratch.zarr"
+    ).compute()
 
     # Post-order: leaf_b→0, region_a→1, root→2
     assert result[0].sum() == 1  # leaf_b: one voxel
     assert result[1].sum() == 2  # region_a: own voxel + leaf_b voxel
     assert result[2].sum() == 125  # root: entire volume
+
+
+def test_compute_4d_masks_for_scale_unions_multiple_children(tmp_path):
+    """A parent mask is the union of all its children plus its own voxels."""
+    annotation = np.full((5, 5, 5), 999, dtype=np.uint32)
+    annotation[0, 0, 0] = 1  # region_a own voxel
+    annotation[0, 0, 1] = 3  # leaf under region_a
+    annotation[0, 0, 2] = 2  # region_b own voxel
+    structures_list = [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 1,
+            "acronym": "region_a",
+            "name": "Region A",
+            "rgb_triplet": [100, 150, 200],
+            "structure_id_path": [999, 1],
+        },
+        {
+            "id": 2,
+            "acronym": "region_b",
+            "name": "Region B",
+            "rgb_triplet": [50, 60, 70],
+            "structure_id_path": [999, 2],
+        },
+        {
+            "id": 3,
+            "acronym": "leaf_c",
+            "name": "Leaf C",
+            "rgb_triplet": [200, 100, 50],
+            "structure_id_path": [999, 1, 3],
+        },
+    ]
+    tree = get_structures_tree(structures_list)
+    mapping = _generate_annotation_mapping(tree)
+
+    result = _compute_4d_masks_for_scale(
+        annotation, tree, mapping, tmp_path / "scratch.zarr"
+    ).compute()
+
+    assert result[mapping[3]].sum() == 1  # leaf_c: own voxel only
+    assert result[mapping[1]].sum() == 2  # region_a: own + leaf_c
+    assert result[mapping[2]].sum() == 1  # region_b: own only
+    assert result[mapping[999]].sum() == 125  # root: entire volume
 
 
 # --- _save_4d_annotation_data ---
@@ -463,7 +516,9 @@ def update_masks_fixture(tmp_path):
 
     tree = get_structures_tree(structures_list)
     mapping = _generate_annotation_mapping(tree)
-    masks_v1 = _compute_4d_masks_for_scale(annotation_v1, tree, mapping)
+    masks_v1 = _compute_4d_masks_for_scale(
+        annotation_v1, tree, mapping, tmp_path / "fixture_v1_scratch.zarr"
+    )
     save_annotation_masks(
         [masks_v1],
         existing_dir,

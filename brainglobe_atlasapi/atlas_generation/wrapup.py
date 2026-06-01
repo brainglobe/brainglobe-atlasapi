@@ -370,26 +370,35 @@ def _compute_4d_masks_for_scale(
     annotation_scale: npt.NDArray,
     structures_tree: "Tree",
     mapping: Dict[int, int],
+    scratch_path: Path,
 ) -> da.Array:
-    """Compute (N, Z, Y, X) uint8 mask array for one annotation scale level."""
-    structure_masks: Dict[int, npt.NDArray] = {}
+    """Compute (N, Z, Y, X) uint8 mask array for one annotation scale level.
+
+    Masks are streamed into an on-disk scratch zarr (one structure per chunk)
+    rather than held in memory. During the post-order walk each structure's
+    children are read back from the scratch store, so peak memory is a few
+    (Z, Y, X) masks regardless of the number of structures. Returns a lazy
+    dask handle backed by ``scratch_path``; the caller owns that path and must
+    keep it alive until the handle has been computed.
+    """
+    n_structures = len(mapping)
+    z, y, x = annotation_scale.shape
+    masks = zarr.open_array(
+        str(scratch_path),
+        mode="w",
+        shape=(n_structures, z, y, x),
+        chunks=(1, z, y, x),
+        dtype=descriptors.ANNOTATION_MASKS_DTYPE,
+    )
+
     for node in postorder_depth_first_search(structures_tree):
         node_id = node.identifier
-        children = structures_tree.children(node_id)
-        direct = (annotation_scale == node_id).astype(np.uint8)
-        if not children:
-            structure_masks[node_id] = direct
-        else:
-            combined = direct
-            for child in children:
-                combined = combined | structure_masks[child.identifier]
-            structure_masks[node_id] = combined
+        combined = (annotation_scale == node_id).astype(np.uint8)
+        for child in structures_tree.children(node_id):
+            combined |= masks[mapping[child.identifier]]
+        masks[mapping[node_id]] = combined
 
-    index_to_mask = {
-        mapping[nid]: mask for nid, mask in structure_masks.items()
-    }
-    masks_4d = np.stack([index_to_mask[i] for i in range(len(mapping))])
-    return da.from_array(masks_4d, chunks=(1,) + masks_4d.shape[1:])
+    return da.from_zarr(str(scratch_path))
 
 
 def _save_4d_annotation_data(
@@ -413,21 +422,32 @@ def _save_4d_annotation_data(
     structures_tree = get_structures_tree(packaging_data.structures_list)
     mapping = _generate_annotation_mapping(structures_tree)
 
-    masks_per_scale = [
-        _compute_4d_masks_for_scale(ann_scale, structures_tree, mapping)
-        for ann_scale in packaging_data.annotation_stack
-    ]
-
     transformations_4d = [
         [{"type": "scale", "scale": [1.0] + t[0]["scale"]}]
         for t in transformations
     ]
 
     masks_path = dest_dir / descriptors.V3_ANNOTATION_MASKS_NAME
-    save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
+    scratch_dir = dest_dir / ".mask_scratch"
+    scratch_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        masks_per_scale = [
+            _compute_4d_masks_for_scale(
+                ann_scale,
+                structures_tree,
+                mapping,
+                scratch_dir / f"scale_{i}.zarr",
+            )
+            for i, ann_scale in enumerate(packaging_data.annotation_stack)
+        ]
+        save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
 
-    root = zarr.open_group(str(masks_path), mode="r+")
-    root.attrs["annotation_mapping"] = {str(k): v for k, v in mapping.items()}
+        root = zarr.open_group(str(masks_path), mode="r+")
+        root.attrs["annotation_mapping"] = {
+            str(k): v for k, v in mapping.items()
+        }
+    finally:
+        shutil.rmtree(scratch_dir, ignore_errors=True)
 
 
 def _insert_into_4d_masks(
@@ -481,33 +501,41 @@ def _insert_into_4d_masks(
     }
 
     new_resolutions = [tuple(t[0]["scale"]) for t in transformations]
-    for res, annotation_scale in zip(
-        new_resolutions, packaging_data.annotation_stack
-    ):
-        resolution_to_data[res] = _compute_4d_masks_for_scale(
-            annotation_scale, structures_tree, expected_mapping
+    target_dir.mkdir(parents=True, exist_ok=True)
+    scratch_dir = target_dir / ".mask_scratch"
+    scratch_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        for i, (res, annotation_scale) in enumerate(
+            zip(new_resolutions, packaging_data.annotation_stack)
+        ):
+            resolution_to_data[res] = _compute_4d_masks_for_scale(
+                annotation_scale,
+                structures_tree,
+                expected_mapping,
+                scratch_dir / f"scale_{i}.zarr",
+            )
+
+        existing_resolutions = [
+            tuple(im.scale.values())[1:] for im in existing_multiscale.images
+        ]
+        merged_resolutions = _merge_resolutions_list(
+            existing_resolutions, new_resolutions
         )
 
-    existing_resolutions = [
-        tuple(im.scale.values())[1:] for im in existing_multiscale.images
-    ]
-    merged_resolutions = _merge_resolutions_list(
-        existing_resolutions, new_resolutions
-    )
+        merged_stack = [resolution_to_data[res] for res in merged_resolutions]
+        transformations_4d = [
+            [{"type": "scale", "scale": [1.0] + list(res)}]
+            for res in merged_resolutions
+        ]
 
-    merged_stack = [resolution_to_data[res] for res in merged_resolutions]
-    transformations_4d = [
-        [{"type": "scale", "scale": [1.0] + list(res)}]
-        for res in merged_resolutions
-    ]
+        save_annotation_masks(merged_stack, target_dir, transformations_4d)
 
-    target_dir.mkdir(parents=True, exist_ok=True)
-    save_annotation_masks(merged_stack, target_dir, transformations_4d)
-
-    new_root = zarr.open_group(str(target_masks_path), mode="r+")
-    new_root.attrs["annotation_mapping"] = {
-        str(k): v for k, v in expected_mapping.items()
-    }
+        new_root = zarr.open_group(str(target_masks_path), mode="r+")
+        new_root.attrs["annotation_mapping"] = {
+            str(k): v for k, v in expected_mapping.items()
+        }
+    finally:
+        shutil.rmtree(scratch_dir, ignore_errors=True)
 
 
 def _save_additional_references(

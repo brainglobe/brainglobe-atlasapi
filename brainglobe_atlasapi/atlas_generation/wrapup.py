@@ -384,7 +384,7 @@ def _compute_4d_masks_for_scale(
     n_structures = len(mapping)
     z, y, x = annotation_scale.shape
     masks = zarr.open_array(
-        str(scratch_path),
+        scratch_path,
         mode="w",
         shape=(n_structures, z, y, x),
         chunks=(1, z, y, x),
@@ -398,7 +398,7 @@ def _compute_4d_masks_for_scale(
             combined |= masks[mapping[child.identifier]]
         masks[mapping[node_id]] = combined
 
-    return da.from_zarr(str(scratch_path))
+    return da.from_zarr(scratch_path)
 
 
 def _save_4d_annotation_data(
@@ -442,7 +442,7 @@ def _save_4d_annotation_data(
         ]
         save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
 
-        root = zarr.open_group(str(masks_path), mode="r+")
+        root = zarr.open_group(masks_path, mode="r+")
         root.attrs["annotation_mapping"] = {
             str(k): v for k, v in mapping.items()
         }
@@ -476,7 +476,7 @@ def _insert_into_4d_masks(
             "re-run without update_existing to build from scratch."
         )
 
-    existing_root = zarr.open_group(str(existing_masks_path), mode="r")
+    existing_root = zarr.open_group(existing_masks_path, mode="r")
     stored_mapping = {
         int(k): v
         for k, v in dict(existing_root.attrs)
@@ -530,7 +530,7 @@ def _insert_into_4d_masks(
 
         save_annotation_masks(merged_stack, target_dir, transformations_4d)
 
-        new_root = zarr.open_group(str(target_masks_path), mode="r+")
+        new_root = zarr.open_group(target_masks_path, mode="r+")
         new_root.attrs["annotation_mapping"] = {
             str(k): v for k, v in expected_mapping.items()
         }

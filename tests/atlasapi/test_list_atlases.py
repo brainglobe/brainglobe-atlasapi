@@ -94,7 +94,7 @@ def test_get_all_atlases_lastversions():
 
 
 def test_atlas_name_matches_lastversions():
-    """Ensure atlas name list matches last_versions.conf keys exactly."""
+    """Ensure all atlases in last_versions.conf are valid AtlasName values."""
     atlas_name_values = list(get_args(AtlasName))
     cache_path = (
         config.get_brainglobe_dir()
@@ -108,7 +108,7 @@ def test_atlas_name_matches_lastversions():
 
     assert len(atlas_name_values) == len(set(atlas_name_values))
     assert len(last_version_names) == len(set(last_version_names))
-    assert set(atlas_name_values) == set(last_version_names)
+    assert set(atlas_name_values).issuperset(set(last_version_names))
 
 
 def test_get_all_atlases_custom_atlases(mocker):

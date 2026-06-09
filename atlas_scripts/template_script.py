@@ -79,8 +79,8 @@ def retrieve_hemisphere_map():
     Retrieve a hemisphere map for the atlas.
 
     Use a hemisphere map if the atlas is asymmetrical. This map is an array
-    with the same shape as the template, where 0 marks the left hemisphere
-    and 1 marks the right.
+    with the same shape as the template, where 1 marks the left hemisphere
+    and 2 marks the right.
 
     Returns
     -------

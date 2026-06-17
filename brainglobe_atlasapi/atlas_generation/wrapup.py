@@ -3,7 +3,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import brainglobe_space as bgs
 import dask.array as da
@@ -12,6 +12,7 @@ import ngff_zarr as nz
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import treelib
 import zarr
 
 from brainglobe_atlasapi import atlas_generation, descriptors
@@ -48,9 +49,6 @@ from brainglobe_atlasapi.structure_tree_util import (
     postorder_depth_first_search,
 )
 from brainglobe_atlasapi.utils import atlas_name_from_repr
-
-if TYPE_CHECKING:
-    from treelib import Tree
 
 # This should be changed every time we make changes in the atlas
 # structure:
@@ -358,7 +356,7 @@ def _save_annotation_data(
     return annotation_multiscale, hemispheres_multiscale
 
 
-def _generate_annotation_mapping(tree: "Tree") -> Dict[int, int]:
+def _generate_annotation_mapping(tree: treelib.Tree) -> Dict[int, int]:
     """Return {structure_id: index} in post-order (leaves first)."""
     return {
         node.identifier: i
@@ -368,7 +366,7 @@ def _generate_annotation_mapping(tree: "Tree") -> Dict[int, int]:
 
 def _compute_4d_masks_for_scale(
     annotation_scale: npt.NDArray,
-    structures_tree: "Tree",
+    structures_tree: treelib.Tree,
     mapping: Dict[int, int],
     scratch_path: Path,
 ) -> da.Array:

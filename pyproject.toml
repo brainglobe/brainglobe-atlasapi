@@ -25,6 +25,7 @@ dependencies = [
     "meshio",
     "ngff-zarr",
     "numpy",
+    "ome-zarr<0.17.0",
     "pandas",
     "pyarrow",
     "requests",

@@ -819,7 +819,7 @@ def wrapup_atlas_from_data(
 
     if coordinate_space_info is None:
         coordinate_space_info = {
-            "name": f"{atlas_name}-coordinate-space",
+            "name": f"{atlas_name}-space",
             "version": atlas_version,
         }
 

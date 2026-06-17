@@ -497,11 +497,15 @@ def test_insert_into_4d_masks_preserves_annotation_mapping(
         / descriptors.V3_ANNOTATION_MASKS_NAME
     )
     root = zarr.open_group(str(target), mode="r")
-    mapping = dict(root.attrs).get("annotation_mapping")
+    raw = root[descriptors.V3_ANNOTATION_MAP_NAME][:]
+    mapping = {
+        int(annotation_id): array_ind
+        for array_ind, annotation_id in enumerate(raw)
+    }
     assert mapping is not None
-    assert mapping["2"] == 0  # leaf_b (post-order first)
-    assert mapping["1"] == 1  # region_a
-    assert mapping["999"] == 2  # root
+    assert mapping[2] == 0  # leaf_b (post-order first)
+    assert mapping[1] == 1  # region_a
+    assert mapping[999] == 2  # root
 
 
 def test_insert_into_4d_masks_raises_if_existing_zarr_absent(tmp_path):
@@ -870,7 +874,7 @@ def test_coordinate_space_manifest_exists(wrapup_dir, atlas_version):
     """Test that the coordinate space file exists at the expected location."""
     assert (
         wrapup_dir
-        / f"coordinate-spaces/{ATLAS_NAME}-coordinate-space/{atlas_version}"
+        / f"coordinate-spaces/{ATLAS_NAME}-space/{atlas_version}"
         / "manifest.json"
     ).exists()
 
@@ -997,7 +1001,7 @@ def test_coordinate_space_manifest_is_valid_json(wrapup_dir, atlas_version):
     """Coordinate space manifest can be parsed as JSON."""
     path = (
         wrapup_dir
-        / f"coordinate-spaces/{ATLAS_NAME}-coordinate-space/{atlas_version}"
+        / f"coordinate-spaces/{ATLAS_NAME}-space/{atlas_version}"
         / "manifest.json"
     )
     with open(path) as f:

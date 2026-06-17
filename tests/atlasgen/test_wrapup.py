@@ -429,9 +429,12 @@ def update_masks_fixture(tmp_path, small_annotation, mask_structures):
     )
     existing_masks_path = existing_dir / descriptors.V3_ANNOTATION_MASKS_NAME
     root_zarr = zarr.open_group(str(existing_masks_path), mode="r+")
-    root_zarr.attrs["annotation_mapping"] = {
-        str(k): v for k, v in mapping.items()
-    }
+    sorted_mapping = np.zeros(len(mapping), dtype=np.uint32)
+
+    for annotation_id, array_ind in mapping.items():
+        sorted_mapping[array_ind] = annotation_id
+
+    root_zarr[descriptors.V3_ANNOTATION_MAP_NAME] = sorted_mapping
 
     annotation_info = SimpleNamespace(
         existing_stub=existing_stub,

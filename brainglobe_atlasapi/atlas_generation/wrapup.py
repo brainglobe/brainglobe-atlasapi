@@ -14,6 +14,9 @@ import numpy.typing as npt
 import pandas as pd
 import treelib
 import zarr
+from numba.core import types
+from numba.typed import Dict as TypedDict
+from tqdm import tqdm
 
 from brainglobe_atlasapi import atlas_generation, descriptors
 from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
@@ -37,6 +40,9 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     get_all_validation_functions,
     report_validation_results,
+)
+from brainglobe_atlasapi.atlas_generation.volume_utils import (
+    create_masked_array_numba,
 )
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 from brainglobe_atlasapi.descriptors import (
@@ -382,21 +388,40 @@ def _compute_4d_masks_for_scale(
     keep it alive until the handle has been computed.
     """
     n_structures = len(mapping)
+    typed_dict = TypedDict.empty(
+        key_type=types.uint32,
+        value_type=types.uint32,
+    )
+    for k, v in mapping.items():
+        typed_dict[types.uint32(k)] = types.uint32(v)
+
     z, y, x = annotation_scale.shape
     masks = zarr.open_array(
         scratch_path,
         mode="w",
         shape=(n_structures, z, y, x),
-        chunks=(1, z, y, x),
+        chunks=(1, 256, 256, 256),
         dtype=descriptors.ANNOTATION_MASKS_DTYPE,
     )
 
-    for node in postorder_depth_first_search(structures_tree):
-        node_id = node.identifier
-        combined = (annotation_scale == node_id).astype(np.uint8)
-        for child in structures_tree.children(node_id):
-            combined |= masks[mapping[child.identifier]]
-        masks[mapping[node_id]] = combined
+    flat_vol = annotation_scale.ravel()
+
+    for annotation_id, index in tqdm(
+        mapping.items(), desc="Processing annotations"
+    ):
+        # Get labels for region and it's children
+        stree = structures_tree.subtree(annotation_id)
+        ids = np.asarray(list(stree.nodes.keys()))
+        mapped_ids = np.array([mapping[id_] for id_ in ids])
+
+        lut = np.zeros(int(mapped_ids.max()) + 1, dtype=np.uint8)
+        lut[mapped_ids] = 1
+
+        mask = np.empty(annotation_scale.size, dtype=np.uint8)
+
+        create_masked_array_numba(flat_vol, lut, mask, typed_dict)
+
+        masks[index, ...] = mask.reshape(annotation_scale.shape)
 
     return da.from_zarr(scratch_path)
 
@@ -481,11 +506,10 @@ def _insert_into_4d_masks(
         )
 
     existing_root = zarr.open_group(existing_masks_path, mode="r")
+    raw_mapping = existing_root[V3_ANNOTATION_MAP_NAME][:]
     stored_mapping = {
-        int(k): v
-        for k, v in dict(existing_root.attrs)
-        .get("annotation_mapping", {})
-        .items()
+        int(annotation_id): array_ind
+        for array_ind, annotation_id in enumerate(raw_mapping)
     }
 
     structures_tree = get_structures_tree(packaging_data.structures_list)

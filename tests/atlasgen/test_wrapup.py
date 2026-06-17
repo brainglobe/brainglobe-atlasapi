@@ -322,9 +322,7 @@ def test_save_4d_annotation_data_mask_values(mask_packaging_data, tmp_path):
     assert root_mask.sum() == 125
 
 
-def test_save_4d_annotation_data_mapping_in_zarr_json(
-    mask_packaging_data, tmp_path
-):
+def test_save_4d_annotation_data_mapping_group(mask_packaging_data, tmp_path):
     """annotation_mapping is stored in zarr.json attributes."""
     transformations = [[{"type": "scale", "scale": [0.025, 0.025, 0.025]}]]
     _save_4d_annotation_data(mask_packaging_data, transformations)
@@ -334,12 +332,15 @@ def test_save_4d_annotation_data_mapping_in_zarr_json(
         / descriptors.V3_ANNOTATION_MASKS_NAME
     )
     root = zarr.open_group(str(dest), mode="r")
-    raw = dict(root.attrs)
-    mapping = raw.get("annotation_mapping")
+    raw = root[descriptors.V3_ANNOTATION_MAP_NAME][:]
+    mapping = {
+        int(annotation_id): array_ind
+        for array_ind, annotation_id in enumerate(raw)
+    }
     assert mapping is not None
-    assert mapping["2"] == 0  # leaf_b
-    assert mapping["1"] == 1  # region_a
-    assert mapping["999"] == 2  # root
+    assert mapping[2] == 0  # leaf_b
+    assert mapping[1] == 1  # region_a
+    assert mapping[999] == 2  # root
 
 
 def test_save_4d_annotation_data_skips_when_use_existing(

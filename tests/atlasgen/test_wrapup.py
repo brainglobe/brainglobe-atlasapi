@@ -337,7 +337,6 @@ def test_save_4d_annotation_data_mapping_group(mask_packaging_data, tmp_path):
         int(annotation_id): array_ind
         for array_ind, annotation_id in enumerate(raw)
     }
-    assert mapping is not None
     assert mapping[2] == 0  # leaf_b
     assert mapping[1] == 1  # region_a
     assert mapping[999] == 2  # root
@@ -505,7 +504,6 @@ def test_insert_into_4d_masks_preserves_annotation_mapping(
         int(annotation_id): array_ind
         for array_ind, annotation_id in enumerate(raw)
     }
-    assert mapping is not None
     assert mapping[2] == 0  # leaf_b (post-order first)
     assert mapping[1] == 1  # region_a
     assert mapping[999] == 2  # root

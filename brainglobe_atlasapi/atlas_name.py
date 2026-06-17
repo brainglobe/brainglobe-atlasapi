@@ -139,6 +139,7 @@ AtlasName: TypeAlias = Literal[
     "demba_allen_seg_dev_mouse_p9_20um",
     "demba_allen_seg_dev_mouse_p9_25um",
     "dorr_mouse_mri_32um",
+    "duke_mouse_15um",
     "drosophila_wingdisc_instar3_2um",
     "eurasian_blackcap_25um",
     "example_mouse_100um",

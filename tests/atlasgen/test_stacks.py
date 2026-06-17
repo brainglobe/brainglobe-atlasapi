@@ -275,8 +275,8 @@ def test_save_hemispheres_uses_hemispheres_dtype(
 def test_bg_ome_zarr_4d_axes_structure():
     """BG_OME_ZARR_4D_AXES has 4 axes: annotation index + 3 spatial."""
     assert len(BG_OME_ZARR_4D_AXES) == 4
-    assert BG_OME_ZARR_4D_AXES[0]["name"] == "i"
-    assert BG_OME_ZARR_4D_AXES[0]["type"] == "annotation"
+    assert BG_OME_ZARR_4D_AXES[0]["name"] == "c"
+    assert BG_OME_ZARR_4D_AXES[0]["type"] == "channel"
     for axis in BG_OME_ZARR_4D_AXES[1:]:
         assert axis["type"] == "space"
         assert axis["unit"] == "millimeter"
@@ -316,5 +316,5 @@ def test_save_annotation_masks_uses_4d_axes(tmp_path):
     ms = nz.from_ngff_zarr(tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME)
     axes = ms.metadata.axes
     assert len(axes) == 4
-    assert axes[0].name == "i"
-    assert axes[0].type == "annotation"
+    assert axes[0].name == "c"
+    assert axes[0].type == "channel"

@@ -43,12 +43,7 @@ BG_OME_ZARR_AXES = [
     },
 ]
 
-BG_OME_ZARR_4D_AXES = [
-    {"name": "i", "type": "annotation"},
-    {"name": "z", "type": "space", "unit": "millimeter"},
-    {"name": "y", "type": "space", "unit": "millimeter"},
-    {"name": "x", "type": "space", "unit": "millimeter"},
-]
+BG_OME_ZARR_4D_AXES = [{"name": "c", "type": "channel"}, *BG_OME_ZARR_AXES]
 
 
 def write_stack(stack, filename):

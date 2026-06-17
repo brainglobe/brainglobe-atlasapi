@@ -134,8 +134,6 @@ class Atlas:
             resolution=self.resolution,
         )
 
-        self._reference = None
-
         try:
             additional_references = self.metadata.get(
                 "additional_references", []

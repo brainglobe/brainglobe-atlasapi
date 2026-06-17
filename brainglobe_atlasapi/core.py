@@ -23,6 +23,7 @@ from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
     REFERENCE_DTYPE,
+    V3_ANNOTATION_MAP_NAME,
     V3_ANNOTATION_MASKS_NAME,
     V3_ANNOTATION_NAME,
     V3_HEMISPHERES_NAME,
@@ -112,10 +113,11 @@ class Atlas:
                 masks_multiscale, self.resolution
             )
             root = zarr.open_group(str(masks_path), mode="r")
-            raw_mapping = root.attrs.get("annotation_mapping", None)
+            raw_mapping = root[V3_ANNOTATION_MAP_NAME][:]
             if raw_mapping is not None:
                 self._annotation_mapping = {
-                    int(k): v for k, v in raw_mapping.items()
+                    int(annotation_id): array_ind
+                    for array_ind, annotation_id in enumerate(raw_mapping)
                 }
 
         # keep to generate tree and dataframe views when necessary

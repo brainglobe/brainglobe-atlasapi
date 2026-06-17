@@ -64,6 +64,7 @@ V3_MESHES_DIRECTORY = "annotations.precomputed"
 V3_TEMPLATE_NAME = "anatomical_template.ome.zarr"
 V3_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
 V3_ANNOTATION_MASKS_NAME = "annotations.ome.zarr"
+V3_ANNOTATION_MAP_NAME = "annotation_values"
 V3_HEMISPHERES_NAME = "hemispheres.ome.zarr"
 
 # Types for the atlas stacks:

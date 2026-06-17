@@ -40,6 +40,8 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
 )
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 from brainglobe_atlasapi.descriptors import (
+    ANNOTATION_DTYPE,
+    V3_ANNOTATION_MAP_NAME,
     Resolution,
     ResolutionList,
     ValidComponentData,
@@ -441,7 +443,13 @@ def _save_4d_annotation_data(
         save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
 
         root = zarr.open_group(masks_path, mode="r+")
-        root.attrs["annotation_mapping"] = mapping
+
+        sorted_mapping_list = np.zeros(len(mapping), dtype=ANNOTATION_DTYPE)
+
+        for annotation_id, array_ind in mapping.items():
+            sorted_mapping_list[array_ind] = annotation_id
+
+        root[V3_ANNOTATION_MAP_NAME] = sorted_mapping_list
     finally:
         shutil.rmtree(scratch_dir, ignore_errors=True)
 
@@ -527,7 +535,14 @@ def _insert_into_4d_masks(
         save_annotation_masks(merged_stack, target_dir, transformations_4d)
 
         new_root = zarr.open_group(target_masks_path, mode="r+")
-        new_root.attrs["annotation_mapping"] = expected_mapping
+
+        sorted_mapping_list = np.zeros(
+            len(expected_mapping), dtype=ANNOTATION_DTYPE
+        )
+        for annotation_id, array_ind in expected_mapping.items():
+            sorted_mapping_list[array_ind] = annotation_id
+
+        new_root[V3_ANNOTATION_MAP_NAME] = sorted_mapping_list
     finally:
         shutil.rmtree(scratch_dir, ignore_errors=True)
 

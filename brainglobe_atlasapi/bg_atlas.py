@@ -14,6 +14,7 @@ from rich.console import Console
 from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
+    V3_ANNOTATION_MAP_NAME,
     V3_ANNOTATION_MASKS_NAME,
     V3_ANNOTATION_NAME,
     V3_ATLAS_ROOTDIR,
@@ -324,6 +325,19 @@ class BrainGlobeAtlas(core.Atlas):
                         remote_masks_metadata,
                         str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
                         callback=TqdmCallback(),
+                    )
+                    masks_annotation_values_path = (
+                        annotation_location + f"/{V3_ANNOTATION_MASKS_NAME}"
+                        f"/{V3_ANNOTATION_MAP_NAME}"
+                    )
+                    remote_masks_annotation_values_path = remote_url_s3.format(
+                        masks_annotation_values_path
+                    )
+                    self.fs.get(
+                        remote_masks_annotation_values_path,
+                        str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
+                        callback=TqdmCallback(),
+                        recursive=True,
                     )
                 except FileNotFoundError as e:
                     raise FileNotFoundError(

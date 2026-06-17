@@ -20,10 +20,7 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 __version__ = 0
 ATLAS_NAME = "duke_mouse"
-CITATION = (
-    "Mansour et al. 2025, "
-    "https://doi.org/10.1126/sciadv.adq8089"
-)
+CITATION = "Mansour et al. 2025, " "https://doi.org/10.1126/sciadv.adq8089"
 SPECIES = "Mus musculus"
 ATLAS_LINK = (
     "https://civmimagespace.civm.duhs.duke.edu/"
@@ -180,9 +177,7 @@ def _read_rccf_metadata():
         }
         lookup_rows = list(
             _read_lookup_rows(
-                label_zip.read(LOOKUP_TXT).decode(
-                    "utf-8", errors="replace"
-                )
+                label_zip.read(LOOKUP_TXT).decode("utf-8", errors="replace")
             )
         )
 
@@ -258,8 +253,7 @@ def _rccf_ontology_tables():
     )
     if missing_ancestors:
         raise ValueError(
-            "Missing RCCF ontology rows for ancestors: "
-            f"{missing_ancestors}"
+            "Missing RCCF ontology rows for ancestors: " f"{missing_ancestors}"
         )
 
     ontology_to_atlas_id = {
@@ -323,9 +317,7 @@ def _remap_annotation_to_atlas_ids(annotation):
     _, _, _, label_to_atlas_id = _rccf_ontology_tables()
 
     annotation_labels = set(np.unique(annotation).astype(int))
-    missing_labels = sorted(
-        annotation_labels - {0} - set(label_to_atlas_id)
-    )
+    missing_labels = sorted(annotation_labels - {0} - set(label_to_atlas_id))
     if missing_labels:
         raise ValueError(
             f"Missing RCCF ontology mapping for labels: {missing_labels}"

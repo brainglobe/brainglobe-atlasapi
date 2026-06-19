@@ -114,11 +114,11 @@ class Atlas:
             )
             root = zarr.open_group(str(masks_path), mode="r")
             raw_mapping = root[V3_ANNOTATION_MAP_NAME][:]
-            if raw_mapping is not None:
-                self._annotation_mapping = {
-                    int(annotation_id): array_ind
-                    for array_ind, annotation_id in enumerate(raw_mapping)
-                }
+
+            self._annotation_mapping = {
+                int(annotation_id): array_ind
+                for array_ind, annotation_id in enumerate(raw_mapping)
+            }
 
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list

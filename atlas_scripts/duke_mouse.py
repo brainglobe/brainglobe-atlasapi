@@ -38,6 +38,9 @@ SOURCE_DATA_DIR = (
     Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
 )
 REFERENCE_PATH = SOURCE_DATA_DIR / "DMBA_md" / "DMBA_N06_md_M4D.nhdr"
+ADDITIONAL_REFERENCE_PATHS = {
+    "m2": SOURCE_DATA_DIR / "DMBA_m2" / "DMBA_N13_m2_M4D.nhdr",
+}
 ANNOTATION_PATH = SOURCE_DATA_DIR / "DMBA_RCCF_labels_M4D.nhdr"
 STRUCTURES_ZIP_PATH = SOURCE_DATA_DIR / "DMBA_RCCF_labels_M4D.zip"
 LABELS_TXT = "DMBA_RCCF_labels.txt"
@@ -63,6 +66,14 @@ DMBA_DOWNLOADS = (
     (
         "https://d3mof5o.s3.amazonaws.com/DMBA_N06_md_M4D.nhdr",
         REFERENCE_PATH,
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N13_m2_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["m2"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N13_m2_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["m2"],
     ),
 )
 
@@ -535,9 +546,19 @@ def retrieve_or_construct_meshes(annotated_volume=None, structures=None):
     return meshes_dict
 
 
-def retrieve_additional_references():
-    """Return no additional references; DMBA is packaged with MD only."""
-    return {}
+def retrieve_additional_references(reference_shape):
+    """Return additional DMBA template volumes."""
+    additional_references = {}
+    for name, path in ADDITIONAL_REFERENCE_PATHS.items():
+        reference = _load_nrrd(path)
+        if reference.shape != reference_shape:
+            raise ValueError(
+                f"Additional reference {name!r} shape does not match "
+                f"the main reference: {reference.shape} != {reference_shape}"
+            )
+        additional_references[name] = _scale_reference_to_uint16(reference)
+
+    return additional_references
 
 
 if __name__ == "__main__":
@@ -555,7 +576,9 @@ if __name__ == "__main__":
         )
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
-    additional_references = retrieve_additional_references()
+    additional_references = retrieve_additional_references(
+        reference_volume.shape
+    )
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)

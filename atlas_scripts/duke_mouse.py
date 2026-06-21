@@ -20,7 +20,7 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 __version__ = 0
 ATLAS_NAME = "duke_mouse"
-CITATION = "Mansour et al. 2025, " "https://doi.org/10.1126/sciadv.adq8089"
+CITATION = "Mansour et al. 2025, https://doi.org/10.1126/sciadv.adq8089"
 SPECIES = "Mus musculus"
 ATLAS_LINK = (
     "https://civmimagespace.civm.duhs.duke.edu/"
@@ -39,7 +39,33 @@ SOURCE_DATA_DIR = (
 )
 REFERENCE_PATH = SOURCE_DATA_DIR / "DMBA_md" / "DMBA_N06_md_M4D.nhdr"
 ADDITIONAL_REFERENCE_PATHS = {
+    "ad": SOURCE_DATA_DIR / "DMBA_ad" / "DMBA_N01_ad_M4D.nhdr",
+    "dwi": SOURCE_DATA_DIR / "DMBA_dwi" / "DMBA_N02_dwi_M4D.nhdr",
+    "nqa": SOURCE_DATA_DIR / "DMBA_nqa" / "DMBA_N03_nqa_M4D.nhdr",
+    "rd": SOURCE_DATA_DIR / "DMBA_rd" / "DMBA_N05_rd_M4D.nhdr",
+    "fa": SOURCE_DATA_DIR / "DMBA_fa" / "DMBA_N09_fa_M4D.nhdr",
+    "m0": SOURCE_DATA_DIR / "DMBA_m0" / "DMBA_N11_m0_M4D.nhdr",
+    "m1": SOURCE_DATA_DIR / "DMBA_m1" / "DMBA_N12_m1_M4D.nhdr",
     "m2": SOURCE_DATA_DIR / "DMBA_m2" / "DMBA_N13_m2_M4D.nhdr",
+    "m3": SOURCE_DATA_DIR / "DMBA_m3" / "DMBA_N14_m3_M4D.nhdr",
+    "iso": SOURCE_DATA_DIR / "DMBA_iso" / "DMBA_N17_iso_M4D.nhdr",
+    "mgre-unmasked": (
+        SOURCE_DATA_DIR
+        / "DMBA_mGRE-unmasked"
+        / "DMBA_N18_mGRE-unmasked_M4D.nhdr"
+    ),
+}
+STEREOTAXIC_GRID_PATHS = {
+    "0p2mm": (
+        SOURCE_DATA_DIR / "grids" / "DMBA_xy_grid_0.2mm_M4D.nhdr",
+        SOURCE_DATA_DIR / "grids" / "DMBA_xz_grid_0.2mm_M4D.nhdr",
+        SOURCE_DATA_DIR / "grids" / "DMBA_yz_grid_0.2mm_M4D.nhdr",
+    ),
+    "1mm": (
+        SOURCE_DATA_DIR / "grids" / "DMBA_xy_grid_1mm_M4D.nhdr",
+        SOURCE_DATA_DIR / "grids" / "DMBA_xz_grid_1mm_M4D.nhdr",
+        SOURCE_DATA_DIR / "grids" / "DMBA_yz_grid_1mm_M4D.nhdr",
+    ),
 }
 ANNOTATION_PATH = SOURCE_DATA_DIR / "DMBA_RCCF_labels_M4D.nhdr"
 STRUCTURES_ZIP_PATH = SOURCE_DATA_DIR / "DMBA_RCCF_labels_M4D.zip"
@@ -68,12 +94,140 @@ DMBA_DOWNLOADS = (
         REFERENCE_PATH,
     ),
     (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N01_ad_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["ad"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N01_ad_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["ad"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N02_dwi_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["dwi"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N02_dwi_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["dwi"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N03_nqa_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["nqa"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N03_nqa_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["nqa"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N05_rd_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["rd"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N05_rd_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["rd"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N09_fa_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["fa"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N09_fa_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["fa"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N11_m0_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["m0"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N11_m0_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["m0"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N12_m1_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["m1"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N12_m1_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["m1"],
+    ),
+    (
         "https://d3mof5o.s3.amazonaws.com/DMBA_N13_m2_M4D.raw",
         ADDITIONAL_REFERENCE_PATHS["m2"].with_suffix(".raw"),
     ),
     (
         "https://d3mof5o.s3.amazonaws.com/DMBA_N13_m2_M4D.nhdr",
         ADDITIONAL_REFERENCE_PATHS["m2"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N14_m3_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["m3"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N14_m3_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["m3"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N17_iso_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["iso"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N17_iso_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["iso"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N18_mGRE-unmasked_M4D.raw",
+        ADDITIONAL_REFERENCE_PATHS["mgre-unmasked"].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_N18_mGRE-unmasked_M4D.nhdr",
+        ADDITIONAL_REFERENCE_PATHS["mgre-unmasked"],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_xy_grid_0.2mm_M4D.raw",
+        STEREOTAXIC_GRID_PATHS["0p2mm"][0].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_xy_grid_0.2mm_M4D.nhdr",
+        STEREOTAXIC_GRID_PATHS["0p2mm"][0],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_xz_grid_0.2mm_M4D.raw",
+        STEREOTAXIC_GRID_PATHS["0p2mm"][1].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_xz_grid_0.2mm_M4D.nhdr",
+        STEREOTAXIC_GRID_PATHS["0p2mm"][1],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_yz_grid_0.2mm_M4D.raw",
+        STEREOTAXIC_GRID_PATHS["0p2mm"][2].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_yz_grid_0.2mm_M4D.nhdr",
+        STEREOTAXIC_GRID_PATHS["0p2mm"][2],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_xy_grid_1mm_M4D.raw",
+        STEREOTAXIC_GRID_PATHS["1mm"][0].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_xy_grid_1mm_M4D.nhdr",
+        STEREOTAXIC_GRID_PATHS["1mm"][0],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_xz_grid_1mm_M4D.raw",
+        STEREOTAXIC_GRID_PATHS["1mm"][1].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_xz_grid_1mm_M4D.nhdr",
+        STEREOTAXIC_GRID_PATHS["1mm"][1],
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_yz_grid_1mm_M4D.raw",
+        STEREOTAXIC_GRID_PATHS["1mm"][2].with_suffix(".raw"),
+    ),
+    (
+        "https://d3mof5o.s3.amazonaws.com/DMBA_yz_grid_1mm_M4D.nhdr",
+        STEREOTAXIC_GRID_PATHS["1mm"][2],
     ),
 )
 
@@ -92,7 +246,7 @@ def _load_nrrd(path):
 
 
 def _scale_reference_to_uint16(reference):
-    """Scale the float MD reference into BrainGlobe's uint16 template range."""
+    """Scale a reference image into BrainGlobe's uint16 template range."""
     if not np.all(np.isfinite(reference)):
         raise ValueError("Reference contains NaN or infinite values.")
 
@@ -264,7 +418,7 @@ def _rccf_ontology_tables():
     )
     if missing_ancestors:
         raise ValueError(
-            "Missing RCCF ontology rows for ancestors: " f"{missing_ancestors}"
+            f"Missing RCCF ontology rows for ancestors: {missing_ancestors}"
         )
 
     ontology_to_atlas_id = {
@@ -547,7 +701,7 @@ def retrieve_or_construct_meshes(annotated_volume=None, structures=None):
 
 
 def retrieve_additional_references(reference_shape):
-    """Return additional DMBA template volumes."""
+    """Return additional DMBA templates and combined stereotaxic grids."""
     additional_references = {}
     for name, path in ADDITIONAL_REFERENCE_PATHS.items():
         reference = _load_nrrd(path)
@@ -557,6 +711,20 @@ def retrieve_additional_references(reference_shape):
                 f"the main reference: {reference.shape} != {reference_shape}"
             )
         additional_references[name] = _scale_reference_to_uint16(reference)
+
+    for spacing, grid_paths in STEREOTAXIC_GRID_PATHS.items():
+        combined_grid = np.zeros(reference_shape, dtype=np.uint16)
+        for path in grid_paths:
+            grid = _load_nrrd(path)
+            if grid.shape != reference_shape:
+                raise ValueError(
+                    f"Stereotaxic {spacing} grid shape does not match the "
+                    f"main reference: {grid.shape} != {reference_shape}"
+                )
+            np.logical_or(combined_grid, grid, out=combined_grid)
+
+        combined_grid *= np.iinfo(np.uint16).max
+        additional_references[f"stereotaxic-grid-{spacing}"] = combined_grid
 
     return additional_references
 

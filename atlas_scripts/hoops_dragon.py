@@ -5,7 +5,6 @@ filling in the required functions and metadata.
 """
 
 from pathlib import Path
-import nibabel as nib
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
@@ -52,12 +51,13 @@ ROOT_ID = 999
 RESOLUTION = 50
 
 REFERENCE_URL = "https://storage.googleapis.com/cos-osf-prod-files-ca-1/1fbc4d1be3b8a6da5513d1ac44abd11d05eebe67dd3c2e4662bbe81008c7c4e5?response-content-disposition=attachment%3B%20filename%3D%22lizard_model.mnc%22%3B%20filename%2A%3DUTF-8%27%27lizard_model.mnc&GoogleAccessId=files-ca-1%40cos-osf-prod.iam.gserviceaccount.com&Expires=1782168332&Signature=29tpfsJIK1exuG7ZpJufYgvXET8WiXncJPksVR1hgRtWzI7fLaGek6QsHB0hq4Nct5I9coFfQEHA9WY6VEYsFHAcXsT8Bhhy0fU9yGFJmgCC2V1dziBd5imfiZVYznGMwKKK8GSBPE1PxxxrUGAz05o5ZbA0PMHvqbLbY5wuKMp9X%2FPolBX5CPbsY4fBfwzlFzBvgFFGV2v3YLXf7KLdky2Uo%2BeouWGaJeTyOMgblDnHIz%2B3oODI1oNEmo%2Be%2Bn22ZzizZLW6ANTcJJj5BBiBm%2BSzSUlGUW%2F3D0ffpe1xVXqc1rFinivoeumuJXWrNJ0%2Fbz2DSQv1pa3AKyBbNpYXow%3D%3D"
-ANNOTATION_URL= "https://storage.googleapis.com/cos-osf-prod-files-ca-1/847de51f6de3f0cca6740ac7e393501a43af2ac85414b302f99e7a904df69df1?response-content-disposition=attachment%3B%20filename%3D%22lizard_segmentation_bilateral.mnc%22%3B%20filename%2A%3DUTF-8%27%27lizard_segmentation_bilateral.mnc&GoogleAccessId=files-ca-1%40cos-osf-prod.iam.gserviceaccount.com&Expires=1782168092&Signature=lgnY5wiFGrDm2PH2mSOctOaD4FKs0mAlQ8t2CpIk1jrW2iXlQCSvw4LDkmm%2FwBhdS1PlxnbrUxMpgD10zK0PX7HfGiase0ZFc9fgs5%2BmQKjUQkqTsDyYJn1XAn2gQSniGAHGgeyQTYHyMdDktrZ5uz096GCwn8SRX6CeyPcoGbSyiqNhSBo7WY81kCqzRm%2BtJrqxnjr6X9d4cjLfQ5DwuwCk71g2e7iG8OeBygc2wQ5aNnCr2c2KlmaK9iRpQwjWX1aZjQvTtXiYubAMA72OTw%2BgBtrEyAaJnNocOkjs8ObJFDh3aQjkAT2trys5eowJmdZ4Pwuf3C6S8%2BW%2B3JhTiQ%3D%3D"
+ANNOTATION_URL = "https://storage.googleapis.com/cos-osf-prod-files-ca-1/847de51f6de3f0cca6740ac7e393501a43af2ac85414b302f99e7a904df69df1?response-content-disposition=attachment%3B%20filename%3D%22lizard_segmentation_bilateral.mnc%22%3B%20filename%2A%3DUTF-8%27%27lizard_segmentation_bilateral.mnc&GoogleAccessId=files-ca-1%40cos-osf-prod.iam.gserviceaccount.com&Expires=1782168092&Signature=lgnY5wiFGrDm2PH2mSOctOaD4FKs0mAlQ8t2CpIk1jrW2iXlQCSvw4LDkmm%2FwBhdS1PlxnbrUxMpgD10zK0PX7HfGiase0ZFc9fgs5%2BmQKjUQkqTsDyYJn1XAn2gQSniGAHGgeyQTYHyMdDktrZ5uz096GCwn8SRX6CeyPcoGbSyiqNhSBo7WY81kCqzRm%2BtJrqxnjr6X9d4cjLfQ5DwuwCk71g2e7iG8OeBygc2wQ5aNnCr2c2KlmaK9iRpQwjWX1aZjQvTtXiYubAMA72OTw%2BgBtrEyAaJnNocOkjs8ObJFDh3aQjkAT2trys5eowJmdZ4Pwuf3C6S8%2BW%2B3JhTiQ%3D%3D"
 LABELS_URL = "https://storage.googleapis.com/cos-osf-prod-files-ca-1/bba5569843825a905eaac1c6432f53a6c6302ec30fee65f520fc1eb4bc3eb084?response-content-disposition=attachment%3B%20filename%3D%22BilateralRegionIDs.csv%22%3B%20filename%2A%3DUTF-8%27%27BilateralRegionIDs.csv&GoogleAccessId=files-ca-1%40cos-osf-prod.iam.gserviceaccount.com&Expires=1782169007&Signature=Y3jg9Bb1GGPZq2N6NM2b1wZ9vUk7iSrHSalBFtxoNsNb5aFOFeoRLuKjF7nS4pFR4bIQLRVW7HKMfCOi4lQ%2FZhjyvfxBjqIeEOindN3uhKwQ%2Bzr9ooNXCn6SCDkz4WjjxcUTDnvYChoq8qVedxrO%2F2LeIaAkuItbVPrIAhdrVbY1L1oNALY5KAnZyiwilFyDGFgD5aUdAl7XHY%2F0w3re6zG5BeNyTkviPeQI4ioD%2FbQaP3EU1HnC34EPLGx%2FWy8lH%2BLPpss09bnExZCZ68GjzucLkOtPIFoYvDzwzjUz5Yc3wmW3SZEw2VY8dKFfwJVarAPp0XM%2Fia%2FWCxryL%2BCb9w%3D%3D"
 
 REFERENCE_FNAME = "lizard_model.mnc"
 ANNOTATION_FNAME = "lizard_segmentation_bilateral.mnc"
 LABELS_FNAME = "BilateralRegionIDs.csv"
+
 
 def download_resources():
     """

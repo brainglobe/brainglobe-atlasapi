@@ -5,15 +5,11 @@ filling in the required functions and metadata.
 """
 
 from pathlib import Path
+
 import nibabel as nib
-import numpy as np
 import pooch
-from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    construct_meshes_from_annotation,
-)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -75,6 +71,7 @@ REFERENCE_PATH = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
 ANNOTATION_PATH = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
 LABELS_PATH = DOWNLOAD_DIR_PATH / LABELS_FNAME
 
+
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
@@ -132,12 +129,11 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    
     # TODO Rescale template to uint16
     reference_file = nib.load(REFERENCE_PATH)
     annotation_file = nib.load(ANNOTATION_PATH)
-    #reference = reference_file.get_fdata()
-    #annotation = annotation_file.get_fdata()
+    # reference = reference_file.get_fdata()
+    # annotation = annotation_file.get_fdata()
     print(reference_file, annotation_file)
     reference = None
     annotation = None

@@ -14,6 +14,7 @@ import numpy.typing as npt
 import pandas as pd
 import treelib
 import zarr
+from cloudvolume import CloudVolume
 from numba.core import types
 from numba.typed import Dict as TypedDict
 from tqdm import tqdm
@@ -176,6 +177,94 @@ def _save_coordinate_space_manifest(
         json.dump(coordinate_space_metadata, f, indent=4)
 
 
+def _save_precomputed_directory(
+    packaging_data: AtlasPackagingData,
+    mesh_dest_dir: Path,
+    scale_meshes: bool,
+    resolution_mapping: List[int] | None,
+):
+    _save_meshes(
+        packaging_data.meshes_dict,
+        mesh_dest_dir,
+        packaging_data.space_convention,
+        scale_meshes,
+        packaging_data.resolution,
+        resolution_mapping,
+    )
+
+    output_dir = mesh_dest_dir.parent
+
+    _write_precomputed_annotations(packaging_data, output_dir)
+
+
+def _write_precomputed_annotations(
+    packaging_data: AtlasPackagingData,
+    output_dir: Path,
+):
+    cloudpath = f"file://{output_dir.resolve()}"
+    annotations = packaging_data.annotation_stack[0]
+    resolution_nm = np.array(packaging_data.resolution[0]) * 1000
+
+    # All values in XYZ
+    resolution_nm = resolution_nm[[2, 1, 0]]
+    annotations = annotations.transpose(2, 1, 0)  # ZYX -> XYZ
+    voxel_offset = (0, 0, 0)
+    chunk_size = (256, 256, 64)
+    cseg_block_size = (8, 8, 8)
+
+    info = CloudVolume.create_new_info(
+        num_channels=1,
+        layer_type="segmentation",
+        data_type=str(annotations.dtype),
+        encoding="compressed_segmentation",
+        resolution=list(resolution_nm),
+        voxel_offset=list(voxel_offset),
+        chunk_size=list(chunk_size),
+        compressed_segmentation_block_size=list(cseg_block_size),
+        volume_size=list(annotations.shape),
+        mesh="mesh",
+    )
+
+    info["segment_properties"] = "segment_properties"
+
+    vol = CloudVolume(cloudpath, info=info, compress=False, progress=True)
+    vol.commit_info()
+    vol[:] = annotations
+
+    prop_out = output_dir / "segment_properties"
+    prop_out.mkdir()
+
+    terminology_path = (
+        packaging_data.working_dir / packaging_data.terminology_info.stub
+    )
+    ontology = pd.read_csv(terminology_path)
+
+    formatted_ontology = ontology.apply(
+        lambda row: (
+            str(row["id"]),
+            f"{row['abbreviation']}: ({row['name']})",
+        ),
+        axis=1,
+    ).to_list()
+
+    segment_properties = {
+        "@type": "neuroglancer_segment_properties",
+        "inline": {
+            "ids": [id for id, _ in formatted_ontology],
+            "properties": [
+                {
+                    "id": "abbreviation",
+                    "type": "label",
+                    "values": [abbr for _, abbr in formatted_ontology],
+                }
+            ],
+        },
+    }
+
+    with open(prop_out / "info", "w") as f:
+        json.dump(segment_properties, f, indent=4)
+
+
 def _save_meshes(
     meshes_dict: Dict[int | str, str | Path],
     mesh_dest_dir: Path,
@@ -196,24 +285,29 @@ def _save_meshes(
         if len(mesh.points) == 0:
             continue
 
+        # Scale to nm and reorient to brainglobe-space convention (ASR)
         if scale_meshes:
             if not resolution_mapping:
-                mesh.points *= resolution_standard[0]
+                mesh.points *= resolution_standard[0] * 1000
             else:
                 original_resolution = (
                     resolution_standard[0][resolution_mapping[0]],
                     resolution_standard[0][resolution_mapping[1]],
                     resolution_standard[0][resolution_mapping[2]],
                 )
-                mesh.points *= original_resolution
+                mesh.points *= original_resolution * 1000
 
         mesh.points = space_convention.map_points_to(
             descriptors.ATLAS_ORIENTATION, mesh.points
         )
 
+        # Reorient from ZYX to XYZ for Neuroglancer
+        mesh.points = mesh.points[:, [2, 1, 0]]
+        mesh.cells[0].data = mesh.cells[0].data[:, [2, 1, 0]]
+
         # TODO: parallelise and copy if not scaling or reorienting
         mio.write(
-            mesh_dest_dir / f"{mesh_id}",
+            mesh_dest_dir / f"{mesh_id}:0:0",
             mesh,
             file_format="neuroglancer",
         )
@@ -352,6 +446,13 @@ def _save_annotation_data(
             annotation_info.name, annotation_info.version
         )
         mesh_dest_dir = packaging_data.working_dir / meshes_stub
+        _save_precomputed_directory(
+            packaging_data,
+            mesh_dest_dir,
+            scale_meshes,
+            resolution_mapping,
+        )
+
         _save_meshes(
             packaging_data.meshes_dict,
             mesh_dest_dir,
@@ -968,18 +1069,6 @@ def wrapup_atlas_from_data(
         ].data.shape
         shapes[resolution] = closest_template_shape
 
-    _save_annotation_data(
-        packaging_data,
-        transformations,
-        scale_meshes,
-        resolution_mapping,
-    )
-
-    _save_4d_annotation_data(
-        packaging_data,
-        transformations,
-    )
-
     _save_additional_references(
         packaging_data,
         transformations,
@@ -1001,6 +1090,18 @@ def wrapup_atlas_from_data(
         _save_coordinate_space_manifest(
             coordinate_space_info.metadata, coordinate_space_path
         )
+
+    _save_annotation_data(
+        packaging_data,
+        transformations,
+        scale_meshes,
+        resolution_mapping,
+    )
+
+    _save_4d_annotation_data(
+        packaging_data,
+        transformations,
+    )
 
     for resolution in packaging_data.resolution:
         shape = shapes[resolution]

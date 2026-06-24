@@ -10,7 +10,6 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 import pooch
-import random
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
@@ -74,13 +73,14 @@ REFERENCE_PATH = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
 ANNOTATION_PATH = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
 LABELS_PATH = DOWNLOAD_DIR_PATH / LABELS_FNAME
 
+
 def generate_pseudorandom_rgbs(n_rgbs: int, seed: int = 0):
     """Generate a list of n_rgbs RGB triplets given a seed."""
     rng = np.random.default_rng(seed)
     # n_rgbs RGB values, each channel between 0 and 255 inclusive
     rgb_values = rng.integers(0, 256, size=(n_rgbs, 3)).tolist()
     return rgb_values
-    
+
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -145,13 +145,11 @@ def retrieve_reference_and_annotation():
     reference = reference_file.get_fdata()
     ref_min = reference.min()
     ref_max = reference.max()
-    reference = (reference - ref_min)/(ref_max - ref_min)*65535
+    reference = (reference - ref_min) / (ref_max - ref_min) * 65535
     reference = reference.astype(np.uint16)
     annotation = annotation_file.get_fdata()
     annotation = np.asarray(annotation)
-    annotation = np.where(
-        annotation < 1000, annotation, annotation - 1000
-    )
+    annotation = np.where(annotation < 1000, annotation, annotation - 1000)
     return reference, annotation
 
 
@@ -199,27 +197,31 @@ def retrieve_structure_information():
         atlas structure.
     """
     labels = pd.read_csv(LABELS_PATH)
-    structures = [{
-        "id": 999,
-        "name": "root", 
-        "acronym": "root", 
-        "structure_id_path": [999],
-        "rgb_triplet": [255, 255, 255],
-    }]
+    structures = [
+        {
+            "id": 999,
+            "name": "root",
+            "acronym": "root",
+            "structure_id_path": [999],
+            "rgb_triplet": [255, 255, 255],
+        }
+    ]
     rgbs = generate_pseudorandom_rgbs(labels.shape[0], 1337)
-    
+
     for index, row in labels.iterrows():
         id = int(row["left label"])
         name = row["Structure"]
         acronym = row["abbreviation"]
         structure_id_path = [999, id]
-        structures.append({
-            "id": id,
-            "name": name, 
-            "acronym": acronym, 
-            "structure_id_path": structure_id_path,
-            "rgb_triplet": rgbs[index],
-        })
+        structures.append(
+            {
+                "id": id,
+                "name": name,
+                "acronym": acronym,
+                "structure_id_path": structure_id_path,
+                "rgb_triplet": rgbs[index],
+            }
+        )
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures
 

@@ -59,8 +59,18 @@ class Structure(UserDict):
                 return None
             try:
                 self._check_mesh_cached(file_name)
-                self.data[item] = mio.read(
+                precomputed_mesh = mio.read(
                     file_name, file_format="neuroglancer"
+                )
+                conversion_factor = 1000.0
+                # Scale mesh from nm to um and reorient from XYZ to ZYX
+                verts = precomputed_mesh.points / conversion_factor
+                faces = precomputed_mesh.cells[0].data
+                verts = verts[:, [2, 1, 0]]  # XYZ -> ZYX
+                faces = faces[:, [2, 1, 0]]  # XYZ -> ZYX
+
+                self.data[item] = mio.Mesh(
+                    points=verts, cells=[("triangle", faces)]
                 )
             except (TypeError, mio.ReadError, FileNotFoundError):
                 raise mio.ReadError(

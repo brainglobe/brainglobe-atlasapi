@@ -125,7 +125,7 @@ class Atlas:
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = meshes_path / str(struct["id"])
+            struct["mesh_filename"] = meshes_path / f'{struct["id"]}:0:0'
 
         self.structures = StructuresDict(structures_list)
 

@@ -12,6 +12,9 @@ import pandas as pd
 import pooch
 
 from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -199,10 +202,10 @@ def retrieve_structure_information():
     labels = pd.read_csv(LABELS_PATH)
     structures = [
         {
-            "id": 999,
+            "id": ROOT_ID,
             "name": "root",
             "acronym": "root",
-            "structure_id_path": [999],
+            "structure_id_path": [ROOT_ID],
             "rgb_triplet": [255, 255, 255],
         }
     ]
@@ -212,7 +215,7 @@ def retrieve_structure_information():
         id = int(row["left label"])
         name = row["Structure"]
         acronym = row["abbreviation"]
-        structure_id_path = [999, id]
+        structure_id_path = [ROOT_ID, id]
         structures.append(
             {
                 "id": id,
@@ -226,7 +229,7 @@ def retrieve_structure_information():
     return structures
 
 
-def retrieve_or_construct_meshes():
+def retrieve_or_construct_meshes(annotated_volume, structures):
     """
     Return a dictionary mapping structure IDs to paths of mesh files.
 
@@ -239,7 +242,16 @@ def retrieve_or_construct_meshes():
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
-    meshes_dict = {}
+    meshes_dict = construct_meshes_from_annotation(
+        save_path=Path(BG_ROOT_DIR),
+        volume=annotated_volume,
+        structures_list=structures,
+        closing_n_iters=2,
+        decimate_fraction=0.2,
+        smooth=False,
+        parallel=True,
+        verbosity=0,
+    )
     return meshes_dict
 
 
@@ -263,28 +275,23 @@ def retrieve_additional_references():
 ### If the code above this line has been filled correctly, nothing needs to be
 ### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-    bg_root_dir.mkdir(parents=True, exist_ok=True)
+    BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
     # Fail early if any version of this atlas already exists
     atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
-    existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
+    existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
 
     if existing:
         raise FileExistsError(
-            f"Atlas output already exists in {bg_root_dir}. "
+            f"Atlas output already exists in {BG_ROOT_DIR}. "
         )
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    meshes_dict = retrieve_or_construct_meshes()
+    meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)
 
-    quit()
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
@@ -298,7 +305,7 @@ if __name__ == "__main__":
         annotation_stack=annotated_volume,
         structures_list=structures,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=BG_ROOT_DIR,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,

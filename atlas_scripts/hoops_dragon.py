@@ -145,14 +145,14 @@ def retrieve_reference_and_annotation():
     # Requires h5py package **************************************************
     reference_file = nib.load(REFERENCE_PATH)
     annotation_file = nib.load(ANNOTATION_PATH)
-    
+
     # Rescale reference from float to uint16
     reference = reference_file.get_fdata()
     ref_min = reference.min()
     ref_max = reference.max()
     reference = (reference - ref_min) / (ref_max - ref_min) * 65535
     reference = reference.astype(np.uint16)
-    
+
     # Collapse hemisphere-specific IDs into one
     annotation = annotation_file.get_fdata()
     annotation = np.asarray(annotation)
@@ -217,7 +217,7 @@ def retrieve_structure_information():
 
     for index, row in labels.iterrows():
         id = int(row["left label"])
-        name = row["Structure"].strip("\"")
+        name = row["Structure"].strip('"')
         acronym = row["abbreviation"].strip()
         structure_id_path = [ROOT_ID, id]
         structures.append(

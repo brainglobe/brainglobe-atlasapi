@@ -215,6 +215,7 @@ def retrieve_structure_information():
     ]
     rgbs = generate_pseudorandom_rgbs(labels.shape[0], 1337)
 
+    # Note: the provided acronyms have some duplicates that are conserved here.
     for index, row in labels.iterrows():
         id = int(row["left label"])
         name = row["Structure"].strip('"')

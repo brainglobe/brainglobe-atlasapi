@@ -23,7 +23,7 @@ dependencies = [
     "click",
     "fsspec",
     "meshio",
-    "ngff-zarr",
+    "ngff-zarr<0.37.0",
     "numpy",
     "pandas",
     "pyarrow",

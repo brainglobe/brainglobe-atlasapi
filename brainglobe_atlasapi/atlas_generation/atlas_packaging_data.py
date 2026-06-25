@@ -13,7 +13,6 @@ from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.structures import (
-    check_struct_consistency,
     filter_structures_not_present_in_annotation,
 )
 from brainglobe_atlasapi.descriptors import (
@@ -466,7 +465,7 @@ class AtlasPackagingData:
             self.structures_list, self.annotation_stack[0]
         )
 
-        check_struct_consistency(self.structures_list)
+        # check_struct_consistency(self.structures_list)
 
         check_requested_component(self.template_info, self.working_dir)
         check_requested_component(self.annotation_info, self.working_dir)

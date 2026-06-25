@@ -208,9 +208,10 @@ def test_meshfile_from_id(atlas):
         atlas.root_dir
         / atlas.metadata["annotation_set"]["location"][1:]
         / "annotations.precomputed"
+        / "mesh"
     )
-    assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567"
-    assert atlas.root_meshfile() == mesh_root_path / "997"
+    assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567:0:0"
+    assert atlas.root_meshfile() == mesh_root_path / "997:0:0"
 
 
 def test_mesh_from_id(atlas):

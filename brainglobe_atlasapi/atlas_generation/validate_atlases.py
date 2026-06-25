@@ -315,7 +315,7 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     ------
     AssertionError
         If any structure ID found in `atlas.structures` does not have a
-        matching `.obj` file in the atlas's `meshes` directory.
+        matching mesh file in the atlas's `meshes` directory.
     """
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
@@ -326,10 +326,14 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
         Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
     )
 
+    # Mesh files are named as <structure_id>:0:0
     ids_from_mesh_files = [
-        int(Path(f).stem)
+        int(str(Path(f).stem).split(":0:")[0])
         for f in os.listdir(mesh_path)
-        if (Path(f).stem.isdigit())
+        if (
+            len(str(Path(f).stem).split(":0:")) > 1
+            and str(Path(f).stem).split(":0:")[0].isdigit()
+        )
     ]
 
     in_bg_not_mesh = []
@@ -375,9 +379,12 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     )
 
     ids_from_mesh_files = [
-        int(Path(f).stem)
+        int(str(Path(f).stem).split(":0:")[0])
         for f in os.listdir(mesh_path)
-        if (Path(f).stem.isdigit())
+        if (
+            len(str(Path(f).stem).split(":0:")) > 1
+            and str(Path(f).stem).split(":0:")[0].isdigit()
+        )
     ]
 
     in_mesh_not_bg = []

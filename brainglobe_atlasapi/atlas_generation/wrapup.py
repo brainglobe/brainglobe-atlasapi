@@ -207,7 +207,9 @@ def _write_precomputed_annotations(
 
     # All values in XYZ
     resolution_nm = resolution_nm[[2, 1, 0]]
-    annotations = annotations.transpose(2, 1, 0)  # ZYX -> XYZ
+    annotations = annotations.transpose(2, 1, 0).astype(
+        descriptors.ANNOTATION_DTYPE
+    )  # ZYX -> XYZ
     voxel_offset = (0, 0, 0)
     chunk_size = (256, 256, 64)
     cseg_block_size = (8, 8, 8)
@@ -241,7 +243,7 @@ def _write_precomputed_annotations(
 
     formatted_ontology = ontology.apply(
         lambda row: (
-            str(row["id"]),
+            str(row["identifier"]),
             f"{row['abbreviation']}: ({row['name']})",
         ),
         axis=1,
@@ -288,21 +290,21 @@ def _save_meshes(
         # Scale to nm and reorient to brainglobe-space convention (ASR)
         if scale_meshes:
             if not resolution_mapping:
-                mesh.points *= resolution_standard[0] * 1000
+                mesh.points *= np.array(resolution_standard[0])
             else:
                 original_resolution = (
                     resolution_standard[0][resolution_mapping[0]],
                     resolution_standard[0][resolution_mapping[1]],
                     resolution_standard[0][resolution_mapping[2]],
                 )
-                mesh.points *= original_resolution * 1000
+                mesh.points *= np.array(original_resolution)
 
         mesh.points = space_convention.map_points_to(
             descriptors.ATLAS_ORIENTATION, mesh.points
         )
 
         # Reorient from ZYX to XYZ for Neuroglancer
-        mesh.points = mesh.points[:, [2, 1, 0]]
+        mesh.points = mesh.points[:, [2, 1, 0]] * 1000  # um -> nm
         mesh.cells[0].data = mesh.cells[0].data[:, [2, 1, 0]]
 
         # TODO: parallelise and copy if not scaling or reorienting
@@ -311,6 +313,9 @@ def _save_meshes(
             mesh,
             file_format="neuroglancer",
         )
+
+        with open(mesh_dest_dir / f"{mesh_id}:0", "w") as f:
+            json.dump({"fragments": [f"{mesh_id}:0:0"]}, f)
 
 
 def _save_template_data(

@@ -77,6 +77,26 @@ def _save_if_not_exists(
     save_fn(stacks, dest_dir, transformations)
 
 
+def _validate_atlas_name(atlas_name: str) -> None:
+    """Validate that the atlas name is all lowercase.
+
+    Parameters
+    ----------
+    atlas_name : str
+        The name of the atlas to validate.
+
+    Raises
+    ------
+    ValueError
+        If the atlas name contains uppercase characters.
+    """
+    if atlas_name != atlas_name.lower():
+        raise ValueError(
+            f"Atlas name '{atlas_name}' must be lowercase. "
+            f"Got '{atlas_name}', expected '{atlas_name.lower()}'."
+        )
+
+
 def _merge_resolutions_list(
     existing_resolutions: ResolutionList,
     new_resolutions: ResolutionList,
@@ -809,6 +829,8 @@ def wrapup_atlas_from_data(
 
     if compress is not None:
         print("Warning: `compress` argument is deprecated and has no effect")
+
+    _validate_atlas_name(atlas_name)
 
     working_dir = Path(working_dir) / "brainglobe-atlasapi"
     atlas_version = f"{ATLAS_VERSION}.{atlas_minor_version}"

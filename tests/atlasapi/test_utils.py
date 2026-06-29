@@ -395,6 +395,34 @@ def test_retrieve_over_http_ConnectionError(tmp_path):
             )
 
 
+def test_retrieve_over_http_HTTPError(tmp_path):
+    """A non-200 response should raise a clear HTTPError and not leave a file.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary path for test files.
+    """
+    output_file_path = tmp_path / "elephant"
+
+    mock_response = mock.Mock(spec=requests.Response)
+    mock_response.status_code = 403
+    http_error = requests.exceptions.HTTPError(response=mock_response)
+    mock_response.raise_for_status.side_effect = http_error
+
+    with mock.patch("requests.get", return_value=mock_response):
+        with pytest.raises(
+            requests.exceptions.HTTPError,
+            match="Failed to download file from elephants: HTTP 403",
+        ):
+            utils.retrieve_over_http(
+                url="elephants",
+                output_file_path=output_file_path,
+            )
+
+    assert not output_file_path.exists()
+
+
 @pytest.mark.parametrize(
     "content_length, expected_last_call",
     [pytest.param("6", (6, 6), id="6/6"), pytest.param(0, (6, 0), id="6/6")],

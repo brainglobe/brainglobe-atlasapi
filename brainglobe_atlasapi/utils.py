@@ -258,6 +258,9 @@ def retrieve_over_http(
 
     try:
         response = requests.get(url, stream=True)
+        # Fail clearly on 4xx/5xx instead of saving an error page to disk,
+        # which would later surface as a misleading tarfile ReadError.
+        response.raise_for_status()
         with progress:
             tot = int(response.headers.get("content-length", 0))
 
@@ -286,6 +289,12 @@ def retrieve_over_http(
                         # update handler with completed and total bytes
                         fn_update(completed, tot)
 
+    except requests.exceptions.HTTPError as e:
+        output_file_path.unlink(missing_ok=True)
+        status = e.response.status_code if e.response is not None else "?"
+        raise requests.exceptions.HTTPError(
+            f"Failed to download file from {url}: HTTP {status}"
+        ) from e
     except requests.exceptions.ConnectionError:
         output_file_path.unlink(missing_ok=True)
         raise requests.exceptions.ConnectionError(

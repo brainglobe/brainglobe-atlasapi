@@ -227,7 +227,7 @@ def fetch_ontology(pooch_: pooch.Pooch):
     return structures
 
 
-def retrieve_hemisphere_map():
+def retrieve_hemisphere_map(annotation_volume):
     """
     Retrieve a hemisphere map for the atlas.
 
@@ -241,7 +241,15 @@ def retrieve_hemisphere_map():
         A numpy array representing the hemisphere map, or None if the atlas
         is symmetrical.
     """
-    return None
+    # Atlas is in PRI orientation, slice from middle
+    hemispheres_map = np.full(reference_volume.shape, 2, dtype=int)
+    if hemispheres_map.shape[1] % 2 == 0:
+        hemispheres_map[:,hemispheres_map.shape[1]//2:,:] = 1
+    else: 
+        hemispheres_map[:,hemispheres_map.shape[1]//2:,:] = 1
+        hemispheres_map[:,hemispheres_map.shape[1]//2,:] = 0
+
+    return hemispheres_map
 
 
 def retrieve_or_construct_meshes(annotated_volume, structures):
@@ -295,7 +303,7 @@ if __name__ == "__main__":
         atlas_name = f"{ATLAS_NAME}_p{age}"
         print("\nPackaging atlas for:", atlas_name)
         reference_volume, annotated_volume = fetch_animal(good_dog, age)
-        hemispheres_stack = retrieve_hemisphere_map()
+        hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
         meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
             annotated_volume, structures
         )

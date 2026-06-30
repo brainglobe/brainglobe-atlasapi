@@ -244,10 +244,10 @@ def retrieve_hemisphere_map(annotation_volume):
     # Atlas is in PRI orientation, slice from middle
     hemispheres_map = np.full(reference_volume.shape, 2, dtype=int)
     if hemispheres_map.shape[1] % 2 == 0:
-        hemispheres_map[:,hemispheres_map.shape[1]//2:,:] = 1
-    else: 
-        hemispheres_map[:,hemispheres_map.shape[1]//2:,:] = 1
-        hemispheres_map[:,hemispheres_map.shape[1]//2,:] = 0
+        hemispheres_map[:, hemispheres_map.shape[1] // 2 :, :] = 1
+    else:
+        hemispheres_map[:, hemispheres_map.shape[1] // 2 :, :] = 1
+        hemispheres_map[:, hemispheres_map.shape[1] // 2, :] = 0
 
     return hemispheres_map
 

@@ -326,14 +326,11 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
         Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
     )
 
-    # Mesh files are named as <structure_id>:0:0
+    # Mesh files are named as <structure_id>
     ids_from_mesh_files = [
-        int(str(Path(f).stem).split(":0:")[0])
-        for f in os.listdir(mesh_path)
-        if (
-            len(str(Path(f).stem).split(":0:")) > 1
-            and str(Path(f).stem).split(":0:")[0].isdigit()
-        )
+        int(f.stem)
+        for f in mesh_path.iterdir()
+        if (f.name != "info" and f.suffix != ".index")
     ]
 
     in_bg_not_mesh = []
@@ -379,12 +376,9 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     )
 
     ids_from_mesh_files = [
-        int(str(Path(f).stem).split(":0:")[0])
-        for f in os.listdir(mesh_path)
-        if (
-            len(str(Path(f).stem).split(":0:")) > 1
-            and str(Path(f).stem).split(":0:")[0].isdigit()
-        )
+        int(f.stem)
+        for f in mesh_path.iterdir()
+        if (f.name != "info" and f.suffix != ".index")
     ]
 
     in_mesh_not_bg = []

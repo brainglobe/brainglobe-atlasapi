@@ -13,6 +13,7 @@ import s3fs
 from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import remote_url_s3
+from brainglobe_atlasapi.mesh_io import read_mesh
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -58,20 +59,10 @@ class Structure(UserDict):
                 )
                 return None
             try:
-                self._check_mesh_cached(file_name)
-                precomputed_mesh = mio.read(
-                    file_name, file_format="neuroglancer"
-                )
-                conversion_factor = 1000.0
-                # Scale mesh from nm to um and reorient from XYZ to ZYX
-                verts = precomputed_mesh.points / conversion_factor
-                faces = precomputed_mesh.cells[0].data
-                verts = verts[:, [2, 1, 0]]  # XYZ -> ZYX
-                faces = faces[:, [2, 1, 0]]  # XYZ -> ZYX
+                if not file_name.exists():
+                    self._download_mesh(file_name)
 
-                self.data[item] = mio.Mesh(
-                    points=verts, cells=[("triangle", faces)]
-                )
+                self.data[item] = read_mesh(file_name)
             except (TypeError, mio.ReadError, FileNotFoundError):
                 raise mio.ReadError(
                     "No valid mesh for region: {}".format(self.data["acronym"])
@@ -79,14 +70,12 @@ class Structure(UserDict):
 
         return self.data[item]
 
-    def _check_mesh_cached(self, file_name: Path):
-        """Check if the mesh is cached, and if not, attempt to load it."""
-        if file_name.exists():
-            return
-
+    def _download_mesh(self, file_name: Path) -> None:
+        """Download the mesh from the remote S3 bucket if it is not cached."""
         root_path = "/".join(str(file_name).split(os.sep)[-6:])
         remote_mesh_path = remote_url_s3.format(root_path)
         fs = s3fs.S3FileSystem(anon=True)
+
         if not fs.exists(remote_mesh_path):
             raise FileNotFoundError(
                 f"Mesh file {file_name} not found locally or remotely."

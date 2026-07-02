@@ -53,6 +53,7 @@ from brainglobe_atlasapi.descriptors import (
     ResolutionList,
     ValidComponentData,
 )
+from brainglobe_atlasapi.mesh_io import write_mesh, write_mesh_info
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
     postorder_depth_first_search,
@@ -287,7 +288,7 @@ def _save_meshes(
         if len(mesh.points) == 0:
             continue
 
-        # Scale to nm and reorient to brainglobe-space convention (ASR)
+        # Scale to from voxel to physical units (um) if requested
         if scale_meshes:
             if not resolution_mapping:
                 mesh.points *= np.array(resolution_standard[0])
@@ -299,23 +300,19 @@ def _save_meshes(
                 )
                 mesh.points *= np.array(original_resolution)
 
+        # Reorient to the atlas space convention
         mesh.points = space_convention.map_points_to(
             descriptors.ATLAS_ORIENTATION, mesh.points
         )
 
-        # Reorient from ZYX to XYZ for Neuroglancer
+        # Reorient from ZYX to XYZ for Neuroglancer and scale from um to nm
         mesh.points = mesh.points[:, [2, 1, 0]] * 1000  # um -> nm
         mesh.cells[0].data = mesh.cells[0].data[:, [2, 1, 0]]
 
         # TODO: parallelise and copy if not scaling or reorienting
-        mio.write(
-            mesh_dest_dir / f"{mesh_id}:0:0",
-            mesh,
-            file_format="neuroglancer",
-        )
+        write_mesh(mesh, mesh_dest_dir, mesh_id)
 
-        with open(mesh_dest_dir / f"{mesh_id}:0", "w") as f:
-            json.dump({"fragments": [f"{mesh_id}:0:0"]}, f)
+    write_mesh_info(mesh_dest_dir)
 
 
 def _save_template_data(

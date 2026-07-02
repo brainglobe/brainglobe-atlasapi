@@ -89,7 +89,7 @@ def test_mesh_loading(atlas_path):
 
     # Add entry for file paths:
     for struct in structures_list_real:
-        struct["mesh_filename"] = mesh_root_path / f"{struct['id']}:0:0"
+        struct["mesh_filename"] = mesh_root_path / f"{struct['id']}"
 
     struct_dict = StructuresDict(structures_list_real)
     assert isinstance(struct_dict["997"]["mesh"], mio.Mesh)

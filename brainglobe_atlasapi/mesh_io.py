@@ -7,9 +7,6 @@ from typing import List
 import DracoPy
 import meshio
 import numpy as np
-from cloudvolume.datasource.precomputed.mesh.multilod import (
-    MultiLevelPrecomputedMeshManifest,
-)
 
 
 def write_mesh_info(
@@ -68,6 +65,12 @@ def write_mesh(
     vertex_quantization_bits : 10 or 16 (Neuroglancer only allows these two)
     compression_level : 0-10 (higher = more compression)
     """
+    # Imported lazily so that the (heavy, atlasgen-only) cloud-volume
+    # dependency is not required by the core mesh-reading path.
+    from cloudvolume.datasource.precomputed.mesh.multilod import (
+        MultiLevelPrecomputedMeshManifest,
+    )
+
     vertices = np.ascontiguousarray(mesh.points, dtype=np.float32)
     faces = np.ascontiguousarray(mesh.cells[0].data, dtype=np.uint32)
 
@@ -117,6 +120,11 @@ def read_mesh(mesh_path: Path) -> meshio.Mesh:
     -------
     meshio.Mesh
         The mesh object reoriented and scaled.
+
+    Raises
+    ------
+    DracoPy.FileTypeException
+        If the file is not a valid Draco-encoded mesh.
     """
     with open(mesh_path, "rb") as f:
         mesh = DracoPy.decode(f.read())

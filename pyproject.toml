@@ -21,6 +21,7 @@ requires-python = ">=3.11"
 dependencies = [
     "brainglobe-space >= 1.0.0",
     "click",
+    "DracoPy",
     "fsspec",
     "meshio",
     "ngff-zarr<0.37.0",

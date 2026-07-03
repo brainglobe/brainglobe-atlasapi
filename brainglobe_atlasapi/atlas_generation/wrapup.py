@@ -291,7 +291,7 @@ def _save_meshes(
         if len(mesh.points) == 0:
             continue
 
-        # Scale to from voxel to physical units (um) if requested
+        # Scale from voxel to physical units (um) if requested
         if scale_meshes:
             if not resolution_mapping:
                 mesh.points *= np.array(resolution_standard[0])

@@ -455,15 +455,6 @@ def _save_annotation_data(
             resolution_mapping,
         )
 
-        _save_meshes(
-            packaging_data.meshes_dict,
-            mesh_dest_dir,
-            packaging_data.space_convention,
-            scale_meshes,
-            packaging_data.resolution,
-            resolution_mapping,
-        )
-
     return annotation_multiscale, hemispheres_multiscale
 
 

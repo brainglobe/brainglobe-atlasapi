@@ -8,6 +8,7 @@ import warnings
 from collections import UserDict
 from pathlib import Path
 
+import DracoPy
 import meshio as mio
 import s3fs
 from fsspec.callbacks import TqdmCallback
@@ -63,7 +64,12 @@ class Structure(UserDict):
                     self._download_mesh(file_name)
 
                 self.data[item] = read_mesh(file_name)
-            except (TypeError, mio.ReadError, FileNotFoundError):
+            except (
+                TypeError,
+                mio.ReadError,
+                FileNotFoundError,
+                DracoPy.FileTypeException,
+            ):
                 raise mio.ReadError(
                     "No valid mesh for region: {}".format(self.data["acronym"])
                 )

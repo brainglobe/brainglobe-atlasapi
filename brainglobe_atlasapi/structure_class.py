@@ -14,7 +14,6 @@ import s3fs
 from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import remote_url_s3
-from brainglobe_atlasapi.mesh_io import read_mesh
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -63,16 +62,17 @@ class Structure(UserDict):
                 if not file_name.exists():
                     self._download_mesh(file_name)
 
-                self.data[item] = read_mesh(file_name)
+                self.data[item] = self._read_mesh(file_name)
             except (
                 TypeError,
                 mio.ReadError,
                 FileNotFoundError,
                 DracoPy.FileTypeException,
-            ):
-                raise mio.ReadError(
-                    "No valid mesh for region: {}".format(self.data["acronym"])
-                )
+            ) as e:
+                raise RuntimeError(
+                    f"Failed to read mesh for region {self.data['acronym']} "
+                    f"from file {file_name}: {e}"
+                ) from e
 
         return self.data[item]
 
@@ -87,7 +87,35 @@ class Structure(UserDict):
                 f"Mesh file {file_name} not found locally or remotely."
             )
 
-        fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
+        try:
+            fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
+        except BaseException:
+            file_name.unlink(missing_ok=True)  # Removes corrupt file
+            raise
+
+    @staticmethod
+    def _read_mesh(mesh_path: Path) -> mio.Mesh:
+        """
+        Read one object back into (vertices, faces).
+
+        Re-orient from XYZ to ZYX and scale from nm to um.
+
+        Returns
+        -------
+        meshio.Mesh
+            The mesh object reoriented and scaled.
+        """
+        with open(mesh_path, "rb") as f:
+            mesh = DracoPy.decode(f.read())
+
+        points = mesh.points / 1000.0  # scale from nm to um
+        points = points[:, [2, 1, 0]]  # reorient from XYZ to ZYX
+        faces = mesh.faces[:, [2, 1, 0]]  # reorient from XYZ to ZYX
+
+        return mio.Mesh(
+            points=points,
+            cells=[("triangle", faces)],
+        )
 
 
 class StructuresDict(UserDict):

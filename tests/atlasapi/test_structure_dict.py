@@ -35,7 +35,6 @@ structures_list = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore:No valid mesh for region root")
 def test_structure_indexing(atlas_path):
     """Test various indexing methods for StructuresDict.
 
@@ -47,20 +46,6 @@ def test_structure_indexing(atlas_path):
     assert structures_dict[997] == structures_dict["root"]
     assert structures_dict[997.0] == structures_dict["root"]
     assert structures_dict["997"] == structures_dict["root"]
-
-    with pytest.raises(mio.ReadError) as error:
-        bad_path = (
-            atlas_path
-            / "annotation-sets"
-            / "example_mouse-annotation"
-            / "1_2"
-            / "meshes"
-            / "998"
-        )
-        structures_dict["root"]["mesh_filename"] = bad_path
-        _ = structures_dict["997"]["mesh"]
-    print(str(error))
-    assert "" in str(error)
 
 
 def test_mesh_loading(atlas_path):
@@ -93,3 +78,15 @@ def test_mesh_loading(atlas_path):
 
     struct_dict = StructuresDict(structures_list_real)
     assert isinstance(struct_dict["997"]["mesh"], mio.Mesh)
+
+
+def test_read_mesh_invalid_file_raises(tmp_path):
+    """`read_mesh` raises `DracoPy.FileTypeException` on a non-Draco file."""
+    bad_file = tmp_path / "997"
+    bad_file.write_bytes(b"not a draco encoded mesh")
+
+    struct_dict = StructuresDict(structures_list)
+    struct_dict["root"]["mesh_filename"] = bad_file
+
+    with pytest.raises(RuntimeError):
+        _ = struct_dict["root"]["mesh"]

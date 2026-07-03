@@ -27,6 +27,10 @@ from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
     TemplateInfo,
     TerminologyInfo,
 )
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    write_mesh,
+    write_mesh_info,
+)
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     generate_metadata_dict,
 )
@@ -53,7 +57,6 @@ from brainglobe_atlasapi.descriptors import (
     ResolutionList,
     ValidComponentData,
 )
-from brainglobe_atlasapi.mesh_io import write_mesh, write_mesh_info
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
     postorder_depth_first_search,

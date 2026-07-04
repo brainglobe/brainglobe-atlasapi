@@ -119,7 +119,6 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
 
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAMES[age]
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAMES[age]
-    labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
 
     needs_download = (not reference_path.exists()) or (
         not annotation_path.exists()

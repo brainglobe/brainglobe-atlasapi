@@ -47,16 +47,13 @@ LABELS_FNAME = "dc_label_descriptions.txt"
 CATALOG_FNAME = "dataset_catalog.json"
 
 SOURCE_FILES = {
-    REFERENCE_FNAME: (
-        "atlases/dc_mixed_hhg6/1.0/template/reference.nii.gz"
-    ),
+    REFERENCE_FNAME: ("atlases/dc_mixed_hhg6/1.0/template/reference.nii.gz"),
     ANNOTATION_FNAME: (
         "atlases/dc_mixed_hhg6/1.0/segmentation/MECE/1.0/"
         "segmentation.nii.gz"
     ),
     HIERARCHY_FNAME: (
-        "atlases/dc_mixed_hhg6/1.0/segmentation/MECE/1.0/"
-        "dc_labels.json"
+        "atlases/dc_mixed_hhg6/1.0/segmentation/MECE/1.0/" "dc_labels.json"
     ),
     LABELS_FNAME: (
         "atlases/dc_mixed_hhg6/1.0/segmentation/MECE/1.0/"
@@ -271,9 +268,7 @@ def _additional_reference_diagnostics(name, stack, reference_shape):
     negative_voxels = np.count_nonzero(stack < 0)
     positive_subunit_voxels = np.count_nonzero((stack > 0) & (stack < 1))
     positive_subunit_fraction = (
-        positive_subunit_voxels / nonzero_voxels
-        if nonzero_voxels
-        else 0
+        positive_subunit_voxels / nonzero_voxels if nonzero_voxels else 0
     )
 
     return {
@@ -310,9 +305,7 @@ def download_resources():
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    source_paths = {
-        fname: DOWNLOAD_DIR_PATH / fname for fname in SOURCE_FILES
-    }
+    source_paths = {fname: DOWNLOAD_DIR_PATH / fname for fname in SOURCE_FILES}
     needs_download = any(not path.exists() for path in source_paths.values())
 
     if needs_download:
@@ -360,9 +353,9 @@ def retrieve_reference_and_annotation():
             f"{reference.shape} != {annotation.shape}"
         )
 
-    reference = np.clip(
-        reference, 0, np.iinfo(np.uint16).max
-    ).astype(np.uint16)
+    reference = np.clip(reference, 0, np.iinfo(np.uint16).max).astype(
+        np.uint16
+    )
 
     if annotation.min() < 0:
         raise ValueError("Annotation contains negative label IDs.")

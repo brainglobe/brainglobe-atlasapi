@@ -858,7 +858,7 @@ def test_root_mesh_file_exists(wrapup_dir, annotation_dir):
         wrapup_dir
         / annotation_dir
         / descriptors.V3_MESHES_DIRECTORY
-        / str(ROOT_ID)
+        / f"{ROOT_ID}"
     ).exists()
 
 

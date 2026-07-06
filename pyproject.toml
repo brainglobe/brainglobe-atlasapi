@@ -21,9 +21,10 @@ requires-python = ">=3.11"
 dependencies = [
     "brainglobe-space >= 1.0.0",
     "click",
+    "DracoPy",
     "fsspec",
     "meshio",
-    "ngff-zarr",
+    "ngff-zarr<0.37.0",
     "numpy",
     "pandas",
     "pyarrow",
@@ -65,6 +66,7 @@ kocher_bumblebee = ["vtk"]
 
 atlasgen = [
     "brainglobe-utils",
+    "cloud-volume",
     "loguru",
     "numba",
     "ome-zarr<0.17.0",

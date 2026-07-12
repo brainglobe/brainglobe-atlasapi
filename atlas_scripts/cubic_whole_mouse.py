@@ -41,13 +41,13 @@ SKIP_DOWNLOADS_IF_PRESENT = True
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
-REFERENCE_URL = "https://drive.google.com/file/d/1GXmdURDU4k9Hnv4n4xBj5OBIlIGSbF_R/view?usp=drive_link"
-ANNOTATION_URL = "https://drive.google.com/file/d/1PXFHzTuId_CverejqzwdFZScRLjGtmNq/view?usp=sharing"
-LABELS_URL = "https://docs.google.com/spreadsheets/d/1dJtZo59SFRkZe3s5ZlbSqyW5KoaMC1b1/edit?usp=drive_link&ouid=115542585487468990890&rtpof=true&sd=true"
+REFERENCE_URL = "https://drive.google.com/uc?export=download&id=1GXmdURDU4k9Hnv4n4xBj5OBIlIGSbF_R"
+ANNOTATION_URL = "https://drive.google.com/uc?export=download&id=1PXFHzTuId_CverejqzwdFZScRLjGtmNq"
+LABELS_URL = "https://drive.google.com/uc?export=download&id=1dJtZo59SFRkZe3s5ZlbSqyW5KoaMC1b1"
 
 REFERENCE_FNAME = "11_Neonatal_body_atlas_density_img_100um.tif"
 ANNOTATION_FNAME = "11_Neonatal_body_atlas_segmentation.tif"
-LABELS_FNAME = "Developmental_labels_lookup.txt"
+LABELS_FNAME = "ID_list.xlsx"
 
 
 def download_resources():
@@ -75,7 +75,7 @@ def download_resources():
     if should_fetch(reference_path):
         pooch.retrieve(
             url=REFERENCE_URL,
-            known_hash=None,
+            known_hash="bbd6944c0c6e92cf83049259ca3b48c496cf10d8ef82a718f337ecdcfc3c59ee",
             path=DOWNLOAD_DIR_PATH,
             fname=REFERENCE_FNAME,
             progressbar=True,
@@ -84,7 +84,7 @@ def download_resources():
     if should_fetch(annotation_path):
         pooch.retrieve(
             url=ANNOTATION_URL,
-            known_hash=None,
+            known_hash="be03ef141f07e633f44524a685bd42161f0582e26f7e0c804144e194083fbd26",
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
             progressbar=True,
@@ -93,7 +93,7 @@ def download_resources():
     if should_fetch(labels_path):
         pooch.retrieve(
             url=LABELS_URL,
-            known_hash=None,
+            known_hash="16ec41f94b6a7c8e34f802c5f242f9d4e0338b927090859ebfc8b227c59b9016",
             path=DOWNLOAD_DIR_PATH,
             fname=LABELS_FNAME,
             progressbar=True,
@@ -245,7 +245,7 @@ if __name__ == "__main__":
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
         structures_list=structures,
-        meshes_dict=meshes_dict,
+        meshes_dict={},
         working_dir=bg_root_dir,
         hemispheres_stack=None,
         cleanup_files=False,

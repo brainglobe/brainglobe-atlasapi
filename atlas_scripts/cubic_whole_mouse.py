@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import pooch
 import pandas as pd
+import pooch
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -160,7 +160,9 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    labels_df = pd.read_excel(DOWNLOAD_DIR_PATH / LABELS_FNAME, engine="openpyxl")
+    labels_df = pd.read_excel(
+        DOWNLOAD_DIR_PATH / LABELS_FNAME, engine="openpyxl"
+    )
     print(labels_df)
     return None
 
@@ -235,7 +237,7 @@ if __name__ == "__main__":
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     # meshes_dict = retrieve_or_construct_meshes()
-    
+
     quit()
 
     output_filename = wrapup_atlas_from_data(

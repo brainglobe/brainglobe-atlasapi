@@ -1,11 +1,11 @@
+"""Template script for generating a BrainGlobe atlas.
+
+Use this script as a starting point to package a new BrainGlobe atlas by
+filling in the required functions and metadata.
+"""
+
 from pathlib import Path
 
-import pooch
-
-from brainglobe_atlasapi import utils
-from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    construct_meshes_from_annotation,
-)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -24,16 +24,17 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "cubic_whole_mouse"
+ATLAS_NAME = "cubic_mouse"
 CITATION = "https://doi.org/10.1016/j.cell.2025.12.057"
 SPECIES = "Mus musculus"
 ATLAS_LINK = (
-    "https://drive.google.com/drive/folders/11QnUYaTD2blipXxWAsCk-KOxZeccXKWM"
+    "https://drive.google.com/drive/folders/1YUZZ7zMsOcHPqO9MiibF7o9euudfUNt0"
 )
 ORIENTATION = "asr"
 
 ROOT_ID = 999
-RESOLUTION = 100
+RESOLUTION = 50
+BODY_RESOLUTION = 100
 ATLAS_PACKAGER = "Jung Woo Kim"
 
 SKIP_DOWNLOADS_IF_PRESENT = True
@@ -41,63 +42,26 @@ SKIP_DOWNLOADS_IF_PRESENT = True
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
-REFERENCE_URL = "https://drive.google.com/file/d/1GXmdURDU4k9Hnv4n4xBj5OBIlIGSbF_R/view?usp=drive_link"
-ANNOTATION_URL = "https://drive.google.com/file/d/1PXFHzTuId_CverejqzwdFZScRLjGtmNq/view?usp=sharing"
-LABELS_URL = "https://docs.google.com/spreadsheets/d/1dJtZo59SFRkZe3s5ZlbSqyW5KoaMC1b1/edit?usp=drive_link&ouid=115542585487468990890&rtpof=true&sd=true"
 
-REFERENCE_FNAME = "11_Neonatal_body_atlas_density_img_100um.tif"
-ANNOTATION_FNAME = "11_Neonatal_body_atlas_segmentation.tif"
+TIMEPOINTS = ["00", "02", "04", "08", "12", "18", "24", "40", "80"]
+
+REFERENCE_FNAMES = {age: "p" + age + "_average_gre.nii" for age in TIMEPOINTS}
+ANNOTATION_FNAMES = {
+    age: "pnd" + age + "_average_labels.nii" for age in TIMEPOINTS
+}
+ANNOTATION_FNAMES["12"] = "pnd12_average_labels_fix.nii"
 LABELS_FNAME = "Developmental_labels_lookup.txt"
+# Heart lung liver kidney neonatal_body
+# 50um for all except neonatal_body, which is 100um
 
 
 def download_resources():
-    """Download the necessary resources for the atlas with Pooch."""
-    BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
-    DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
+    """
+    Download the necessary resources for the atlas.
 
-    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
-    labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
-
-    needs_download = (
-        (not reference_path.exists())
-        or (not annotation_path.exists())
-        or (not labels_path.exists())
-    )
-    if needs_download:
-        utils.check_internet_connection()
-
-    def should_fetch(path: Path) -> bool:
-        if not path.exists():
-            return True
-        return not SKIP_DOWNLOADS_IF_PRESENT
-
-    if should_fetch(reference_path):
-        pooch.retrieve(
-            url=REFERENCE_URL,
-            known_hash=None,
-            path=DOWNLOAD_DIR_PATH,
-            fname=REFERENCE_FNAME,
-            progressbar=True,
-        )
-
-    if should_fetch(annotation_path):
-        pooch.retrieve(
-            url=ANNOTATION_URL,
-            known_hash=None,
-            path=DOWNLOAD_DIR_PATH,
-            fname=ANNOTATION_FNAME,
-            progressbar=True,
-        )
-
-    if should_fetch(labels_path):
-        pooch.retrieve(
-            url=LABELS_URL,
-            known_hash=None,
-            path=DOWNLOAD_DIR_PATH,
-            fname=LABELS_FNAME,
-            progressbar=True,
-        )
+    If possible, please use the Pooch library to retrieve any resources.
+    """
+    pass
 
 
 def retrieve_reference_and_annotation():
@@ -162,7 +126,7 @@ def retrieve_structure_information():
     return None
 
 
-def retrieve_or_construct_meshes(annotated_volume, structures):
+def retrieve_or_construct_meshes():
     """
     Return a dictionary mapping structure IDs to paths of mesh files.
 
@@ -175,21 +139,8 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
-    meshes_dict = construct_meshes_from_annotation(
-        save_path=DOWNLOAD_DIR_PATH,
-        volume=annotated_volume,
-        structures_list=structures,
-        closing_n_iters=2,
-        decimate_fraction=0.2,
-        smooth=False,
-        parallel=True,
-        verbosity=0,
-        num_threads=-1,
-    )
-
-    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
-
-    return meshes_dict, structures_with_mesh
+    meshes_dict = {}
+    return meshes_dict
 
 
 def retrieve_additional_references():
@@ -231,7 +182,7 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    # meshes_dict = retrieve_or_construct_meshes()
+    meshes_dict = retrieve_or_construct_meshes()
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

@@ -11,9 +11,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pooch
+from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
-from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
@@ -321,7 +321,9 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(annotated_volume, structures)
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+        annotated_volume, structures
+    )
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

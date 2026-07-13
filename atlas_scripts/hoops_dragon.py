@@ -1,7 +1,9 @@
-"""Template script for generating a BrainGlobe atlas.
+"""Package the Hoops et al Tawny Dragon Brain Atlas.
 
-Use this script as a starting point to package a new BrainGlobe atlas by
-filling in the required functions and metadata.
+This script generates the tawny dragon brain atlas,
+based on data published by Hoops et al. It downloads the necessary
+annotation and structure data, processes it to create an atlas,
+and then wraps it up into the BrainGlobe atlas format.
 """
 
 from pathlib import Path
@@ -18,45 +20,14 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
-
-### Metadata ###
-
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
 __version__ = 0
-
-# The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
-# Institution_SpeciesCommonName, e.g. allen_mouse.
-# remember to add {ATLAS_NAME}_{RESOLUTION}um to:
-# brainglobe_atlasapi/atlas_names.py
 ATLAS_NAME = "hoops_dragon"
-
-# DOI of the most relevant citable document
 CITATION = "https://doi.org/10.1007/s00429-021-02282-z"
-
-# The scientific name of the species, ie; Rattus norvegicus
 SPECIES = "Ctenophorus decresii"
-
-# The URL for the data files
 ATLAS_LINK = "https://osf.io/ujenq"
-
 ATLAS_PACKAGER = "Jung Woo Kim"
-
-# The orientation of the **original** atlas data, in BrainGlobe convention:
-# https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
 ORIENTATION = "ila"
-
-# The id of the highest level of the atlas. This is commonly called root or
-# brain. Include some information on what to do if your atlas is not
-# hierarchical
 ROOT_ID = 999
-
-# The resolution of your volume in microns. Details on how to format this
-# parameter for non isotropic datasets or datasets with multiple resolutions.
 RESOLUTION = 50
 
 SKIP_DOWNLOADS_IF_PRESENT = True
@@ -277,8 +248,6 @@ def retrieve_additional_references():
     return additional_references
 
 
-### If the code above this line has been filled correctly, nothing needs to be
-### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 

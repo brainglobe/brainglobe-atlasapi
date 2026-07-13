@@ -1,3 +1,11 @@
+"""Package the CUBIC Neonatal Whole Mouse Atlas.
+
+This script generates the CUBIC neonatal whole mouse atlas,
+based on data published by Yoshida et al. It downloads the necessary
+annotation and structure data, processes it to create an atlas,
+and then wraps it up into the BrainGlobe atlas format.
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -12,21 +20,8 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
-
-### Metadata ###
-
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
 __version__ = 0
 
-# The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
-# Institution_SpeciesCommonName, e.g. allen_mouse.
-# remember to add {ATLAS_NAME}_{RESOLUTION}um to:
-# brainglobe_atlasapi/atlas_names.py
 ATLAS_NAME = "cubic_whole_mouse"
 CITATION = "https://doi.org/10.1016/j.cell.2025.12.057"
 SPECIES = "Mus musculus"
@@ -176,7 +171,6 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    # TODO: Requires installling openpyxl, which I'm not sure is in the pyproject.toml?
     labels_df = pd.read_excel(
         DOWNLOAD_DIR_PATH / LABELS_FNAME, engine="openpyxl"
     )

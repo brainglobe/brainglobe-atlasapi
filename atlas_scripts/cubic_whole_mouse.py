@@ -2,7 +2,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import numpy as np
 import pooch
 
 from brainglobe_atlasapi import utils

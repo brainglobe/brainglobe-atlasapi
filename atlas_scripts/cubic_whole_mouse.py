@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -57,6 +57,7 @@ def generate_pseudorandom_rgbs(n_rgbs: int, seed: int = 0):
     # n_rgbs RGB values, each channel between 0 and 255 inclusive
     rgb_values = rng.integers(0, 256, size=(n_rgbs, 3)).tolist()
     return rgb_values
+
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -167,31 +168,36 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    # TODO: Requires installling openpyxl, which I'm not sure is in the pyproject.toml? 
-    labels_df = pd.read_excel(DOWNLOAD_DIR_PATH / LABELS_FNAME, engine="openpyxl")
+    # TODO: Requires installling openpyxl, which I'm not sure is in the pyproject.toml?
+    labels_df = pd.read_excel(
+        DOWNLOAD_DIR_PATH / LABELS_FNAME, engine="openpyxl"
+    )
     labels_df = labels_df.iloc[1].dropna()
-    structures = [{
-        "id": ROOT_ID,
-        "name": "root",
-        "acronym": "root",
-        "structure_id_path": [999],
-        "rgb_triplet": [255, 255, 255],
+    structures = [
+        {
+            "id": ROOT_ID,
+            "name": "root",
+            "acronym": "root",
+            "structure_id_path": [999],
+            "rgb_triplet": [255, 255, 255],
         }
     ]
-    
+
     rgbs = generate_pseudorandom_rgbs(labels_df.shape[0], 42)
-    
+
     for id, name in labels_df.items():
-        if id == "ID" or name == "none": 
+        if id == "ID" or name == "none":
             continue
-        structures.append({
-            "id": int(id),
-            "name": name,
-            "acronym": name,
-            "structure_id_path": [999, int(id)],
-            "rgb_triplet": rgbs[int(id)],
-        })
-        
+        structures.append(
+            {
+                "id": int(id),
+                "name": name,
+                "acronym": name,
+                "structure_id_path": [999, int(id)],
+                "rgb_triplet": rgbs[int(id)],
+            }
+        )
+
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures
 

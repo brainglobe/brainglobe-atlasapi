@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pooch
 import pandas as pd
 import numpy as np
 
@@ -267,7 +266,7 @@ if __name__ == "__main__":
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     # meshes_dict = retrieve_or_construct_meshes()
-    
+
     quit()
 
     output_filename = wrapup_atlas_from_data(

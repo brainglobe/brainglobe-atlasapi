@@ -5,6 +5,7 @@ import pandas as pd
 import pooch
 
 from brainglobe_atlasapi import utils
+from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
@@ -32,7 +33,7 @@ SPECIES = "Mus musculus"
 ATLAS_LINK = (
     "https://drive.google.com/drive/folders/11QnUYaTD2blipXxWAsCk-KOxZeccXKWM"
 )
-ORIENTATION = "asr"
+ORIENTATION = "psr"
 
 ROOT_ID = 999
 RESOLUTION = 100
@@ -121,8 +122,14 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference = None
-    annotation = None
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    reference = load_any(reference_path)
+    ref_min = np.min(reference)
+    ref_max = np.max(reference)
+    reference = (reference - ref_min) / (ref_max - ref_min) * 65535
+    reference = reference.astype(np.uint16)
+    annotation = load_any(annotation_path)
     return reference, annotation
 
 
@@ -272,9 +279,7 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    # meshes_dict = retrieve_or_construct_meshes()
-
-    quit()
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(annotated_volume, structures)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -287,8 +292,8 @@ if __name__ == "__main__":
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=structures,
-        meshes_dict={},
+        structures_list=structures_with_mesh,
+        meshes_dict=meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,
         cleanup_files=False,

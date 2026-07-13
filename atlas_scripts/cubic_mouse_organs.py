@@ -1,11 +1,14 @@
-"""Template script for generating a BrainGlobe atlas.
-
-Use this script as a starting point to package a new BrainGlobe atlas by
-filling in the required functions and metadata.
-"""
-
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
+import pooch
+
+from brainglobe_atlasapi import utils
+from brainglobe_utils.IO.image import load_any
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
@@ -24,17 +27,16 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "cubic_mouse"
+ATLAS_NAME = "cubic_whole_mouse"
 CITATION = "https://doi.org/10.1016/j.cell.2025.12.057"
 SPECIES = "Mus musculus"
 ATLAS_LINK = (
-    "https://drive.google.com/drive/folders/1YUZZ7zMsOcHPqO9MiibF7o9euudfUNt0"
+    "https://drive.google.com/drive/folders/11QnUYaTD2blipXxWAsCk-KOxZeccXKWM"
 )
-ORIENTATION = "asr"
+ORIENTATION = "psr"
 
 ROOT_ID = 999
 RESOLUTION = 50
-BODY_RESOLUTION = 100
 ATLAS_PACKAGER = "Jung Woo Kim"
 
 SKIP_DOWNLOADS_IF_PRESENT = True
@@ -42,26 +44,71 @@ SKIP_DOWNLOADS_IF_PRESENT = True
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
+REFERENCE_URL = "https://drive.google.com/uc?export=download&id=1GXmdURDU4k9Hnv4n4xBj5OBIlIGSbF_R"
+ANNOTATION_URL = "https://drive.google.com/uc?export=download&id=1PXFHzTuId_CverejqzwdFZScRLjGtmNq"
+LABELS_URL = "https://drive.google.com/uc?export=download&id=1dJtZo59SFRkZe3s5ZlbSqyW5KoaMC1b1"
 
-TIMEPOINTS = ["00", "02", "04", "08", "12", "18", "24", "40", "80"]
+REFERENCE_FNAME = "11_Neonatal_body_atlas_density_img_100um.tif"
+ANNOTATION_FNAME = "11_Neonatal_body_atlas_segmentation.tif"
+LABELS_FNAME = "ID_list.xlsx"
 
-REFERENCE_FNAMES = {age: "p" + age + "_average_gre.nii" for age in TIMEPOINTS}
-ANNOTATION_FNAMES = {
-    age: "pnd" + age + "_average_labels.nii" for age in TIMEPOINTS
-}
-ANNOTATION_FNAMES["12"] = "pnd12_average_labels_fix.nii"
-LABELS_FNAME = "Developmental_labels_lookup.txt"
-# Heart lung liver kidney neonatal_body
-# 50um for all except neonatal_body, which is 100um
+
+def generate_pseudorandom_rgbs(n_rgbs: int, seed: int = 0):
+    """Generate a list of n_rgbs RGB triplets given a seed."""
+    rng = np.random.default_rng(seed)
+    # n_rgbs RGB values, each channel between 0 and 255 inclusive
+    rgb_values = rng.integers(0, 256, size=(n_rgbs, 3)).tolist()
+    return rgb_values
 
 
 def download_resources():
-    """
-    Download the necessary resources for the atlas.
+    """Download the necessary resources for the atlas with Pooch."""
+    BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
+    DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    If possible, please use the Pooch library to retrieve any resources.
-    """
-    pass
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
+
+    needs_download = (
+        (not reference_path.exists())
+        or (not annotation_path.exists())
+        or (not labels_path.exists())
+    )
+    if needs_download:
+        utils.check_internet_connection()
+
+    def should_fetch(path: Path) -> bool:
+        if not path.exists():
+            return True
+        return not SKIP_DOWNLOADS_IF_PRESENT
+
+    if should_fetch(reference_path):
+        pooch.retrieve(
+            url=REFERENCE_URL,
+            known_hash="bbd6944c0c6e92cf83049259ca3b48c496cf10d8ef82a718f337ecdcfc3c59ee",
+            path=DOWNLOAD_DIR_PATH,
+            fname=REFERENCE_FNAME,
+            progressbar=True,
+        )
+
+    if should_fetch(annotation_path):
+        pooch.retrieve(
+            url=ANNOTATION_URL,
+            known_hash="be03ef141f07e633f44524a685bd42161f0582e26f7e0c804144e194083fbd26",
+            path=DOWNLOAD_DIR_PATH,
+            fname=ANNOTATION_FNAME,
+            progressbar=True,
+        )
+
+    if should_fetch(labels_path):
+        pooch.retrieve(
+            url=LABELS_URL,
+            known_hash="16ec41f94b6a7c8e34f802c5f242f9d4e0338b927090859ebfc8b227c59b9016",
+            path=DOWNLOAD_DIR_PATH,
+            fname=LABELS_FNAME,
+            progressbar=True,
+        )
 
 
 def retrieve_reference_and_annotation():
@@ -75,8 +122,14 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference = None
-    annotation = None
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    reference = load_any(reference_path)
+    ref_min = np.min(reference)
+    ref_max = np.max(reference)
+    reference = (reference - ref_min) / (ref_max - ref_min) * 65535
+    reference = reference.astype(np.uint16)
+    annotation = load_any(annotation_path)
     return reference, annotation
 
 
@@ -123,10 +176,41 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    return None
+    # TODO: Requires installling openpyxl, which I'm not sure is in the pyproject.toml?
+    labels_df = pd.read_excel(
+        DOWNLOAD_DIR_PATH / LABELS_FNAME, engine="openpyxl"
+    )
+    labels_df = labels_df.iloc[1].dropna()
+    structures = [
+        {
+            "id": ROOT_ID,
+            "name": "root",
+            "acronym": "root",
+            "structure_id_path": [999],
+            "rgb_triplet": [255, 255, 255],
+        }
+    ]
+
+    rgbs = generate_pseudorandom_rgbs(labels_df.shape[0], 42)
+
+    for id, name in labels_df.items():
+        if id == "ID" or name == "none":
+            continue
+        structures.append(
+            {
+                "id": int(id),
+                "name": name,
+                "acronym": name,
+                "structure_id_path": [999, int(id)],
+                "rgb_triplet": rgbs[int(id)],
+            }
+        )
+
+    structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    return structures
 
 
-def retrieve_or_construct_meshes():
+def retrieve_or_construct_meshes(annotated_volume, structures):
     """
     Return a dictionary mapping structure IDs to paths of mesh files.
 
@@ -139,8 +223,21 @@ def retrieve_or_construct_meshes():
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
-    meshes_dict = {}
-    return meshes_dict
+    meshes_dict = construct_meshes_from_annotation(
+        save_path=DOWNLOAD_DIR_PATH,
+        volume=annotated_volume,
+        structures_list=structures,
+        closing_n_iters=2,
+        decimate_fraction=0.2,
+        smooth=False,
+        parallel=True,
+        verbosity=0,
+        num_threads=-1,
+    )
+
+    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
+
+    return meshes_dict, structures_with_mesh
 
 
 def retrieve_additional_references():
@@ -182,7 +279,7 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    meshes_dict = retrieve_or_construct_meshes()
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(annotated_volume, structures)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -195,7 +292,7 @@ if __name__ == "__main__":
         root_id=ROOT_ID,
         reference_stack=reference_volume,
         annotation_stack=annotated_volume,
-        structures_list=structures,
+        structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=bg_root_dir,
         hemispheres_stack=None,

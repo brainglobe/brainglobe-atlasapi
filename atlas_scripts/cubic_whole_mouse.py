@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pooch
 import pandas as pd
+import numpy as np
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -50,6 +51,13 @@ REFERENCE_FNAME = "11_Neonatal_body_atlas_density_img_100um.tif"
 ANNOTATION_FNAME = "11_Neonatal_body_atlas_segmentation.tif"
 LABELS_FNAME = "ID_list.xlsx"
 
+
+def generate_pseudorandom_rgbs(n_rgbs: int, seed: int = 0):
+    """Generate a list of n_rgbs RGB triplets given a seed."""
+    rng = np.random.default_rng(seed)
+    # n_rgbs RGB values, each channel between 0 and 255 inclusive
+    rgb_values = rng.integers(0, 256, size=(n_rgbs, 3)).tolist()
+    return rgb_values
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -160,9 +168,33 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
+    # TODO: Requires installling openpyxl, which I'm not sure is in the pyproject.toml? 
     labels_df = pd.read_excel(DOWNLOAD_DIR_PATH / LABELS_FNAME, engine="openpyxl")
-    print(labels_df)
-    return None
+    labels_df = labels_df.iloc[1].dropna()
+    structures = [{
+        "id": ROOT_ID,
+        "name": "root",
+        "acronym": "root",
+        "structure_id_path": [999],
+        "rgb_triplet": [255, 255, 255],
+        }
+    ]
+    
+    rgbs = generate_pseudorandom_rgbs(labels_df.shape[0], 42)
+    
+    for id, name in labels_df.items():
+        if id == "ID" or name == "none": 
+            continue
+        structures.append({
+            "id": int(id),
+            "name": name,
+            "acronym": name,
+            "structure_id_path": [999, int(id)],
+            "rgb_triplet": rgbs[int(id)],
+        })
+        
+    structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    return structures
 
 
 def retrieve_or_construct_meshes(annotated_volume, structures):

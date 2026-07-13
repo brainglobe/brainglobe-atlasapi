@@ -1,3 +1,11 @@
+"""Package the CUBIC Mouse Organs Atlases.
+
+This script generates the CUBIC mouse organs atlases,
+based on data published by Yoshida et al. It downloads the necessary
+annotation and structure data, processes it to create an atlas,
+and then wraps it up into the BrainGlobe atlas format.
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -27,7 +35,7 @@ __version__ = 0
 # Institution_SpeciesCommonName, e.g. allen_mouse.
 # remember to add {ATLAS_NAME}_{RESOLUTION}um to:
 # brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "cubic_whole_mouse"
+ATLAS_NAME = "cubic_mouse_organs"
 CITATION = "https://doi.org/10.1016/j.cell.2025.12.057"
 SPECIES = "Mus musculus"
 ATLAS_LINK = (
@@ -44,13 +52,47 @@ SKIP_DOWNLOADS_IF_PRESENT = True
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
-REFERENCE_URL = "https://drive.google.com/uc?export=download&id=1GXmdURDU4k9Hnv4n4xBj5OBIlIGSbF_R"
-ANNOTATION_URL = "https://drive.google.com/uc?export=download&id=1PXFHzTuId_CverejqzwdFZScRLjGtmNq"
-LABELS_URL = "https://drive.google.com/uc?export=download&id=1dJtZo59SFRkZe3s5ZlbSqyW5KoaMC1b1"
+HEART_REFERENCE_URL = "https://drive.google.com/uc?export=download&id=1xlz83fEmEUUHEu7O5BtX8dbYg_hzDHFm"
+HEART_ANNOTATION_URL = "https://drive.google.com/uc?export=download&id=15bncKMJh3LfneEM4LgBm3zBP4eK51RC8"
+HEART_LABELS_URL = "https://drive.google.com/uc?export=download&id=1HE-oL6I75Bkz3SkAlcFK0kZoq-lIjnwy"
 
-REFERENCE_FNAME = "11_Neonatal_body_atlas_density_img_100um.tif"
-ANNOTATION_FNAME = "11_Neonatal_body_atlas_segmentation.tif"
-LABELS_FNAME = "ID_list.xlsx"
+HEART_REFERENCE_FNAME = "03_Heart_average_atlas_50um.tif"
+HEART_ANNOTATION_FNAME = "03_Heart_atlas_segmentation.tif"
+HEART_LABELS_FNAME = "heart_ID_list.xlsx"
+
+LUNGS_REFERENCE_URL = "https://drive.google.com/uc?export=download&id=1Aceo0-W4Kz2kONEgrMjwHCUp4keL_DPo"
+LUNGS_ANNOTATION_URL = "https://drive.google.com/uc?export=download&id=1xoNJzxWLsPYlH8ADUqQPP4v_yHhF5iDl"
+LUNGS_LABELS_URL = "https://drive.google.com/uc?export=download&id=11xyChZ8nJrwoNbZaalOq5E2lr1eeUujF"
+
+LUNGS_REFERENCE_FNAME = "04_Lung_average_atlas_100um.tif"
+LUNGS_ANNOTATION_FNAME = "04_Lung_atlas_segmentation.tif"
+LUNGS_LABELS_FNAME = "lungs_ID_list.xlsx"
+
+# LIVER_REFERENCE_URL = "https://drive.google.com/uc?export=download&id=1xlz83fEmEUUHEu7O5BtX8dbYg_hzDHFm"
+# LIVER_ANNOTATION_URL = "https://drive.google.com/uc?export=download&id=15bncKMJh3LfneEM4LgBm3zBP4eK51RC8"
+# LIVER_LABELS_URL = "https://drive.google.com/uc?export=download&id=1HE-oL6I75Bkz3SkAlcFK0kZoq-lIjnwy"
+
+# LIVER_REFERENCE_FNAME = "11_Neonatal_body_atlas_density_img_100um.tif"
+# LIVER_ANNOTATION_FNAME = "11_Neonatal_body_atlas_segmentation.tif"
+# LIVER_LABELS_FNAME = "liver_ID_list.xlsx"
+
+KIDNEYS_REFERENCE_URL = "https://drive.google.com/uc?export=download&id=1cZkTosDm1e0DFMdbhJ6FIqK8KhV-wfhW"
+KIDNEYS_ANNOTATION_URL = "https://drive.google.com/uc?export=download&id=1pESRqCI1TuDcaMLOaTLjtfneoW_qJuBK"
+KIDNEYS_LABELS_URL = "https://drive.google.com/uc?export=download&id=13K8MhUmGUSZfhBwb6x9-iHI1WhkYrxhL"
+
+KIDNEYS_REFERENCE_FNAME = "07_Kidney_average_atlas_50um.tif"
+KIDNEYS_ANNOTATION_FNAME = "07_Kidney_segmentation.tif"
+KIDNEYS_LABELS_FNAME = "kidneys_ID_list.xlsx"
+
+REFERENCE_URLS = [HEART_REFERENCE_URL, LUNGS_REFERENCE_URL, KIDNEYS_REFERENCE_URL]
+REFERENCE_FNAMES = [HEART_REFERENCE_FNAME, LUNGS_REFERENCE_FNAME, KIDNEYS_REFERENCE_FNAME]
+
+ANNOTATION_URLS = [HEART_ANNOTATION_URL, LUNGS_ANNOTATION_URL, KIDNEYS_ANNOTATION_URL]
+ANNOTATION_FNAMES = [HEART_ANNOTATION_FNAME, LUNGS_ANNOTATION_FNAME, KIDNEYS_ANNOTATION_FNAME]
+
+LABELS_URLS = [HEART_LABELS_URL, LUNGS_LABELS_URL, KIDNEYS_LABELS_URL]
+LABELS_FNAMES = [HEART_LABELS_FNAME, LUNGS_LABELS_FNAME, KIDNEYS_LABELS_FNAME]
+
 
 
 def generate_pseudorandom_rgbs(n_rgbs: int, seed: int = 0):

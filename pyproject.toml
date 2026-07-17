@@ -30,7 +30,7 @@ dependencies = [
     "pyarrow",
     "requests",
     "rich >= 9.0.0",
-    "s3fs",
+    "s3fs >= 2026",
     "tifffile>=2018.11.6",
     "treelib",
 ]

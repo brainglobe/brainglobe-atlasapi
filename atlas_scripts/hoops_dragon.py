@@ -113,7 +113,7 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    # Requires h5py package **************************************************
+    # Loads .mnc files using nibabel
     reference_file = nib.load(REFERENCE_PATH)
     annotation_file = nib.load(ANNOTATION_PATH)
 

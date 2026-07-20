@@ -210,6 +210,7 @@ def test_meshfile_from_id(atlas):
         atlas.root_dir
         / atlas.metadata["annotation_set"]["location"][1:]
         / "annotations.precomputed"
+        / "mesh"
     )
     assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567"
     assert atlas.root_meshfile() == mesh_root_path / "997"
@@ -224,13 +225,13 @@ def test_mesh_from_id(atlas):
         The atlas fixture.
     """
     mesh = atlas.structures[567]["mesh"]
-    assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
+    assert np.allclose(mesh.points[0], [7795.2515, 5022.5635, 9309.463])
 
     mesh = atlas.mesh_from_structure(567)
-    assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
+    assert np.allclose(mesh.points[0], [7795.2515, 5022.5635, 9309.463])
 
     mesh = atlas.root_mesh()
-    assert np.allclose(mesh.points[0], [7896.56, 3384.15, 503.781])
+    assert np.allclose(mesh.points[0], [10229.547, 1233.6494, 3263.8508])
 
 
 def test_lookup_df(atlas):

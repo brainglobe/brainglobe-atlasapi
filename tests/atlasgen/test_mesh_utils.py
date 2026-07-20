@@ -3,6 +3,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
+import meshio as mio
 import numpy as np
 import pytest
 import zarr
@@ -12,7 +13,10 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
     create_region_mesh,
     extract_mesh_from_mask,
+    write_mesh,
+    write_mesh_info,
 )
+from brainglobe_atlasapi.structure_class import Structure
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -79,6 +83,25 @@ def region_mesh_args(structures, tmp_path, request):
         smooth,  # 8
         verbosity,  # 9
     )
+
+
+@pytest.fixture
+def stored_mesh():
+    """Build a mesh in the stored (nm, XYZ) convention `write_mesh` expects.
+
+    Returns
+    -------
+    meshio.Mesh
+        Mesh whose points are in nanometres and XYZ axis order, mirroring
+        what `wrapup._save_meshes` produces before calling `write_mesh`.
+    """
+    rng = np.random.default_rng(0)
+    points_nm_xyz = rng.uniform(0.0, 5000.0, size=(20, 3)).astype(np.float32)
+    faces = np.array(
+        [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [0, 4, 8], [1, 5, 9]],
+        dtype=np.uint32,
+    )
+    return mio.Mesh(points=points_nm_xyz, cells=[("triangle", faces)])
 
 
 @pytest.mark.parametrize(
@@ -405,3 +428,39 @@ def test_construct_meshes_from_annotation(structures, tmp_path, parallel):
     for struct in structures:
         mesh_path = meshes_dir_path / "meshes" / f"{struct['id']}.obj"
         assert mesh_path.exists()
+
+
+def test_write_mesh_creates_expected_files(tmp_path, stored_mesh):
+    """`write_mesh` writes the fragment and its index for the segment id."""
+    write_mesh(stored_mesh, tmp_path, segment_id=42)
+
+    assert (tmp_path / "42").exists()
+    assert (tmp_path / "42.index").exists()
+
+
+def test_write_read_roundtrip(tmp_path, stored_mesh):
+    """`read_mesh` recovers `write_mesh` geometry within quantization error.
+
+    `write_mesh` stores points as-is (nm, XYZ); `read_mesh` converts back to
+    um and ZYX. The recovered mesh must therefore equal the stored points
+    scaled by 1/1000 with axes swapped, and the faces column-swapped, both
+    within Draco's 16-bit quantization tolerance.
+    """
+    write_mesh(stored_mesh, tmp_path, segment_id=7)
+
+    result = Structure._read_mesh(tmp_path / "7")
+
+    expected_points = stored_mesh.points[:, [2, 1, 0]] / 1000.0
+    np.testing.assert_allclose(result.points, expected_points, atol=1e-3)
+
+    expected_faces = stored_mesh.cells[0].data[:, [2, 1, 0]]
+    np.testing.assert_array_equal(result.cells[0].data, expected_faces)
+
+
+def test_write_mesh_info(tmp_path):
+    """`write_mesh_info` writes a valid multilod-draco `info` metadata file."""
+    info = write_mesh_info(tmp_path)
+
+    assert (tmp_path / "info").exists()
+    assert info["@type"] == "neuroglancer_multilod_draco"
+    assert info["vertex_quantization_bits"] == 16

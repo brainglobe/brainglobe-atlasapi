@@ -310,7 +310,7 @@ class BrainGlobeAtlas(core.Atlas):
                     callback=TqdmCallback(),
                 )
                 mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
-                mesh_path.mkdir(exist_ok=True)
+                mesh_path.mkdir(parents=True, exist_ok=True)
 
                 # Download 4D masks metadata (JSON only; chunk data is lazy)
                 try:
@@ -357,6 +357,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_root_hemisphere_path,
                         local_annotation_path / V3_HEMISPHERES_NAME,
+                        callback=TqdmCallback(),
                     )
 
             # Download template metadata files

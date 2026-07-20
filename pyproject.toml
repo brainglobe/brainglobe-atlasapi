@@ -73,7 +73,9 @@ atlasgen = [
     "vedo",
     "xmltodict",
     "pooch",
-    "zarr"
+    "zarr",
+    "nibabel",
+    "h5py",
 ]
 
 [project.scripts]

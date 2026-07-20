@@ -706,13 +706,13 @@ class Atlas:
         dataset_path = multiscale.metadata.datasets[
             self._annotation_masks_pyramid_level
         ].path
-        # Zarr v3 stores chunk i of a (1,Z,Y,X) array at c/i/0/0/0
-        # Use the presence of the corner chunk as a proxy for
-        # existance, if not, download recursively the whole mask
-        chunk_path = (
-            masks_path / dataset_path / "c" / str(index) / "0" / "0" / "0"
-        )
-        if not chunk_path.exists():
+        # Zarr v3 stores structure i's mask chunks under c/i/. A localized
+        # structure has no voxels in the volume corner, so its (0,0,0) chunk
+        # is never written; use the presence of the c/i/ directory (populated
+        # by a prior download) as the proxy instead. If it is missing,
+        # download the whole mask recursively.
+        local_path = masks_path / dataset_path / "c" / str(index)
+        if not local_path.exists():
             annotation_location = self.metadata["annotation_set"]["location"][
                 1:
             ]
@@ -720,8 +720,6 @@ class Atlas:
                 f"{annotation_location}/{V3_ANNOTATION_MASKS_NAME}"
                 f"/{dataset_path}/c/{index}/"
             )
-            local_path = masks_path / dataset_path / "c" / str(index)
-            chunk_path.parent.mkdir(parents=True, exist_ok=True)
             try:
                 self.fs.get(
                     remote_path,

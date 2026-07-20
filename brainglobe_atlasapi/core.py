@@ -706,11 +706,8 @@ class Atlas:
         dataset_path = multiscale.metadata.datasets[
             self._annotation_masks_pyramid_level
         ].path
-        # Zarr v3 stores structure i's mask chunks under c/i/. A localized
-        # structure has no voxels in the volume corner, so its (0,0,0) chunk
-        # is never written; use the presence of the c/i/ directory (populated
-        # by a prior download) as the proxy instead. If it is missing,
-        # download the whole mask recursively.
+        # Check if the mask is cached locally. The presence of the
+        # directory for the specific index indicates that the mask is cached.
         local_path = masks_path / dataset_path / "c" / str(index)
         if not local_path.exists():
             annotation_location = self.metadata["annotation_set"]["location"][

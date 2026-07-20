@@ -244,6 +244,11 @@ def retrieve_hemisphere_map(annotation_volume, age):
     hemispheres_map = np.full(reference_volume.shape, 2, dtype=int)
     hemispheres_map[:, hemispheres_map.shape[1] // 2 :, :] = 1
 
+    # Fix midline misalignment for p24
+    if age == "24":
+        hemispheres_map[:, 325:, :] = 1
+        hemispheres_map[:, :325, :] = 2
+
     # Fix midline misalignment for p40
     if age == "40":
         hemispheres_map[:, 330:, :] = 1

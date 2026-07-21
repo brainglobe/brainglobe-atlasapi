@@ -20,7 +20,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-
 __version__ = 0
 
 
@@ -109,17 +108,17 @@ HASHES = {
     "heart": {
         "reference": "f641df1cf9453c9b3f9a4a04fba4a644cd23eb25fd91ae2184f8d9c750644090",
         "annotation": "f396902232ee795a411cc73186183c1c0fbb6423871f9d313e881a13c6378114",
-        "labels": "d5db0e54404f08761804e23228380ef910629e460a1dcc2d8e521a6ec3c4e8d2", 
+        "labels": "d5db0e54404f08761804e23228380ef910629e460a1dcc2d8e521a6ec3c4e8d2",
     },
     "lungs": {
         "reference": "ab831a5e9764a6317fc7590ebe00a4948b3b8bece9f5eabb2dff6821d2540786",
         "annotation": "b186a4a3075e66198b08782a150e2f1c722882c1cf3eeee4a9032d5b849b7379",
-        "labels": "8bc732d34b0c6f329ef0bc35b1bd9bb1f8aaef3302a6ba0641030f29a25f360d", 
+        "labels": "8bc732d34b0c6f329ef0bc35b1bd9bb1f8aaef3302a6ba0641030f29a25f360d",
     },
     "kidneys": {
         "reference": "46733b505d3f4176399b9a2e65a44e18375889680f157fbaf76495f5c8eab26c",
         "annotation": "8c001e57eaaa7f8ab426906094d66b255db6a196cd5f513ce0dc509fa98469aa",
-        "labels": "010f156cb7f472d4db87ff53546e6cf53050eea7a53d459533f8b6c8a6ac886a", 
+        "labels": "010f156cb7f472d4db87ff53546e6cf53050eea7a53d459533f8b6c8a6ac886a",
     },
 }
 
@@ -130,6 +129,7 @@ def generate_pseudorandom_rgbs(n_rgbs: int, seed: int = 0):
     # n_rgbs RGB values, each channel between 0 and 255 inclusive
     rgb_values = rng.integers(0, 256, size=(n_rgbs, 3)).tolist()
     return rgb_values
+
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -180,6 +180,7 @@ def download_resources():
                 fname=LABELS_FNAMES[organ],
                 progressbar=True,
             )
+
 
 def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
     """Initialize Pooch for downloading atlas data.
@@ -299,19 +300,17 @@ def fetch_ontology(pooch_: pooch.Pooch, organ: str):
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAMES[organ]
 
     labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAMES[organ]
-    
+
     needs_download = not labels_path.exists()
     if needs_download:
         utils.check_internet_connection()
-    
+
     fetched_labels = pooch_.fetch(
         LABELS_FNAMES[organ],
         progressbar=True,
     )
 
-    labels_df = pd.read_excel(
-        fetched_labels, engine="openpyxl"
-    )
+    labels_df = pd.read_excel(fetched_labels, engine="openpyxl")
     labels_df = labels_df.iloc[1].dropna()
     structures = [
         {

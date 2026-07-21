@@ -1,7 +1,9 @@
-"""Template script for generating a BrainGlobe atlas.
+"""Package the Duke Developmental Rat Brain Atlases.
 
-Use this script as a starting point to package a new BrainGlobe atlas by
-filling in the required functions and metadata.
+This script generates the Duke dev rat brain atlases,
+based on data published by Calabrese et al. It downloads the necessary
+annotation and structure data, processes it to create an atlas,
+and then wraps it up into the BrainGlobe atlas format.
 """
 
 import re
@@ -18,15 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
 
-### Metadata ###
-
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
 __version__ = 0
 
 ATLAS_NAME = "duke_dev_rat"

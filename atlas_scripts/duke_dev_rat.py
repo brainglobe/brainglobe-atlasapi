@@ -187,7 +187,7 @@ def fetch_ontology(pooch_: pooch.Pooch):
         }
     ]
 
-    # Open BMA2.0 regions list file to get structure information
+    # Open labels file to get structure information
     with open(labels_path, "r") as f:
         labels_data = f.read().splitlines()
         for key, label in enumerate(labels_data):

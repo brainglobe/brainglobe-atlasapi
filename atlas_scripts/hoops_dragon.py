@@ -128,6 +128,7 @@ def retrieve_reference_and_annotation():
     annotation = annotation_file.get_fdata()
     annotation = np.asarray(annotation)
     annotation = np.where(annotation < 1000, annotation, annotation - 1000)
+    annotation = annotation.astype(np.uint32)
     return reference, annotation
 
 

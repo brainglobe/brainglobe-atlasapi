@@ -20,7 +20,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-
 __version__ = 0
 
 ATLAS_NAME = "duke_dev_rat"

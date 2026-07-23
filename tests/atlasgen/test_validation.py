@@ -26,6 +26,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
+from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE
 
 
 @pytest.fixture
@@ -500,6 +501,15 @@ def test_validate_metadata(atlas, metadata, expected_output, error_message):
             validate_metadata(atlas)
     else:
         assert validate_metadata(atlas) == expected_output
+
+
+def test_validate_metadata_accepts_legacy_manifest():
+    """Legacy manifests without hemisphere availability remain valid."""
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.metadata = METADATA_TEMPLATE.copy()
+    atlas.metadata.pop("hemispheres_available")
+
+    assert validate_metadata(atlas) is True
 
 
 def test_validate_unique_acronyms_fail(mocker, atlas):

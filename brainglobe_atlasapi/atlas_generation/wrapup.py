@@ -365,6 +365,8 @@ def _save_annotation_data(
     resolution_mapping: Optional[List[int]],
 ) -> Tuple[nz.Multiscales, nz.Multiscales]:
     annotation_info = packaging_data.annotation_info
+    hemispheres_available = packaging_data.hemispheres_available
+    hemispheres_multiscale = None
 
     if not (annotation_info.use_existing or annotation_info.update_existing):
         dest_dir = packaging_data.working_dir / annotation_info.metadata[
@@ -379,26 +381,28 @@ def _save_annotation_data(
             save_annotation,
         )
 
-        hemispheres_stub = descriptors.format_hemispheres_stub(
-            annotation_info.name, annotation_info.version
-        )
-        dest_dir_hemi = packaging_data.working_dir / hemispheres_stub
+        if hemispheres_available:
+            hemispheres_stub = descriptors.format_hemispheres_stub(
+                annotation_info.name, annotation_info.version
+            )
+            dest_dir_hemi = packaging_data.working_dir / hemispheres_stub
 
-        if not dest_dir_hemi.exists():
-            save_hemispheres(
-                packaging_data.hemispheres_stack,
-                dest_dir,
-                transformations,
-            )
-        else:
-            print(
-                f"{annotation_info.metadata['name']} directory already exists,"
-                f" skipping: {dest_dir_hemi}"
-            )
+            if not dest_dir_hemi.exists():
+                save_hemispheres(
+                    packaging_data.hemispheres_stack,
+                    dest_dir,
+                    transformations,
+                )
+            else:
+                print(
+                    f"{annotation_info.metadata['name']} directory already "
+                    f"exists, skipping: {dest_dir_hemi}"
+                )
+            hemispheres_multiscale = nz.from_ngff_zarr(dest_dir_hemi)
+
         annotation_multiscale = nz.from_ngff_zarr(
             packaging_data.working_dir / annotation_info.stub
         )
-        hemispheres_multiscale = nz.from_ngff_zarr(dest_dir_hemi)
     elif annotation_info.update_existing:
         local_existing_path = (
             packaging_data.working_dir / annotation_info.existing_stub
@@ -412,39 +416,46 @@ def _save_annotation_data(
             working_dir=local_target_path,
         )
 
-        existing_hemispheres_stub = descriptors.format_hemispheres_stub(
-            annotation_info.name, annotation_info.existing_version
-        )
-        local_existing_hemispheres = (
-            packaging_data.working_dir / existing_hemispheres_stub
-        )
-        hemispheres_multiscale = nz.from_ngff_zarr(local_existing_hemispheres)
-        hemispheres_stub = descriptors.format_hemispheres_stub(
-            annotation_info.name, annotation_info.version
-        )
-        local_target_hemispheres = (
-            packaging_data.working_dir / hemispheres_stub
-        )
+        if hemispheres_available:
+            existing_hemispheres_stub = descriptors.format_hemispheres_stub(
+                annotation_info.name, annotation_info.existing_version
+            )
+            local_existing_hemispheres = (
+                packaging_data.working_dir / existing_hemispheres_stub
+            )
+            hemispheres_multiscale = nz.from_ngff_zarr(
+                local_existing_hemispheres
+            )
+            hemispheres_stub = descriptors.format_hemispheres_stub(
+                annotation_info.name, annotation_info.version
+            )
+            local_target_hemispheres = (
+                packaging_data.working_dir / hemispheres_stub
+            )
 
-        _insert_into_multiscale(
-            hemispheres_multiscale,
-            transformations=transformations,
-            new_data=packaging_data.hemispheres_stack,
-            working_dir=local_target_hemispheres,
-        )
+            _insert_into_multiscale(
+                hemispheres_multiscale,
+                transformations=transformations,
+                new_data=packaging_data.hemispheres_stack,
+                working_dir=local_target_hemispheres,
+            )
+
+            hemispheres_multiscale = nz.from_ngff_zarr(
+                local_target_hemispheres
+            )
 
         annotation_multiscale = nz.from_ngff_zarr(local_target_path)
-        hemispheres_multiscale = nz.from_ngff_zarr(local_target_hemispheres)
     else:
-        hemispheres_stub = descriptors.format_hemispheres_stub(
-            annotation_info.name, annotation_info.version
-        )
         annotation_multiscale = nz.from_ngff_zarr(
             packaging_data.working_dir / annotation_info.stub
         )
-        hemispheres_multiscale = nz.from_ngff_zarr(
-            packaging_data.working_dir / hemispheres_stub
-        )
+        if hemispheres_available:
+            hemispheres_stub = descriptors.format_hemispheres_stub(
+                annotation_info.name, annotation_info.version
+            )
+            hemispheres_multiscale = nz.from_ngff_zarr(
+                packaging_data.working_dir / hemispheres_stub
+            )
 
     if not annotation_info.use_existing:
         meshes_stub = descriptors.format_meshes_stub(
@@ -743,6 +754,7 @@ def _finalize_atlas_at_resolution(
         atlas_link=packaging_data.atlas_link,
         species=packaging_data.species,
         symmetric=symmetric,
+        hemispheres_available=packaging_data.hemispheres_available,
         resolution=resolution,
         orientation=descriptors.ATLAS_ORIENTATION,
         version=atlas_version,
@@ -820,6 +832,7 @@ def wrapup_atlas_from_data(
     overwrite=False,
     cleanup_files=None,
     compress=None,
+    hemispheres_available: bool = True,
 ) -> Path:
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -869,7 +882,8 @@ def wrapup_atlas_from_data(
         If str or Path, will be read with tifffile.
         If list, should be list of stacks for each scale, ordered from highest
         to lowest resolution.
-        If none is provided, atlas is assumed to be symmetric.
+        If none is provided (and hemispheres_available is True), atlas is
+        assumed to be symmetric.
     scale_meshes: bool, optional
         (Default value = False).
         If True the meshes points are scaled by the resolution
@@ -893,6 +907,12 @@ def wrapup_atlas_from_data(
     compress : deprecated, optional
         (Default value = None).
         Deprecated and has no effect.
+    hemispheres_available : bool, optional
+        (Default value = True).
+        Whether hemisphere information exists for this atlas. Set to False when
+        the hemisphere assignment is unknown or the imaged object does not have
+        distinct hemispheres. When False, no hemisphere data is generated or
+        written, and Atlas.hemispheres returns None.
 
     Returns
     -------
@@ -1036,6 +1056,7 @@ def wrapup_atlas_from_data(
         meshes_dict=meshes_dict,
         atlas_packager=atlas_packager,
         hemispheres_stack=hemispheres_stack,
+        hemispheres_available=hemispheres_available,
         additional_references=additional_template_list,
         additional_metadata=additional_metadata,
     )

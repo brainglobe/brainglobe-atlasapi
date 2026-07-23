@@ -31,6 +31,7 @@ def generate_metadata_dict(
     atlas_link: str,
     species: str,
     symmetric: bool,
+    hemispheres_available: bool,
     resolution: Tuple[int, int, int] | Tuple[float, float, float],
     orientation: str,
     version: str,
@@ -59,6 +60,9 @@ def generate_metadata_dict(
         The species the atlas belongs to (e.g., "mouse", "rat").
     symmetric : bool
         True if the atlas is symmetric, False otherwise.
+    hemispheres_available : bool
+        True if hemisphere information is available for the atlas, False if it
+        is unknown or the imaged object does not have distinct hemispheres.
     resolution : Tuple[int, int, int] | Tuple[float, float, float]
         The resolution of the atlas in micrometers per voxel.
     orientation : str
@@ -106,6 +110,7 @@ def generate_metadata_dict(
 
     # Enforce correct format for symmetric, resolution and shape:
     assert isinstance(symmetric, bool)
+    assert isinstance(hemispheres_available, bool)
     assert len(resolution) == 3
     assert len(shape) == 3
 
@@ -125,6 +130,7 @@ def generate_metadata_dict(
         atlas_link=atlas_link,
         species=species,
         symmetric=symmetric,
+        hemispheres_available=hemispheres_available,
         resolution=resolution,
         orientation=orientation,
         version=version,

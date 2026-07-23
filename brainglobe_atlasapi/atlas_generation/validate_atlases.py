@@ -575,7 +575,8 @@ def validate_metadata(atlas: BrainGlobeAtlas):
     Checks that the metadata of the given atlas has the correct format.
     Specifically, it ensures that all required keys from `METADATA_TEMPLATE`
     are present and that the types of the values match the types specified
-    in `METADATA_TEMPLATE`.
+    in `METADATA_TEMPLATE`. The ``hemispheres_available`` key is optional for
+    compatibility with manifests created before that field was introduced.
 
     Parameters
     ----------
@@ -594,6 +595,8 @@ def validate_metadata(atlas: BrainGlobeAtlas):
         a metadata value does not match the expected type.
     """
     for key, value in METADATA_TEMPLATE.items():
+        if key == "hemispheres_available" and key not in atlas.metadata:
+            continue
         assert key in atlas.metadata, f"Missing key: {key}"
         assert isinstance(atlas.metadata[key], type(value)), (
             f"{key} should be of type {type(value).__name__}, "

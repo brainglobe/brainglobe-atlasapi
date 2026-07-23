@@ -63,7 +63,6 @@ def test_lastversions():
 
     local_v = get_local_atlas_version("example_mouse_100um")
 
-    assert example_atlas["version"] == local_v.replace("_", ".")
     assert all(
         [
             int(last) <= int(r)

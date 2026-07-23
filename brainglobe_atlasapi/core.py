@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import (
     Dict,
     List,
+    Optional,
     Tuple,
     Union,
 )
@@ -357,7 +358,7 @@ class Atlas:
         coords: Union[Tuple, List, np.ndarray],
         microns: bool = False,
         as_string: bool = False,
-    ) -> Union[int, str]:
+    ) -> Optional[Union[int, str]]:
         """Get the hemisphere from a coordinate triplet.
 
         Parameters

@@ -74,9 +74,7 @@ atlasgen = [
     "xmltodict",
     "pooch",
     "zarr",
-    "nibabel",
-    "h5py",
-]
+    "nibabel[minc2]"
 
 [project.scripts]
 brainglobe = "brainglobe_atlasapi.cli:bg_cli"

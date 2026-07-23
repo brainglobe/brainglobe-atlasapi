@@ -363,7 +363,7 @@ def _save_annotation_data(
     transformations: List[List[dict]],
     scale_meshes: bool,
     resolution_mapping: Optional[List[int]],
-) -> Tuple[nz.Multiscales, nz.Multiscales]:
+) -> Tuple[nz.Multiscales, Optional[nz.Multiscales]]:
     annotation_info = packaging_data.annotation_info
     hemispheres_available = packaging_data.hemispheres_available
     hemispheres_multiscale = None

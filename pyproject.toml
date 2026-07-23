@@ -33,6 +33,7 @@ dependencies = [
     "s3fs >= 2026",
     "tifffile>=2018.11.6",
     "treelib",
+    "tqdm"
 ]
 dynamic = ["version"]
 

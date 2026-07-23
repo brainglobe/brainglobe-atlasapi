@@ -57,7 +57,7 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
 
     Returns
     -------
-    str
+    Optional[str]
         Version of atlas.
     """
     brainglobe_dir = config.get_brainglobe_dir()

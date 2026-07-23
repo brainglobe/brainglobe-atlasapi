@@ -123,9 +123,9 @@ atlas = BrainGlobeAtlas("allen_mouse_25um")
 The various files associated with the atlas can then be accessed as attributes of the class:
 
 ```python
-# reference image
-reference_image = atlas.reference
-print(reference_image.shape)
+# template image
+template_image = atlas.template
+print(template_image.shape)
 # (528, 320, 456)
 
 # annotation image

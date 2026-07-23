@@ -286,10 +286,6 @@ def create_atlas(working_dir):
     # Clean junk from reference file
     reference_stack *= annotation_stack > 0
 
-    # Create hemispheres stack
-    hemispheres_stack = np.full(reference_stack.shape, 2, dtype=np.uint8)
-    hemispheres_stack[:244] = 1
-
     # save regions list json:
     with open(download_dir_path / "structures.json", "w") as f:
         json.dump(structures, f)
@@ -317,7 +313,7 @@ def create_atlas(working_dir):
         meshes_dict=meshes_dict,
         working_dir=working_dir,
         atlas_packager=ATLAS_PACKAGER,
-        hemispheres_stack=hemispheres_stack,
+        hemispheres_available=False,
         cleanup_files=False,
         compress=True,
         scale_meshes=True,

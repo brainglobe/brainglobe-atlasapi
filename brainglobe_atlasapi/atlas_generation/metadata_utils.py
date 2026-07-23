@@ -31,7 +31,6 @@ def generate_metadata_dict(
     atlas_link: str,
     species: str,
     symmetric: bool,
-    hemispheres_available: bool = True,
     resolution: Tuple[int, int, int] | Tuple[float, float, float],
     orientation: str,
     version: str,
@@ -42,6 +41,7 @@ def generate_metadata_dict(
     terminology: TerminologyInfo,
     annotation_set: AnnotationInfo,
     template: TemplateInfo,
+    hemispheres_available: bool = True,
 ):
     """
     Generate a dictionary containing metadata for a BrainGlobe atlas.
@@ -60,9 +60,6 @@ def generate_metadata_dict(
         The species the atlas belongs to (e.g., "mouse", "rat").
     symmetric : bool
         True if the atlas is symmetric, False otherwise.
-    hemispheres_available : bool
-        True if hemisphere information is available for the atlas, False if it
-        is unknown or the imaged object does not have distinct hemispheres.
     resolution : Tuple[int, int, int] | Tuple[float, float, float]
         The resolution of the atlas in micrometers per voxel.
     orientation : str
@@ -83,7 +80,10 @@ def generate_metadata_dict(
         Metadata for the annotation set.
     template : TemplateInfo
         Metadata for the template.
-
+    hemispheres_available : bool, optional
+        True if hemisphere information is available for the atlas, False if it
+        is unknown or the imaged object does not have distinct hemispheres.
+        Defaults to True.
 
     Returns
     -------

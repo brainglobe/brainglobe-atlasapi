@@ -31,7 +31,7 @@ def generate_metadata_dict(
     atlas_link: str,
     species: str,
     symmetric: bool,
-    hemispheres_available: bool,
+    hemispheres_available: bool = True,
     resolution: Tuple[int, int, int] | Tuple[float, float, float],
     orientation: str,
     version: str,

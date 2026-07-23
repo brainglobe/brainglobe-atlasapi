@@ -156,7 +156,7 @@ atlas.lookup_df.head(8)
 # 7       FRP1         68          Frontal pole, layer 1
 ```
 
-Each brain region can also be access by the acronym, e.g. for primary visual cortex (VISp):
+Each brain region can also be accessed by the acronym, e.g. for primary visual cortex (VISp):
 
 ```python
 from pprint import pprint

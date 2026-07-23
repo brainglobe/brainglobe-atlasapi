@@ -73,7 +73,6 @@ atlasgen = [
     "ome-zarr<0.17.0",
     "PyMCubes",
     "SimpleITK",
-    "tqdm>=4.46.1",
     "vedo",
     "xmltodict",
     "pooch",

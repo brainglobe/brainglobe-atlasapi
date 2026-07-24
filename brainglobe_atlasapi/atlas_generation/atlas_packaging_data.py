@@ -461,11 +461,14 @@ class AtlasPackagingData:
             ref_stack = _reorient_stacks(ref_stack, self.space_convention)
             self.additional_references[i] = (stack_tuple[0], ref_stack)
 
-        if not self.hemispheres_available:
-            # No hemisphere information: don't generate or load a stack.
-            self.symmetric = False
-            self.hemispheres_stack = None
-        elif self.hemispheres_stack is None:
+if not self.hemispheres_available:
+    # No hemisphere information: don't generate or load a stack.
+    if self.hemispheres_stack is not None:
+        raise ValueError(
+            "hemispheres_stack was provided but hemispheres_available is False."
+        )
+    self.symmetric = False
+    self.hemispheres_stack = None
             self.symmetric = True
             self.hemispheres_stack = _auto_generate_hemispheres(
                 shapes=[stack.shape for stack in self.annotation_stack],

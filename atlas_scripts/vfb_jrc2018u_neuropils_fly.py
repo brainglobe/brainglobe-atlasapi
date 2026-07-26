@@ -1,6 +1,5 @@
 """Atlas generation script for the VFB's JRC2018Unisex Neuropils Fly atlas."""
 
-import gzip
 import json
 from pathlib import Path
 
@@ -8,6 +7,7 @@ import brainglobe_space as bgs
 import meshio as mio
 import numpy as np
 import pooch
+import SimpleITK as sitk
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
@@ -36,7 +36,7 @@ ATLAS_FILE_URL = (
 VFB_TEMPLATE_ID = "VFB_00101567"
 
 VFB_SOLR_TERM_INFO_URL = (
-    "http://solr.virtualflybrain.org/solr/vfb_json/select"
+    "https://solr.virtualflybrain.org/solr/vfb_json/select"
     f"?q=id:{VFB_TEMPLATE_ID}&fl=id,term_info&rows=1&wt=json"
 )
 
@@ -49,13 +49,13 @@ RESOLUTION = (0.5189161, 1.0, 0.5189161)  # microns
 
 ATLAS_PACKAGER = "Amirreza Bahramani"
 
-
-def _secure_url(url):
-    """Use HTTPS for VFB data files when available."""
-    return url.replace(
-        "http://www.virtualflybrain.org",
-        "https://www.virtualflybrain.org",
-    )
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+SOURCE_DATA_DIR = BG_ROOT_DIR / "source_data"
+ROI_VOLUMES_DIR = SOURCE_DATA_DIR / "roi_volumes"
+MESHES_DIR = SOURCE_DATA_DIR / "meshes"
+ASR_MESHES_DIR = SOURCE_DATA_DIR / "asr_meshes"
+REFERENCE_PATH = SOURCE_DATA_DIR / "jrc2018u_template.nrrd"
+DOMAIN_METADATA_PATH = SOURCE_DATA_DIR / "jrc2018u_domain_metadata.json"
 
 
 def _retrieve(url, download_dir, file_name):
@@ -70,76 +70,11 @@ def _retrieve(url, download_dir, file_name):
     )
 
 
-def _load_vfb_term_info(term_info_response_path):
-    with open(term_info_response_path, encoding="utf-8") as f:
-        response = json.load(f)
-
-    docs = response["response"]["docs"]
-    if not docs:
-        raise RuntimeError(
-            f"No VFB term-info record found for {VFB_TEMPLATE_ID}"
-        )
-
-    term_info = docs[0]["term_info"]
-    if isinstance(term_info, list):
-        term_info = term_info[0]
-
-    return json.loads(term_info)
-
-
 def _load_nrrd_array(nrrd_path):
-    """Load a gzip-encoded NRRD file into a numpy array."""
-    nrrd_path = Path(nrrd_path)
-    file_bytes = nrrd_path.read_bytes()
-
-    header_end = file_bytes.find(b"\n\n")
-    separator_length = 2
-    if header_end == -1:
-        header_end = file_bytes.find(b"\r\n\r\n")
-        separator_length = 4
-
-    if header_end == -1:
-        raise ValueError(f"Could not find NRRD header end in {nrrd_path}")
-
-    header = file_bytes[:header_end].decode("ascii")
-    data = file_bytes[header_end + separator_length :]
-
-    header_fields = {}
-    for line in header.splitlines():
-        if not line or line.startswith("#") or ":" not in line:
-            continue
-
-        key, value = line.split(":", maxsplit=1)
-        header_fields[key.strip()] = value.strip()
-
-    sizes = tuple(int(size) for size in header_fields["sizes"].split())
-    data_type = header_fields["type"]
-    encoding = header_fields.get("encoding", "raw").lower()
-
-    if encoding in {"gzip", "gz"}:
-        data = gzip.decompress(data)
-    elif encoding != "raw":
-        raise ValueError(f"Unsupported NRRD encoding: {encoding}")
-
-    dtype = {
-        "uint8": np.uint8,
-        "uchar": np.uint8,
-        "unsigned char": np.uint8,
-        "uint16": np.uint16,
-        "ushort": np.uint16,
-        "unsigned short": np.uint16,
-    }[data_type]
-
-    return np.frombuffer(data, dtype=dtype).reshape(sizes, order="F")
-
-
-def _rgb_triplet_from_id(structure_id):
-    value = (structure_id * 2654435761) % (2**32)
-    return [50 + ((value >> shift) % 180) for shift in (16, 8, 0)]
-
-
-def _acronym_from_domain_label(label):
-    return label.split(" on ", maxsplit=1)[0].replace("\\'", "'")
+    """Read a VFB NRRD into the x, y, z array order used by this script."""
+    return sitk.GetArrayFromImage(
+        sitk.ReadImage(str(nrrd_path))
+    ).transpose(2, 1, 0)
 
 
 def _source_space(source_shape):
@@ -167,55 +102,60 @@ def _map_mesh_to_asr(mesh_path, output_path, source_shape):
 
 
 def download_resources():
-    """
-    Download the necessary resources for the atlas.
-
-    Returns
-    -------
-    dict[str, pathlib.Path]
-        Paths to the downloaded VFB template, ROI masks, and mesh files.
-    """
-    download_dir = (
-        Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
-    )
-    roi_volumes_dir = download_dir / "roi_volumes"
-    meshes_dir = download_dir / "meshes"
-
-    download_dir.mkdir(parents=True, exist_ok=True)
-    roi_volumes_dir.mkdir(exist_ok=True)
-    meshes_dir.mkdir(exist_ok=True)
+    """Download the VFB template, ROI volumes, meshes, and metadata."""
+    SOURCE_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    ROI_VOLUMES_DIR.mkdir(exist_ok=True)
+    MESHES_DIR.mkdir(exist_ok=True)
+    # VFB metadata may list file URLs with http://; download over HTTPS.
+    vfb_http_prefix = "http://www.virtualflybrain.org"
+    vfb_https_prefix = "https://www.virtualflybrain.org"
 
     term_info_response_path = _retrieve(
         VFB_SOLR_TERM_INFO_URL,
-        download_dir,
+        SOURCE_DATA_DIR,
         "jrc2018u_term_info_response.json",
     )
-    term_info = _load_vfb_term_info(term_info_response_path)
+    with open(term_info_response_path, encoding="utf-8") as f:
+        response = json.load(f)
 
-    term_info_path = download_dir / "jrc2018u_term_info.json"
+    docs = response["response"]["docs"]
+    if not docs:
+        raise RuntimeError(
+            f"No VFB term-info record found for {VFB_TEMPLATE_ID}"
+        )
+
+    term_info = docs[0]["term_info"]
+    if isinstance(term_info, list):
+        term_info = term_info[0]
+    term_info = json.loads(term_info)
+
+    term_info_path = SOURCE_DATA_DIR / "jrc2018u_term_info.json"
     with open(term_info_path, "w", encoding="utf-8") as f:
         json.dump(term_info, f, indent=2)
 
     template_channel = term_info["template_channel"]
-    reference_url = _secure_url(
+    reference_url = (
         template_channel.get("image_nrrd") or ATLAS_FILE_URL
+    ).replace(
+        vfb_http_prefix,
+        vfb_https_prefix,
     )
-    reference_path = _retrieve(
+    _retrieve(
         reference_url,
-        download_dir,
-        "jrc2018u_template.nrrd",
+        SOURCE_DATA_DIR,
+        REFERENCE_PATH.name,
     )
 
-    root_mesh_path = _retrieve(
-        _secure_url(template_channel["image_obj"]),
-        meshes_dir,
+    _retrieve(
+        template_channel["image_obj"].replace(
+            vfb_http_prefix,
+            vfb_https_prefix,
+        ),
+        MESHES_DIR,
         f"{ROOT_ID}.obj",
     )
 
-    roi_volumes = {}
-    meshes = {ROOT_ID: root_mesh_path}
     domain_metadata = []
-
     domains = sorted(
         term_info["template_domains"],
         key=lambda domain: int(domain["index"][0]),
@@ -228,14 +168,14 @@ def download_resources():
         structure_id = vfb_index
         vfb_id = domain["anatomical_individual"]["short_form"]
 
-        roi_volumes[structure_id] = _retrieve(
-            _secure_url(domain["image_nrrd"]),
-            roi_volumes_dir,
+        roi_path = _retrieve(
+            domain["image_nrrd"].replace(vfb_http_prefix, vfb_https_prefix),
+            ROI_VOLUMES_DIR,
             f"{structure_id}.nrrd",
         )
-        meshes[structure_id] = _retrieve(
-            _secure_url(domain["image_obj"]),
-            meshes_dir,
+        mesh_path = _retrieve(
+            domain["image_obj"].replace(vfb_http_prefix, vfb_https_prefix),
+            MESHES_DIR,
             f"{structure_id}.obj",
         )
 
@@ -246,44 +186,22 @@ def download_resources():
                 "label": domain["anatomical_individual"]["label"],
                 "type_id": domain["anatomical_type"]["short_form"],
                 "type_label": domain["anatomical_type"]["label"],
-                "nrrd": str(roi_volumes[structure_id]),
-                "obj": str(meshes[structure_id]),
+                "nrrd": str(roi_path),
+                "obj": str(mesh_path),
             }
         )
 
-    domain_metadata_path = download_dir / "jrc2018u_domain_metadata.json"
-    with open(domain_metadata_path, "w", encoding="utf-8") as f:
+    with open(DOMAIN_METADATA_PATH, "w", encoding="utf-8") as f:
         json.dump(domain_metadata, f, indent=2)
-
-    return {
-        "reference": reference_path,
-        "term_info": term_info_path,
-        "domain_metadata": domain_metadata_path,
-        "roi_volumes": roi_volumes,
-        "meshes": meshes,
-    }
 
 
 def retrieve_reference_and_annotation():
-    """
-    Retrieve the reference and annotation volumes.
-
-    Returns
-    -------
-    tuple[numpy.ndarray, numpy.ndarray]
-        A tuple containing the reference volume and the annotation volume.
-    """
-    download_dir = (
-        Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
-    )
-    reference_path = download_dir / "jrc2018u_template.nrrd"
-    roi_volumes_dir = download_dir / "roi_volumes"
-
-    reference = _load_nrrd_array(reference_path)
+    """Load the reference and combine ROI masks into one annotation."""
+    reference = _load_nrrd_array(REFERENCE_PATH)
     annotation = np.zeros(reference.shape, dtype=np.uint16)
 
     roi_paths = sorted(
-        roi_volumes_dir.glob("*.nrrd"),
+        ROI_VOLUMES_DIR.glob("*.nrrd"),
         key=lambda path: int(path.stem),
     )
     for roi_path in roi_paths:
@@ -305,51 +223,13 @@ def retrieve_reference_and_annotation():
 
 
 def retrieve_hemisphere_map():
-    """
-    Retrieve a hemisphere map for the atlas.
-
-    Use a hemisphere map if the atlas is asymmetrical. This map is an array
-    with the same shape as the template, where 0 marks the left hemisphere
-    and 1 marks the right.
-
-    Returns
-    -------
-    np.ndarray or None
-        A numpy array representing the hemisphere map, or None if the atlas
-        is symmetrical.
-    """
+    """Return no hemisphere map because this atlas is treated as symmetric."""
     return None
 
 
 def retrieve_structure_information():
-    """
-    Return a flat list of atlas structures.
-
-
-    The expected format for each dictionary is:
-
-    .. code-block:: python
-
-        {
-            "id": int,
-            "name": str,
-            "acronym": str,
-            "structure_id_path": list[int],
-            "rgb_triplet": list[int, int, int],
-        }
-
-    Returns
-    -------
-    list[dict]
-        A list of dictionaries, each containing information for a single
-        atlas structure.
-    """
-    download_dir = (
-        Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
-    )
-    domain_metadata_path = download_dir / "jrc2018u_domain_metadata.json"
-
-    with open(domain_metadata_path, encoding="utf-8") as f:
+    """Return a flat root-plus-domain structure list."""
+    with open(DOMAIN_METADATA_PATH, encoding="utf-8") as f:
         domain_metadata = json.load(f)
 
     structures = [
@@ -365,13 +245,19 @@ def retrieve_structure_information():
     domains = sorted(domain_metadata, key=lambda domain: int(domain["id"]))
     for domain in domains:
         structure_id = int(domain["id"])
+        domain_acronym = domain["label"].split(" on ", maxsplit=1)[0]
+        domain_acronym = domain_acronym.replace("\\'", "'")
+        color_value = (structure_id * 2654435761) % (2**32)
         structures.append(
             {
                 "id": structure_id,
                 "name": domain["type_label"],
-                "acronym": _acronym_from_domain_label(domain["label"]),
+                "acronym": domain_acronym,
                 "structure_id_path": [ROOT_ID, structure_id],
-                "rgb_triplet": _rgb_triplet_from_id(structure_id),
+                "rgb_triplet": [
+                    50 + ((color_value >> shift) % 180)
+                    for shift in (16, 8, 0)
+                ],
             }
         )
 
@@ -379,39 +265,20 @@ def retrieve_structure_information():
 
 
 def retrieve_or_construct_meshes():
-    """
-    Return the VFB mesh files mapped into BrainGlobe ASR space.
+    """Return the VFB mesh files mapped into BrainGlobe ASR space."""
+    ASR_MESHES_DIR.mkdir(exist_ok=True)
 
-    VFB provides OBJ files for this template and each painted ROI, so no mesh
-    construction is needed here.
-
-    Returns
-    -------
-    dict[int, pathlib.Path]
-        A dictionary where keys are structure IDs and values are paths to the
-        corresponding mesh files.
-    """
-    download_dir = (
-        Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
-    )
-    domain_metadata_path = download_dir / "jrc2018u_domain_metadata.json"
-    meshes_dir = download_dir / "meshes"
-    asr_meshes_dir = download_dir / "asr_meshes"
-    asr_meshes_dir.mkdir(exist_ok=True)
-
-    with open(domain_metadata_path, encoding="utf-8") as f:
+    with open(DOMAIN_METADATA_PATH, encoding="utf-8") as f:
         domain_metadata = json.load(f)
 
-    source_shape = _load_nrrd_array(
-        download_dir / "jrc2018u_template.nrrd"
-    ).shape
-    root_mesh_path = meshes_dir / f"{ROOT_ID}.obj"
+    source_shape = _load_nrrd_array(REFERENCE_PATH).shape
+    root_mesh_path = MESHES_DIR / f"{ROOT_ID}.obj"
     if not root_mesh_path.is_file():
         raise FileNotFoundError(f"Missing root mesh: {root_mesh_path}")
 
     meshes_dict = {
         ROOT_ID: _map_mesh_to_asr(
-            root_mesh_path, asr_meshes_dir / f"{ROOT_ID}.obj", source_shape
+            root_mesh_path, ASR_MESHES_DIR / f"{ROOT_ID}.obj", source_shape
         )
     }
     domains = sorted(domain_metadata, key=lambda domain: int(domain["id"]))
@@ -422,41 +289,25 @@ def retrieve_or_construct_meshes():
             raise FileNotFoundError(f"Missing ROI mesh: {mesh_path}")
 
         meshes_dict[structure_id] = _map_mesh_to_asr(
-            mesh_path, asr_meshes_dir / f"{structure_id}.obj", source_shape
+            mesh_path, ASR_MESHES_DIR / f"{structure_id}.obj", source_shape
         )
 
     return meshes_dict
 
 
 def retrieve_additional_references():
-    """
-    Return a dictionary of additional reference images.
-
-    This function should be edited only if the atlas includes additional
-    reference images. The dictionary should map the name of each additional
-    reference image to its corresponding image stack data.
-
-    Returns
-    -------
-    dict
-        A dictionary mapping reference image names to their image stack data.
-    """
-    additional_references = {}
-    return additional_references
+    """Return no additional reference images."""
+    return {}
 
 
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-    bg_root_dir.mkdir(parents=True, exist_ok=True)
+    BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
     atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION[0])
-    existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
+    existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
     if existing:
         raise FileExistsError(
-            f"Atlas output already exists in {bg_root_dir}. "
+            f"Atlas output already exists in {BG_ROOT_DIR}. "
             "Move it or delete it before running this script again."
         )
 
@@ -480,7 +331,7 @@ if __name__ == "__main__":
         annotation_stack=annotated_volume,
         structures_list=structures,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=BG_ROOT_DIR,
         atlas_packager=ATLAS_PACKAGER,
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,

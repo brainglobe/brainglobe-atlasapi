@@ -72,9 +72,9 @@ def _retrieve(url, download_dir, file_name):
 
 def _load_nrrd_array(nrrd_path):
     """Read a VFB NRRD into the x, y, z array order used by this script."""
-    return sitk.GetArrayFromImage(
-        sitk.ReadImage(str(nrrd_path))
-    ).transpose(2, 1, 0)
+    return sitk.GetArrayFromImage(sitk.ReadImage(str(nrrd_path))).transpose(
+        2, 1, 0
+    )
 
 
 def _source_space(source_shape):
@@ -255,8 +255,7 @@ def retrieve_structure_information():
                 "acronym": domain_acronym,
                 "structure_id_path": [ROOT_ID, structure_id],
                 "rgb_triplet": [
-                    50 + ((color_value >> shift) % 180)
-                    for shift in (16, 8, 0)
+                    50 + ((color_value >> shift) % 180) for shift in (16, 8, 0)
                 ],
             }
         )

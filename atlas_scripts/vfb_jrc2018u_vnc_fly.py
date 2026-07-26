@@ -1,11 +1,11 @@
 """Atlas generation script for the VFB's JRC2018Unisex VNC Fly atlas."""
 
-import gzip
 import json
 from pathlib import Path
 
 import numpy as np
 import pooch
+import SimpleITK as sitk
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
@@ -81,13 +81,6 @@ REFERENCE_PATH = SOURCE_DATA_DIR / "jrc2018u_vnc_template.nrrd"
 DOMAIN_METADATA_PATH = SOURCE_DATA_DIR / "jrc2018u_vnc_domain_metadata.json"
 
 
-def _secure_url(url):
-    return url.replace(
-        "http://www.virtualflybrain.org",
-        "https://www.virtualflybrain.org",
-    )
-
-
 def _retrieve(url, download_dir, file_name):
     return Path(
         pooch.retrieve(
@@ -100,7 +93,26 @@ def _retrieve(url, download_dir, file_name):
     )
 
 
-def _load_vfb_term_info(term_info_response_path):
+def _load_nrrd_array(nrrd_path):
+    """Read a VFB NRRD into the x, y, z array order used by this script."""
+    return sitk.GetArrayFromImage(
+        sitk.ReadImage(str(nrrd_path))
+    ).transpose(2, 1, 0)
+
+
+def download_resources():
+    """Download the VFB template, ROI volumes, meshes, and metadata."""
+    SOURCE_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    ROI_VOLUMES_DIR.mkdir(exist_ok=True)
+    MESHES_DIR.mkdir(exist_ok=True)
+    vfb_http_prefix = "http://www.virtualflybrain.org"
+    vfb_https_prefix = "https://www.virtualflybrain.org"
+
+    term_info_response_path = _retrieve(
+        VFB_SOLR_TERM_INFO_URL,
+        SOURCE_DATA_DIR,
+        "jrc2018u_vnc_term_info_response.json",
+    )
     with open(term_info_response_path, encoding="utf-8") as f:
         response = json.load(f)
 
@@ -113,84 +125,18 @@ def _load_vfb_term_info(term_info_response_path):
     term_info = docs[0]["term_info"]
     if isinstance(term_info, list):
         term_info = term_info[0]
-
-    return json.loads(term_info)
-
-
-def _load_nrrd_array(nrrd_path):
-    nrrd_path = Path(nrrd_path)
-    file_bytes = nrrd_path.read_bytes()
-
-    header_end = file_bytes.find(b"\n\n")
-    separator_length = 2
-    if header_end == -1:
-        header_end = file_bytes.find(b"\r\n\r\n")
-        separator_length = 4
-
-    if header_end == -1:
-        raise ValueError(f"Could not find NRRD header end in {nrrd_path}")
-
-    header = file_bytes[:header_end].decode("ascii")
-    data = file_bytes[header_end + separator_length :]
-
-    header_fields = {}
-    for line in header.splitlines():
-        if not line or line.startswith("#") or ":" not in line:
-            continue
-
-        key, value = line.split(":", maxsplit=1)
-        header_fields[key.strip()] = value.strip()
-
-    sizes = tuple(int(size) for size in header_fields["sizes"].split())
-    data_type = header_fields["type"]
-    encoding = header_fields.get("encoding", "raw").lower()
-
-    if encoding in {"gzip", "gz"}:
-        data = gzip.decompress(data)
-    elif encoding != "raw":
-        raise ValueError(f"Unsupported NRRD encoding: {encoding}")
-
-    dtype = {
-        "uint8": np.uint8,
-        "uchar": np.uint8,
-        "unsigned char": np.uint8,
-        "uint16": np.uint16,
-        "ushort": np.uint16,
-        "unsigned short": np.uint16,
-    }[data_type]
-
-    return np.frombuffer(data, dtype=dtype).reshape(sizes, order="F")
-
-
-def _rgb_triplet_from_id(structure_id):
-    value = (structure_id * 2654435761) % (2**32)
-    return [50 + ((value >> shift) % 180) for shift in (16, 8, 0)]
-
-
-def _acronym_from_domain_label(label):
-    return label.split(" on ", maxsplit=1)[0].replace("\\'", "'")
-
-
-def download_resources():
-    """Download the VFB template, ROI volumes, meshes, and metadata."""
-    SOURCE_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    ROI_VOLUMES_DIR.mkdir(exist_ok=True)
-    MESHES_DIR.mkdir(exist_ok=True)
-
-    term_info_response_path = _retrieve(
-        VFB_SOLR_TERM_INFO_URL,
-        SOURCE_DATA_DIR,
-        "jrc2018u_vnc_term_info_response.json",
-    )
-    term_info = _load_vfb_term_info(term_info_response_path)
+    term_info = json.loads(term_info)
 
     term_info_path = SOURCE_DATA_DIR / "jrc2018u_vnc_term_info.json"
     with open(term_info_path, "w", encoding="utf-8") as f:
         json.dump(term_info, f, indent=2)
 
     template_channel = term_info["template_channel"]
-    reference_url = _secure_url(
+    reference_url = (
         template_channel.get("image_nrrd") or ATLAS_FILE_URL
+    ).replace(
+        vfb_http_prefix,
+        vfb_https_prefix,
     )
     _retrieve(
         reference_url,
@@ -199,7 +145,10 @@ def download_resources():
     )
 
     _retrieve(
-        _secure_url(template_channel["image_obj"]),
+        template_channel["image_obj"].replace(
+            vfb_http_prefix,
+            vfb_https_prefix,
+        ),
         MESHES_DIR,
         f"{ROOT_ID}.obj",
     )
@@ -218,12 +167,12 @@ def download_resources():
         vfb_id = domain["anatomical_individual"]["short_form"]
 
         roi_path = _retrieve(
-            _secure_url(domain["image_nrrd"]),
+            domain["image_nrrd"].replace(vfb_http_prefix, vfb_https_prefix),
             ROI_VOLUMES_DIR,
             f"{structure_id}.nrrd",
         )
         mesh_path = _retrieve(
-            _secure_url(domain["image_obj"]),
+            domain["image_obj"].replace(vfb_http_prefix, vfb_https_prefix),
             MESHES_DIR,
             f"{structure_id}.obj",
         )
@@ -293,25 +242,31 @@ def retrieve_structure_information():
     domains = sorted(domain_metadata, key=lambda domain: int(domain["id"]))
     for domain in domains:
         structure_id = int(domain["id"])
-        domain_name = _acronym_from_domain_label(domain["label"])
+        domain_name = domain["label"].split(" on ", maxsplit=1)[0]
+        domain_name = domain_name.replace("\\'", "'")
+        color_value = (structure_id * 2654435761) % (2**32)
         structures.append(
             {
                 "id": structure_id,
                 "name": domain_name,
                 "acronym": ACRONYM_OVERRIDES.get(structure_id, domain_name),
                 "structure_id_path": [ROOT_ID, structure_id],
-                "rgb_triplet": _rgb_triplet_from_id(structure_id),
+                "rgb_triplet": [
+                    50 + ((color_value >> shift) % 180)
+                    for shift in (16, 8, 0)
+                ],
             }
         )
 
     return structures
 
 
-def retrieve_or_construct_meshes():
+def retrieve_or_construct_meshes(structures):
     """Return the downloaded VFB mesh paths."""
     with open(DOMAIN_METADATA_PATH, encoding="utf-8") as f:
         domain_metadata = json.load(f)
 
+    structure_ids = {structure["id"] for structure in structures}
     root_mesh_path = MESHES_DIR / f"{ROOT_ID}.obj"
     if not root_mesh_path.is_file():
         raise FileNotFoundError(f"Missing root mesh: {root_mesh_path}")
@@ -320,6 +275,9 @@ def retrieve_or_construct_meshes():
     domains = sorted(domain_metadata, key=lambda domain: int(domain["id"]))
     for domain in domains:
         structure_id = int(domain["id"])
+        if structure_id not in structure_ids:
+            continue
+
         mesh_path = Path(domain["obj"])
         if not mesh_path.is_file():
             raise FileNotFoundError(f"Missing ROI mesh: {mesh_path}")
@@ -350,12 +308,16 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
-    structure_ids = {structure["id"] for structure in structures}
-    meshes_dict = {
-        structure_id: mesh_path
-        for structure_id, mesh_path in retrieve_or_construct_meshes().items()
-        if structure_id in structure_ids
+    annotation_structure_ids = {
+        int(structure_id) for structure_id in np.unique(annotated_volume)
     }
+    structures = [
+        structure
+        for structure in structures
+        if structure["id"] == ROOT_ID
+        or structure["id"] in annotation_structure_ids
+    ]
+    meshes_dict = retrieve_or_construct_meshes(structures)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

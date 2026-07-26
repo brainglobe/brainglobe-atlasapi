@@ -205,6 +205,7 @@ AtlasName: TypeAlias = Literal[
     "sju_cavefish_2um",
     "swc_female_rat_50um",
     "unam_axolotl_40um",
+    "vfb_jrc2018u_neuropils_fly_0.5189161um",
     "whs_sd_rat_39um",
     "whs_sd_swc_female_rat_39um",
 ]

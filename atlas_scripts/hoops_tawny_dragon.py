@@ -21,7 +21,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 __version__ = 0
-ATLAS_NAME = "hoops_dragon"
+ATLAS_NAME = "hoops_tawny_dragon"
 CITATION = "https://doi.org/10.1007/s00429-021-02282-z"
 SPECIES = "Ctenophorus decresii"
 ATLAS_LINK = "https://osf.io/ujenq"

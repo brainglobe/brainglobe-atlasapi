@@ -693,16 +693,18 @@ def validate_atlas(atlas_name, version, validation_functions):
         `error_message` is None if the check passes.
     """
     print(atlas_name, version)
+    # Triggers download so the atlas appears in get_atlases_lastversions()
     BrainGlobeAtlas(atlas_name)
     updated = get_atlases_lastversions()[atlas_name]["updated"]
     if not updated:
         update_atlas(atlas_name)
 
+    atlas = BrainGlobeAtlas(atlas_name)
     validation_results = {atlas_name: []}
 
-    for i, validation_function in enumerate(validation_functions):
+    for validation_function in validation_functions:
         try:
-            validation_function(BrainGlobeAtlas(atlas_name))
+            validation_function(atlas)
             validation_results[atlas_name].append(
                 (validation_function.__name__, None, str("Pass"))
             )

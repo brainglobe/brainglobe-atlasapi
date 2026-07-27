@@ -297,6 +297,39 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
     return True
 
 
+def _get_structure_and_mesh_ids(atlas: BrainGlobeAtlas):
+    """Get structure IDs from the atlas and mesh IDs from the meshes folder.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to inspect.
+
+    Returns
+    -------
+    tuple of (list of int, list of int)
+        The structure IDs from `atlas.structures` and the mesh IDs found
+        in the atlas's `meshes` directory.
+    """
+    ids_from_bg_atlas_api = list(atlas.structures.keys())
+
+    atlas_path = atlas.root_dir
+    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
+
+    mesh_path = (
+        Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
+    )
+
+    # Mesh files are named as <structure_id>
+    ids_from_mesh_files = [
+        int(f.stem)
+        for f in mesh_path.iterdir()
+        if (f.name != "info" and f.suffix != ".index")
+    ]
+
+    return ids_from_bg_atlas_api, ids_from_mesh_files
+
+
 def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     """Check if all structures in the atlas have a corresponding mesh file.
 
@@ -317,21 +350,9 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
         If any structure ID found in `atlas.structures` does not have a
         matching mesh file in the atlas's `meshes` directory.
     """
-    ids_from_bg_atlas_api = list(atlas.structures.keys())
-
-    atlas_path = atlas.root_dir
-    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
-
-    mesh_path = (
-        Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
+    ids_from_bg_atlas_api, ids_from_mesh_files = _get_structure_and_mesh_ids(
+        atlas
     )
-
-    # Mesh files are named as <structure_id>
-    ids_from_mesh_files = [
-        int(f.stem)
-        for f in mesh_path.iterdir()
-        if (f.name != "info" and f.suffix != ".index")
-    ]
 
     in_bg_not_mesh = []
     for mesh_id in ids_from_bg_atlas_api:
@@ -366,20 +387,9 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
         If any .obj file found in the atlas's 'meshes' directory does not
         have a corresponding structure ID in `atlas.structures`.
     """
-    ids_from_bg_atlas_api = list(atlas.structures.keys())
-
-    atlas_path = atlas.root_dir
-    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
-
-    mesh_path = (
-        Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
+    ids_from_bg_atlas_api, ids_from_mesh_files = _get_structure_and_mesh_ids(
+        atlas
     )
-
-    ids_from_mesh_files = [
-        int(f.stem)
-        for f in mesh_path.iterdir()
-        if (f.name != "info" and f.suffix != ".index")
-    ]
 
     in_mesh_not_bg = []
     for id in ids_from_mesh_files:
@@ -711,6 +721,10 @@ def validate_atlas(atlas_name, version, validation_functions):
         except AssertionError as error:
             validation_results[atlas_name].append(
                 (validation_function.__name__, str(error), str("Fail"))
+            )
+        except Exception as error:
+            validation_results[atlas_name].append(
+                (validation_function.__name__, str(error), str("Error"))
             )
 
     return validation_results

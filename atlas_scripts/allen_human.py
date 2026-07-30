@@ -288,27 +288,34 @@ def create_atlas(working_dir):
         " minutes",
     )
 
+    # Retain every structure in the annotation-backed hierarchy, regardless
+    # of whether mesh extraction succeeded. Missing meshes are reported by
+    # atlas validation and must not remove structures from the terminology.
+    structures_to_keep = [
+        structure
+        for structure in regions_list
+        if structure["id"] in tree.nodes
+    ]
+
     # Create meshes dict
     meshes_dict = dict()
-    structures_with_mesh = []
-    for s in regions_list:
+    for structure in structures_to_keep:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f"{s['id']}.obj"
+        mesh_path = meshes_dir_path / f"{structure['id']}.obj"
         if not mesh_path.exists():
-            # print(f"No mesh file exists for: {s['name']}")
+            # print(f"No mesh file exists for: {structure['name']}")
             continue
         else:
             # Check that the mesh actually exists (i.e. not empty)
             if mesh_path.stat().st_size < 512:
-                # print(f"obj file for {s['name']} is too small.")
+                # print(f"obj file for: {structure['name']} is too small.")
                 continue
 
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
+        meshes_dict[structure["id"]] = mesh_path
 
     print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
+        f"Retaining {len(structures_to_keep)} structures, "
+        f"{len(meshes_dict)} of which have meshes"
     )
 
     # ----------- #
@@ -328,7 +335,7 @@ def create_atlas(working_dir):
         root_id=ROOT_ID,
         reference_stack=anatomy,
         annotation_stack=annotated_volume,
-        structures_list=structures_with_mesh,
+        structures_list=structures_to_keep,
         meshes_dict=meshes_dict,
         working_dir=working_dir,
         hemispheres_stack=None,

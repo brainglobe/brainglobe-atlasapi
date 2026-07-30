@@ -116,21 +116,45 @@ def test_insert_into_multiscale_merges_two_scale_levels(tmp_path):
 def test_build_transformations_divides_by_1000():
     """Test that resolution in microns is converted to mm (divide by 1000)."""
     result = _build_transformations([(10, 10, 10)])
-    assert result == [[{"type": "scale", "scale": [0.01, 0.01, 0.01]}]]
+    assert result == [
+        [
+            {"type": "scale", "scale": [0.01, 0.01, 0.01]},
+            {"type": "translation", "translation": [0.0, 0.0, 0.0]},
+        ]
+    ]
 
 
 def test_build_transformations_multiple_resolutions():
     """Test that multiple resolutions produce multiple transformations."""
     result = _build_transformations([(10, 10, 10), (20, 20, 20)])
     assert len(result) == 2
-    assert result[0] == [{"type": "scale", "scale": [0.01, 0.01, 0.01]}]
-    assert result[1] == [{"type": "scale", "scale": [0.02, 0.02, 0.02]}]
+    assert result[0][0] == {"type": "scale", "scale": [0.01, 0.01, 0.01]}
+    assert result[1][0] == {"type": "scale", "scale": [0.02, 0.02, 0.02]}
 
 
 def test_build_transformations_anisotropic():
     """Test that anisotropic resolutions are handled per-axis."""
     result = _build_transformations([(10, 20, 30)])
-    assert result == [[{"type": "scale", "scale": [0.01, 0.02, 0.03]}]]
+    assert result[0][0] == {"type": "scale", "scale": [0.01, 0.02, 0.03]}
+
+
+def test_build_transformations_offsets_downsampled_levels():
+    """Coarse levels are offset by half the voxel size difference."""
+    result = _build_transformations(
+        [(10, 10, 10), (25, 25, 25), (100, 100, 100)]
+    )
+    translations = [t[1]["translation"] for t in result]
+    assert translations == [
+        [0.0, 0.0, 0.0],
+        [0.0075, 0.0075, 0.0075],
+        [0.045, 0.045, 0.045],
+    ]
+
+
+def test_build_transformations_rejects_coarsest_first():
+    """A pyramid ordered coarsest-first fails loudly, not silently."""
+    with pytest.raises(AssertionError, match="highest to lowest resolution"):
+        _build_transformations([(20, 20, 20), (10, 10, 10)])
 
 
 # --- _generate_annotation_mapping ---

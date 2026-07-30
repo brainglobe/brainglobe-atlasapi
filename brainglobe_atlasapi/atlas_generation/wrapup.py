@@ -3,7 +3,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import brainglobe_space as bgs
 import dask.array as da
@@ -122,10 +122,7 @@ def _insert_into_multiscale(
     stack_list = [
         resolution_to_data[res].astype(dtype) for res in merged_resolutions
     ]
-    new_transformations = [
-        [{"type": "scale", "scale": list(res_tuple)}]
-        for res_tuple in merged_resolutions
-    ]
+    new_transformations = _transformations_from_scales(merged_resolutions)
 
     write_multiscale_ome_zarr(
         images=stack_list,
@@ -135,13 +132,48 @@ def _insert_into_multiscale(
     )
 
 
+def _transformations_from_scales(
+    scales: Sequence[Sequence[float]],
+) -> List[List[dict]]:
+    """Build OME-Zarr coordinate transformations from per-level scales.
+
+    Parameters
+    ----------
+    scales : sequence of sequences of float
+        Scale (voxel size) per axis for each pyramid level, ordered from
+        highest to lowest resolution.
+    """
+    base = scales[0]
+    assert all(
+        scale >= reference
+        for level in scales
+        for scale, reference in zip(level, base)
+    ), f"Scales must be ordered from highest to lowest resolution: {scales}"
+
+    return [
+        [
+            {"type": "scale", "scale": list(level)},
+            {
+                "type": "translation",
+                "translation": [
+                    round((scale - reference) / 2, 9)
+                    for scale, reference in zip(level, base)
+                ],
+            },
+        ]
+        for level in scales
+    ]
+
+
 def _build_transformations(
     resolution_standard: ResolutionList,
 ) -> List[List[dict]]:
-    return [
-        [{"type": "scale", "scale": [res / 1000 for res in res_tuple]}]
-        for res_tuple in resolution_standard
-    ]
+    return _transformations_from_scales(
+        [
+            [res / 1000 for res in res_tuple]
+            for res_tuple in resolution_standard
+        ]
+    )
 
 
 def _save_terminology_csv(
@@ -544,10 +576,9 @@ def _save_4d_annotation_data(
     structures_tree = get_structures_tree(packaging_data.structures_list)
     mapping = _generate_annotation_mapping(structures_tree)
 
-    transformations_4d = [
-        [{"type": "scale", "scale": [1.0] + t[0]["scale"]}]
-        for t in transformations
-    ]
+    transformations_4d = _transformations_from_scales(
+        [[1.0] + t[0]["scale"] for t in transformations]
+    )
 
     masks_path = dest_dir / descriptors.V3_ANNOTATION_MASKS_NAME
     scratch_dir = dest_dir / ".mask_scratch"
@@ -648,10 +679,9 @@ def _insert_into_4d_masks(
         )
 
         merged_stack = [resolution_to_data[res] for res in merged_resolutions]
-        transformations_4d = [
-            [{"type": "scale", "scale": [1.0] + list(res)}]
-            for res in merged_resolutions
-        ]
+        transformations_4d = _transformations_from_scales(
+            [[1.0] + list(res) for res in merged_resolutions]
+        )
 
         save_annotation_masks(merged_stack, target_dir, transformations_4d)
 

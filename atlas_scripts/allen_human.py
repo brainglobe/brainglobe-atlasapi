@@ -191,7 +191,7 @@ def create_atlas(working_dir):
     http = urllib3.PoolManager()
     r = http.request("GET", query_url)
     data = json.loads(r.data.decode("utf-8"))["msg"]
-    structures = pd.read_json(json.dumps(data))
+    structures = pd.DataFrame(data)
 
     # Create empty list and collect all regions
     # traversing the regions hierarchy:

@@ -145,7 +145,9 @@ def _transformations_from_scales(
     """
     scales = [list(level) for level in scales]
     if not scales:
-        raise ValueError("scales must be a non-empty sequence of per-level scales")
+        raise ValueError(
+            "scales must be a non-empty sequence of per-level scales"
+        )
 
     ndim = len(scales[0])
     if any(len(level) != ndim for level in scales):

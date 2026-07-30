@@ -143,13 +143,23 @@ def _transformations_from_scales(
         Scale (voxel size) per axis for each pyramid level, ordered from
         highest to lowest resolution.
     """
-    base = scales[0]
-    assert all(
-        scale >= reference
-        for level in scales
-        for scale, reference in zip(level, base)
-    ), f"Scales must be ordered from highest to lowest resolution: {scales}"
+    scales = [list(level) for level in scales]
+    if not scales:
+        raise ValueError("scales must be a non-empty sequence of per-level scales")
 
+    ndim = len(scales[0])
+    if any(len(level) != ndim for level in scales):
+        raise ValueError(f"All scale levels must have {ndim} axes: {scales}")
+
+    if any(
+        any(curr < prev for curr, prev in zip(scales[i], scales[i - 1]))
+        for i in range(1, len(scales))
+    ):
+        raise ValueError(
+            f"Scales must be ordered from highest to lowest resolution: {scales}"
+        )
+
+    base = scales[0]
     return [
         [
             {"type": "scale", "scale": list(level)},

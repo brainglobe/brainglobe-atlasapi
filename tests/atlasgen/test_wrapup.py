@@ -139,7 +139,7 @@ def test_transformations_from_scales_offsets_downsampled_levels():
 
 def test_transformations_from_scales_rejects_coarsest_first():
     """A pyramid ordered coarsest-first fails loudly, not silently."""
-    with pytest.raises(ValueError, match="highest to lowest"): 
+    with pytest.raises(ValueError, match="highest to lowest"):
         _transformations_from_scales([[0.02, 0.02, 0.02], [0.01, 0.01, 0.01]])
 
 

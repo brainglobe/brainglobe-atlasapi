@@ -158,7 +158,7 @@ def _transformations_from_scales(
         for i in range(1, len(scales))
     ):
         raise ValueError(
-            f"Scales must be ordered from highest to lowest resolution: {scales}"
+            f"Resolutions must be ordered from highest to lowest: {scales}"
         )
 
     base = scales[0]

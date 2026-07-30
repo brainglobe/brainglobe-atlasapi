@@ -1,6 +1,6 @@
 """Module to package the Allen Human Reference Atlas."""
 
-__version__ = "0"
+__version__ = "1"
 
 import json
 import time

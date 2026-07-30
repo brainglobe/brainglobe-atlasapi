@@ -38,10 +38,8 @@ def prune_tree(tree):
     """
     Prunes the input tree based on the 'has_label' attribute of its nodes.
 
-    Nodes are removed if:
-    - They have a label, and all their children are removed
-    (meaning only the labeled parent is kept).
-    - They do not have a label, and none of their descendants have a label.
+    A node is removed only when neither it nor any of its descendants has a
+    label in the annotation volume.
 
     Parameters
     ----------
@@ -56,32 +54,19 @@ def prune_tree(tree):
         The pruned tree.
     """
     nodes = tree.nodes.copy()
-    for key, node in nodes.items():
-        if node.tag == "root":
+    for node in nodes.values():
+        if node.identifier == tree.root:
             continue
-        if node.data.has_label:
-            try:
-                children = tree.children(node.identifier)
-            except treelib.exceptions.NodeIDAbsentError:
-                continue
 
-            if children:
-                for child in children:
-                    try:
-                        tree.remove_node(child.identifier)
-                    except treelib.exceptions.NodeIDAbsentError:
-                        pass
-        else:
-            # Remove if none of the children has mesh
-            try:
-                subtree = tree.subtree(node.identifier)
-            except treelib.exceptions.NodeIDAbsentError:
-                continue
-            else:
-                if not np.any(
-                    [c.data.has_label for _, c in subtree.nodes.items()]
-                ):
-                    tree.remove_node(node.identifier)
+        try:
+            subtree = tree.subtree(node.identifier)
+        except treelib.exceptions.NodeIDAbsentError:
+            continue
+
+        if not any(
+            descendant.data.has_label for descendant in subtree.nodes.values()
+        ):
+            tree.remove_node(node.identifier)
     return tree
 
 
@@ -280,12 +265,9 @@ def create_atlas(working_dir):
         total=tree.size(),
         description="Creating meshes",
     ):
-
-        if node.tag == "root":
-            annotated_volume[annotated_volume > 0] = node.identifier
-        else:
-            annotated_volume = annotated_volume
-
+        # _create_region_mesh builds the root mask from all IDs in the tree.
+        # Do not collapse the annotation to the root ID here: this same array
+        # is packaged below and must retain its regional labels.
         create_region_mesh(
             (
                 meshes_dir_path,
@@ -311,7 +293,7 @@ def create_atlas(working_dir):
     structures_with_mesh = []
     for s in regions_list:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             # print(f"No mesh file exists for: {s['name']}")
             continue

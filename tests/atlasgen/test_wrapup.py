@@ -25,7 +25,6 @@ from brainglobe_atlasapi.atlas_generation.stacks import (
     write_multiscale_ome_zarr,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import (
-    _build_transformations,
     _compute_4d_masks_for_scale,
     _generate_annotation_mapping,
     _insert_into_4d_masks,
@@ -35,6 +34,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import (
     _save_coordinate_space_manifest,
     _save_if_not_exists,
     _save_terminology_csv,
+    _transformations_from_scales,
     wrapup_atlas_from_data,
 )
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
@@ -110,38 +110,24 @@ def test_insert_into_multiscale_merges_two_scale_levels(tmp_path):
     assert len(result.images) == 2
 
 
-# --- _build_transformations ---
+# --- _transformations_from_scales ---
 
 
-def test_build_transformations_divides_by_1000():
-    """Test that resolution in microns is converted to mm (divide by 1000)."""
-    result = _build_transformations([(10, 10, 10)])
-    assert result == [
-        [
-            {"type": "scale", "scale": [0.01, 0.01, 0.01]},
-            {"type": "translation", "translation": [0.0, 0.0, 0.0]},
-        ]
+def test_transformations_from_scales_per_axis():
+    """Scales are written per axis, one transformation per level."""
+    result = _transformations_from_scales(
+        [[0.01, 0.02, 0.03], [0.02, 0.04, 0.06]]
+    )
+    assert [t[0] for t in result] == [
+        {"type": "scale", "scale": [0.01, 0.02, 0.03]},
+        {"type": "scale", "scale": [0.02, 0.04, 0.06]},
     ]
 
 
-def test_build_transformations_multiple_resolutions():
-    """Test that multiple resolutions produce multiple transformations."""
-    result = _build_transformations([(10, 10, 10), (20, 20, 20)])
-    assert len(result) == 2
-    assert result[0][0] == {"type": "scale", "scale": [0.01, 0.01, 0.01]}
-    assert result[1][0] == {"type": "scale", "scale": [0.02, 0.02, 0.02]}
-
-
-def test_build_transformations_anisotropic():
-    """Test that anisotropic resolutions are handled per-axis."""
-    result = _build_transformations([(10, 20, 30)])
-    assert result[0][0] == {"type": "scale", "scale": [0.01, 0.02, 0.03]}
-
-
-def test_build_transformations_offsets_downsampled_levels():
+def test_transformations_from_scales_offsets_downsampled_levels():
     """Coarse levels are offset by half the voxel size difference."""
-    result = _build_transformations(
-        [(10, 10, 10), (25, 25, 25), (100, 100, 100)]
+    result = _transformations_from_scales(
+        [[0.01, 0.01, 0.01], [0.025, 0.025, 0.025], [0.1, 0.1, 0.1]]
     )
     translations = [t[1]["translation"] for t in result]
     assert translations == [
@@ -151,10 +137,10 @@ def test_build_transformations_offsets_downsampled_levels():
     ]
 
 
-def test_build_transformations_rejects_coarsest_first():
+def test_transformations_from_scales_rejects_coarsest_first():
     """A pyramid ordered coarsest-first fails loudly, not silently."""
     with pytest.raises(AssertionError, match="highest to lowest resolution"):
-        _build_transformations([(20, 20, 20), (10, 10, 10)])
+        _transformations_from_scales([[0.02, 0.02, 0.02], [0.01, 0.01, 0.01]])
 
 
 # --- _generate_annotation_mapping ---

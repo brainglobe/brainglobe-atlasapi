@@ -165,17 +165,6 @@ def _transformations_from_scales(
     ]
 
 
-def _build_transformations(
-    resolution_standard: ResolutionList,
-) -> List[List[dict]]:
-    return _transformations_from_scales(
-        [
-            [res / 1000 for res in res_tuple]
-            for res_tuple in resolution_standard
-        ]
-    )
-
-
 def _save_terminology_csv(
     structures_list: List[Dict],
     terminology_path: Path,
@@ -1070,7 +1059,9 @@ def wrapup_atlas_from_data(
         additional_metadata=additional_metadata,
     )
 
-    transformations = _build_transformations(packaging_data.resolution)
+    transformations = _transformations_from_scales(
+        [[res / 1000 for res in t] for t in packaging_data.resolution]
+    )
 
     template_multiscale = _save_template_data(
         packaging_data,

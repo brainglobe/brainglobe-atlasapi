@@ -274,8 +274,6 @@ def create_atlas(working_dir):
         # is packaged below and must retain its regional labels.
         mesh_path = meshes_dir_path / f"{node.identifier}.obj"
 
-        # if mesh_path.exists() and mesh_path.stat().st_size >= 512:
-        #     continue
         create_region_mesh(
             (
                 meshes_dir_path,
@@ -311,12 +309,10 @@ def create_atlas(working_dir):
         # Check if a mesh was created
         mesh_path = meshes_dir_path / f"{structure['id']}.obj"
         if not mesh_path.exists():
-            # print(f"No mesh file exists for: {structure['name']}")
             continue
         else:
             # Check that the mesh actually exists (i.e. not empty)
             if mesh_path.stat().st_size < 512:
-                # print(f"obj file for: {structure['name']} is too small.")
                 continue
 
         meshes_dict[structure["id"]] = mesh_path

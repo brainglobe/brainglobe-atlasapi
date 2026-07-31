@@ -12,6 +12,8 @@ from pathlib import Path
 
 import click
 
+from brainglobe_atlasapi import descriptors
+
 CONFIG_FILENAME = "bg_config.conf"
 CONFIG_DEFAULT_DIR = Path.home() / ".config" / "brainglobe"
 CONFIG_DIR = Path(os.environ.get("BRAINGLOBE_CONFIG_DIR", CONFIG_DEFAULT_DIR))
@@ -19,11 +21,18 @@ CONFIG_PATH = CONFIG_DIR / CONFIG_FILENAME
 
 # 2 level dictionary for sections and values:
 DEFAULT_PATH = Path.home() / ".brainglobe"
+
+DEFAULT_REMOTE_ROOTS = {
+    descriptors.DEFAULT_ROOT_KEY: descriptors.DEFAULT_REMOTE_ROOT,
+    "allen": descriptors.ATLAS_ASSETS_REMOTE_ROOT,
+}
+
 TEMPLATE_CONF_DICT = {
     "default_dirs": {
         "brainglobe_dir": DEFAULT_PATH,
         "interm_download_dir": DEFAULT_PATH,
-    }
+    },
+    "remote_roots": DEFAULT_REMOTE_ROOTS,
 }
 
 DEFAULT_WORKDIR = Path.home() / "brainglobe_workingdir"
@@ -150,3 +159,27 @@ def _print_config():
             string += f"\t{k}: {val}\n"
 
     return string
+
+
+def get_remote_roots(path=None):
+    """Return the configured remote roots, in resolution order.
+
+    Falls back to the built-in defaults when the section is absent, so a
+    configuration file written by an earlier version keeps working without
+    the user editing it. The file itself is never rewritten.
+
+    Parameters
+    ----------
+    path : Path object, optional
+        Path of the config file. Defaults to the standard location.
+
+    Returns
+    -------
+    dict
+        Mapping of root key to remote root, ordered as declared. The key is
+        also the local cache directory name.
+    """
+    conf = read_config(path)
+    if not conf.has_section("remote_roots"):
+        return dict(DEFAULT_REMOTE_ROOTS)
+    return dict(conf["remote_roots"])

@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from brainglobe_atlasapi import bg_atlas, cli, config
+from brainglobe_atlasapi import bg_atlas, cli, config, descriptors
 from brainglobe_atlasapi.config import cli_modify_config
 
 
@@ -137,3 +137,56 @@ def test_cli_modify_config(
     cli_modify_config(key=key, value=value, show=show)
     captured = capsys.readouterr()
     assert captured.out.startswith(expected_output)
+
+
+def test_default_config_has_remote_roots(conf_path):
+    """A freshly written config declares both remote roots.
+
+    Parameters
+    ----------
+    conf_path : pathlib.Path
+        Path to a temporary configuration file.
+    """
+    roots = config.get_remote_roots(conf_path)
+    assert list(roots) == ["brainglobe-atlasapi", "allen"]
+    assert roots["brainglobe-atlasapi"] == descriptors.DEFAULT_REMOTE_ROOT
+    assert roots["allen"] == descriptors.ATLAS_ASSETS_REMOTE_ROOT
+
+
+def test_remote_roots_fallback_for_old_config(temp_path):
+    """A config predating the section still yields the defaults.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary directory for the config file.
+    """
+    old_config = temp_path / "old.conf"
+    old_config.write_text(
+        "[default_dirs]\n"
+        f"brainglobe_dir = {temp_path}\n"
+        f"interm_download_dir = {temp_path}\n"
+    )
+    roots = config.get_remote_roots(old_config)
+    assert list(roots) == ["brainglobe-atlasapi", "allen"]
+
+
+def test_remote_roots_reads_user_overrides(temp_path):
+    """User-declared roots win, and declaration order is preserved.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary directory for the config file.
+    """
+    custom = temp_path / "custom.conf"
+    custom.write_text(
+        "[default_dirs]\n"
+        f"brainglobe_dir = {temp_path}\n"
+        "[remote_roots]\n"
+        "brainglobe-atlasapi = s3://brainglobe/atlas-rc2\n"
+        "mine = s3://my-bucket/my-prefix\n"
+    )
+    roots = config.get_remote_roots(custom)
+    assert list(roots) == ["brainglobe-atlasapi", "mine"]
+    assert roots["mine"] == "s3://my-bucket/my-prefix"

@@ -453,11 +453,11 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
     annotation = atlas.annotation
 
     annotation_shape = np.array(annotation.shape)
-    remainder = 1 - (annotation_shape[2] % 2)
+    remainder = annotation_shape[2] % 2
     centre = annotation_shape // 2
     central_leftright_axis_annotations = annotation[centre[0], centre[1], :]
     label_5_left_of_centre = central_leftright_axis_annotations[
-        centre[2] + (5 - remainder)
+        centre[2] + (4 + remainder)
     ]
     label_5_right_of_centre = central_leftright_axis_annotations[centre[2] - 5]
     assert (

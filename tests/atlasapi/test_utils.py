@@ -633,3 +633,25 @@ def test_remote_root_to_https(remote_root, expected):
         The HTTPS URL used for the reachability check.
     """
     assert utils.remote_root_to_https(remote_root) == expected
+
+
+def test_rich_metadata_omits_missing_fields():
+    """Rows whose value is None are dropped from the table."""
+    complete = dict(METADATA)
+    complete.update(
+        species="Mus musculus",
+        citation="Someone et al 2020",
+        atlas_link="http://www.example.com",
+        version="1.0",
+    )
+    sparse = dict(complete)
+    sparse.update(species=None, citation=None, atlas_link=None)
+
+    complete_panel = utils._rich_atlas_metadata("some-atlas", complete)
+    sparse_panel = utils._rich_atlas_metadata("some-atlas", sparse)
+
+    assert isinstance(sparse_panel, rich.panel.Panel)
+    assert (
+        sparse_panel.renderable.row_count
+        == complete_panel.renderable.row_count - 3
+    )

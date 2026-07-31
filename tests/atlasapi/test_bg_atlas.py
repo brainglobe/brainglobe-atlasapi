@@ -150,3 +150,38 @@ def test_version_tuple_from_str_separators(version_str, expected):
         Expected numeric tuple.
     """
     assert bg_atlas._version_tuple_from_str(version_str) == expected
+
+
+@pytest.mark.parametrize(
+    "atlas_name, resolution, expected",
+    [
+        (
+            "example_mouse_100um",
+            [100.0, 100.0, 100.0],
+            "example mouse atlas (res. 100um)",
+        ),
+        (
+            "allen-adult-mouse-ccf-atlas",
+            [25.0, 25.0, 25.0],
+            "allen-adult-mouse-ccf-atlas (res. 25.0um)",
+        ),
+    ],
+)
+def test_repr_handles_names_without_underscore(
+    atlas_name, resolution, expected
+):
+    """Names with no underscore keep their full name in the repr.
+
+    Parameters
+    ----------
+    atlas_name : str
+        Atlas name under test.
+    resolution : list of float
+        Resolution recorded in the metadata.
+    expected : str
+        Expected repr text.
+    """
+    instance = BrainGlobeAtlas.__new__(BrainGlobeAtlas)
+    instance.atlas_name = atlas_name
+    instance.metadata = {"resolution": resolution}
+    assert repr(instance) == expected

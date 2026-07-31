@@ -1,0 +1,4 @@
+identifier,annotation_value,parent_identifier,name,abbreviation,color_hex_triplet,descendant_identifiers,root_identifier_path,descendant_annotation_values
+MBA:997,997,,root,root,#FFFFFF,"['MBA:997', 'MBA:8']",['MBA:997'],"[997, 8]"
+MBA:8,8,MBA:997,Basic cell groups and regions,grey,#BFDAE3,['MBA:8'],"['MBA:997', 'MBA:8']",[8]
+MBA:614454277,614454277,MBA:8,Big Value Region,BVR,#B0F0FF,['MBA:614454277'],"['MBA:997', 'MBA:8', 'MBA:614454277']",[614454277]

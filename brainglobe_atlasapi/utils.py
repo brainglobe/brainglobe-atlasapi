@@ -482,6 +482,28 @@ def read_json(path: Union[str, Path]) -> Dict[str, Any]:
     return data
 
 
+def _parse_identifier_list(raw: str) -> List[str]:
+    """Parse a bracketed, comma-separated identifier list.
+
+    Handles both integer lists (``[997, 8]``) and quoted CURIE lists
+    (``['MBA:997', 'MBA:8']``), returning the elements as strings.
+
+    Parameters
+    ----------
+    raw : str
+        Raw cell contents from a terminology CSV.
+
+    Returns
+    -------
+    list of str
+        Identifier strings, in order.
+    """
+    inner = raw.strip().strip("[]").strip()
+    if not inner:
+        return []
+    return [item.strip().strip("'\"") for item in inner.split(",")]
+
+
 def load_structures_from_csv(structures_path):
     """
     Load structures information from a CSV file.
@@ -496,15 +518,18 @@ def load_structures_from_csv(structures_path):
     list of dict
         A list of dictionaries, where each dictionary contains information
         about a structure, such as its acronym, id, name, structure_id_path,
-        rgb_triplet, and mesh_filename.
+        rgb_triplet, and annotation_value, the integer value used in
+        annotation volumes.
     """
     structures_df = pd.read_csv(
         structures_path,
-        dtype={"parent_identifier": pd.UInt16Dtype()},
+        dtype={
+            "identifier": str,
+            "parent_identifier": str,
+            "annotation_value": "Int64",
+        },
         converters={
-            "root_identifier_path": lambda x: np.fromstring(
-                x.strip("[]"), sep=",", dtype=np.uint32
-            ).tolist(),
+            "root_identifier_path": _parse_identifier_list,
             "color_hex_triplet": lambda x: [
                 int(x.strip("#")[i : i + 2], 16) for i in (0, 2, 4)
             ],
@@ -512,15 +537,56 @@ def load_structures_from_csv(structures_path):
         keep_default_na=False,
         na_values=["", "NaN", "NULL", "nan", "N/A", "na", "null"],
     )
-    rename_dict = {
-        "identifier": "id",
-        "parent_identifier": "parent_structure_id",
-        "abbreviation": "acronym",
-        "root_identifier_path": "structure_id_path",
-        "color_hex_triplet": "rgb_triplet",
+
+    if "root_identifier_path" not in structures_df.columns:
+        raise KeyError(
+            f"{structures_path} has no 'root_identifier_path' column; "
+            "it is required to build the structure hierarchy."
+        )
+
+    id_to_value = {
+        identifier: int(value)
+        for identifier, value in zip(
+            structures_df["identifier"], structures_df["annotation_value"]
+        )
     }
-    structures_df = structures_df.rename(columns=rename_dict)
-    structures_list = structures_df.to_dict(orient="records")
+
+    def to_annotation_value(identifier: str) -> int:
+        try:
+            return id_to_value[identifier]
+        except KeyError as e:
+            raise KeyError(
+                f"Identifier {identifier!r} referenced in "
+                f"{structures_path} has no matching annotation_value."
+            ) from e
+
+    structures_df["id"] = structures_df["annotation_value"].astype(int)
+    structures_df["structure_id_path"] = structures_df[
+        "root_identifier_path"
+    ].apply(lambda path: [to_annotation_value(i) for i in path])
+    parent_values = [
+        None if pd.isna(identifier) else to_annotation_value(identifier)
+        for identifier in structures_df["parent_identifier"]
+    ]
+    structures_df["parent_structure_id"] = pd.Series(
+        parent_values, dtype=object, index=structures_df.index
+    )
+    structures_df["acronym"] = structures_df["abbreviation"]
+    structures_df["rgb_triplet"] = structures_df["color_hex_triplet"]
+
+    kept_columns = [
+        "id",
+        "parent_structure_id",
+        "annotation_value",
+        "name",
+        "acronym",
+        "rgb_triplet",
+        "structure_id_path",
+    ]
+    structures_list = structures_df[kept_columns].to_dict(orient="records")
+
+    for structure in structures_list:
+        structure["annotation_value"] = int(structure["annotation_value"])
 
     return structures_list
 

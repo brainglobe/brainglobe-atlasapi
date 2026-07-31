@@ -1,0 +1,4 @@
+identifier,parent_identifier,annotation_value,name,abbreviation,color_hex_triplet,root_identifier_path
+997,,997,root,root,#FFFFFF,[997]
+8,997,8,Basic cell groups and regions,grey,#BFDAE3,"[997, 8]"
+567,8,567,Cerebrum,CH,#B0F0FF,"[997, 8, 567]"

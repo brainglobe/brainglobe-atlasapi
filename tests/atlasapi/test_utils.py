@@ -2,6 +2,7 @@
 
 import os
 import sys
+from pathlib import Path
 from typing import Callable
 from unittest import mock
 
@@ -477,3 +478,131 @@ def test_get_latest_version_separators(versions, expected):
         The folder name expected to sort newest.
     """
     assert utils.get_latest_version(versions) == expected
+
+
+DATA_DIR = Path(__file__).parent / "data"
+
+BRAINGLOBE_EXPECTED = [
+    {
+        "id": 997,
+        "parent_structure_id": None,
+        "annotation_value": 997,
+        "name": "root",
+        "acronym": "root",
+        "rgb_triplet": [255, 255, 255],
+        "structure_id_path": [997],
+    },
+    {
+        "id": 8,
+        "parent_structure_id": 997,
+        "annotation_value": 8,
+        "name": "Basic cell groups and regions",
+        "acronym": "grey",
+        "rgb_triplet": [191, 218, 227],
+        "structure_id_path": [997, 8],
+    },
+    {
+        "id": 567,
+        "parent_structure_id": 8,
+        "annotation_value": 567,
+        "name": "Cerebrum",
+        "acronym": "CH",
+        "rgb_triplet": [176, 240, 255],
+        "structure_id_path": [997, 8, 567],
+    },
+]
+
+
+def test_load_structures_brainglobe_dialect():
+    """Integer-identifier terminology loads with unchanged output."""
+    result = utils.load_structures_from_csv(
+        DATA_DIR / "terminology_brainglobe.csv"
+    )
+    assert result == BRAINGLOBE_EXPECTED
+
+
+def test_load_structures_atlas_assets_dialect():
+    """CURIE-identifier terminology maps onto annotation values."""
+    result = utils.load_structures_from_csv(
+        DATA_DIR / "terminology_atlas_assets.csv"
+    )
+    assert [r["id"] for r in result] == [997, 8, 614454277]
+    assert [r["parent_structure_id"] for r in result] == [None, 997, 8]
+    assert [r["structure_id_path"] for r in result] == [
+        [997],
+        [997, 8],
+        [997, 8, 614454277],
+    ]
+    assert result[2]["acronym"] == "BVR"
+    assert result[2]["rgb_triplet"] == [176, 240, 255]
+
+
+def test_load_structures_key_set_is_stable():
+    """Both dialects produce the same key set, with no spec extras."""
+    expected_keys = {
+        "id",
+        "parent_structure_id",
+        "annotation_value",
+        "name",
+        "acronym",
+        "rgb_triplet",
+        "structure_id_path",
+    }
+    for filename in (
+        "terminology_brainglobe.csv",
+        "terminology_atlas_assets.csv",
+    ):
+        rows = utils.load_structures_from_csv(DATA_DIR / filename)
+        assert all(set(row) == expected_keys for row in rows)
+
+
+def test_load_structures_types_are_plain_ints():
+    """Ids and paths are plain Python ints, usable as dict keys."""
+    rows = utils.load_structures_from_csv(
+        DATA_DIR / "terminology_atlas_assets.csv"
+    )
+    assert all(isinstance(row["id"], int) for row in rows)
+    assert all(
+        isinstance(element, int)
+        for row in rows
+        for element in row["structure_id_path"]
+    )
+    assert rows[0]["parent_structure_id"] is None
+
+
+def test_load_structures_requires_root_identifier_path(tmp_path):
+    """A terminology without the optional path column fails loudly.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Pytest-provided temporary directory.
+    """
+    path = tmp_path / "terminology.csv"
+    path.write_text(
+        "identifier,annotation_value,parent_identifier,name,"
+        "abbreviation,color_hex_triplet\n"
+        "997,997,,root,root,#FFFFFF\n"
+    )
+    with pytest.raises(KeyError) as error:
+        utils.load_structures_from_csv(path)
+    assert "root_identifier_path" in str(error.value)
+
+
+def test_load_structures_unknown_identifier_in_path(tmp_path):
+    """An unresolvable identifier in a path fails loudly.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Pytest-provided temporary directory.
+    """
+    path = tmp_path / "terminology.csv"
+    path.write_text(
+        "identifier,annotation_value,parent_identifier,name,"
+        "abbreviation,color_hex_triplet,root_identifier_path\n"
+        "MBA:8,8,,root,root,#FFFFFF,\"['MBA:999', 'MBA:8']\"\n"
+    )
+    with pytest.raises(KeyError) as error:
+        utils.load_structures_from_csv(path)
+    assert "MBA:999" in str(error.value)

@@ -123,9 +123,9 @@ atlas = BrainGlobeAtlas("allen_mouse_25um")
 The various files associated with the atlas can then be accessed as attributes of the class:
 
 ```python
-# reference image
-reference_image = atlas.reference
-print(reference_image.shape)
+# template image
+template_image = atlas.template
+print(template_image.shape)
 # (528, 320, 456)
 
 # annotation image
@@ -156,7 +156,7 @@ atlas.lookup_df.head(8)
 # 7       FRP1         68          Frontal pole, layer 1
 ```
 
-Each brain region can also be access by the acronym, e.g. for primary visual cortex (VISp):
+Each brain region can also be accessed by the acronym, e.g. for primary visual cortex (VISp):
 
 ```python
 from pprint import pprint

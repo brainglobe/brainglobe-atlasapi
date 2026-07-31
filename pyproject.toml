@@ -32,6 +32,7 @@ dependencies = [
     "rich >= 9.0.0",
     "s3fs >= 2026",
     "tifffile>=2018.11.6",
+    "tqdm >= 4.46.1",
     "treelib",
 ]
 dynamic = ["version"]
@@ -72,7 +73,6 @@ atlasgen = [
     "ome-zarr<0.17.0",
     "PyMCubes",
     "SimpleITK",
-    "tqdm>=4.46.1",
     "vedo",
     "xmltodict",
     "pooch",

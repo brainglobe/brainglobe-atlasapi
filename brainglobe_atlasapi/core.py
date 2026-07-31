@@ -22,7 +22,6 @@ from fsspec.callbacks import TqdmCallback
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
-    ATLAS_ORIENTATION,
     REFERENCE_DTYPE,
     V3_ANNOTATION_MAP_NAME,
     V3_ANNOTATION_MASKS_NAME,
@@ -187,7 +186,7 @@ class Atlas:
 
         # Instantiate SpaceConvention object describing the current atlas:
         self.space = AnatomicalSpace(
-            origin=ATLAS_ORIENTATION,
+            origin=self.orientation,
             shape=self.shape,
             resolution=self.resolution,
         )
@@ -226,8 +225,8 @@ class Atlas:
 
     @property
     def orientation(self):
-        """Make orientation more accessible from class."""
-        return ATLAS_ORIENTATION
+        """Origin of the atlas axes, in brainglobe-space letters."""
+        return self.metadata["orientation"]
 
     @property
     def shape(self):

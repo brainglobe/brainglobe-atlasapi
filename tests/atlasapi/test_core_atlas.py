@@ -639,3 +639,18 @@ def test_hemispheres_synthesized_when_asset_absent(atlas, monkeypatch):
 
     assert hemispheres.shape == tuple(atlas.metadata["shape"])
     assert set(np.unique(hemispheres)) <= {1, 2}
+
+
+def test_orientation_read_from_metadata(atlas, monkeypatch):
+    """Orientation comes from metadata, not a hardcoded constant.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    monkeypatch : pytest.MonkeyPatch
+        Fixture used to set a non-default orientation.
+    """
+    assert atlas.orientation == "asr"
+    monkeypatch.setitem(atlas.metadata, "orientation", "asl")
+    assert atlas.orientation == "asl"

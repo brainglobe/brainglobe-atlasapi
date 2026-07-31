@@ -6,6 +6,7 @@ from unittest.mock import PropertyMock, patch
 import pytest
 
 import brainglobe_atlasapi
+from brainglobe_atlasapi import bg_atlas
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
@@ -127,3 +128,25 @@ def test_local_search(tmpdir):
         brainglobe_dir=temp_brainglobe_dir,
     )
     assert atlas.local_full_name == f"{atlas_root}/{new_version}/manifest.json"
+
+
+@pytest.mark.parametrize(
+    "version_str, expected",
+    [
+        ("3.0", (3, 0)),
+        ("3_0", (3, 0)),
+        ("2017", (2017,)),
+        ("2024-05", (2024, 5)),
+    ],
+)
+def test_version_tuple_from_str_separators(version_str, expected):
+    """Version strings parse across ``.``, ``_`` and ``-`` separators.
+
+    Parameters
+    ----------
+    version_str : str
+        Version string as stored in a manifest or folder name.
+    expected : tuple of int
+        Expected numeric tuple.
+    """
+    assert bg_atlas._version_tuple_from_str(version_str) == expected

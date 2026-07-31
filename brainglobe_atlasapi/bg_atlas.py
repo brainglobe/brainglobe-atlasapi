@@ -32,8 +32,23 @@ from brainglobe_atlasapi.utils import (
 )
 
 
-def _version_tuple_from_str(version_str):
-    return tuple([int(n) for n in version_str.split(".")])
+def _version_tuple_from_str(version_str: str) -> Tuple[int, ...]:
+    """Parse a version string into a numeric tuple for comparison.
+
+    Accepts ``.``, ``_`` and ``-`` as separators, so both BrainGlobe
+    (``3_0``) and atlas-assets (``2024-05``) version folder names parse.
+
+    Parameters
+    ----------
+    version_str : str
+        Version string, e.g. ``"3.0"``, ``"3_0"`` or ``"2024-05"``.
+
+    Returns
+    -------
+    tuple of int
+        Numeric components, in order.
+    """
+    return tuple(int(n) for n in re.split(r"[._-]", version_str))
 
 
 def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:

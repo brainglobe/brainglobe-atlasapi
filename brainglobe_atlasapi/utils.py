@@ -368,7 +368,8 @@ def get_latest_version(available_versions: List[str]) -> str:
         The latest version string.
     """
     available_versions.sort(
-        key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
+        key=lambda v: tuple(int(x) for x in re.split(r"[_-]", v)),
+        reverse=True,
     )
     return available_versions[0]
 

@@ -455,3 +455,25 @@ def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
     assert not mock_cache_path.exists()
     utils.conf_from_url(conf_url, cache_path=mock_cache_path)
     assert mock_cache_path.parent.exists()
+
+
+@pytest.mark.parametrize(
+    "versions, expected",
+    [
+        (["3_0", "2_1"], "3_0"),
+        (["2017", "2024-05", "2026-03"], "2026-03"),
+        (["2024-05", "2024-11"], "2024-11"),
+        (["2011", "2015", "2016", "2017"], "2017"),
+    ],
+)
+def test_get_latest_version_separators(versions, expected):
+    """Latest version resolves across ``_`` and ``-`` separators.
+
+    Parameters
+    ----------
+    versions : list of str
+        Version folder names as they appear in a bucket.
+    expected : str
+        The folder name expected to sort newest.
+    """
+    assert utils.get_latest_version(versions) == expected

@@ -92,7 +92,6 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
     utils.check_internet_connection()
 
     data_fld = download_dir_path
-    # data_fld.mkdir(exist_ok=True)
 
     # downloading and un-compressing full annotation file
 
@@ -246,8 +245,6 @@ def create_atlas(working_dir):
 
         node.data = Region(is_label)
 
-    # tree.show(data_property='has_label')
-
     # Remove nodes for which no mesh can be created
     tree = prune_tree(tree)
     print(
@@ -272,7 +269,6 @@ def create_atlas(working_dir):
         # _create_region_mesh builds the root mask from all IDs in the tree.
         # Do not collapse the annotation to the root ID here: this same array
         # is packaged below and must retain its regional labels.
-        mesh_path = meshes_dir_path / f"{node.identifier}.obj"
 
         create_region_mesh(
             (

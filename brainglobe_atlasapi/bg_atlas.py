@@ -295,6 +295,14 @@ class BrainGlobeAtlas(core.Atlas):
 
         if self._requested_version is None:
             versions_path = self.fs.ls(bucket_path)
+            if not versions_path:
+                # Listing a nonexistent S3 prefix returns [] rather than
+                # raising. This happens when resolution was skipped (atlas
+                # found in the local cache) and the assumed root turns out
+                # not to host this atlas name.
+                raise FileNotFoundError(
+                    f"{self.atlas_name} is not a valid atlas name!"
+                )
             available_versions: List[str] = [
                 path_str.split("/")[-1] for path_str in versions_path
             ]

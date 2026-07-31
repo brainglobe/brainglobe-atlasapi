@@ -1,6 +1,7 @@
 """Test the BrainGlobeAtlas class."""
 
 import shutil
+from types import SimpleNamespace
 from unittest.mock import PropertyMock, patch
 
 import pytest
@@ -23,6 +24,34 @@ def test_remote_version_connection_error():
         atlas = object.__new__(BrainGlobeAtlas)
         atlas._remote_version = None
         assert atlas.remote_version is None
+
+
+def test_remote_version_missing_from_assumed_root_raises_file_not_found():
+    """A cached atlas whose assumed root doesn't host it fails cleanly.
+
+    Regression test: root resolution is skipped when the atlas is already
+    found in the local cache, so ``remote_version`` keeps whichever root
+    was assumed (the default). If that root doesn't actually have this
+    atlas name, ``fs.ls`` on the nonexistent S3 prefix returns ``[]``
+    rather than raising, which previously fell through to
+    ``get_latest_version([])`` and raised a bare ``IndexError``. This must
+    surface as ``FileNotFoundError`` instead, since callers such as
+    ``update_atlas`` depend on that type.
+    """
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas._remote_version = None
+    atlas._requested_version = None
+    atlas._remote_root = bg_atlas.descriptors.DEFAULT_REMOTE_ROOT
+    atlas.atlas_name = "not_actually_here"
+    atlas.fs = SimpleNamespace(ls=lambda path: [])
+
+    with patch.object(
+        brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
+    ):
+        with pytest.raises(
+            FileNotFoundError, match="is not a valid atlas name!"
+        ):
+            atlas.remote_version
 
 
 @pytest.mark.parametrize(

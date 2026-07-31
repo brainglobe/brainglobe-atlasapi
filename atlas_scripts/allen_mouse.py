@@ -264,10 +264,7 @@ def retrieve_or_construct_meshes(
     )
     meshes_dict.update(generated_meshes_dict)
 
-    structures_with_mesh = [
-        s for s in structures if int(s["id"]) in meshes_dict
-    ]
-    return meshes_dict, structures_with_mesh
+    return meshes_dict, structures
 
 
 def retrieve_additional_references():

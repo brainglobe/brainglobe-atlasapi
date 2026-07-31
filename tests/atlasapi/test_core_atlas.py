@@ -3,6 +3,7 @@
 import contextlib
 import shutil
 from io import StringIO
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import ngff_zarr as nz
@@ -613,3 +614,28 @@ def test_scale_from_transforms_missing():
     with pytest.raises(ValueError) as error:
         core._scale_from_transforms([_Transform()])
     assert "scale" in str(error.value)
+
+
+def test_hemispheres_synthesized_when_asset_absent(atlas, monkeypatch):
+    """An asymmetric atlas with no asset synthesizes rather than fetching.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    monkeypatch : pytest.MonkeyPatch
+        Fixture used to force the asymmetric, asset-free combination.
+    """
+    monkeypatch.setitem(atlas.metadata, "symmetric", False)
+    atlas._hemispheres = None
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no remote fetch should be attempted")
+
+    monkeypatch.setattr(atlas.fs, "get", fail)
+    monkeypatch.setattr(Path, "exists", lambda self: False)
+
+    hemispheres = atlas.hemispheres
+
+    assert hemispheres.shape == tuple(atlas.metadata["shape"])
+    assert set(np.unique(hemispheres)) <= {1, 2}

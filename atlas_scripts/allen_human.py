@@ -274,8 +274,8 @@ def create_atlas(working_dir):
         # is packaged below and must retain its regional labels.
         mesh_path = meshes_dir_path / f"{node.identifier}.obj"
 
-        if mesh_path.exists() and mesh_path.stat().st_size >= 512:
-            continue
+        # if mesh_path.exists() and mesh_path.stat().st_size >= 512:
+        #     continue
         create_region_mesh(
             (
                 meshes_dir_path,

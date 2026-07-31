@@ -451,14 +451,18 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
         If the annotation labels at the chosen symmetric points are different.
     """
     annotation = atlas.annotation
-    centre = np.min(np.array(annotation.shape) / 2).astype(int)
+    
+    annotation_shape = np.array(annotation.shape) 
+    remainder = 1 - (annotation_shape[2] % 2)
+    centre = annotation_shape // 2
     central_leftright_axis_annotations = annotation[centre[0], centre[1], :]
-    label_5_left_of_centre = central_leftright_axis_annotations[centre[2] + 5]
+    label_5_left_of_centre = central_leftright_axis_annotations[centre[2] + (5 - remainder)]
     label_5_right_of_centre = central_leftright_axis_annotations[centre[2] - 5]
     assert (
         label_5_left_of_centre == label_5_right_of_centre
     ), "Annotation labels are asymmetric."
     return True
+
 
 
 def validate_unique_acronyms(atlas: BrainGlobeAtlas):

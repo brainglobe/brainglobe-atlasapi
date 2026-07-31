@@ -19,6 +19,7 @@ import zarr
 from brainglobe_space import AnatomicalSpace
 from fsspec.callbacks import TqdmCallback
 
+from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
@@ -30,7 +31,6 @@ from brainglobe_atlasapi.descriptors import (
     V3_MESHES_DIRECTORY,
     V3_TEMPLATE_NAME,
     V3_TERMINOLOGY_NAME,
-    remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import (
@@ -39,12 +39,57 @@ from brainglobe_atlasapi.utils import (
 )
 
 
+def _transform_field(transform, name):
+    """Read a field from a transform that may be an object or a dict."""
+    if isinstance(transform, dict):
+        return transform.get(name)
+    return getattr(transform, name, None)
+
+
+def _scale_from_transforms(transforms):
+    """Return the scale factors from a coordinate transformation list.
+
+    OME-Zarr 0.5 stores a flat ``[{scale}, {translation}]`` list, while 0.6
+    wraps them as ``[{"type": "sequence", "transformations": [...]}]``. Both
+    shapes are accepted, as are raw dictionaries read from ``zarr.json``.
+
+    Parameters
+    ----------
+    transforms : sequence
+        Coordinate transformations for one multiscale dataset.
+
+    Returns
+    -------
+    sequence of float
+        The scale factors, one per axis.
+
+    Raises
+    ------
+    ValueError
+        If no scale transformation is present.
+    """
+    for transform in transforms:
+        scale = _transform_field(transform, "scale")
+        if scale is not None:
+            return scale
+        for inner in _transform_field(transform, "transformations") or ():
+            scale = _transform_field(inner, "scale")
+            if scale is not None:
+                return scale
+
+    raise ValueError(
+        "No scale transformation found in coordinateTransformations."
+    )
+
+
 def _determine_pyramid_level(
     multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
 ) -> int:
     for idx, metadata in enumerate(multiscale.metadata.datasets):
         # Only check spatial scale against resolution
-        scales = metadata.coordinateTransformations[0].scale[-3:]
+        scales = _scale_from_transforms(metadata.coordinateTransformations)[
+            -3:
+        ]
         if all(
             np.isclose(res / 1000, scale)
             for res, scale in zip(resolution, scales)
@@ -61,19 +106,30 @@ class Atlas:
     ----------
     path : str or Path object
         Path to folder containing data info.
+    metadata : dict or None
+        Pre-built metadata dict; read from `path` when omitted.
+    remote_root : str or None
+        Remote root to fetch data from; defaults to the BrainGlobe bucket.
     """
 
     left_hemisphere_value = 1
     right_hemisphere_value = 2
 
-    def __init__(self, path):
+    def __init__(self, path, metadata=None, remote_root=None):
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
         self.fs = s3fs.S3FileSystem(anon=True)
+        self._remote_root = (
+            remote_root
+            if remote_root is not None
+            else descriptors.DEFAULT_REMOTE_ROOT
+        )
 
         atlas_path = Path(path)
         self.root_dir = atlas_path.parents[3]
-        self.metadata = read_json(atlas_path)
+        self.metadata = (
+            metadata if metadata is not None else read_json(atlas_path)
+        )
         structures_path = (
             self.root_dir
             / self.metadata["terminology"]["location"][1:]
@@ -144,6 +200,7 @@ class Atlas:
                 references_list=additional_references,
                 data_path=self.root_dir,
                 resolution=self.resolution,
+                remote_root=self._remote_root,
             )
         except KeyError:
             warnings.warn(
@@ -220,8 +277,9 @@ class Atlas:
 
         if not (resolution_path / "c").exists():
             print("Downloading template...")
-            remote_path = remote_url_s3.format(
-                f"{template_location}/{V3_TEMPLATE_NAME}/{dataset_path}/"
+            remote_path = (
+                f"{self._remote_root}/{template_location}"
+                f"/{V3_TEMPLATE_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -268,8 +326,9 @@ class Atlas:
 
         if not (resolution_path / "c").exists():
             print("Downloading annotations...")
-            remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V3_ANNOTATION_NAME}/{dataset_path}/"
+            remote_path = (
+                f"{self._remote_root}/{annotation_location}"
+                f"/{V3_ANNOTATION_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -329,8 +388,9 @@ class Atlas:
 
             if not (resolution_path / "c").exists():
                 print("Downloading hemispheres...")
-                remote_path = remote_url_s3.format(
-                    f"{annotation_location}/{V3_HEMISPHERES_NAME}/{dataset_path}/"
+                remote_path = (
+                    f"{self._remote_root}/{annotation_location}"
+                    f"/{V3_HEMISPHERES_NAME}/{dataset_path}/"
                 )
                 self.fs.get(
                     remote_path,
@@ -713,8 +773,9 @@ class Atlas:
             annotation_location = self.metadata["annotation_set"]["location"][
                 1:
             ]
-            remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V3_ANNOTATION_MASKS_NAME}"
+            remote_path = (
+                f"{self._remote_root}/{annotation_location}"
+                f"/{V3_ANNOTATION_MASKS_NAME}"
                 f"/{dataset_path}/c/{index}/"
             )
             try:
@@ -747,6 +808,7 @@ class AdditionalRefDict(UserDict):
         references_list: List[Dict[str, str]],
         data_path,
         resolution: Tuple[float, float, float],
+        remote_root=None,
         *args,
         **kwargs,
     ):
@@ -754,6 +816,11 @@ class AdditionalRefDict(UserDict):
         self.references_names = [ref["name"] for ref in references_list]
         self.references_dict = {ref["name"]: ref for ref in references_list}
         self.resolution = resolution
+        self.remote_root = (
+            remote_root
+            if remote_root is not None
+            else descriptors.DEFAULT_REMOTE_ROOT
+        )
 
         super().__init__(*args, **kwargs)
 
@@ -809,8 +876,9 @@ class AdditionalRefDict(UserDict):
 
             if not (resolution_path / "c").exists():
                 print("Downloading template...")
-                remote_path = remote_url_s3.format(
-                    f"{additional_ref_location}/{V3_TEMPLATE_NAME}/{dataset_path}/"
+                remote_path = (
+                    f"{self.remote_root}/{additional_ref_location}"
+                    f"/{V3_TEMPLATE_NAME}/{dataset_path}/"
                 )
                 fs = s3fs.S3FileSystem(anon=True)
                 fs.get(

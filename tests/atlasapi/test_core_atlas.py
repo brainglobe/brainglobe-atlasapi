@@ -573,3 +573,43 @@ def test_get_structure_mask_downloads_once_and_caches(atlas, monkeypatch):
         # Remove the on-demand chunk we materialised; it re-downloads lazily.
         if chunk_dir.exists():
             shutil.rmtree(chunk_dir)
+
+
+class _Transform:
+    """Minimal stand-in for a parsed coordinate transformation."""
+
+    def __init__(self, scale=None, transformations=None):
+        self.scale = scale
+        self.transformations = transformations
+
+
+def test_scale_from_flat_transforms():
+    """OME 0.5 puts the scale at the top level of the list."""
+    transforms = [_Transform(scale=[0.025, 0.025, 0.025]), _Transform()]
+    assert core._scale_from_transforms(transforms) == [0.025, 0.025, 0.025]
+
+
+def test_scale_from_sequence_transforms():
+    """OME 0.6 nests the scale inside a sequence transformation."""
+    transforms = [
+        _Transform(transformations=[_Transform(scale=[0.01, 0.01, 0.01])])
+    ]
+    assert core._scale_from_transforms(transforms) == [0.01, 0.01, 0.01]
+
+
+def test_scale_from_dict_transforms():
+    """Raw dictionaries from zarr.json are accepted too."""
+    transforms = [
+        {
+            "type": "sequence",
+            "transformations": [{"type": "scale", "scale": [0.1, 0.1, 0.1]}],
+        }
+    ]
+    assert core._scale_from_transforms(transforms) == [0.1, 0.1, 0.1]
+
+
+def test_scale_from_transforms_missing():
+    """A transform list with no scale fails loudly."""
+    with pytest.raises(ValueError) as error:
+        core._scale_from_transforms([_Transform()])
+    assert "scale" in str(error.value)

@@ -172,9 +172,13 @@ def create_atlas(working_dir):
     annotation = load_nii(annotations_image)  # shape (394, 466, 378)
     anatomy = load_nii(anatomy_image)  # shape (394, 466, 378)
 
-    annotation = annotation.get_fdata()
+    annotation = np.asanyarray(annotation.dataobj).astype(
+        np.uint32, copy=False
+    )
     anatomy = anatomy.get_fdata()
-
+    anatomy = (anatomy - np.min(anatomy)) / np.max(anatomy)
+    anatomy = anatomy * np.iinfo(np.uint16).max
+    anatomy = anatomy.astype(np.uint16)
     # ------------------------ #
     #   STRUCTURES HIERARCHY   #
     # ------------------------ #
@@ -268,6 +272,10 @@ def create_atlas(working_dir):
         # _create_region_mesh builds the root mask from all IDs in the tree.
         # Do not collapse the annotation to the root ID here: this same array
         # is packaged below and must retain its regional labels.
+        mesh_path = meshes_dir_path / f"{node.identifier}.obj"
+
+        if mesh_path.exists() and mesh_path.stat().st_size >= 512:
+            continue
         create_region_mesh(
             (
                 meshes_dir_path,
@@ -342,6 +350,7 @@ def create_atlas(working_dir):
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
+        overwrite=True,
     )
 
     return output_filename

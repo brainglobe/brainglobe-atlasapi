@@ -185,3 +185,116 @@ def test_repr_handles_names_without_underscore(
     instance.atlas_name = atlas_name
     instance.metadata = {"resolution": resolution}
     assert repr(instance) == expected
+
+
+class _FakeFS:
+    """Filesystem stub that reports a fixed set of existing paths."""
+
+    def __init__(self, existing):
+        self.existing = set(existing)
+
+    def exists(self, path):
+        return path in self.existing
+
+
+def test_resolve_root_prefers_declaration_order():
+    """A name present in both roots resolves to the first declared."""
+    roots = {
+        "brainglobe-atlasapi": "s3://brainglobe/atlas-rc2",
+        "allen": "s3://other/prefix",
+    }
+    fs = _FakeFS(
+        [
+            "s3://brainglobe/atlas-rc2/atlases/shared_name",
+            "s3://other/prefix/atlases/shared_name",
+        ]
+    )
+    assert bg_atlas._resolve_remote_root(fs, "shared_name", roots) == (
+        "brainglobe-atlasapi",
+        "s3://brainglobe/atlas-rc2",
+    )
+
+
+def test_resolve_root_falls_through_to_later_root():
+    """A name only in a later root resolves to that root."""
+    roots = {
+        "brainglobe-atlasapi": "s3://brainglobe/atlas-rc2",
+        "allen": "s3://other/prefix",
+    }
+    fs = _FakeFS(["s3://other/prefix/atlases/allen-adult-mouse-ccf-atlas"])
+    assert bg_atlas._resolve_remote_root(
+        fs, "allen-adult-mouse-ccf-atlas", roots
+    ) == ("allen", "s3://other/prefix")
+
+
+def test_resolve_root_unknown_name_lists_roots():
+    """An unknown name reports every root that was searched."""
+    roots = {
+        "brainglobe-atlasapi": "s3://brainglobe/atlas-rc2",
+        "allen": "s3://other/prefix",
+    }
+    with pytest.raises(ValueError) as error:
+        bg_atlas._resolve_remote_root(_FakeFS([]), "nope", roots)
+    message = str(error.value)
+    assert "nope" in message
+    assert "s3://brainglobe/atlas-rc2" in message
+    assert "s3://other/prefix" in message
+
+
+def test_default_root_cache_path_is_unchanged(atlas):
+    """The default root keeps the historical cache directory name.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    """
+    assert atlas.brainglobe_dir.name == "brainglobe-atlasapi"
+    assert atlas.root_dir == atlas.brainglobe_dir
+
+
+def test_resolve_non_default_root_switches_cache_dir(tmp_path, monkeypatch):
+    """Resolving to a non-default root swaps the on-disk cache directory.
+
+    Root resolution is deferred until the atlas is not found under the
+    default root's local cache, so this stubs out every network-facing
+    call to exercise the directory swap without touching S3.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Empty temporary directory used as the brainglobe_dir.
+    monkeypatch : pytest.MonkeyPatch
+        Used to stub S3 access.
+    """
+
+    class _StubFS:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def exists(self, path):
+            return False
+
+        def ls(self, path):
+            raise FileNotFoundError(path)
+
+    monkeypatch.setattr(bg_atlas.s3fs, "S3FileSystem", _StubFS)
+    monkeypatch.setattr(bg_atlas, "check_s3_status", lambda **_: True)
+    monkeypatch.setattr(
+        bg_atlas.config,
+        "get_remote_roots",
+        lambda *_: {
+            "brainglobe-atlasapi": "s3://brainglobe/atlas-rc2",
+            "allen": "s3://other/prefix",
+        },
+    )
+    monkeypatch.setattr(
+        bg_atlas,
+        "_resolve_remote_root",
+        lambda fs, name, roots: ("allen", "s3://other/prefix"),
+    )
+
+    with pytest.raises(FileNotFoundError):
+        BrainGlobeAtlas("not_cached_anywhere", brainglobe_dir=tmp_path)
+
+    assert (tmp_path / "allen").is_dir()

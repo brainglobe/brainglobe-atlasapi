@@ -11,7 +11,7 @@ from fsspec.callbacks import TqdmCallback
 from rich import print as rprint
 from rich.console import Console
 
-from brainglobe_atlasapi import config, core
+from brainglobe_atlasapi import config, core, descriptors
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
     V3_ANNOTATION_MAP_NAME,
@@ -21,7 +21,6 @@ from brainglobe_atlasapi.descriptors import (
     V3_HEMISPHERES_NAME,
     V3_MESHES_DIRECTORY,
     V3_TEMPLATE_NAME,
-    remote_url_s3,
 )
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
@@ -55,6 +54,42 @@ def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return "_".join(str(num) for num in version_tuple)
 
 
+def _resolve_remote_root(fs, atlas_name: str, roots) -> Tuple[str, str]:
+    """Find which configured root holds an atlas.
+
+    Roots are searched in declaration order, so the first-declared root
+    wins when a name exists in more than one bucket.
+
+    Parameters
+    ----------
+    fs : s3fs.S3FileSystem
+        Filesystem used to test for the atlas directory.
+    atlas_name : str
+        Name of the atlas to locate.
+    roots : dict
+        Mapping of root key to remote root, in resolution order.
+
+    Returns
+    -------
+    tuple of str
+        The winning ``(root_key, remote_root)``.
+
+    Raises
+    ------
+    ValueError
+        If the atlas name is present in none of the roots.
+    """
+    for root_key, remote_root in roots.items():
+        if fs.exists(f"{remote_root}/{V3_ATLAS_ROOTDIR}/{atlas_name}"):
+            return root_key, remote_root
+
+    searched = ", ".join(roots.values())
+    raise ValueError(
+        f"{atlas_name} is not a valid atlas name! "
+        f"Searched remote roots: {searched}"
+    )
+
+
 class BrainGlobeAtlas(core.Atlas):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
@@ -75,6 +110,11 @@ class BrainGlobeAtlas(core.Atlas):
         Handler function to update during download. Takes completed and total
         bytes.
     """
+
+    # Class-level fallback so a partially constructed instance (built via
+    # ``object.__new__``, as some existing tests do) still has a usable
+    # remote root before ``__init__`` sets the instance attribute.
+    _remote_root = descriptors.DEFAULT_REMOTE_ROOT
 
     def __init__(
         self,
@@ -103,6 +143,12 @@ class BrainGlobeAtlas(core.Atlas):
         # Read BrainGlobe configuration file:
         conf = config.read_config(config_dir)
 
+        # Assume the historical default root so an atlas that is already
+        # cached locally (or was written directly to disk, as atlas
+        # generation/validation does) is found without any network call.
+        self._root_key = descriptors.DEFAULT_ROOT_KEY
+        self._remote_root = descriptors.DEFAULT_REMOTE_ROOT
+
         # Use either input locations or locations from the config file,
         # and create directory if it does not exist:
         if brainglobe_dir is None:
@@ -110,9 +156,38 @@ class BrainGlobeAtlas(core.Atlas):
         else:
             self.brainglobe_dir = Path(brainglobe_dir)
 
-        self.brainglobe_dir = self.brainglobe_dir / "brainglobe-atlasapi"
+        self.brainglobe_dir = self.brainglobe_dir / self._root_key
 
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
+
+        if self.local_full_name is None:
+            # Not cached under the default root: find out which configured
+            # remote root actually holds this atlas before downloading, so
+            # it lands in (and is later found in) the matching per-root
+            # cache directory. Offline, keep the default root so an
+            # already-cached atlas under it still loads.
+            roots = config.get_remote_roots(config_dir)
+            if check_s3_status(raise_error=False):
+                try:
+                    root_key, remote_root = _resolve_remote_root(
+                        self.fs, atlas_name, roots
+                    )
+                except ValueError as error:
+                    # Preserve the historical exception type for an
+                    # invalid atlas name: BrainGlobeAtlas has always
+                    # raised FileNotFoundError here, and callers (e.g.
+                    # update_atlas) depend on that.
+                    raise FileNotFoundError(str(error)) from error
+
+                if root_key != self._root_key:
+                    self._root_key, self._remote_root = (
+                        root_key,
+                        remote_root,
+                    )
+                    self.brainglobe_dir = (
+                        self.brainglobe_dir.parent / self._root_key
+                    )
+                    self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
@@ -128,7 +203,10 @@ class BrainGlobeAtlas(core.Atlas):
                     "download."
                 )
 
-        super().__init__(self.brainglobe_dir / self.local_full_name)
+        super().__init__(
+            self.brainglobe_dir / self.local_full_name,
+            remote_root=self._remote_root,
+        )
 
         if check_latest:
             self.check_latest_version()
@@ -206,15 +284,14 @@ class BrainGlobeAtlas(core.Atlas):
         if self._remote_version is not None:
             return self._remote_version
 
-        if not check_s3_status(raise_error=False):
+        if not check_s3_status(
+            raise_error=False, remote_root=self._remote_root
+        ):
             return None
 
-        bucket_path = remote_url_s3.format(f"atlases/{self.atlas_name}")
-
-        if self.fs.exists(bucket_path) is False:
-            raise FileNotFoundError(
-                f"{self.atlas_name} is not a valid atlas name!"
-            )
+        bucket_path = (
+            f"{self._remote_root}/{V3_ATLAS_ROOTDIR}/{self.atlas_name}"
+        )
 
         if self._requested_version is None:
             versions_path = self.fs.ls(bucket_path)
@@ -245,7 +322,7 @@ class BrainGlobeAtlas(core.Atlas):
         The manifest file is removed if any error occurs during the
         download to ensure that incomplete downloads are retried.
         """
-        check_s3_status()
+        check_s3_status(remote_root=self._remote_root)
 
         remote_version_str = _version_str_from_tuple(self.remote_version)
         key_name = (
@@ -254,7 +331,7 @@ class BrainGlobeAtlas(core.Atlas):
         )
 
         local_path = self.brainglobe_dir / key_name
-        remote_path = remote_url_s3.format(key_name)
+        remote_path = f"{self._remote_root}/{key_name}"
 
         local_path.parent.mkdir(parents=True, exist_ok=True)
         print(
@@ -269,8 +346,8 @@ class BrainGlobeAtlas(core.Atlas):
             terminology_location = self.metadata["terminology"]["location"][1:]
             local_terminology_path = self.brainglobe_dir / terminology_location
             if not local_terminology_path.exists():
-                remote_terminology_path = remote_url_s3.format(
-                    terminology_location
+                remote_terminology_path = (
+                    f"{self._remote_root}/{terminology_location}"
                 )
                 print(
                     f"Downloading terminology metadata "
@@ -289,8 +366,8 @@ class BrainGlobeAtlas(core.Atlas):
             ][1:]
             local_coordspace_path = self.brainglobe_dir / coordspace_location
             if not local_coordspace_path.exists():
-                remote_coordspace_path = remote_url_s3.format(
-                    coordspace_location
+                remote_coordspace_path = (
+                    f"{self._remote_root}/{coordspace_location}"
                 )
                 print(
                     f"Downloading coordinate space metadata "
@@ -312,8 +389,8 @@ class BrainGlobeAtlas(core.Atlas):
                 root_metadata_path = (
                     annotation_location + f"/{V3_ANNOTATION_NAME}/**/*.json"
                 )
-                remote_root_metadata_path = remote_url_s3.format(
-                    root_metadata_path
+                remote_root_metadata_path = (
+                    f"{self._remote_root}/{root_metadata_path}"
                 )
                 print(
                     f"Downloading annotation metadata "
@@ -333,8 +410,8 @@ class BrainGlobeAtlas(core.Atlas):
                         annotation_location
                         + f"/{V3_ANNOTATION_MASKS_NAME}/**/*.json"
                     )
-                    remote_masks_metadata = remote_url_s3.format(
-                        masks_metadata_glob
+                    remote_masks_metadata = (
+                        f"{self._remote_root}/{masks_metadata_glob}"
                     )
                     self.fs.get(
                         remote_masks_metadata,
@@ -345,8 +422,8 @@ class BrainGlobeAtlas(core.Atlas):
                         annotation_location + f"/{V3_ANNOTATION_MASKS_NAME}"
                         f"/{V3_ANNOTATION_MAP_NAME}"
                     )
-                    remote_masks_annotation_values_path = remote_url_s3.format(
-                        masks_annotation_values_path
+                    remote_masks_annotation_values_path = (
+                        f"{self._remote_root}/{masks_annotation_values_path}"
                     )
                     self.fs.get(
                         remote_masks_annotation_values_path,
@@ -366,8 +443,8 @@ class BrainGlobeAtlas(core.Atlas):
                         annotation_location
                         + f"/{V3_HEMISPHERES_NAME}/**/*.json"
                     )
-                    remote_root_hemisphere_path = remote_url_s3.format(
-                        root_hemisphere_path
+                    remote_root_hemisphere_path = (
+                        f"{self._remote_root}/{root_hemisphere_path}"
                     )
                     self.fs.get(
                         remote_root_hemisphere_path,
@@ -384,8 +461,8 @@ class BrainGlobeAtlas(core.Atlas):
                 root_metadata_path = (
                     template_location + f"/{V3_TEMPLATE_NAME}/**/*.json"
                 )
-                remote_root_metadata_path = remote_url_s3.format(
-                    root_metadata_path
+                remote_root_metadata_path = (
+                    f"{self._remote_root}/{root_metadata_path}"
                 )
 
                 print(
@@ -410,8 +487,8 @@ class BrainGlobeAtlas(core.Atlas):
                     root_metadata_path = (
                         template_location + f"/{V3_TEMPLATE_NAME}/**/*.json"
                     )
-                    remote_root_metadata_path = remote_url_s3.format(
-                        root_metadata_path
+                    remote_root_metadata_path = (
+                        f"{self._remote_root}/{root_metadata_path}"
                     )
                     print(
                         f"Downloading template metadata "

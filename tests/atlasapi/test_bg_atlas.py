@@ -54,6 +54,32 @@ def test_remote_version_missing_from_assumed_root_raises_file_not_found():
             atlas.remote_version
 
 
+def test_remote_version_carries_dashed_folder_string():
+    """A dashed atlas-assets folder name is carried through verbatim.
+
+    Regression test: ``remote_version`` must record the resolved S3
+    folder name in ``_remote_version_str`` as-is, not reconstruct it
+    from the parsed tuple. ``_version_str_from_tuple((2024, 5))`` would
+    yield ``"2024_5"``, which is not the real folder ``"2024-05"``.
+    """
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas._remote_version = None
+    atlas._remote_version_str = None
+    atlas._requested_version = None
+    atlas._remote_root = bg_atlas.descriptors.DEFAULT_REMOTE_ROOT
+    atlas.atlas_name = "allen-adult-mouse-ccf-atlas"
+    atlas.fs = SimpleNamespace(
+        ls=lambda path: [f"{path}/2017", f"{path}/2024-05"]
+    )
+
+    with patch.object(
+        brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
+    ):
+        assert atlas.remote_version == (2024, 5)
+
+    assert atlas._remote_version_str == "2024-05"
+
+
 @pytest.mark.parametrize(
     "local_version, remote_version, expected",
     [
@@ -327,3 +353,24 @@ def test_resolve_non_default_root_switches_cache_dir(tmp_path, monkeypatch):
         BrainGlobeAtlas("not_cached_anywhere", brainglobe_dir=tmp_path)
 
     assert (tmp_path / "allen").is_dir()
+
+
+def test_check_latest_version_compares_folder_strings(atlas, monkeypatch):
+    """Dashed versions compare and print without being reconstructed.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    monkeypatch : pytest.MonkeyPatch
+        Fixture used to inject dashed version strings.
+    """
+    monkeypatch.setattr(atlas, "_local_version_str", "2024-05")
+    monkeypatch.setattr(atlas, "_remote_version_str", "2024-05")
+    monkeypatch.setattr(
+        type(atlas), "remote_version", property(lambda self: (2024, 5))
+    )
+    assert atlas.check_latest_version() is True
+
+    monkeypatch.setattr(atlas, "_remote_version_str", "2026-03")
+    assert atlas.check_latest_version(print_warning=False) is False

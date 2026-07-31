@@ -115,6 +115,10 @@ class BrainGlobeAtlas(core.Atlas):
     # ``object.__new__``, as some existing tests do) still has a usable
     # remote root before ``__init__`` sets the instance attribute.
     _remote_root = descriptors.DEFAULT_REMOTE_ROOT
+    # Same rationale: resolved folder-name strings, set as a side effect
+    # of resolving ``remote_version``/``local_full_name``.
+    _remote_version_str: Optional[str] = None
+    _local_version_str: Optional[str] = None
 
     def __init__(
         self,
@@ -126,6 +130,8 @@ class BrainGlobeAtlas(core.Atlas):
         fn_update: Optional[Callable] = None,
     ):
         self._remote_version = None
+        self._remote_version_str = None
+        self._local_version_str = None
         self._local_full_name = None
         self._requested_version = (
             version.replace(".", "_") if version else None
@@ -251,6 +257,7 @@ class BrainGlobeAtlas(core.Atlas):
             return None
 
         latest_version = get_latest_version(available_versions)
+        self._local_version_str = latest_version
 
         self._local_full_name = (
             f"{V3_ATLAS_ROOTDIR}/"
@@ -268,9 +275,9 @@ class BrainGlobeAtlas(core.Atlas):
             return self._local_version
 
         version_str = self.metadata["version"]
-        self._local_version = _version_tuple_from_str(
-            version_str.replace("_", ".")
-        )
+        if self._local_version_str is None:
+            self._local_version_str = version_str
+        self._local_version = _version_tuple_from_str(version_str)
 
         return self._local_version
 
@@ -307,9 +314,8 @@ class BrainGlobeAtlas(core.Atlas):
                 path_str.split("/")[-1] for path_str in versions_path
             ]
             latest_version = get_latest_version(available_versions)
-            self._remote_version = _version_tuple_from_str(
-                latest_version.replace("_", ".")
-            )
+            self._remote_version_str = latest_version
+            self._remote_version = _version_tuple_from_str(latest_version)
         else:
             requested_path = f"{bucket_path}/{self._requested_version}"
             if not self.fs.exists(requested_path):
@@ -318,8 +324,9 @@ class BrainGlobeAtlas(core.Atlas):
                     f"{self.atlas_name} not found in remote."
                 )
 
+            self._remote_version_str = self._requested_version
             self._remote_version = _version_tuple_from_str(
-                self._requested_version.replace("_", ".")
+                self._requested_version
             )
 
         return self._remote_version
@@ -332,7 +339,9 @@ class BrainGlobeAtlas(core.Atlas):
         """
         check_s3_status(remote_root=self._remote_root)
 
-        remote_version_str = _version_str_from_tuple(self.remote_version)
+        # Ensure remote_version has been resolved so the folder name is set.
+        _ = self.remote_version
+        remote_version_str = self._remote_version_str
         key_name = (
             f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
             f"{remote_version_str}/manifest.json"
@@ -344,7 +353,7 @@ class BrainGlobeAtlas(core.Atlas):
         local_path.parent.mkdir(parents=True, exist_ok=True)
         print(
             f"Downloading {self.atlas_name} atlas "
-            f"v{remote_version_str.replace('_', '.')} manifest:"
+            f"v{remote_version_str} manifest:"
         )
         self.fs.get(remote_path, local_path, callback=TqdmCallback())
         self.metadata = read_json(local_path)
@@ -443,7 +452,7 @@ class BrainGlobeAtlas(core.Atlas):
                     raise FileNotFoundError(
                         f"Annotation masks metadata not found for atlas "
                         f"{self.atlas_name} "
-                        f"v{remote_version_str.replace('_', '.')}."
+                        f"v{remote_version_str}."
                     ) from e
 
                 if not self.metadata["symmetric"]:
@@ -542,17 +551,23 @@ class BrainGlobeAtlas(core.Atlas):
         if remote_version is None:
             return None
 
-        local = _version_str_from_tuple(self.local_version)
-        online = _version_str_from_tuple(remote_version)
+        # Resolve the local folder name before comparing.
+        local_version = self.local_version
+        local = self._local_version_str
+        if local is None:
+            local = _version_str_from_tuple(local_version)
+        online = self._remote_version_str
+        if online is None:
+            online = _version_str_from_tuple(remote_version)
 
         if local != online:
             if print_warning:
                 rprint(
                     "[b][magenta2]brainglobe_atlasapi[/b]: "
                     f"[b]{self.atlas_name}[/b] version "
-                    f"[b]{local.replace('_', '.')}[/b] "
+                    f"[b]{local}[/b] "
                     f"is not the latest available "
-                    f"([b]{online.replace('_', '.')}[/b]). "
+                    f"([b]{online}[/b]). "
                     "To update the atlas run in the terminal:[/magenta2]\n"
                     f" [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
                 )

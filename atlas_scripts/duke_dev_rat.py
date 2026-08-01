@@ -42,7 +42,9 @@ DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 TIMEPOINTS = ["00", "02", "04", "08", "12", "18", "24", "40", "80"]
 
 REFERENCE_FNAMES = {age: "p" + age + "_average_gre.nii" for age in TIMEPOINTS}
-ANNOTATION_FNAMES = {age: "pnd" + age + "_average_labels.nii" for age in TIMEPOINTS}
+ANNOTATION_FNAMES = {
+    age: "pnd" + age + "_average_labels.nii" for age in TIMEPOINTS
+}
 ANNOTATION_FNAMES["12"] = "pnd12_average_labels_fix.nii"
 LABELS_FNAME = "Developmental_labels_lookup.txt"
 
@@ -60,7 +62,6 @@ def pooch_init(download_dir_path: Path) -> pooch.Pooch:
     pooch.Pooch
         Initialized Pooch instance.
     """
-
     keys = (
         list(REFERENCE_FNAMES.values())
         + list(ANNOTATION_FNAMES.values())
@@ -277,16 +278,18 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     # Fail when any timepoints already exist to avoid overwriting
-    for age in TIMEPOINTS: 
-        atlas_prefix = atlas_name_from_repr(ATLAS_NAME + f"_p{age}", RESOLUTION)
+    for age in TIMEPOINTS:
+        atlas_prefix = atlas_name_from_repr(
+            ATLAS_NAME + f"_p{age}", RESOLUTION
+        )
         existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
         if existing:
             raise FileExistsError(
                 f"{atlas_prefix} output already exists in {BG_ROOT_DIR}. "
             )
-    
+
     good_dog = pooch_init(DOWNLOAD_DIR_PATH)
     structures = fetch_ontology(good_dog)
     for age in TIMEPOINTS:

@@ -42,29 +42,24 @@ DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 TIMEPOINTS = ["00", "02", "04", "08", "12", "18", "24", "40", "80"]
 
 REFERENCE_FNAMES = {age: "p" + age + "_average_gre.nii" for age in TIMEPOINTS}
-ANNOTATION_FNAMES = {
-    age: "pnd" + age + "_average_labels.nii" for age in TIMEPOINTS
-}
+ANNOTATION_FNAMES = {age: "pnd" + age + "_average_labels.nii" for age in TIMEPOINTS}
 ANNOTATION_FNAMES["12"] = "pnd12_average_labels_fix.nii"
 LABELS_FNAME = "Developmental_labels_lookup.txt"
 
 
-def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
+def pooch_init(download_dir_path: Path) -> pooch.Pooch:
     """Initialize Pooch for downloading atlas data.
 
     Parameters
     ----------
     download_dir_path : Path
         Path to the directory where data will be downloaded.
-    timepoints : list[str]
-        List of timepoints for which data archives are expected.
 
     Returns
     -------
     pooch.Pooch
         Initialized Pooch instance.
     """
-    utils.check_internet_connection()
 
     keys = (
         list(REFERENCE_FNAMES.values())
@@ -84,7 +79,7 @@ def pooch_init(download_dir_path: Path, timepoints: list[str]) -> pooch.Pooch:
 
 
 def fetch_animal(pooch_: pooch.Pooch, age: str):
-    """Fetch annotation and reference volumes for a specific age.
+    """Fetch reference and annotation volumes for a specific age.
 
     Parameters
     ----------
@@ -97,8 +92,8 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
     -------
     tuple
         A tuple containing:
-        - annotations (np.ndarray): The annotation volume.
         - reference (np.ndarray): The reference volume (scaled to uint16).
+        - annotations (np.ndarray): The annotation volume.
 
     Raises
     ------
@@ -219,7 +214,7 @@ def fetch_ontology(pooch_: pooch.Pooch):
     return structures
 
 
-def retrieve_hemisphere_map(annotation_volume, age):
+def retrieve_hemisphere_map(annotation_volume: np.ndarray, age: str):
     """
     Retrieve a hemisphere map for the atlas.
 
@@ -234,7 +229,7 @@ def retrieve_hemisphere_map(annotation_volume, age):
         is symmetrical.
     """
     # Atlas is in PRI orientation, slice from middle
-    hemispheres_map = np.full(reference_volume.shape, 2, dtype=int)
+    hemispheres_map = np.full(annotation_volume.shape, 2, dtype=int)
     hemispheres_map[:, hemispheres_map.shape[1] // 2 :, :] = 1
 
     # Fix midline misalignment for p24
@@ -281,21 +276,18 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
 
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-    bg_root_dir.mkdir(parents=True, exist_ok=True)
-
-    # Fail early if any version of this atlas already exists
-    atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
-    existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
-
-    if existing:
-        raise FileExistsError(
-            f"Atlas output already exists in {bg_root_dir}. "
-        )
-    good_dog = pooch_init(DOWNLOAD_DIR_PATH, TIMEPOINTS)
+    BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Fail when any timepoints already exist to avoid overwriting
+    for age in TIMEPOINTS: 
+        atlas_prefix = atlas_name_from_repr(ATLAS_NAME + f"_p{age}", RESOLUTION)
+        existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
+        if existing:
+            raise FileExistsError(
+                f"{atlas_prefix} output already exists in {BG_ROOT_DIR}. "
+            )
+    
+    good_dog = pooch_init(DOWNLOAD_DIR_PATH)
     structures = fetch_ontology(good_dog)
     for age in TIMEPOINTS:
         atlas_name = f"{ATLAS_NAME}_p{age}"
@@ -319,7 +311,7 @@ if __name__ == "__main__":
             annotation_stack=annotated_volume,
             structures_list=structures_with_mesh,
             meshes_dict=meshes_dict,
-            working_dir=bg_root_dir,
+            working_dir=BG_ROOT_DIR,
             hemispheres_stack=hemispheres_stack,
             cleanup_files=False,
             compress=True,

@@ -20,7 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-__version__ = 0
+__version__ = 1
 ATLAS_NAME = "hoops_dragon"
 CITATION = "https://doi.org/10.1007/s00429-021-02282-z"
 SPECIES = "Ctenophorus decresii"
@@ -176,32 +176,41 @@ def retrieve_structure_information():
         atlas structure.
     """
     labels = pd.read_csv(LABELS_PATH)
-    structures = [
-        {
-            "id": ROOT_ID,
-            "name": "root",
-            "acronym": "root",
-            "structure_id_path": [ROOT_ID],
-            "rgb_triplet": [255, 255, 255],
+    structures_by_id: dict[int, dict] = {
+            ROOT_ID: {
+                "id": ROOT_ID,
+                "name": "root",
+                "acronym": "root",
+                "structure_id_path": [ROOT_ID],
+                "rgb_triplet": [255, 255, 255],
+            }
         }
-    ]
     rgbs = generate_pseudorandom_rgbs(labels.shape[0], 1337)
 
-    # Note: the provided acronyms have some duplicates that are conserved here.
+
     for index, row in labels.iterrows():
         id = int(row["left label"])
         name = row["Structure"].strip('"')
         acronym = row["abbreviation"].strip()
         structure_id_path = [ROOT_ID, id]
-        structures.append(
-            {
+        structures_by_id[id] = {
                 "id": id,
                 "name": name,
                 "acronym": acronym,
                 "structure_id_path": structure_id_path,
                 "rgb_triplet": rgbs[index],
             }
-        )
+    
+    # Amend some duplicate names and aconyms in the provided data
+    structures_by_id[75]["name"] = "Dorsal Nucleus of the Inferior Reticular Formation"
+    structures_by_id[75]["acronym"] = "DIRtF"
+    
+    structures_by_id[215]["acronym"] = "DLT"
+    
+    structures_by_id[109]["acronym"] = "IPD"
+    structures_by_id[110]["acronym"] = "IPV"
+    
+    structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures
 

@@ -6,72 +6,90 @@ filling in the required functions and metadata.
 
 from pathlib import Path
 
+import pooch
+import nibabel as nib
+import numpy as np
+
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
 
 ### Metadata ###
-
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
 __version__ = 0
 
-# The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
-# Institution_SpeciesCommonName, e.g. allen_mouse.
-# remember to add {ATLAS_NAME}_{RESOLUTION}um to:
-# brainglobe_atlasapi/atlas_names.py
-ATLAS_NAME = "example_mouse"
+ATLAS_NAME = "gunturkun_pigeon"
+CITATION = "https://doi.org/10.1007/s00429-012-0400-y"
+SPECIES = "Columba livia"
 
-# DOI of the most relevant citable document
-CITATION = None
+ATLAS_LINK = "https://ruhr-uni-bochum.sciebo.de/s/el9oeWDkMtczWDx"
+ATLAS_DOWNLOAD_URL = "https://ruhr-uni-bochum.sciebo.de/public.php/dav/files/el9oeWDkMtczWDx/Full_package/?accept=zip"
+ATLAS_DOWNLOAD_FNAME = "Full_package.zip"
 
-# The scientific name of the species, ie; Rattus norvegicus
-SPECIES = None
+SOURCE_ORIENTATION = "ipl"
+SOURCE_RESOLUTION = (100, 80, 80)  # in microns
 
-# The URL for the data files
-ATLAS_LINK = None
-
-# The orientation of the **original** atlas data, in BrainGlobe convention:
-# https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
 ORIENTATION = "asr"
+RESOLUTION = (80, 100, 80)
 
-# The id of the highest level of the atlas. This is commonly called root or
-# brain. Include some information on what to do if your atlas is not
-# hierarchical
-ROOT_ID = None
+ROOT_ID = 999
 
-# The resolution of your volume in microns. Details on how to format this
-# parameter for non isotropic datasets or datasets with multiple resolutions.
-RESOLUTION = None
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
+NON_STRUCTURAL_DIRS = [
+    "Brainsurface", 
+    "CT", 
+    "T2", 
+    "T2star",
+]
 
 def download_resources():
-    """
-    Download the necessary resources for the atlas.
+    """Download the necessary resources for the atlas with Pooch."""
+    DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    If possible, please use the Pooch library to retrieve any resources.
-    """
-    pass
+    atlas_download_path = DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME
+
+    def should_fetch(path: Path) -> bool:
+        if not path.exists():
+            return True
+        else: 
+            return False
+
+    if should_fetch(atlas_download_path):
+        pooch.retrieve(
+            url=ATLAS_DOWNLOAD_URL,
+            known_hash="0db28c1b3de1e354323740dfc933d9b172b8b0fac3b2b4bac163c26274035375",
+            path=DOWNLOAD_DIR_PATH,
+            fname=ATLAS_DOWNLOAD_FNAME,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
 
 
-def retrieve_reference_and_annotation():
+
+def retrieve_reference():
     """
-    Retrieve the reference and annotation volumes.
+    Retrieve the reference volume.
 
     If possible, use brainglobe_utils.IO.image.load_any for opening images.
 
     Returns
     -------
-    tuple[numpy.ndarray, numpy.ndarray]
-        A tuple containing the reference volume and the annotation volume.
+    numpy.ndarray
+        The reference volume.
     """
-    reference = None
-    annotation = None
-    return reference, annotation
+    reference = load_any(DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME.strip(".zip") / "T2/T2.nii.gz")
+    
+    # Remove the superior-most slice of reference, volume, as annotations are in (256, 308, 199)
+    # but the reference is in (256, 308, 200).
+    reference = np.delete(reference, 199, axis = 2).squeeze()
+    dmin = np.min(reference)
+    dmax = np.max(reference)
+    dscale = (2**16 - 1) / (dmax - dmin)
+    reference = (reference - dmin) * dscale
+    reference = reference.astype(np.uint16)
+    return reference
 
 
 def retrieve_hemisphere_map():
@@ -88,7 +106,28 @@ def retrieve_hemisphere_map():
         A numpy array representing the hemisphere map, or None if the atlas
         is symmetrical.
     """
-    return None
+    hemisphere_dir = DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME.strip(".zip") / "Brainsurface"
+    left = nib.load(hemisphere_dir / "brainsurface_left.hdr")
+    left_hemisphere = left.get_fdata()
+    right = nib.load(hemisphere_dir / "brainsurface_right.hdr")
+    right_hemisphere = right.get_fdata() * 2
+    
+    hemispheres_stack = left_hemisphere + right_hemisphere
+    
+    z, y, x, = np.where(hemispheres_stack == 3)
+    
+    # right hemisphere seems to just be a reflection of the left hemisphere, 
+    # but only the left hemisphere seems to be accurate. Might try to leave 
+    # left hemisphere as correct, then have right hemisphere be just 1-left hemi. 
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111, projection='3d')
+    #ax.scatter(x, y, z, zdir='z', c= 'red', alpha = 0.3)
+    #plt.show()
+    print(hemispheres_stack.shape, np.where(hemispheres_stack == 3))
+    
+    return hemispheres_stack
 
 
 def retrieve_structure_information():
@@ -157,27 +196,25 @@ def retrieve_additional_references():
 ### If the code above this line has been filled correctly, nothing needs to be
 ### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-    bg_root_dir.mkdir(parents=True, exist_ok=True)
+    BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
     # Fail early if any version of this atlas already exists
     atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
-    existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
+    existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
 
     if existing:
         raise FileExistsError(
-            f"Atlas output already exists in {bg_root_dir}. "
+            f"Atlas output already exists in {BG_ROOT_DIR}. "
         )
     download_resources()
-    reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    reference_volume = retrieve_reference()
+    annotated_volume = None
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes()
 
+    quit()
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
@@ -191,8 +228,8 @@ if __name__ == "__main__":
         annotation_stack=annotated_volume,
         structures_list=structures,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
-        hemispheres_stack=None,
+        working_dir=BG_ROOT_DIR,
+        hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
         scale_meshes=True,

@@ -6,14 +6,13 @@ filling in the required functions and metadata.
 
 from pathlib import Path
 
-import pooch
 import nibabel as nib
 import numpy as np
+import pooch
+from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_utils.IO.image import load_any
 from brainglobe_atlasapi.utils import atlas_name_from_repr
-
 
 ### Metadata ###
 __version__ = 0
@@ -38,11 +37,12 @@ BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 NON_STRUCTURAL_DIRS = [
-    "Brainsurface", 
-    "CT", 
-    "T2", 
+    "Brainsurface",
+    "CT",
+    "T2",
     "T2star",
 ]
+
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -53,7 +53,7 @@ def download_resources():
     def should_fetch(path: Path) -> bool:
         if not path.exists():
             return True
-        else: 
+        else:
             return False
 
     if should_fetch(atlas_download_path):
@@ -67,7 +67,6 @@ def download_resources():
         )
 
 
-
 def retrieve_reference():
     """
     Retrieve the reference volume.
@@ -79,11 +78,13 @@ def retrieve_reference():
     numpy.ndarray
         The reference volume.
     """
-    reference = load_any(DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME.strip(".zip") / "T2/T2.nii.gz")
-    
+    reference = load_any(
+        DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME.strip(".zip") / "T2/T2.nii.gz"
+    )
+
     # Remove the superior-most slice of reference, volume, as annotations are in (256, 308, 199)
     # but the reference is in (256, 308, 200).
-    reference = np.delete(reference, 199, axis = 2).squeeze()
+    reference = np.delete(reference, 199, axis=2).squeeze()
     dmin = np.min(reference)
     dmax = np.max(reference)
     dscale = (2**16 - 1) / (dmax - dmin)
@@ -106,27 +107,31 @@ def retrieve_hemisphere_map():
         A numpy array representing the hemisphere map, or None if the atlas
         is symmetrical.
     """
-    hemisphere_dir = DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME.strip(".zip") / "Brainsurface"
+    hemisphere_dir = (
+        DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME.strip(".zip") / "Brainsurface"
+    )
     left = nib.load(hemisphere_dir / "brainsurface_left.hdr")
     left_hemisphere = left.get_fdata()
     right = nib.load(hemisphere_dir / "brainsurface_right.hdr")
     right_hemisphere = right.get_fdata() * 2
-    
+
     hemispheres_stack = left_hemisphere + right_hemisphere
-    
-    z, y, x, = np.where(hemispheres_stack == 3)
-    
-    # right hemisphere seems to just be a reflection of the left hemisphere, 
-    # but only the left hemisphere seems to be accurate. Might try to leave 
-    # left hemisphere as correct, then have right hemisphere be just 1-left hemi. 
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    #fig = plt.figure()
-    #ax = fig.add_subplot(111, projection='3d')
-    #ax.scatter(x, y, z, zdir='z', c= 'red', alpha = 0.3)
-    #plt.show()
+
+    (
+        z,
+        y,
+        x,
+    ) = np.where(hemispheres_stack == 3)
+
+    # right hemisphere seems to just be a reflection of the left hemisphere,
+    # but only the left hemisphere seems to be accurate. Might try to leave
+    # left hemisphere as correct, then have right hemisphere be just 1-left hemi.
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(x, y, z, zdir='z', c= 'red', alpha = 0.3)
+    # plt.show()
     print(hemispheres_stack.shape, np.where(hemispheres_stack == 3))
-    
+
     return hemispheres_stack
 
 

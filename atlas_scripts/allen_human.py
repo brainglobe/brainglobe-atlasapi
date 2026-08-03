@@ -132,9 +132,7 @@ def create_atlas(working_dir):
 
     annotation_full_url = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation_full.nii.gz"
 
-    atlas_files_dir = download_atlas_files(
-        working_dir, annotation_full_url
-    )
+    atlas_files_dir = download_atlas_files(working_dir, annotation_full_url)
 
     annotations_image = atlas_files_dir / "annotation_full.nii"
 
@@ -273,7 +271,9 @@ def create_atlas(working_dir):
 
     print("Starting mesh creation")
 
-    pruned_list = [region for region in regions_list if region["id"] in tree.nodes]
+    pruned_list = [
+        region for region in regions_list if region["id"] in tree.nodes
+    ]
 
     meshes_dict = construct_meshes_from_annotation(
         uncompr_atlas_path,
@@ -281,7 +281,7 @@ def create_atlas(working_dir):
         pruned_list,
         closing_n_iters,
         decimate_fraction,
-        smooth
+        smooth,
     )
 
     print(

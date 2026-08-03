@@ -153,8 +153,7 @@ def create_atlas(working_dir):
     template_metadata = old_atlas.metadata["template"]
     template_name = template_metadata["name"]
     template_version = template_metadata["version"]
-    template = old_atlas.template
-
+    
     # Rotate the template to match the orientation of the annotation volume
     # template must be in the orientation the script declares
     template = bgs.AnatomicalSpace(

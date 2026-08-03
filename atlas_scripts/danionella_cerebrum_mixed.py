@@ -12,7 +12,6 @@ import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load_any
 
-from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
@@ -67,9 +66,6 @@ def download_resources():
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    if any(not (DOWNLOAD_DIR_PATH / fname).exists() for fname in SOURCE_FILES):
-        utils.check_internet_connection()
-
     for fname, source_path in SOURCE_FILES.items():
         pooch.retrieve(
             url=f"{GIN_RAW_BASE_URL}/{source_path}",
@@ -94,18 +90,13 @@ def retrieve_reference_and_annotation():
             f"{reference.shape} != {annotation.shape}"
         )
 
-    reference = np.clip(reference, 0, np.iinfo(np.uint16).max).astype(
-        np.uint16
-    )
+    np.maximum(reference, 0, out=reference)
+    maximum = float(np.max(reference))
+    reference *= np.iinfo(np.uint16).max / maximum
+    np.rint(reference, out=reference)
+    reference = reference.astype(np.uint16)
 
-    if annotation.min() < 0:
-        raise ValueError("Annotation contains negative label IDs.")
-
-    annotation_uint = annotation.astype(np.uint32)
-    if not np.array_equal(annotation, annotation_uint):
-        raise ValueError("Annotation contains non-integer label values.")
-
-    return reference, annotation_uint
+    return reference, annotation.astype(np.uint32)
 
 
 def retrieve_hemisphere_map():
@@ -145,14 +136,9 @@ def retrieve_structure_information():
             acronym = re.sub(r"\s*/\s*", "/", node["abbreviation"].strip())
             rgb_triplet = node["rgb"]
         else:
-            # Source parent nodes do not have abbreviations. Kept source
-            # abbreviations for annotated leaves and generate deterministic
-            # slug-like acronyms only for hierarchy/grouping parents.
-            acronym = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
-            if not acronym:
-                raise ValueError(
-                    "Cannot create an acronym from an empty name."
-                )
+            # Source parent nodes do not have abbreviations, so use their full
+            # names as acronyms.
+            acronym = name
             rgb_triplet = node["rgb"]
 
         if acronym in acronyms:
@@ -193,30 +179,17 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
     )
 
 
-def retrieve_additional_references(reference_shape):
+def retrieve_additional_references():
     """Load and convert the same-space confocal reflectance image."""
     reference = load_any(
         DOWNLOAD_DIR_PATH / CONFOCAL_REFERENCE_FNAME, as_numpy=True
     )
 
-    if reference.shape != reference_shape:
-        raise ValueError(
-            f"{CONFOCAL_REFERENCE_NAME} shape does not match reference: "
-            f"{reference.shape} != {reference_shape}"
-        )
-    if not np.all(np.isfinite(reference)):
-        raise ValueError(
-            f"{CONFOCAL_REFERENCE_NAME} contains non-finite values."
-        )
-
     np.maximum(reference, 0, out=reference)
     maximum = float(np.max(reference))
-    if maximum == 0:
-        reference = np.zeros(reference.shape, dtype=np.uint16)
-    else:
-        reference *= np.iinfo(np.uint16).max / maximum
-        np.rint(reference, out=reference)
-        reference = reference.astype(np.uint16)
+    reference *= np.iinfo(np.uint16).max / maximum
+    np.rint(reference, out=reference)
+    reference = reference.astype(np.uint16)
 
     return {CONFOCAL_REFERENCE_NAME: reference}
 
@@ -227,9 +200,7 @@ if __name__ == "__main__":
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)
-    additional_references = retrieve_additional_references(
-        reference_volume.shape
-    )
+    additional_references = retrieve_additional_references()
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

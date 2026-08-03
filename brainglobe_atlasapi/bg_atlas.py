@@ -242,7 +242,7 @@ class BrainGlobeAtlas(core.Atlas):
         else:
             pattern = (
                 rf"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
-                rf"\d+(?:_\d+)?/manifest.json"
+                rf"\d+(?:[_-]\d+)?/manifest.json"
             )
 
         glob_pattern = f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/*/manifest.json"

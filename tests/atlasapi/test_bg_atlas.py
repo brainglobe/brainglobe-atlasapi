@@ -185,6 +185,40 @@ def test_local_search(tmpdir):
     assert atlas.local_full_name == f"{atlas_root}/{new_version}/manifest.json"
 
 
+def test_local_full_name_matches_dashed_version_folders(tmp_path):
+    r"""The "latest cached" branch must see dashed version folders too.
+
+    Regression test: the discovery regex in ``local_full_name`` only
+    accepted ``\d+(?:_\d+)?``, which matches BrainGlobe folders like
+    ``3_0``/``2017`` but not atlas-assets folders like ``2024-05``. That
+    made a dashed-version atlas invisible to local-cache discovery even
+    though its manifest was on disk.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Empty temporary directory used as the brainglobe_dir.
+    """
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas._local_full_name = None
+    atlas._local_version_str = None
+    atlas._requested_version = None
+    atlas.atlas_name = "dashed_version_atlas"
+    atlas.brainglobe_dir = tmp_path
+
+    atlas_dir = tmp_path / bg_atlas.V3_ATLAS_ROOTDIR / atlas.atlas_name
+    for version in ("2024-05", "2026-03"):
+        version_dir = atlas_dir / version
+        version_dir.mkdir(parents=True)
+        (version_dir / "manifest.json").write_text("{}")
+
+    assert atlas.local_full_name == (
+        f"{bg_atlas.V3_ATLAS_ROOTDIR}/{atlas.atlas_name}/"
+        f"2026-03/manifest.json"
+    )
+    assert atlas._local_version_str == "2026-03"
+
+
 @pytest.mark.parametrize(
     "version_str, expected",
     [

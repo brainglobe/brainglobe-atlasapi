@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import brainglobe_space as bgs
 import meshio as mio
@@ -41,11 +42,11 @@ VFB_SOLR_TERM_INFO_URL = (
 )
 
 SOURCE_ORIENTATION = "lps"
-SOURCE_RESOLUTION = (0.5189161, 0.5189161, 1.0)  # microns
+SOURCE_RESOLUTION = (0.5189161, 0.5189161, 1.0)  # Exact VFB NRRD spacing
 
 ROOT_ID = 999
 ORIENTATION = "asr"
-RESOLUTION = (0.5189161, 1.0, 0.5189161)  # microns
+RESOLUTION = (0.519, 1.0, 0.519)  # microns
 
 ATLAS_PACKAGER = "Amirreza Bahramani"
 
@@ -106,9 +107,6 @@ def download_resources():
     SOURCE_DATA_DIR.mkdir(parents=True, exist_ok=True)
     ROI_VOLUMES_DIR.mkdir(exist_ok=True)
     MESHES_DIR.mkdir(exist_ok=True)
-    # VFB metadata may list file URLs with http://; download over HTTPS.
-    vfb_http_prefix = "http://www.virtualflybrain.org"
-    vfb_https_prefix = "https://www.virtualflybrain.org"
 
     term_info_response_path = _retrieve(
         VFB_SOLR_TERM_INFO_URL,
@@ -134,23 +132,19 @@ def download_resources():
         json.dump(term_info, f, indent=2)
 
     template_channel = term_info["template_channel"]
-    reference_url = (
-        template_channel.get("image_nrrd") or ATLAS_FILE_URL
-    ).replace(
-        vfb_http_prefix,
-        vfb_https_prefix,
-    )
+    # VFB metadata may use a clear-text scheme; force HTTPS for downloads.
+    reference_url = template_channel.get("image_nrrd") or ATLAS_FILE_URL
+    reference_url = urlsplit(reference_url)._replace(scheme="https").geturl()
     _retrieve(
         reference_url,
         SOURCE_DATA_DIR,
         REFERENCE_PATH.name,
     )
 
+    root_mesh_url = urlsplit(template_channel["image_obj"])
+    root_mesh_url = root_mesh_url._replace(scheme="https").geturl()
     _retrieve(
-        template_channel["image_obj"].replace(
-            vfb_http_prefix,
-            vfb_https_prefix,
-        ),
+        root_mesh_url,
         MESHES_DIR,
         f"{ROOT_ID}.obj",
     )
@@ -168,13 +162,18 @@ def download_resources():
         structure_id = vfb_index
         vfb_id = domain["anatomical_individual"]["short_form"]
 
+        roi_url = urlsplit(domain["image_nrrd"])
+        roi_url = roi_url._replace(scheme="https").geturl()
         roi_path = _retrieve(
-            domain["image_nrrd"].replace(vfb_http_prefix, vfb_https_prefix),
+            roi_url,
             ROI_VOLUMES_DIR,
             f"{structure_id}.nrrd",
         )
+
+        mesh_url = urlsplit(domain["image_obj"])
+        mesh_url = mesh_url._replace(scheme="https").geturl()
         mesh_path = _retrieve(
-            domain["image_obj"].replace(vfb_http_prefix, vfb_https_prefix),
+            mesh_url,
             MESHES_DIR,
             f"{structure_id}.obj",
         )

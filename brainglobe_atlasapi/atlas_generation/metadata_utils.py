@@ -80,7 +80,7 @@ def generate_metadata_dict(
         Metadata for the annotation set.
     template : TemplateInfo
         Metadata for the template.
-    license : Dict[str, str], optional
+    license : Dict[str, str | None], optional
         License metadata with ``license`` and ``link_to_license`` fields.
 
 

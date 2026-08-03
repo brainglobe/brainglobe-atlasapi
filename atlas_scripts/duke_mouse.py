@@ -341,9 +341,7 @@ def retrieve_structure_information():
             suffix = "uncharted" if "uncharted" in name else "rccf"
             deduplicated = f"{acronym}-{suffix}"
             if deduplicated in seen_acronyms:
-                deduplicated = (
-                    f"{acronym}-{ontology_to_atlas_id[ontology_id]}"
-                )
+                deduplicated = f"{acronym}-{ontology_to_atlas_id[ontology_id]}"
             acronym = deduplicated
         seen_acronyms.add(acronym)
 
@@ -420,9 +418,7 @@ def retrieve_reference_and_annotation(label_to_atlas_id):
 
     annotation = annotation.astype(np.uint32, copy=False)
     annotation_labels = set(np.unique(annotation).astype(int))
-    missing_labels = sorted(
-        annotation_labels - {0} - set(label_to_atlas_id)
-    )
+    missing_labels = sorted(annotation_labels - {0} - set(label_to_atlas_id))
     if missing_labels:
         raise ValueError(
             f"Missing RCCF ontology mapping for labels: {missing_labels}"

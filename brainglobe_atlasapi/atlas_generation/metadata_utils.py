@@ -6,7 +6,7 @@ README files associated with atlases packaged within the BrainGlobe ecosystem.
 import json
 import re
 from datetime import datetime
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import requests
 from requests.exceptions import InvalidURL, MissingSchema
@@ -41,6 +41,7 @@ def generate_metadata_dict(
     terminology: TerminologyInfo,
     annotation_set: AnnotationInfo,
     template: TemplateInfo,
+    license: Dict[str, str] | None = None,
 ):
     """
     Generate a dictionary containing metadata for a BrainGlobe atlas.
@@ -79,6 +80,8 @@ def generate_metadata_dict(
         Metadata for the annotation set.
     template : TemplateInfo
         Metadata for the template.
+    license : Dict[str, str], optional
+        License metadata with ``license`` and ``link_to_license`` fields.
 
 
     Returns
@@ -131,6 +134,7 @@ def generate_metadata_dict(
         shape=shape,
         additional_references=additional_references_metadata,
         atlas_packager=atlas_packager,
+        license=license,
         coordinate_space=coordinate_space.metadata,
         terminology=terminology.metadata,
         annotation_set=annotation_set.metadata,

@@ -382,6 +382,8 @@ class AtlasPackagingData:
     atlas_packager : str, optional
         Credit for those responsible for converting the atlas into the
         BrainGlobe format.
+    license : Dict[str, str], optional
+        License metadata with ``license`` and ``link_to_license`` fields.
     hemispheres_stack : ValidComponentData, optional
         Hemisphere stack for the atlas. If None, atlas is assumed symmetric.
     additional_references : List[Tuple[TemplateInfo, ValidComponentData]], optional
@@ -413,6 +415,7 @@ class AtlasPackagingData:
     space_convention: bgs.AnatomicalSpace | None = None
     atlas_version_underscore: Optional[str] = None
     atlas_packager: str | None = None
+    license: Dict[str, str] | None = None
     hemispheres_stack: ValidComponentData = None
     additional_references: List[
         Tuple[

@@ -26,268 +26,48 @@ ATLAS_LINK = (
     "https://civmimagespace.civm.duhs.duke.edu/"
     "tp_item_detail.php/view/item_number=DMBA/set_id=315"
 )
+ATLAS_PACKAGER = "Amirreza Bahramani"
 
 ORIENTATION = "ipr"
-
 ROOT_ID = 997
 RESOLUTION = 15
-
-ATLAS_PACKAGER = "Amirreza Bahramani"
 
 SOURCE_DATA_DIR = (
     Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
 )
-REFERENCE_PATH = SOURCE_DATA_DIR / "DMBA_md" / "DMBA_N06_md_M4D.nhdr"
-ADDITIONAL_REFERENCE_PATHS = {
-    "ad": SOURCE_DATA_DIR / "DMBA_ad" / "DMBA_N01_ad_M4D.nhdr",
-    "dwi": SOURCE_DATA_DIR / "DMBA_dwi" / "DMBA_N02_dwi_M4D.nhdr",
-    "nqa": SOURCE_DATA_DIR / "DMBA_nqa" / "DMBA_N03_nqa_M4D.nhdr",
-    "rd": SOURCE_DATA_DIR / "DMBA_rd" / "DMBA_N05_rd_M4D.nhdr",
-    "fa": SOURCE_DATA_DIR / "DMBA_fa" / "DMBA_N09_fa_M4D.nhdr",
-    "m0": SOURCE_DATA_DIR / "DMBA_m0" / "DMBA_N11_m0_M4D.nhdr",
-    "m1": SOURCE_DATA_DIR / "DMBA_m1" / "DMBA_N12_m1_M4D.nhdr",
-    "m2": SOURCE_DATA_DIR / "DMBA_m2" / "DMBA_N13_m2_M4D.nhdr",
-    "m3": SOURCE_DATA_DIR / "DMBA_m3" / "DMBA_N14_m3_M4D.nhdr",
-    "iso": SOURCE_DATA_DIR / "DMBA_iso" / "DMBA_N17_iso_M4D.nhdr",
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+DOWNLOAD_BASE_URL = "https://d3mof5o.s3.amazonaws.com/"
+
+REFERENCE_FILES = {
+    "md": ("DMBA_md", "DMBA_N06_md_M4D"),
+    "ad": ("DMBA_ad", "DMBA_N01_ad_M4D"),
+    "dwi": ("DMBA_dwi", "DMBA_N02_dwi_M4D"),
+    "nqa": ("DMBA_nqa", "DMBA_N03_nqa_M4D"),
+    "rd": ("DMBA_rd", "DMBA_N05_rd_M4D"),
+    "fa": ("DMBA_fa", "DMBA_N09_fa_M4D"),
+    "m0": ("DMBA_m0", "DMBA_N11_m0_M4D"),
+    "m1": ("DMBA_m1", "DMBA_N12_m1_M4D"),
+    "m2": ("DMBA_m2", "DMBA_N13_m2_M4D"),
+    "m3": ("DMBA_m3", "DMBA_N14_m3_M4D"),
+    "iso": ("DMBA_iso", "DMBA_N17_iso_M4D"),
     "mgre-unmasked": (
-        SOURCE_DATA_DIR
-        / "DMBA_mGRE-unmasked"
-        / "DMBA_N18_mGRE-unmasked_M4D.nhdr"
+        "DMBA_mGRE-unmasked",
+        "DMBA_N18_mGRE-unmasked_M4D",
     ),
 }
-STEREOTAXIC_GRID_PATHS = {
-    "0p2mm": (
-        SOURCE_DATA_DIR / "grids" / "DMBA_xy_grid_0.2mm_M4D.nhdr",
-        SOURCE_DATA_DIR / "grids" / "DMBA_xz_grid_0.2mm_M4D.nhdr",
-        SOURCE_DATA_DIR / "grids" / "DMBA_yz_grid_0.2mm_M4D.nhdr",
-    ),
-    "1mm": (
-        SOURCE_DATA_DIR / "grids" / "DMBA_xy_grid_1mm_M4D.nhdr",
-        SOURCE_DATA_DIR / "grids" / "DMBA_xz_grid_1mm_M4D.nhdr",
-        SOURCE_DATA_DIR / "grids" / "DMBA_yz_grid_1mm_M4D.nhdr",
-    ),
-}
-ANNOTATION_PATH = SOURCE_DATA_DIR / "DMBA_RCCF_labels_M4D.nhdr"
-STRUCTURES_ZIP_PATH = SOURCE_DATA_DIR / "DMBA_RCCF_labels_M4D.zip"
+
+ANNOTATION_STEM = "DMBA_RCCF_labels_M4D"
+ANNOTATION_PATH = SOURCE_DATA_DIR / f"{ANNOTATION_STEM}.nhdr"
+STRUCTURES_ZIP_PATH = SOURCE_DATA_DIR / f"{ANNOTATION_STEM}.zip"
 LABELS_TXT = "DMBA_RCCF_labels.txt"
 LOOKUP_TXT = "DMBA_RCCF_labels_lookup.txt"
 
-DMBA_DOWNLOADS = (
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_RCCF_labels_M4D.zip",
-        STRUCTURES_ZIP_PATH,
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_RCCF_labels_M4D.raw",
-        ANNOTATION_PATH.with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_RCCF_labels_M4D.nhdr",
-        ANNOTATION_PATH,
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N06_md_M4D.raw",
-        REFERENCE_PATH.with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N06_md_M4D.nhdr",
-        REFERENCE_PATH,
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N01_ad_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["ad"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N01_ad_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["ad"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N02_dwi_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["dwi"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N02_dwi_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["dwi"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N03_nqa_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["nqa"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N03_nqa_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["nqa"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N05_rd_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["rd"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N05_rd_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["rd"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N09_fa_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["fa"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N09_fa_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["fa"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N11_m0_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["m0"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N11_m0_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["m0"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N12_m1_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["m1"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N12_m1_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["m1"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N13_m2_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["m2"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N13_m2_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["m2"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N14_m3_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["m3"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N14_m3_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["m3"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N17_iso_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["iso"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N17_iso_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["iso"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N18_mGRE-unmasked_M4D.raw",
-        ADDITIONAL_REFERENCE_PATHS["mgre-unmasked"].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_N18_mGRE-unmasked_M4D.nhdr",
-        ADDITIONAL_REFERENCE_PATHS["mgre-unmasked"],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_xy_grid_0.2mm_M4D.raw",
-        STEREOTAXIC_GRID_PATHS["0p2mm"][0].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_xy_grid_0.2mm_M4D.nhdr",
-        STEREOTAXIC_GRID_PATHS["0p2mm"][0],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_xz_grid_0.2mm_M4D.raw",
-        STEREOTAXIC_GRID_PATHS["0p2mm"][1].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_xz_grid_0.2mm_M4D.nhdr",
-        STEREOTAXIC_GRID_PATHS["0p2mm"][1],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_yz_grid_0.2mm_M4D.raw",
-        STEREOTAXIC_GRID_PATHS["0p2mm"][2].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_yz_grid_0.2mm_M4D.nhdr",
-        STEREOTAXIC_GRID_PATHS["0p2mm"][2],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_xy_grid_1mm_M4D.raw",
-        STEREOTAXIC_GRID_PATHS["1mm"][0].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_xy_grid_1mm_M4D.nhdr",
-        STEREOTAXIC_GRID_PATHS["1mm"][0],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_xz_grid_1mm_M4D.raw",
-        STEREOTAXIC_GRID_PATHS["1mm"][1].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_xz_grid_1mm_M4D.nhdr",
-        STEREOTAXIC_GRID_PATHS["1mm"][1],
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_yz_grid_1mm_M4D.raw",
-        STEREOTAXIC_GRID_PATHS["1mm"][2].with_suffix(".raw"),
-    ),
-    (
-        "https://d3mof5o.s3.amazonaws.com/DMBA_yz_grid_1mm_M4D.nhdr",
-        STEREOTAXIC_GRID_PATHS["1mm"][2],
-    ),
-)
-
-BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 NEGATIVE_STRUCTURE_ID_OFFSET = 1_000_000
 MESH_NUM_THREADS = 6
 
 
-def _load_nrrd(path):
-    """Load a detached NRRD image and return its NumPy stack."""
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Expected downloaded DMBA file was not found: {path}"
-        )
-    return sitk.GetArrayFromImage(sitk.ReadImage(str(path)))
-
-
-def _scale_reference_to_uint16(reference):
-    """Scale a reference image into BrainGlobe's uint16 template range."""
-    if not np.all(np.isfinite(reference)):
-        raise ValueError("Reference contains NaN or infinite values.")
-
-    reference = reference.astype(np.float32, copy=False)
-    dmin = float(reference.min())
-    dmax = float(reference.max())
-    drange = dmax - dmin
-    if drange == 0:
-        raise ValueError("Reference stack has zero range.")
-
-    reference -= dmin
-    reference *= np.iinfo(np.uint16).max / drange
-    return np.rint(reference).astype(np.uint16)
-
-
-def _read_actual_label_ids(labels_text):
-    """Read voxel label IDs from the DSI Studio labels file."""
-    label_ids = []
-    for line in labels_text.splitlines():
-        if line.strip():
-            label_id, _ = line.split(maxsplit=1)
-            label_ids.append(int(label_id))
-    return label_ids
-
-
-def _read_lookup_rows(lookup_text):
-    """Read the 3D Slicer lookup table bundled with the RCCF labels."""
-    lines = lookup_text.splitlines()
-    header_index = next(
-        i for i, line in enumerate(lines) if line.startswith("# ROI\t")
-    )
-    header = lines[header_index].lstrip("# ").split("\t")
-    data_lines = [
-        line
-        for line in lines[header_index + 3 :]
-        if line.strip() and not line.startswith("#")
-    ]
-    return csv.DictReader(data_lines, fieldnames=header, delimiter="\t")
-
-
 def _is_number(value):
+    """Return whether a lookup-table value contains a number."""
     value = (value or "").strip()
     if not value or value == "NaN":
         return False
@@ -297,158 +77,6 @@ def _is_number(value):
     except ValueError:
         return False
     return True
-
-
-def _read_int(value):
-    return int(float(value.strip()))
-
-
-def _is_lateralized_row(row):
-    structure = row["Structure"].strip()
-    return structure.endswith("_left") or structure.endswith("_right")
-
-
-def _has_voxel_roi(row):
-    return _is_number(row["ROI"])
-
-
-def _canonical_row(rows):
-    """Prefer the bilateral/non-voxel ontology row for duplicated IDs."""
-    return sorted(
-        rows,
-        key=lambda row: (
-            _is_lateralized_row(row),
-            _has_voxel_roi(row),
-            row["Structure"].strip(),
-        ),
-    )[0]
-
-
-def _read_rccf_metadata():
-    """Return voxel labels and all rows from the RCCF lookup table."""
-    if not STRUCTURES_ZIP_PATH.exists():
-        raise FileNotFoundError(
-            f"Expected downloaded RCCF metadata was not found: "
-            f"{STRUCTURES_ZIP_PATH}"
-        )
-
-    with zipfile.ZipFile(STRUCTURES_ZIP_PATH) as label_zip:
-        label_ids = {
-            label_id
-            for label_id in _read_actual_label_ids(
-                label_zip.read(LABELS_TXT).decode()
-            )
-            if label_id != 0
-        }
-        lookup_rows = list(
-            _read_lookup_rows(
-                label_zip.read(LOOKUP_TXT).decode("utf-8", errors="replace")
-            )
-        )
-
-    return label_ids, lookup_rows
-
-
-def _atlas_id_for_ontology_id(ontology_id):
-    """Return a non-negative BrainGlobe ID for an RCCF ontology ID."""
-    if ontology_id == ROOT_ID:
-        return ROOT_ID
-    if ontology_id > 0:
-        return ontology_id
-    return NEGATIVE_STRUCTURE_ID_OFFSET + abs(ontology_id)
-
-
-def _rccf_ontology_tables():
-    """Build RCCF ontology lookup tables for structures and annotation."""
-    label_ids, lookup_rows = _read_rccf_metadata()
-
-    rows_by_ontology_id = {}
-    for row in lookup_rows:
-        if _is_number(row["structure_id"]):
-            rows_by_ontology_id.setdefault(
-                _read_int(row["structure_id"]), []
-            ).append(row)
-
-    canonical_rows = {
-        ontology_id: _canonical_row(rows)
-        for ontology_id, rows in rows_by_ontology_id.items()
-    }
-
-    label_to_ontology_id = {}
-    for row in lookup_rows:
-        if not _is_number(row["ROI"]):
-            continue
-
-        roi_id = _read_int(row["ROI"])
-        if roi_id in label_ids:
-            label_to_ontology_id[roi_id] = _read_int(row["structure_id"])
-
-    missing = sorted(label_ids - set(label_to_ontology_id))
-    if missing:
-        raise ValueError(f"Missing RCCF lookup rows for labels: {missing}")
-
-    ontology_ids = {ROOT_ID, *label_to_ontology_id.values()}
-    changed = True
-    while changed:
-        changed = False
-        for ontology_id in list(ontology_ids):
-            row = canonical_rows.get(ontology_id)
-            if row is None:
-                continue
-
-            ancestor_ids = []
-            if _is_number(row["parent_structure_id"]):
-                ancestor_ids.append(_read_int(row["parent_structure_id"]))
-            if row["id_path"].strip():
-                ancestor_ids.extend(
-                    _read_int(path_id)
-                    for path_id in row["id_path"].strip("/").split("/")
-                    if _is_number(path_id)
-                )
-
-            for ancestor_id in ancestor_ids:
-                if ancestor_id not in ontology_ids:
-                    ontology_ids.add(ancestor_id)
-                    changed = True
-
-    missing_ancestors = sorted(
-        ontology_id
-        for ontology_id in ontology_ids
-        if ontology_id not in canonical_rows and ontology_id != ROOT_ID
-    )
-    if missing_ancestors:
-        raise ValueError(
-            f"Missing RCCF ontology rows for ancestors: {missing_ancestors}"
-        )
-
-    ontology_to_atlas_id = {
-        ontology_id: _atlas_id_for_ontology_id(ontology_id)
-        for ontology_id in ontology_ids
-    }
-
-    atlas_id_to_ontology_ids = {}
-    for ontology_id, atlas_id in ontology_to_atlas_id.items():
-        atlas_id_to_ontology_ids.setdefault(atlas_id, []).append(ontology_id)
-
-    duplicate_atlas_ids = {
-        atlas_id: ontology_ids
-        for atlas_id, ontology_ids in atlas_id_to_ontology_ids.items()
-        if len(ontology_ids) > 1
-    }
-    if duplicate_atlas_ids:
-        raise ValueError(f"Duplicate RCCF atlas IDs: {duplicate_atlas_ids}")
-
-    label_to_atlas_id = {
-        label_id: ontology_to_atlas_id[ontology_id]
-        for label_id, ontology_id in label_to_ontology_id.items()
-    }
-
-    return (
-        canonical_rows,
-        ontology_ids,
-        ontology_to_atlas_id,
-        label_to_atlas_id,
-    )
 
 
 def _structure_id_path(
@@ -465,7 +93,7 @@ def _structure_id_path(
 
     row = canonical_rows[ontology_id]
     if _is_number(row["parent_structure_id"]):
-        parent_id = _read_int(row["parent_structure_id"])
+        parent_id = int(float(row["parent_structure_id"]))
     else:
         parent_id = ROOT_ID
 
@@ -475,24 +103,6 @@ def _structure_id_path(
     path = [*parent_path, ontology_to_atlas_id[ontology_id]]
     path_cache[ontology_id] = path
     return path
-
-
-def _remap_annotation_to_atlas_ids(annotation):
-    """Map RCCF ROI labels onto bilateral ontology-backed atlas IDs."""
-    _, _, _, label_to_atlas_id = _rccf_ontology_tables()
-
-    annotation_labels = set(np.unique(annotation).astype(int))
-    missing_labels = sorted(annotation_labels - {0} - set(label_to_atlas_id))
-    if missing_labels:
-        raise ValueError(
-            f"Missing RCCF ontology mapping for labels: {missing_labels}"
-        )
-
-    label_lut = np.zeros(int(annotation.max()) + 1, dtype=np.uint32)
-    for label_id, atlas_id in label_to_atlas_id.items():
-        label_lut[label_id] = atlas_id
-
-    return label_lut[annotation]
 
 
 def _strip_laterality(text):
@@ -513,71 +123,34 @@ def _strip_laterality(text):
     return text
 
 
-def _source_structure_name(row):
-    """Build a readable source name from the RCCF Structure field."""
-    structure = row["Structure"].strip()
-    if "__" in structure:
-        _, structure = structure.split("__", maxsplit=1)
-    return _strip_laterality(structure.replace("_", " "))
-
-
-def _structure_name(row):
-    """Choose the most readable source-backed name for a structure row."""
-    source_name = _source_structure_name(row)
-    if "uncharted" in source_name.lower():
-        return source_name
-
-    if row["ARA_name"].strip():
-        return row["ARA_name"].strip()
-    if row["GN_Description"].strip():
-        return _strip_laterality(row["GN_Description"])
-    return source_name
-
-
-def _structure_acronym(row):
-    """Choose a concise source-backed acronym for a structure row."""
-    if row["ARA_abbrev"].strip():
-        return row["ARA_abbrev"].strip()
-    if row["GN_Symbol"].strip():
-        return _strip_laterality(row["GN_Symbol"])
-
-    acronym = row["Structure"].split("__", maxsplit=1)[0].strip()
-    return _strip_laterality(acronym)
-
-
-def _deduplicate_acronyms(structures):
-    """Make acronyms unique while preserving the first/source-standard form."""
-    seen = set()
-    for structure in structures:
-        acronym = structure["acronym"]
-        if acronym not in seen:
-            seen.add(acronym)
-            continue
-
-        suffix = "uncharted" if "uncharted" in structure["name"] else "rccf"
-        deduplicated = f"{acronym}-{suffix}"
-        if deduplicated in seen:
-            deduplicated = f"{acronym}-{structure['id']}"
-
-        structure["acronym"] = deduplicated
-        seen.add(deduplicated)
-
-    return structures
-
-
 def download_resources():
     """Download the necessary DMBA source files with Pooch."""
+    downloads = [
+        (
+            f"{DOWNLOAD_BASE_URL}{ANNOTATION_STEM}.zip",
+            STRUCTURES_ZIP_PATH,
+        )
+    ]
+
+    image_files = [("", ANNOTATION_STEM), *REFERENCE_FILES.values()]
+    for directory, filename in image_files:
+        for suffix in (".nhdr", ".raw"):
+            downloads.append(
+                (
+                    f"{DOWNLOAD_BASE_URL}{filename}{suffix}",
+                    SOURCE_DATA_DIR / directory / f"{filename}{suffix}",
+                )
+            )
+
     missing_paths = [
-        destination
-        for _, destination in DMBA_DOWNLOADS
-        if not destination.exists()
+        destination for _, destination in downloads if not destination.exists()
     ]
     if not missing_paths:
         print("All DMBA source files are already present.")
         return
 
     utils.check_internet_connection()
-    for url, destination in DMBA_DOWNLOADS:
+    for url, destination in downloads:
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
             print(f"Already present: {destination}")
@@ -592,37 +165,133 @@ def download_resources():
         )
 
 
-def retrieve_reference_and_annotation():
-    """Return the MD reference and ontology-backed RCCF annotation volumes."""
-    reference = _load_nrrd(REFERENCE_PATH)
-    annotation = _load_nrrd(ANNOTATION_PATH)
-
-    if reference.shape != annotation.shape:
-        raise ValueError(
-            "Reference and annotation shapes do not match: "
-            f"{reference.shape} != {annotation.shape}"
+def retrieve_structure_information():
+    """Return bilateral RCCF structures and the voxel-label ID mapping."""
+    if not STRUCTURES_ZIP_PATH.exists():
+        raise FileNotFoundError(
+            f"Expected downloaded RCCF metadata was not found: "
+            f"{STRUCTURES_ZIP_PATH}"
         )
 
-    reference = _scale_reference_to_uint16(reference)
-    annotation = annotation.astype(np.uint32, copy=False)
-    annotation = _remap_annotation_to_atlas_ids(annotation)
+    with zipfile.ZipFile(STRUCTURES_ZIP_PATH) as label_zip:
+        labels_text = label_zip.read(LABELS_TXT).decode()
+        label_ids = {
+            int(line.split(maxsplit=1)[0])
+            for line in labels_text.splitlines()
+            if line.strip()
+        }
+        label_ids.discard(0)
 
-    return reference, annotation
+        lookup_text = label_zip.read(LOOKUP_TXT).decode(
+            "utf-8", errors="replace"
+        )
 
+    lines = lookup_text.splitlines()
+    header_index = next(
+        index for index, line in enumerate(lines) if line.startswith("# ROI\t")
+    )
+    header = lines[header_index].lstrip("# ").split("\t")
+    data_lines = [
+        line
+        for line in lines[header_index + 3 :]
+        if line.strip() and not line.startswith("#")
+    ]
+    lookup_rows = list(
+        csv.DictReader(data_lines, fieldnames=header, delimiter="\t")
+    )
 
-def retrieve_hemisphere_map():
-    """Return no hemisphere map because labels are packaged bilaterally."""
-    return None
+    rows_by_ontology_id = {}
+    for row in lookup_rows:
+        if _is_number(row["structure_id"]):
+            ontology_id = int(float(row["structure_id"]))
+            rows_by_ontology_id.setdefault(ontology_id, []).append(row)
 
+    canonical_rows = {
+        ontology_id: min(
+            rows,
+            key=lambda row: (
+                row["Structure"].strip().endswith(("_left", "_right")),
+                _is_number(row["ROI"]),
+                row["Structure"].strip(),
+            ),
+        )
+        for ontology_id, rows in rows_by_ontology_id.items()
+    }
 
-def retrieve_structure_information():
-    """Return bilateral RCCF structures with source hierarchy."""
-    (
-        canonical_rows,
-        ontology_ids,
-        ontology_to_atlas_id,
-        _,
-    ) = _rccf_ontology_tables()
+    label_to_ontology_id = {}
+    for row in lookup_rows:
+        if not _is_number(row["ROI"]):
+            continue
+
+        label_id = int(float(row["ROI"]))
+        if label_id in label_ids:
+            label_to_ontology_id[label_id] = int(float(row["structure_id"]))
+
+    missing_labels = sorted(label_ids - set(label_to_ontology_id))
+    if missing_labels:
+        raise ValueError(
+            f"Missing RCCF lookup rows for labels: {missing_labels}"
+        )
+
+    ontology_ids = {ROOT_ID, *label_to_ontology_id.values()}
+    changed = True
+    while changed:
+        changed = False
+        for ontology_id in list(ontology_ids):
+            row = canonical_rows.get(ontology_id)
+            if row is None:
+                continue
+
+            ancestor_ids = []
+            if _is_number(row["parent_structure_id"]):
+                ancestor_ids.append(int(float(row["parent_structure_id"])))
+            if row["id_path"].strip():
+                ancestor_ids.extend(
+                    int(float(path_id))
+                    for path_id in row["id_path"].strip("/").split("/")
+                    if _is_number(path_id)
+                )
+
+            for ancestor_id in ancestor_ids:
+                if ancestor_id not in ontology_ids:
+                    ontology_ids.add(ancestor_id)
+                    changed = True
+
+    missing_ancestors = sorted(
+        ontology_id
+        for ontology_id in ontology_ids
+        if ontology_id not in canonical_rows and ontology_id != ROOT_ID
+    )
+    if missing_ancestors:
+        raise ValueError(
+            f"Missing RCCF ontology rows for ancestors: {missing_ancestors}"
+        )
+
+    ontology_to_atlas_id = {
+        ontology_id: (
+            ontology_id
+            if ontology_id > 0
+            else NEGATIVE_STRUCTURE_ID_OFFSET + abs(ontology_id)
+        )
+        for ontology_id in ontology_ids
+    }
+
+    atlas_id_to_ontology_ids = {}
+    for ontology_id, atlas_id in ontology_to_atlas_id.items():
+        atlas_id_to_ontology_ids.setdefault(atlas_id, []).append(ontology_id)
+
+    duplicate_atlas_ids = {
+        atlas_id: source_ids
+        for atlas_id, source_ids in atlas_id_to_ontology_ids.items()
+        if len(source_ids) > 1
+    }
+    if duplicate_atlas_ids:
+        raise ValueError(f"Duplicate RCCF atlas IDs: {duplicate_atlas_ids}")
+
+    label_to_atlas_id = {
+        label_id: ontology_to_atlas_id[ontology_id]
+        for label_id, ontology_id in label_to_ontology_id.items()
+    }
 
     structures = [
         {
@@ -635,21 +304,54 @@ def retrieve_structure_information():
     ]
 
     path_cache = {ROOT_ID: [ROOT_ID]}
+    seen_acronyms = {"root"}
     for ontology_id in sorted(
         ontology_ids,
-        key=lambda oid: _structure_id_path(
-            oid, canonical_rows, ontology_to_atlas_id, path_cache
+        key=lambda source_id: _structure_id_path(
+            source_id, canonical_rows, ontology_to_atlas_id, path_cache
         ),
     ):
         if ontology_id == ROOT_ID:
             continue
 
         row = canonical_rows[ontology_id]
+        source_name = row["Structure"].strip()
+        if "__" in source_name:
+            _, source_name = source_name.split("__", maxsplit=1)
+        source_name = _strip_laterality(source_name.replace("_", " "))
+
+        if "uncharted" in source_name.lower():
+            name = source_name
+        elif row["ARA_name"].strip():
+            name = row["ARA_name"].strip()
+        elif row["GN_Description"].strip():
+            name = _strip_laterality(row["GN_Description"])
+        else:
+            name = source_name
+
+        if row["ARA_abbrev"].strip():
+            acronym = row["ARA_abbrev"].strip()
+        elif row["GN_Symbol"].strip():
+            acronym = _strip_laterality(row["GN_Symbol"])
+        else:
+            acronym = row["Structure"].split("__", maxsplit=1)[0]
+            acronym = _strip_laterality(acronym)
+
+        if acronym in seen_acronyms:
+            suffix = "uncharted" if "uncharted" in name else "rccf"
+            deduplicated = f"{acronym}-{suffix}"
+            if deduplicated in seen_acronyms:
+                deduplicated = (
+                    f"{acronym}-{ontology_to_atlas_id[ontology_id]}"
+                )
+            acronym = deduplicated
+        seen_acronyms.add(acronym)
+
         structures.append(
             {
                 "id": ontology_to_atlas_id[ontology_id],
-                "name": _structure_name(row),
-                "acronym": _structure_acronym(row),
+                "name": name,
+                "acronym": acronym,
                 "structure_id_path": _structure_id_path(
                     ontology_id,
                     canonical_rows,
@@ -664,22 +366,79 @@ def retrieve_structure_information():
             }
         )
 
-    structures = _deduplicate_acronyms(structures)
     check_struct_consistency(structures)
-    return structures
+    return structures, label_to_atlas_id
 
 
-def retrieve_or_construct_meshes(annotated_volume=None, structures=None):
-    """Construct all structure meshes and return their file paths."""
-    if annotated_volume is None:
-        annotated_volume = _load_nrrd(ANNOTATION_PATH).astype(
-            np.uint32, copy=False
+def retrieve_reference_and_annotation(label_to_atlas_id):
+    """Return the main template, annotation, and additional MR contrasts."""
+    references = {}
+    reference_shape = None
+    for name, (directory, filename) in REFERENCE_FILES.items():
+        path = SOURCE_DATA_DIR / directory / f"{filename}.nhdr"
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Expected downloaded DMBA file was not found: {path}"
+            )
+
+        reference = sitk.GetArrayFromImage(sitk.ReadImage(str(path)))
+        if not np.all(np.isfinite(reference)):
+            raise ValueError(f"Reference {name!r} contains non-finite values.")
+
+        if reference_shape is None:
+            reference_shape = reference.shape
+        elif reference.shape != reference_shape:
+            raise ValueError(
+                f"Additional reference {name!r} shape does not match "
+                f"the main reference: {reference.shape} != {reference_shape}"
+            )
+
+        reference = reference.astype(np.float32, copy=False)
+        minimum = float(reference.min())
+        value_range = float(reference.max()) - minimum
+        if value_range == 0:
+            raise ValueError(f"Reference {name!r} has zero intensity range.")
+
+        reference -= minimum
+        reference *= np.iinfo(np.uint16).max / value_range
+        references[name] = np.rint(reference).astype(np.uint16)
+
+    # Release the final float stack before loading and remapping the
+    # annotation.
+    del reference
+
+    if not ANNOTATION_PATH.exists():
+        raise FileNotFoundError(
+            f"Expected downloaded DMBA file was not found: {ANNOTATION_PATH}"
         )
-        annotated_volume = _remap_annotation_to_atlas_ids(annotated_volume)
-    if structures is None:
-        structures = retrieve_structure_information()
+    annotation = sitk.GetArrayFromImage(sitk.ReadImage(str(ANNOTATION_PATH)))
+    if annotation.shape != reference_shape:
+        raise ValueError(
+            "Reference and annotation shapes do not match: "
+            f"{reference_shape} != {annotation.shape}"
+        )
 
-    BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
+    annotation = annotation.astype(np.uint32, copy=False)
+    annotation_labels = set(np.unique(annotation).astype(int))
+    missing_labels = sorted(
+        annotation_labels - {0} - set(label_to_atlas_id)
+    )
+    if missing_labels:
+        raise ValueError(
+            f"Missing RCCF ontology mapping for labels: {missing_labels}"
+        )
+
+    label_lut = np.zeros(int(annotation.max()) + 1, dtype=np.uint32)
+    for label_id, atlas_id in label_to_atlas_id.items():
+        label_lut[label_id] = atlas_id
+    annotation = label_lut[annotation]
+
+    reference = references.pop("md")
+    return reference, annotation, references
+
+
+def retrieve_or_construct_meshes(annotated_volume, structures):
+    """Construct all structure meshes and return their file paths."""
     meshes_dict = construct_meshes_from_annotation(
         save_path=BG_ROOT_DIR,
         volume=annotated_volume,
@@ -700,55 +459,21 @@ def retrieve_or_construct_meshes(annotated_volume=None, structures=None):
     return meshes_dict
 
 
-def retrieve_additional_references(reference_shape):
-    """Return additional DMBA templates and combined stereotaxic grids."""
-    additional_references = {}
-    for name, path in ADDITIONAL_REFERENCE_PATHS.items():
-        reference = _load_nrrd(path)
-        if reference.shape != reference_shape:
-            raise ValueError(
-                f"Additional reference {name!r} shape does not match "
-                f"the main reference: {reference.shape} != {reference_shape}"
-            )
-        additional_references[name] = _scale_reference_to_uint16(reference)
-
-    for spacing, grid_paths in STEREOTAXIC_GRID_PATHS.items():
-        combined_grid = np.zeros(reference_shape, dtype=np.uint16)
-        for path in grid_paths:
-            grid = _load_nrrd(path)
-            if grid.shape != reference_shape:
-                raise ValueError(
-                    f"Stereotaxic {spacing} grid shape does not match the "
-                    f"main reference: {grid.shape} != {reference_shape}"
-                )
-            np.logical_or(combined_grid, grid, out=combined_grid)
-
-        combined_grid *= np.iinfo(np.uint16).max
-        additional_references[f"stereotaxic-grid-{spacing}"] = combined_grid
-
-    return additional_references
-
-
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
     atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
     existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
-
     if existing:
         raise FileExistsError(
             f"Atlas output already exists in {BG_ROOT_DIR}. "
         )
+
     download_resources()
-    reference_volume, annotated_volume = retrieve_reference_and_annotation()
-    additional_references = retrieve_additional_references(
-        reference_volume.shape
+    structures, label_to_atlas_id = retrieve_structure_information()
+    reference_volume, annotated_volume, additional_references = (
+        retrieve_reference_and_annotation(label_to_atlas_id)
     )
-    hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)
 
     output_filename = wrapup_atlas_from_data(
@@ -766,7 +491,7 @@ if __name__ == "__main__":
         meshes_dict=meshes_dict,
         working_dir=BG_ROOT_DIR,
         atlas_packager=ATLAS_PACKAGER,
-        hemispheres_stack=hemispheres_stack,
+        hemispheres_stack=None,
         scale_meshes=True,
         additional_references=additional_references,
     )

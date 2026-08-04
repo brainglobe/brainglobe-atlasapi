@@ -1,5 +1,6 @@
 """Tests for reading atlases that follow the atlas-assets specification."""
 
+import copy
 import json
 from pathlib import Path
 
@@ -100,9 +101,18 @@ def test_pyramid_level_from_attrs_invalid(ome_attrs):
 
 
 def test_brainglobe_manifest_passes_through():
-    """A BrainGlobe manifest is returned unchanged."""
+    """A BrainGlobe manifest is returned unchanged.
+
+    ``_normalize_manifest`` returns the same object for a BrainGlobe
+    manifest (``raw is result``), so comparing the result against
+    ``raw`` after the call would pass even if the function mutated
+    ``raw`` in place. Comparing against an untouched deep copy, taken
+    before the call, actually exercises that guarantee.
+    """
     raw = json.loads((DATA_DIR / "manifest_brainglobe.json").read_text())
-    assert bg_atlas._normalize_manifest(raw, None, Path(".")) == raw
+    untouched = copy.deepcopy(raw)
+    result = bg_atlas._normalize_manifest(raw, None, Path("."))
+    assert result == untouched
 
 
 def test_resolution_required_for_multi_scale(atlas_assets_manifest):
@@ -117,6 +127,27 @@ def test_resolution_required_for_multi_scale(atlas_assets_manifest):
         bg_atlas._normalize_manifest(atlas_assets_manifest, None, Path("."))
     assert "resolution=" in str(error.value)
     assert "100" in str(error.value)
+
+
+def test_resolution_defaulted_for_single_scale(atlas_assets_manifest):
+    """A single-scale atlas-assets manifest defaults resolution.
+
+    The zarr read that follows resolution selection needs a real store
+    on disk, which this test does not provide, so it can only exercise
+    the scales-defaulting decision itself: a single-scale manifest with
+    resolution=None must not raise the "multiple resolutions"
+    ValueError, proving resolution was defaulted rather than left
+    unset. Execution then reaches the (missing) zarr store and fails
+    for that unrelated reason instead.
+
+    Parameters
+    ----------
+    atlas_assets_manifest : dict
+        atlas-assets manifest fixture.
+    """
+    atlas_assets_manifest["annotation_sets"][0]["scales"] = [25]
+    with pytest.raises(FileNotFoundError):
+        bg_atlas._normalize_manifest(atlas_assets_manifest, None, Path("."))
 
 
 def test_resolution_must_be_an_available_scale(atlas_assets_manifest):

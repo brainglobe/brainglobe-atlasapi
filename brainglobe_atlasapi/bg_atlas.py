@@ -155,7 +155,7 @@ def _orientation_from_axes(ome_attrs: dict) -> str:
     KeyError
         If an axis carries no recognised anatomical orientation.
     """
-    axes = ome_attrs["multiscales"][0]["axes"]
+    axes = ome_attrs["multiscales"][0]["axes"][-3:]
     letters = []
     for axis in axes:
         direction = axis.get("orientation", {}).get("value")
@@ -219,7 +219,10 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
         Parsed atlas ``manifest.json``.
     resolution : float or None
         Requested isotropic resolution, in micrometres. Required when
-        the manifest declares ``scales``.
+        the manifest declares more than one scale; defaulted to the
+        sole scale when it declares exactly one; if the manifest has a
+        single fixed resolution instead (a BrainGlobe manifest), a
+        mismatching value raises.
     root_dir : Path
         Local cache namespace directory holding the downloaded assets.
 
@@ -231,7 +234,8 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     Raises
     ------
     ValueError
-        If ``resolution`` is missing, or not among the declared scales.
+        If ``resolution`` is missing and the manifest declares more
+        than one scale, or does not match one of the declared scales.
     """
     if not isinstance(raw.get("templates"), list):
         if resolution is not None and not np.isclose(
@@ -248,10 +252,13 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     scales = annotation_set.get("scales", [])
 
     if resolution is None:
-        raise ValueError(
-            f"Atlas {raw['name']} provides multiple resolutions. Pass "
-            f"resolution= to choose one of: {scales}."
-        )
+        if len(scales) == 1:
+            resolution = scales[0]
+        else:
+            raise ValueError(
+                f"Atlas {raw['name']} provides multiple resolutions. "
+                f"Pass resolution= to choose one of: {scales}."
+            )
     if not any(np.isclose(resolution, scale) for scale in scales):
         raise ValueError(
             f"Resolution {resolution} um is not available for "
@@ -260,9 +267,10 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
 
     annotation_location = annotation_set["location"][1:]
     annotation_path = root_dir / annotation_location / V3_ANNOTATION_NAME
-    ome_attrs = zarr.open_group(str(annotation_path), mode="r").attrs["ome"]
-    level, dataset_path = _pyramid_level_from_attrs(ome_attrs, resolution)
-    shape = zarr.open_group(str(annotation_path), mode="r")[dataset_path].shape
+    annotation_group = zarr.open_group(str(annotation_path), mode="r")
+    ome_attrs = annotation_group.attrs["ome"]
+    _, dataset_path = _pyramid_level_from_attrs(ome_attrs, resolution)
+    shape = annotation_group[dataset_path].shape
 
     return {
         "name": raw["name"],
@@ -324,8 +332,10 @@ class BrainGlobeAtlas(core.Atlas):
         Handler function to update during download. Takes completed and total
         bytes.
     resolution : float (optional)
-        Requested isotropic resolution in micrometres. Required for atlases
-        that declare multiple scales, ignored otherwise.
+        Requested isotropic resolution in micrometres. Required for
+        atlases that declare more than one scale; defaulted to the sole
+        scale for atlases that declare exactly one. For atlases with a
+        single fixed resolution, a value that disagrees with it raises.
     """
 
     # Class-level fallback so a partially constructed instance (built via
@@ -738,9 +748,7 @@ class BrainGlobeAtlas(core.Atlas):
                     remote_root_metadata_path = (
                         f"{self._remote_root}/{root_metadata_path}"
                     )
-                    print(
-                        f"Downloading template metadata " f"for {ref['name']}:"
-                    )
+                    print(f"Downloading template metadata for {ref['name']}:")
                     self.fs.get(
                         remote_root_metadata_path,
                         local_template_path / V3_TEMPLATE_NAME,

@@ -852,7 +852,7 @@ def wrapup_atlas_from_data(
     overwrite=False,
     cleanup_files=None,
     compress=None,
-    license: Dict[str, str] | None = None,
+    license: Dict[str, str | None] | None = None,
 ) -> Path:
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -926,9 +926,11 @@ def wrapup_atlas_from_data(
     compress : deprecated, optional
         (Default value = None).
         Deprecated and has no effect.
-    license : dict, optional
+    license : Dict[str, str | None] or None, optional
         License metadata in the form ``{"license": license_short_name,
-        "link_to_license": url}``. Defaults to ``None``.
+        "link_to_license": url_or_none}``. ``link_to_license`` may be
+        ``None`` for an explicitly unlicensed atlas. The entire field defaults
+        to ``None`` when license metadata is not provided.
 
     Returns
     -------

@@ -177,6 +177,19 @@ def test_generate_metadata_dict_with_license(metadata_input_template):
     assert output["license"] == expected
 
 
+def test_generate_metadata_dict_with_unlicensed_marker(
+    metadata_input_template,
+):
+    """An explicitly unlicensed atlas may omit a license URL."""
+    expected = {"license": "unlicensed", "link_to_license": None}
+    metadata_input_template["license"] = expected
+    metadata_input_template["citation"] = "unpublished"
+
+    output = generate_metadata_dict(**metadata_input_template)
+
+    assert output["license"] == expected
+
+
 @pytest.mark.parametrize(
     "license_metadata, error, message",
     [
@@ -189,7 +202,7 @@ def test_generate_metadata_dict_with_license(metadata_input_template):
         (
             {"license": 4, "link_to_license": "https://example.com"},
             TypeError,
-            "values must be strings",
+            "license must be a string",
         ),
         (
             {
@@ -205,7 +218,7 @@ def test_generate_metadata_dict_with_license(metadata_input_template):
 def test_generate_metadata_dict_rejects_invalid_license(
     metadata_input_template, license_metadata, error, message
 ):
-    """License metadata must contain the required string fields."""
+    """License metadata must contain valid required fields."""
     metadata_input_template["citation"] = "unpublished"
     metadata_input_template["license"] = license_metadata
 

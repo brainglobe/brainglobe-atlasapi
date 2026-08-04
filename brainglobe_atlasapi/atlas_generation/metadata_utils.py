@@ -41,7 +41,7 @@ def generate_metadata_dict(
     terminology: TerminologyInfo,
     annotation_set: AnnotationInfo,
     template: TemplateInfo,
-    license: Dict[str, str] | None = None,
+    license: Dict[str, str | None] | None = None,
 ):
     """
     Generate a dictionary containing metadata for a BrainGlobe atlas.
@@ -80,8 +80,11 @@ def generate_metadata_dict(
         Metadata for the annotation set.
     template : TemplateInfo
         Metadata for the template.
-    license : Dict[str, str | None], optional
-        License metadata with ``license`` and ``link_to_license`` fields.
+    license : Dict[str, str | None] or None, optional
+        License metadata with ``license`` and ``link_to_license`` fields. The
+        ``link_to_license`` value may be ``None`` for an explicitly unlicensed
+        atlas. The entire field may also be ``None`` when license metadata is
+        not provided.
 
 
     Returns
@@ -136,12 +139,12 @@ def generate_metadata_dict(
                 f"{', '.join(sorted(unexpected_fields))}"
             )
 
-        if any(
-            not isinstance(license[field], str)
-            for field in required_license_fields
+        if not isinstance(license["license"], str) or not isinstance(
+            license["link_to_license"], (str, type(None))
         ):
             raise TypeError(
-                "license and link_to_license values must be strings"
+                "license must be a string and link_to_license must be a "
+                "string or None"
             )
 
     additional_references_metadata = [

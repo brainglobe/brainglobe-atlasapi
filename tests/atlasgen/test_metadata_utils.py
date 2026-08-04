@@ -205,6 +205,11 @@ def test_generate_metadata_dict_with_unlicensed_marker(
             "license must be a string",
         ),
         (
+            {"license": "CC-BY-4.0", "link_to_license": 4},
+            TypeError,
+            "link_to_license must be a string or None",
+        ),
+        (
             {
                 "license": "CC-BY-4.0",
                 "link_to_license": "https://example.com",

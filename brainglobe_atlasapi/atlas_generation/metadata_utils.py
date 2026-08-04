@@ -139,13 +139,11 @@ def generate_metadata_dict(
                 f"{', '.join(sorted(unexpected_fields))}"
             )
 
-        if not isinstance(license["license"], str) or not isinstance(
-            license["link_to_license"], (str, type(None))
-        ):
-            raise TypeError(
-                "license must be a string and link_to_license must be a "
-                "string or None"
-            )
+        if not isinstance(license["license"], str):
+            raise TypeError("license must be a string")
+
+        if not isinstance(license["link_to_license"], (str, type(None))):
+            raise TypeError("link_to_license must be a string or None")
 
     additional_references_metadata = [
         ref_info.metadata for ref_info in additional_references

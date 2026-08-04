@@ -178,6 +178,42 @@ def test_generate_metadata_dict_with_license(metadata_input_template):
 
 
 @pytest.mark.parametrize(
+    "license_metadata, error, message",
+    [
+        ("CC-BY-4.0", TypeError, "must be a dictionary"),
+        (
+            {"license": "CC-BY-4.0"},
+            ValueError,
+            "missing required fields: link_to_license",
+        ),
+        (
+            {"license": 4, "link_to_license": "https://example.com"},
+            TypeError,
+            "values must be strings",
+        ),
+        (
+            {
+                "license": "CC-BY-4.0",
+                "link_to_license": "https://example.com",
+                "copyright_holder": "Example Institute",
+            },
+            ValueError,
+            "unexpected fields: copyright_holder",
+        ),
+    ],
+)
+def test_generate_metadata_dict_rejects_invalid_license(
+    metadata_input_template, license_metadata, error, message
+):
+    """License metadata must contain the required string fields."""
+    metadata_input_template["citation"] = "unpublished"
+    metadata_input_template["license"] = license_metadata
+
+    with pytest.raises(error, match=message):
+        generate_metadata_dict(**metadata_input_template)
+
+
+@pytest.mark.parametrize(
     ["metadata", "error"],
     [
         pytest.param(

@@ -831,7 +831,6 @@ def wrapup_atlas_from_data(
     meshes_dict: Dict[int | str, str | Path],
     working_dir: str | Path,
     atlas_packager=None,
-    license: Dict[str, str] | None = None,
     hemispheres_stack=None,
     template_info: Dict[str, str | bool] | None = None,
     annotation_info: Dict[str, str | bool] | None = None,
@@ -853,6 +852,7 @@ def wrapup_atlas_from_data(
     overwrite=False,
     cleanup_files=None,
     compress=None,
+    license: Dict[str, str] | None = None,
 ) -> Path:
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -897,9 +897,6 @@ def wrapup_atlas_from_data(
     atlas_packager : str or None
         Credit for those responsible for converting the atlas
         into the BrainGlobe format.
-    license : dict, optional
-        License metadata in the form ``{"license": license_short_name,
-        "link_to_license": url}``. Defaults to ``None``.
     hemispheres_stack : ValidComponentData | None, optional
         Hemisphere stack for the atlas.
         If str or Path, will be read with tifffile.
@@ -929,6 +926,9 @@ def wrapup_atlas_from_data(
     compress : deprecated, optional
         (Default value = None).
         Deprecated and has no effect.
+    license : dict, optional
+        License metadata in the form ``{"license": license_short_name,
+        "link_to_license": url}``. Defaults to ``None``.
 
     Returns
     -------

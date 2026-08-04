@@ -117,6 +117,33 @@ def generate_metadata_dict(
 
     assert isinstance(additional_references, list)
 
+    if license is not None:
+        if not isinstance(license, dict):
+            raise TypeError("license must be a dictionary or None")
+
+        required_license_fields = {"license", "link_to_license"}
+        missing_fields = required_license_fields - license.keys()
+        if missing_fields:
+            raise ValueError(
+                "license is missing required fields: "
+                f"{', '.join(sorted(missing_fields))}"
+            )
+
+        unexpected_fields = license.keys() - required_license_fields
+        if unexpected_fields:
+            raise ValueError(
+                "license contains unexpected fields: "
+                f"{', '.join(sorted(unexpected_fields))}"
+            )
+
+        if any(
+            not isinstance(license[field], str)
+            for field in required_license_fields
+        ):
+            raise TypeError(
+                "license and link_to_license values must be strings"
+            )
+
     additional_references_metadata = [
         ref_info.metadata for ref_info in additional_references
     ]

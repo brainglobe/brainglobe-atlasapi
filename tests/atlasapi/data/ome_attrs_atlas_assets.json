@@ -1,0 +1,45 @@
+{
+    "version": "0.6.dev3",
+    "multiscales": [
+        {
+            "name": "/",
+            "datasets": [
+                {
+                    "path": "s0",
+                    "coordinateTransformations": [
+                        {
+                            "type": "sequence",
+                            "transformations": [
+                                {"type": "scale",
+                                 "scale": [0.01, 0.01, 0.01]}
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "path": "s1",
+                    "coordinateTransformations": [
+                        {
+                            "type": "sequence",
+                            "transformations": [
+                                {"type": "scale",
+                                 "scale": [0.025, 0.025, 0.025]}
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "axes": [
+                {"name": "z", "type": "space", "unit": "millimeter",
+                 "orientation": {"type": "anatomical",
+                                 "value": "anterior-to-posterior"}},
+                {"name": "y", "type": "space", "unit": "millimeter",
+                 "orientation": {"type": "anatomical",
+                                 "value": "dorsal-to-ventral"}},
+                {"name": "x", "type": "space", "unit": "millimeter",
+                 "orientation": {"type": "anatomical",
+                                 "value": "left-to-right"}}
+            ]
+        }
+    ]
+}

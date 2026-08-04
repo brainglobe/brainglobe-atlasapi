@@ -1,0 +1,33 @@
+{
+    "name": "allen_mouse",
+    "version": "3.0",
+    "location": "/atlases/allen_mouse_25um/3_0",
+    "citation": "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007",
+    "atlas_link": "http://www.brain-map.org",
+    "species": "Mus musculus",
+    "symmetric": true,
+    "resolution": [25.0, 25.0, 25.0],
+    "orientation": "asr",
+    "shape": [528, 320, 456],
+    "additional_references": [],
+    "terminology": {
+        "name": "allen_mouse-terminology",
+        "version": "3.0",
+        "location": "/terminologies/allen_mouse-terminology/3_0"
+    },
+    "annotation_set": {
+        "name": "allen_mouse-annotation",
+        "version": "3.0",
+        "location": "/annotation-sets/allen_mouse-annotation/3_0",
+        "template": {
+            "name": "allen-adult-mouse-stpt-template",
+            "version": "2015",
+            "location": "/templates/allen-adult-mouse-stpt-template/2015"
+        }
+    },
+    "template": {
+        "name": "allen-adult-mouse-stpt-template",
+        "version": "2015",
+        "location": "/templates/allen-adult-mouse-stpt-template/2015"
+    }
+}

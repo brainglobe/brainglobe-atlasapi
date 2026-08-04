@@ -6,7 +6,9 @@ from io import StringIO
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
+import numpy as np
 import s3fs
+import zarr
 from fsspec.callbacks import TqdmCallback
 from rich import print as rprint
 from rich.console import Console
@@ -90,6 +92,218 @@ def _resolve_remote_root(fs, atlas_name: str, roots) -> Tuple[str, str]:
     )
 
 
+SPECIES_BY_NAME_SEGMENT = {
+    "mouse": "Mus musculus",
+    "human": "Homo sapiens",
+    "marmoset": "Callithrix jacchus",
+    "rhesusmacaque": "Macaca mulatta",
+    "cynomolgusmacaque": "Macaca fascicularis",
+}
+
+# brainglobe-space origin letters, keyed by OME anatomical axis direction.
+_ORIGIN_BY_AXIS_DIRECTION = {
+    "anterior-to-posterior": "a",
+    "posterior-to-anterior": "p",
+    "superior-to-inferior": "s",
+    "inferior-to-superior": "i",
+    "dorsal-to-ventral": "s",
+    "ventral-to-dorsal": "i",
+    "left-to-right": "l",
+    "right-to-left": "r",
+}
+
+
+def _species_from_name(atlas_name: str) -> Optional[str]:
+    """Derive a binomial species name from an asset name.
+
+    The specification's name grammar is explicitly non-normative and is
+    not unambiguously parseable by position, so every segment is matched
+    against a fixed vocabulary instead.
+
+    Parameters
+    ----------
+    atlas_name : str
+        Asset name, e.g. ``"allen-adult-mouse-ccf-atlas"``.
+
+    Returns
+    -------
+    str or None
+        Binomial name, or None when no segment matches the vocabulary.
+    """
+    for segment in atlas_name.split("-"):
+        species = SPECIES_BY_NAME_SEGMENT.get(segment.lower())
+        if species is not None:
+            return species
+    return None
+
+
+def _orientation_from_axes(ome_attrs: dict) -> str:
+    """Derive a brainglobe-space origin from OME axis metadata.
+
+    Parameters
+    ----------
+    ome_attrs : dict
+        The ``attributes.ome`` block of a zarr group.
+
+    Returns
+    -------
+    str
+        Three-letter origin, e.g. ``"asl"``.
+
+    Raises
+    ------
+    KeyError
+        If an axis carries no recognised anatomical orientation.
+    """
+    axes = ome_attrs["multiscales"][0]["axes"]
+    letters = []
+    for axis in axes:
+        direction = axis.get("orientation", {}).get("value")
+        try:
+            letters.append(_ORIGIN_BY_AXIS_DIRECTION[direction])
+        except KeyError as e:
+            raise KeyError(
+                f"Axis {axis.get('name')!r} has unrecognised anatomical "
+                f"orientation {direction!r}."
+            ) from e
+    return "".join(letters)
+
+
+def _pyramid_level_from_attrs(
+    ome_attrs: dict, resolution: float
+) -> Tuple[int, str]:
+    """Find the pyramid level matching a resolution in micrometres.
+
+    Parameters
+    ----------
+    ome_attrs : dict
+        The ``attributes.ome`` block of a zarr group.
+    resolution : float
+        Requested isotropic resolution, in micrometres.
+
+    Returns
+    -------
+    tuple
+        The ``(index, dataset_path)`` of the matching level.
+
+    Raises
+    ------
+    ValueError
+        If no level matches the requested resolution.
+    """
+    datasets = ome_attrs["multiscales"][0]["datasets"]
+    for index, dataset in enumerate(datasets):
+        scales = core._scale_from_transforms(
+            dataset["coordinateTransformations"]
+        )[-3:]
+        if all(np.isclose(resolution / 1000, scale) for scale in scales):
+            return index, dataset["path"]
+
+    raise ValueError(
+        f"Requested resolution {resolution} um is invalid for this atlas."
+    )
+
+
+def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
+    """Return manifest metadata in the shape ``core.Atlas`` consumes.
+
+    BrainGlobe manifests are returned unchanged. atlas-assets manifests
+    are reshaped: the first template and annotation set are promoted to
+    singular keys, terminology is hoisted to the top level, and the
+    fields the specification does not carry are derived from the zarr
+    metadata and the asset name, or set to None.
+
+    Parameters
+    ----------
+    raw : dict
+        Parsed atlas ``manifest.json``.
+    resolution : float or None
+        Requested isotropic resolution, in micrometres. Required when
+        the manifest declares ``scales``.
+    root_dir : Path
+        Local cache namespace directory holding the downloaded assets.
+
+    Returns
+    -------
+    dict
+        Metadata in BrainGlobe's shape.
+
+    Raises
+    ------
+    ValueError
+        If ``resolution`` is missing, or not among the declared scales.
+    """
+    if not isinstance(raw.get("templates"), list):
+        if resolution is not None and not np.isclose(
+            resolution, raw["resolution"][0]
+        ):
+            raise ValueError(
+                f"Atlas {raw['name']} has a fixed resolution of "
+                f"{raw['resolution'][0]} um; {resolution} um was "
+                f"requested."
+            )
+        return raw
+
+    annotation_set = raw["annotation_sets"][0]
+    scales = annotation_set.get("scales", [])
+
+    if resolution is None:
+        raise ValueError(
+            f"Atlas {raw['name']} provides multiple resolutions. Pass "
+            f"resolution= to choose one of: {scales}."
+        )
+    if not any(np.isclose(resolution, scale) for scale in scales):
+        raise ValueError(
+            f"Resolution {resolution} um is not available for "
+            f"{raw['name']}. Available scales: {scales}."
+        )
+
+    annotation_location = annotation_set["location"][1:]
+    annotation_path = root_dir / annotation_location / V3_ANNOTATION_NAME
+    ome_attrs = zarr.open_group(str(annotation_path), mode="r").attrs["ome"]
+    level, dataset_path = _pyramid_level_from_attrs(ome_attrs, resolution)
+    shape = zarr.open_group(str(annotation_path), mode="r")[dataset_path].shape
+
+    return {
+        "name": raw["name"],
+        "version": raw["version"],
+        "location": raw["location"],
+        "citation": None,
+        "atlas_link": None,
+        "species": _species_from_name(raw["name"]),
+        "symmetric": False,
+        "resolution": [float(resolution)] * 3,
+        "orientation": _orientation_from_axes(ome_attrs),
+        "shape": list(shape[-3:]),
+        "additional_references": [],
+        "coordinate_space": raw["coordinate_space"],
+        "terminology": annotation_set["terminology"],
+        "annotation_set": annotation_set,
+        "template": raw["templates"][0],
+    }
+
+
+def _component(manifest: dict, key: str) -> dict:
+    """Return a component entry from either manifest shape.
+
+    Parameters
+    ----------
+    manifest : dict
+        Parsed atlas manifest, in either shape.
+    key : str
+        Either ``"annotation_set"`` or ``"template"``.
+
+    Returns
+    -------
+    dict
+        The component entry.
+    """
+    plural = {"annotation_set": "annotation_sets", "template": "templates"}
+    if isinstance(manifest.get(plural[key]), list):
+        return manifest[plural[key]][0]
+    return manifest[key]
+
+
 class BrainGlobeAtlas(core.Atlas):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
@@ -109,6 +323,9 @@ class BrainGlobeAtlas(core.Atlas):
     fn_update : Callable
         Handler function to update during download. Takes completed and total
         bytes.
+    resolution : float (optional)
+        Requested isotropic resolution in micrometres. Required for atlases
+        that declare multiple scales, ignored otherwise.
     """
 
     # Class-level fallback so a partially constructed instance (built via
@@ -128,7 +345,9 @@ class BrainGlobeAtlas(core.Atlas):
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
+        resolution: Optional[float] = None,
     ):
+        self._resolution = resolution
         self._remote_version = None
         self._remote_version_str = None
         self._local_version_str = None
@@ -209,8 +428,13 @@ class BrainGlobeAtlas(core.Atlas):
                     "download."
                 )
 
+        manifest_path = self.brainglobe_dir / self.local_full_name
+        metadata = _normalize_manifest(
+            read_json(manifest_path), self._resolution, self.brainglobe_dir
+        )
         super().__init__(
-            self.brainglobe_dir / self.local_full_name,
+            manifest_path,
+            metadata=metadata,
             remote_root=self._remote_root,
         )
 
@@ -360,7 +584,10 @@ class BrainGlobeAtlas(core.Atlas):
 
         try:
             # Download terminology file
-            terminology_location = self.metadata["terminology"]["location"][1:]
+            terminology = _component(self.metadata, "annotation_set")[
+                "terminology"
+            ]
+            terminology_location = terminology["location"][1:]
             local_terminology_path = self.brainglobe_dir / terminology_location
             if not local_terminology_path.exists():
                 remote_terminology_path = (
@@ -368,7 +595,7 @@ class BrainGlobeAtlas(core.Atlas):
                 )
                 print(
                     f"Downloading terminology metadata "
-                    f"for {self.metadata['terminology']['name']}:"
+                    f"for {terminology['name']}:"
                 )
                 self.fs.get(
                     remote_terminology_path,
@@ -398,9 +625,8 @@ class BrainGlobeAtlas(core.Atlas):
                 )
 
             # Download annotation metadata files
-            annotation_location = self.metadata["annotation_set"]["location"][
-                1:
-            ]
+            annotation_set = _component(self.metadata, "annotation_set")
+            annotation_location = annotation_set["location"][1:]
             local_annotation_path = self.brainglobe_dir / annotation_location
             if not local_annotation_path.exists():
                 root_metadata_path = (
@@ -411,7 +637,7 @@ class BrainGlobeAtlas(core.Atlas):
                 )
                 print(
                     f"Downloading annotation metadata "
-                    f"for {self.metadata['annotation_set']['name']}:"
+                    f"for {annotation_set['name']}:"
                 )
                 self.fs.get(
                     remote_root_metadata_path,
@@ -455,7 +681,13 @@ class BrainGlobeAtlas(core.Atlas):
                         f"v{remote_version_str}."
                     ) from e
 
-                if not self.metadata["symmetric"]:
+                hemispheres_remote = (
+                    f"{self._remote_root}/{annotation_location}"
+                    f"/{V3_HEMISPHERES_NAME}"
+                )
+                if not self.metadata.get(
+                    "symmetric", False
+                ) and self.fs.exists(hemispheres_remote):
                     root_hemisphere_path = (
                         annotation_location
                         + f"/{V3_HEMISPHERES_NAME}/**/*.json"
@@ -470,9 +702,8 @@ class BrainGlobeAtlas(core.Atlas):
                     )
 
             # Download template metadata files
-            template_location = self.metadata["annotation_set"]["template"][
-                "location"
-            ][1:]
+            template = _component(self.metadata, "template")
+            template_location = template["location"][1:]
             local_template_path = self.brainglobe_dir / template_location
             if not local_template_path.exists():
                 root_metadata_path = (
@@ -484,7 +715,7 @@ class BrainGlobeAtlas(core.Atlas):
 
                 print(
                     f"Downloading template metadata "
-                    f"for {self.metadata['template']['name']}:"
+                    f"for {template['name']}:"
                 )
                 self.fs.get(
                     remote_root_metadata_path,
@@ -508,8 +739,7 @@ class BrainGlobeAtlas(core.Atlas):
                         f"{self._remote_root}/{root_metadata_path}"
                     )
                     print(
-                        f"Downloading template metadata "
-                        f"for {self.metadata['template']['name']}:"
+                        f"Downloading template metadata " f"for {ref['name']}:"
                     )
                     self.fs.get(
                         remote_root_metadata_path,

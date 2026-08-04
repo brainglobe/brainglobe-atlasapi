@@ -1,0 +1,45 @@
+{
+    "name": "allen-adult-mouse-ccf-atlas",
+    "version": "2017",
+    "location": "/atlases/allen-adult-mouse-ccf-atlas/2017",
+    "schema_version": "0.1.0",
+    "coordinate_space": {
+        "name": "allen-adult-mouse-ccf-space",
+        "version": "2015",
+        "location": "/coordinate-spaces/allen-adult-mouse-ccf-space/2015",
+        "schema_version": "0.1.0"
+    },
+    "templates": [
+        {
+            "name": "allen-adult-mouse-stpt-template",
+            "version": "2015",
+            "location": "/templates/allen-adult-mouse-stpt-template/2015",
+            "schema_version": "0.1.0",
+            "scales": [10, 25, 50, 100]
+        }
+    ],
+    "annotation_sets": [
+        {
+            "name": "allen-adult-mouse-annotation",
+            "version": "2017",
+            "location": "/annotation-sets/allen-adult-mouse-annotation/2017",
+            "schema_version": "0.1.0",
+            "terminology": {
+                "name": "allen-adult-mouse-terminology",
+                "version": "2017",
+                "location":
+                    "/terminologies/allen-adult-mouse-terminology/2017",
+                "schema_version": "0.1.0"
+            },
+            "scales": [10, 25, 50, 100],
+            "template": {
+                "name": "allen-adult-mouse-stpt-template",
+                "version": "2015",
+                "location":
+                    "/templates/allen-adult-mouse-stpt-template/2015",
+                "schema_version": "0.1.0",
+                "scales": [10, 25, 50, 100]
+            }
+        }
+    ]
+}

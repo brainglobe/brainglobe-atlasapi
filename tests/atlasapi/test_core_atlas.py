@@ -3,7 +3,6 @@
 import contextlib
 import shutil
 from io import StringIO
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import ngff_zarr as nz
@@ -617,7 +616,10 @@ def test_scale_from_transforms_missing():
 
 
 def test_hemispheres_synthesized_when_asset_absent(atlas, monkeypatch):
-    """An asymmetric atlas with no asset synthesizes rather than fetching.
+    """An asymmetric atlas synthesizes when the bucket holds no asset.
+
+    The example atlas has no cached hemispheres asset, so forcing the
+    bucket check to report absence exercises the synthesis branch.
 
     Parameters
     ----------
@@ -633,7 +635,7 @@ def test_hemispheres_synthesized_when_asset_absent(atlas, monkeypatch):
         raise AssertionError("no remote fetch should be attempted")
 
     monkeypatch.setattr(atlas.fs, "get", fail)
-    monkeypatch.setattr(Path, "exists", lambda self: False)
+    monkeypatch.setattr(atlas.fs, "exists", lambda path: False)
 
     hemispheres = atlas.hemispheres
 

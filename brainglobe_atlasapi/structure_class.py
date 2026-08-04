@@ -13,14 +13,22 @@ import meshio as mio
 import s3fs
 from fsspec.callbacks import TqdmCallback
 
-from brainglobe_atlasapi.descriptors import remote_url_s3
+from brainglobe_atlasapi.descriptors import DEFAULT_REMOTE_ROOT
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 class Structure(UserDict):
     """Class implementing the lazy loading of a mesh if the dictionary is
     queried for it.
+
+    Attributes
+    ----------
+    remote_root : str
+        Remote root the mesh is fetched from. Set per instance by
+        `StructuresDict`; defaults to the BrainGlobe bucket.
     """
+
+    remote_root = DEFAULT_REMOTE_ROOT
 
     def __getitem__(self, item):
         """
@@ -79,7 +87,7 @@ class Structure(UserDict):
     def _download_mesh(self, file_name: Path) -> None:
         """Download the mesh from the remote S3 bucket if it is not cached."""
         root_path = "/".join(str(file_name).split(os.sep)[-6:])
-        remote_mesh_path = remote_url_s3.format(root_path)
+        remote_mesh_path = f"{self.remote_root}/{root_path}"
         fs = s3fs.S3FileSystem(anon=True)
 
         if not fs.exists(remote_mesh_path):
@@ -125,9 +133,12 @@ class StructuresDict(UserDict):
     ----------
     mesh_path : str or Path object
         path to folder containing all meshes .obj files
+    remote_root : str or None
+        Remote root the meshes are fetched from; defaults to the
+        BrainGlobe bucket.
     """
 
-    def __init__(self, structures_list):
+    def __init__(self, structures_list, remote_root=None):
         super().__init__()
 
         # Acronym to id map:
@@ -137,7 +148,9 @@ class StructuresDict(UserDict):
 
         for struct in structures_list:
             sid = struct["id"]
-            self.data[sid] = Structure(**struct, mesh=None)
+            structure = Structure(**struct, mesh=None)
+            structure.remote_root = remote_root or DEFAULT_REMOTE_ROOT
+            self.data[sid] = structure
 
         self.tree = get_structures_tree(structures_list)
 

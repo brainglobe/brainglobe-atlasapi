@@ -3,7 +3,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import brainglobe_space as bgs
 import dask.array as da
@@ -122,10 +122,7 @@ def _insert_into_multiscale(
     stack_list = [
         resolution_to_data[res].astype(dtype) for res in merged_resolutions
     ]
-    new_transformations = [
-        [{"type": "scale", "scale": list(res_tuple)}]
-        for res_tuple in merged_resolutions
-    ]
+    new_transformations = _transformations_from_scales(merged_resolutions)
 
     write_multiscale_ome_zarr(
         images=stack_list,
@@ -135,12 +132,48 @@ def _insert_into_multiscale(
     )
 
 
-def _build_transformations(
-    resolution_standard: ResolutionList,
+def _transformations_from_scales(
+    scales: Sequence[Sequence[float]],
 ) -> List[List[dict]]:
+    """Build OME-Zarr coordinate transformations from per-level scales.
+
+    Parameters
+    ----------
+    scales : sequence of sequences of float
+        Scale (voxel size) per axis for each pyramid level, ordered from
+        highest to lowest resolution.
+    """
+    scales = [list(level) for level in scales]
+    if not scales:
+        raise ValueError(
+            "scales must be a non-empty sequence of per-level scales"
+        )
+
+    ndim = len(scales[0])
+    if any(len(level) != ndim for level in scales):
+        raise ValueError(f"All scale levels must have {ndim} axes: {scales}")
+
+    if any(
+        any(curr < prev for curr, prev in zip(scales[i], scales[i - 1]))
+        for i in range(1, len(scales))
+    ):
+        raise ValueError(
+            f"Resolutions must be ordered from highest to lowest: {scales}"
+        )
+
+    base = scales[0]
     return [
-        [{"type": "scale", "scale": [res / 1000 for res in res_tuple]}]
-        for res_tuple in resolution_standard
+        [
+            {"type": "scale", "scale": list(level)},
+            {
+                "type": "translation",
+                "translation": [
+                    round((scale - reference) / 2, 9)
+                    for scale, reference in zip(level, base)
+                ],
+            },
+        ]
+        for level in scales
     ]
 
 
@@ -544,10 +577,9 @@ def _save_4d_annotation_data(
     structures_tree = get_structures_tree(packaging_data.structures_list)
     mapping = _generate_annotation_mapping(structures_tree)
 
-    transformations_4d = [
-        [{"type": "scale", "scale": [1.0] + t[0]["scale"]}]
-        for t in transformations
-    ]
+    transformations_4d = _transformations_from_scales(
+        [[1.0] + t[0]["scale"] for t in transformations]
+    )
 
     masks_path = dest_dir / descriptors.V3_ANNOTATION_MASKS_NAME
     scratch_dir = dest_dir / ".mask_scratch"
@@ -648,10 +680,9 @@ def _insert_into_4d_masks(
         )
 
         merged_stack = [resolution_to_data[res] for res in merged_resolutions]
-        transformations_4d = [
-            [{"type": "scale", "scale": [1.0] + list(res)}]
-            for res in merged_resolutions
-        ]
+        transformations_4d = _transformations_from_scales(
+            [[1.0] + list(res) for res in merged_resolutions]
+        )
 
         save_annotation_masks(merged_stack, target_dir, transformations_4d)
 
@@ -1040,7 +1071,9 @@ def wrapup_atlas_from_data(
         additional_metadata=additional_metadata,
     )
 
-    transformations = _build_transformations(packaging_data.resolution)
+    transformations = _transformations_from_scales(
+        [[res / 1000 for res in t] for t in packaging_data.resolution]
+    )
 
     template_multiscale = _save_template_data(
         packaging_data,

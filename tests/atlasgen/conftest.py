@@ -4,29 +4,31 @@ Provide commonly used fixtures and setup for testing `brainglobe_atlasapi`
 functionality.
 """
 
-from pathlib import Path
-
 import pytest
 
 from brainglobe_atlasapi import BrainGlobeAtlas
+from brainglobe_atlasapi.list_atlases import (
+    get_downloaded_atlases,
+)
 
 
-@pytest.fixture(autouse=True)
-def setup_preexisting_local_atlases():
+@pytest.fixture(autouse=True, scope="session")
+def setup_preexisting_local_atlases(mock_brainglobe_user_folders):
     """Set up all tests to have three downloaded atlases in the test user data.
 
     Automatically downloads and sets up predefined atlases for testing
     purposes, ensuring they are available locally before test execution.
     """
     preexisting_atlases = [
-        ("example_mouse_100um", "v1.2"),
-        ("allen_mouse_100um", "v1.2"),
-        ("kim_dev_mouse_e11-5_mri-adc_31.5um", "v1.3"),
+        "example_mouse_100um",
+        "allen_mouse_100um",
+        "kim_dev_mouse_e11-5_mri-adc_31.5um",
     ]
-    for atlas_name, version in preexisting_atlases:
-        if not Path.exists(
-            Path.home() / f".brainglobe/{atlas_name}_{version}"
-        ):
+
+    local_atlases = get_downloaded_atlases()
+
+    for atlas_name in preexisting_atlases:
+        if atlas_name not in local_atlases:
             _ = BrainGlobeAtlas(atlas_name)
 
 

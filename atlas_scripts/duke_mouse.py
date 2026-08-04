@@ -178,13 +178,16 @@ def retrieve_structure_information(annotation):
         }
     ]
     for row in labels.itertuples(index=False):
-        label_name = row.name.removesuffix("_left")
-        _, name = label_name.split("__", maxsplit=1)
+        acronym_and_name = row.name.removesuffix("_left")
+        (
+            acronym,
+            label_name,
+        ) = acronym_and_name.split("__", maxsplit=1)
         structures.append(
             {
                 "id": row.id,
-                "name": name.replace("_", " "),
-                "acronym": label_name,
+                "name": label_name.replace,
+                "acronym": acronym,
                 "structure_id_path": [ROOT_ID, row.id],
                 "rgb_triplet": [row.r, row.g, row.b],
             }

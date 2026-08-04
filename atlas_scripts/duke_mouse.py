@@ -1,19 +1,16 @@
 """Package the Duke Mouse Brain Atlas for BrainGlobe."""
 
-import csv
 import zipfile
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pooch
 import SimpleITK as sitk
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
-)
-from brainglobe_atlasapi.atlas_generation.structures import (
-    check_struct_consistency,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
@@ -59,72 +56,13 @@ REFERENCE_FILES = {
 ANNOTATION_STEM = "DMBA_RCCF_labels_M4D"
 ANNOTATION_PATH = SOURCE_DATA_DIR / f"{ANNOTATION_STEM}.nhdr"
 STRUCTURES_ZIP_PATH = SOURCE_DATA_DIR / f"{ANNOTATION_STEM}.zip"
-LABELS_TXT = "DMBA_RCCF_labels.txt"
-LOOKUP_TXT = "DMBA_RCCF_labels_lookup.txt"
+LABEL_FILE = "DMBA_RCCF.label"
 
-NEGATIVE_STRUCTURE_ID_OFFSET = 1_000_000
 MESH_NUM_THREADS = 6
 
 
-def _is_number(value):
-    """Return whether a lookup-table value contains a number."""
-    value = (value or "").strip()
-    if not value or value == "NaN":
-        return False
-
-    try:
-        float(value)
-    except ValueError:
-        return False
-    return True
-
-
-def _structure_id_path(
-    ontology_id,
-    canonical_rows,
-    ontology_to_atlas_id,
-    path_cache,
-):
-    """Return a BrainGlobe structure path from RCCF parent links."""
-    if ontology_id == ROOT_ID:
-        return [ROOT_ID]
-    if ontology_id in path_cache:
-        return path_cache[ontology_id]
-
-    row = canonical_rows[ontology_id]
-    if _is_number(row["parent_structure_id"]):
-        parent_id = int(float(row["parent_structure_id"]))
-    else:
-        parent_id = ROOT_ID
-
-    parent_path = _structure_id_path(
-        parent_id, canonical_rows, ontology_to_atlas_id, path_cache
-    )
-    path = [*parent_path, ontology_to_atlas_id[ontology_id]]
-    path_cache[ontology_id] = path
-    return path
-
-
-def _strip_laterality(text):
-    """Remove source left/right suffixes from names and acronyms."""
-    text = text.strip()
-    for suffix in (
-        " (left)",
-        " (right)",
-        "_left",
-        "_right",
-        " left",
-        " right",
-        "-L",
-        "-R",
-    ):
-        if text.endswith(suffix):
-            return text[: -len(suffix)].strip()
-    return text
-
-
 def download_resources():
-    """Download the necessary DMBA source files with Pooch."""
+    """Download the necessary resources for the atlas using Pooch."""
     downloads = [
         (
             f"{DOWNLOAD_BASE_URL}{ANNOTATION_STEM}.zip",
@@ -165,134 +103,71 @@ def download_resources():
         )
 
 
-def retrieve_structure_information():
-    """Return bilateral RCCF structures and the voxel-label ID mapping."""
-    if not STRUCTURES_ZIP_PATH.exists():
-        raise FileNotFoundError(
-            f"Expected downloaded RCCF metadata was not found: "
-            f"{STRUCTURES_ZIP_PATH}"
-        )
+def retrieve_reference_and_annotation():
+    """Retrieve the reference and annotation volumes.
 
+    Returns
+    -------
+    tuple[numpy.ndarray, numpy.ndarray]
+        The main reference volume and the lateral annotation volume.
+    """
+    directory, filename = REFERENCE_FILES["md"]
+    path = SOURCE_DATA_DIR / directory / f"{filename}.nhdr"
+    reference = sitk.GetArrayFromImage(sitk.ReadImage(str(path)))
+    reference = reference.astype(np.float32, copy=False)
+    reference -= reference.min()
+    reference *= np.iinfo(np.uint16).max / reference.max()
+    reference = np.rint(reference).astype(np.uint16)
+
+    annotation = sitk.GetArrayFromImage(sitk.ReadImage(str(ANNOTATION_PATH)))
+    annotation = annotation.astype(np.uint32, copy=False)
+    return reference, annotation
+
+
+def retrieve_hemisphere_map(annotation):
+    """Retrieve a hemisphere map for the atlas.
+
+    Parameters
+    ----------
+    annotation : numpy.ndarray
+        The lateral annotation volume.
+
+    Returns
+    -------
+    numpy.ndarray
+        A map where 1 marks left and 2 marks right labeled voxels.
+    """
+    hemispheres = np.zeros(annotation.shape, dtype=np.uint8)
+    hemispheres[(annotation > 0) & (annotation < 1000)] = 1
+    hemispheres[annotation >= 1000] = 2
+    return hemispheres
+
+
+def retrieve_structure_information(annotation):
+    """Return information about structures present in the annotation.
+
+    Parameters
+    ----------
+    annotation : numpy.ndarray
+        The bilateral annotation volume.
+
+    Returns
+    -------
+    list[dict]
+        Structure IDs, names, acronyms, paths, and RGB colors.
+    """
     with zipfile.ZipFile(STRUCTURES_ZIP_PATH) as label_zip:
-        labels_text = label_zip.read(LABELS_TXT).decode()
-        label_ids = {
-            int(line.split(maxsplit=1)[0])
-            for line in labels_text.splitlines()
-            if line.strip()
-        }
-        label_ids.discard(0)
-
-        lookup_text = label_zip.read(LOOKUP_TXT).decode(
-            "utf-8", errors="replace"
+        labels = pd.read_csv(
+            label_zip.open(LABEL_FILE),
+            sep=r"\s+",
+            header=None,
+            usecols=[0, 1, 2, 3, 7],
+            names=["id", "r", "g", "b", "name"],
         )
 
-    lines = lookup_text.splitlines()
-    header_index = next(
-        index for index, line in enumerate(lines) if line.startswith("# ROI\t")
-    )
-    header = lines[header_index].lstrip("# ").split("\t")
-    data_lines = [
-        line
-        for line in lines[header_index + 3 :]
-        if line.strip() and not line.startswith("#")
+    labels = labels[
+        labels["id"].isin(np.unique(annotation)) & (labels["id"] != 0)
     ]
-    lookup_rows = list(
-        csv.DictReader(data_lines, fieldnames=header, delimiter="\t")
-    )
-
-    rows_by_ontology_id = {}
-    for row in lookup_rows:
-        if _is_number(row["structure_id"]):
-            ontology_id = int(float(row["structure_id"]))
-            rows_by_ontology_id.setdefault(ontology_id, []).append(row)
-
-    canonical_rows = {
-        ontology_id: min(
-            rows,
-            key=lambda row: (
-                row["Structure"].strip().endswith(("_left", "_right")),
-                _is_number(row["ROI"]),
-                row["Structure"].strip(),
-            ),
-        )
-        for ontology_id, rows in rows_by_ontology_id.items()
-    }
-
-    label_to_ontology_id = {}
-    for row in lookup_rows:
-        if not _is_number(row["ROI"]):
-            continue
-
-        label_id = int(float(row["ROI"]))
-        if label_id in label_ids:
-            label_to_ontology_id[label_id] = int(float(row["structure_id"]))
-
-    missing_labels = sorted(label_ids - set(label_to_ontology_id))
-    if missing_labels:
-        raise ValueError(
-            f"Missing RCCF lookup rows for labels: {missing_labels}"
-        )
-
-    ontology_ids = {ROOT_ID, *label_to_ontology_id.values()}
-    changed = True
-    while changed:
-        changed = False
-        for ontology_id in list(ontology_ids):
-            row = canonical_rows.get(ontology_id)
-            if row is None:
-                continue
-
-            ancestor_ids = []
-            if _is_number(row["parent_structure_id"]):
-                ancestor_ids.append(int(float(row["parent_structure_id"])))
-            if row["id_path"].strip():
-                ancestor_ids.extend(
-                    int(float(path_id))
-                    for path_id in row["id_path"].strip("/").split("/")
-                    if _is_number(path_id)
-                )
-
-            for ancestor_id in ancestor_ids:
-                if ancestor_id not in ontology_ids:
-                    ontology_ids.add(ancestor_id)
-                    changed = True
-
-    missing_ancestors = sorted(
-        ontology_id
-        for ontology_id in ontology_ids
-        if ontology_id not in canonical_rows and ontology_id != ROOT_ID
-    )
-    if missing_ancestors:
-        raise ValueError(
-            f"Missing RCCF ontology rows for ancestors: {missing_ancestors}"
-        )
-
-    ontology_to_atlas_id = {
-        ontology_id: (
-            ontology_id
-            if ontology_id > 0
-            else NEGATIVE_STRUCTURE_ID_OFFSET + abs(ontology_id)
-        )
-        for ontology_id in ontology_ids
-    }
-
-    atlas_id_to_ontology_ids = {}
-    for ontology_id, atlas_id in ontology_to_atlas_id.items():
-        atlas_id_to_ontology_ids.setdefault(atlas_id, []).append(ontology_id)
-
-    duplicate_atlas_ids = {
-        atlas_id: source_ids
-        for atlas_id, source_ids in atlas_id_to_ontology_ids.items()
-        if len(source_ids) > 1
-    }
-    if duplicate_atlas_ids:
-        raise ValueError(f"Duplicate RCCF atlas IDs: {duplicate_atlas_ids}")
-
-    label_to_atlas_id = {
-        label_id: ontology_to_atlas_id[ontology_id]
-        for label_id, ontology_id in label_to_ontology_id.items()
-    }
-
     structures = [
         {
             "id": ROOT_ID,
@@ -302,139 +177,37 @@ def retrieve_structure_information():
             "rgb_triplet": [255, 255, 255],
         }
     ]
-
-    path_cache = {ROOT_ID: [ROOT_ID]}
-    seen_acronyms = {"root"}
-    for ontology_id in sorted(
-        ontology_ids,
-        key=lambda source_id: _structure_id_path(
-            source_id, canonical_rows, ontology_to_atlas_id, path_cache
-        ),
-    ):
-        if ontology_id == ROOT_ID:
-            continue
-
-        row = canonical_rows[ontology_id]
-        source_name = row["Structure"].strip()
-        if "__" in source_name:
-            _, source_name = source_name.split("__", maxsplit=1)
-        source_name = _strip_laterality(source_name.replace("_", " "))
-
-        if "uncharted" in source_name.lower():
-            name = source_name
-        elif row["ARA_name"].strip():
-            name = row["ARA_name"].strip()
-        elif row["GN_Description"].strip():
-            name = _strip_laterality(row["GN_Description"])
-        else:
-            name = source_name
-
-        if row["ARA_abbrev"].strip():
-            acronym = row["ARA_abbrev"].strip()
-        elif row["GN_Symbol"].strip():
-            acronym = _strip_laterality(row["GN_Symbol"])
-        else:
-            acronym = row["Structure"].split("__", maxsplit=1)[0]
-            acronym = _strip_laterality(acronym)
-
-        if acronym in seen_acronyms:
-            suffix = "uncharted" if "uncharted" in name else "rccf"
-            deduplicated = f"{acronym}-{suffix}"
-            if deduplicated in seen_acronyms:
-                deduplicated = f"{acronym}-{ontology_to_atlas_id[ontology_id]}"
-            acronym = deduplicated
-        seen_acronyms.add(acronym)
-
+    for row in labels.itertuples(index=False):
+        label_name = row.name.removesuffix("_left")
+        _, name = label_name.split("__", maxsplit=1)
         structures.append(
             {
-                "id": ontology_to_atlas_id[ontology_id],
-                "name": name,
-                "acronym": acronym,
-                "structure_id_path": _structure_id_path(
-                    ontology_id,
-                    canonical_rows,
-                    ontology_to_atlas_id,
-                    path_cache,
-                ),
-                "rgb_triplet": [
-                    int(row["c_r"]),
-                    int(row["c_g"]),
-                    int(row["c_b"]),
-                ],
+                "id": row.id,
+                "name": name.replace("_", " "),
+                "acronym": label_name,
+                "structure_id_path": [ROOT_ID, row.id],
+                "rgb_triplet": [row.r, row.g, row.b],
             }
         )
 
-    check_struct_consistency(structures)
-    return structures, label_to_atlas_id
-
-
-def retrieve_reference_and_annotation(label_to_atlas_id):
-    """Return the main template, annotation, and additional MR contrasts."""
-    references = {}
-    reference_shape = None
-    for name, (directory, filename) in REFERENCE_FILES.items():
-        path = SOURCE_DATA_DIR / directory / f"{filename}.nhdr"
-        if not path.exists():
-            raise FileNotFoundError(
-                f"Expected downloaded DMBA file was not found: {path}"
-            )
-
-        reference = sitk.GetArrayFromImage(sitk.ReadImage(str(path)))
-        if not np.all(np.isfinite(reference)):
-            raise ValueError(f"Reference {name!r} contains non-finite values.")
-
-        if reference_shape is None:
-            reference_shape = reference.shape
-        elif reference.shape != reference_shape:
-            raise ValueError(
-                f"Additional reference {name!r} shape does not match "
-                f"the main reference: {reference.shape} != {reference_shape}"
-            )
-
-        reference = reference.astype(np.float32, copy=False)
-        minimum = float(reference.min())
-        value_range = float(reference.max()) - minimum
-        if value_range == 0:
-            raise ValueError(f"Reference {name!r} has zero intensity range.")
-
-        reference -= minimum
-        reference *= np.iinfo(np.uint16).max / value_range
-        references[name] = np.rint(reference).astype(np.uint16)
-
-    # Release the final float stack before loading and remapping the
-    # annotation.
-    del reference
-
-    if not ANNOTATION_PATH.exists():
-        raise FileNotFoundError(
-            f"Expected downloaded DMBA file was not found: {ANNOTATION_PATH}"
-        )
-    annotation = sitk.GetArrayFromImage(sitk.ReadImage(str(ANNOTATION_PATH)))
-    if annotation.shape != reference_shape:
-        raise ValueError(
-            "Reference and annotation shapes do not match: "
-            f"{reference_shape} != {annotation.shape}"
-        )
-
-    annotation = annotation.astype(np.uint32, copy=False)
-    annotation_labels = set(np.unique(annotation).astype(int))
-    missing_labels = sorted(annotation_labels - {0} - set(label_to_atlas_id))
-    if missing_labels:
-        raise ValueError(
-            f"Missing RCCF ontology mapping for labels: {missing_labels}"
-        )
-
-    label_lut = np.zeros(int(annotation.max()) + 1, dtype=np.uint32)
-    for label_id, atlas_id in label_to_atlas_id.items():
-        label_lut[label_id] = atlas_id
-    annotation = label_lut[annotation]
-
-    reference = references.pop("md")
-    return reference, annotation, references
+    return structures
 
 
 def retrieve_or_construct_meshes(annotated_volume, structures):
-    """Construct all structure meshes and return their file paths."""
+    """Construct structure meshes and return their file paths.
+
+    Parameters
+    ----------
+    annotated_volume : numpy.ndarray
+        The bilateral annotation volume.
+    structures : list[dict]
+        Structure information for the atlas.
+
+    Returns
+    -------
+    dict
+        A mapping from structure IDs to mesh file paths.
+    """
     meshes_dict = construct_meshes_from_annotation(
         save_path=BG_ROOT_DIR,
         volume=annotated_volume,
@@ -446,13 +219,28 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         num_threads=MESH_NUM_THREADS,
         verbosity=0,
     )
-
-    mesh_ids = [structure["id"] for structure in structures]
-    missing_mesh_ids = sorted(set(mesh_ids) - set(meshes_dict))
-    if missing_mesh_ids:
-        raise ValueError(f"Could not create meshes for: {missing_mesh_ids}")
-
     return meshes_dict
+
+
+def retrieve_additional_references():
+    """Retrieve the additional reference images.
+
+    Returns
+    -------
+    dict
+        A mapping from contrast names to image stacks.
+    """
+    references = {}
+    for name, (directory, filename) in REFERENCE_FILES.items():
+        if name == "md":
+            continue
+        path = SOURCE_DATA_DIR / directory / f"{filename}.nhdr"
+        reference = sitk.GetArrayFromImage(sitk.ReadImage(str(path)))
+        reference = reference.astype(np.float32, copy=False)
+        reference -= reference.min()
+        reference *= np.iinfo(np.uint16).max / reference.max()
+        references[name] = np.rint(reference).astype(np.uint16)
+    return references
 
 
 if __name__ == "__main__":
@@ -466,10 +254,12 @@ if __name__ == "__main__":
         )
 
     download_resources()
-    structures, label_to_atlas_id = retrieve_structure_information()
-    reference_volume, annotated_volume, additional_references = (
-        retrieve_reference_and_annotation(label_to_atlas_id)
-    )
+    reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    additional_references = retrieve_additional_references()
+    hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
+    annotated_volume[annotated_volume >= 1000] -= 1000
+    structures = retrieve_structure_information(annotated_volume)
+    print(structures)
     meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)
 
     output_filename = wrapup_atlas_from_data(
@@ -487,7 +277,7 @@ if __name__ == "__main__":
         meshes_dict=meshes_dict,
         working_dir=BG_ROOT_DIR,
         atlas_packager=ATLAS_PACKAGER,
-        hemispheres_stack=None,
+        hemispheres_stack=hemispheres_stack,
         scale_meshes=True,
         additional_references=additional_references,
     )

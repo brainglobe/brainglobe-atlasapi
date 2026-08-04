@@ -34,6 +34,7 @@ def mock_brainglobe_user_folders():
     GitHub Actions workflow will test with default user folders.
     """
     if os.getenv("GITHUB_ACTIONS"):
+        yield
         return
 
     with pytest.MonkeyPatch.context() as monkeypatch:

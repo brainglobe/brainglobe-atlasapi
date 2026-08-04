@@ -172,6 +172,40 @@ def test_data_from_coords(atlas, coords):
     )
 
 
+def test_hemispheres_available_by_default(atlas):
+    """Hemispheres should be present for a standard atlas.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
+    assert atlas.metadata.get("hemispheres_available", True) is True
+    assert atlas.hemispheres is not None
+
+
+@pytest.mark.parametrize("coords", [[39.0, 36.0, 57.0], (39, 36, 57)])
+def test_hemispheres_none_when_unavailable(atlas, coords):
+    """Hemispheres should be None when unavailable for the atlas.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    coords : list or tuple
+        Coordinates to query.
+    """
+    atlas.metadata["hemispheres_available"] = False
+    atlas._hemispheres = None
+
+    assert atlas.hemispheres is None
+
+    with pytest.warns(UserWarning, match="Hemisphere information"):
+        assert atlas.hemisphere_from_coords(coords) is None
+    with pytest.warns(UserWarning, match="Hemisphere information"):
+        assert atlas.hemisphere_from_coords(coords, as_string=True) is None
+
+
 def test_data_from_coords_out_of_brain(
     atlas,
 ):

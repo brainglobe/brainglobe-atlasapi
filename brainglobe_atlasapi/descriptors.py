@@ -29,6 +29,7 @@ METADATA_TEMPLATE = {
     "atlas_link": "http://www.example.com",
     "species": "Gen species",
     "symmetric": False,
+    "hemispheres_available": True,
     "resolution": [1.0, 1.0, 1.0],
     "orientation": "asr",
     "shape": [100, 50, 100],

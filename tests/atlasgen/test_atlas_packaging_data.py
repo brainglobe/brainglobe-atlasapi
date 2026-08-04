@@ -835,6 +835,30 @@ def test_atlas_packaging_data_asymmetric_uses_provided_hemispheres(
     assert np.array_equal(data.hemispheres_stack[0], hemispheres)
 
 
+def test_atlas_packaging_data_no_hemispheres_when_unavailable(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData skips hemispheres when unavailable.
+
+    When hemispheres_available is False, no hemisphere stack is generated
+    (even without a provided stack) and the atlas is not treated as symmetric.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    atlas_packaging_kwargs["hemispheres_available"] = False
+    data = AtlasPackagingData(**atlas_packaging_kwargs)
+    assert data.symmetric is False
+    assert data.hemispheres_stack is None
+
+
 def test_atlas_packaging_data_calls_check_requested_component(
     mocker, atlas_packaging_kwargs
 ):

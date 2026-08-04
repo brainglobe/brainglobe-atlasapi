@@ -346,7 +346,9 @@ class BrainGlobeAtlas(core.Atlas):
                         f"v{remote_version_str.replace('_', '.')}."
                     ) from e
 
-                if not self.metadata["symmetric"]:
+                if not self.metadata["symmetric"] and self.metadata.get(
+                    "hemispheres_available", True
+                ):
                     root_hemisphere_path = (
                         annotation_location
                         + f"/{V3_HEMISPHERES_NAME}/**/*.json"

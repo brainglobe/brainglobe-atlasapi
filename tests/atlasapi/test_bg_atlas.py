@@ -1,12 +1,13 @@
 """Test the BrainGlobeAtlas class."""
 
 import shutil
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
 import brainglobe_atlasapi
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+from brainglobe_atlasapi.descriptors import V3_HEMISPHERES_NAME
 
 
 def test_versions(atlas):
@@ -22,6 +23,52 @@ def test_remote_version_connection_error():
         atlas = object.__new__(BrainGlobeAtlas)
         atlas._remote_version = None
         assert atlas.remote_version is None
+
+
+def test_download_skips_unavailable_hemispheres(tmp_path, monkeypatch):
+    """Do not request hemisphere metadata when an atlas has none."""
+    metadata = {
+        "terminology": {
+            "name": "test-terminology",
+            "location": "/terminologies/test/1_0",
+        },
+        "coordinate_space": {
+            "name": "test-space",
+            "location": "/coordinate-spaces/test/1_0",
+        },
+        "annotation_set": {
+            "name": "test-annotation",
+            "location": "/annotation-sets/test/1_0",
+            "template": {"location": "/templates/test/1_0"},
+        },
+        "template": {"name": "test-template"},
+        "additional_references": [],
+        "symmetric": False,
+        "hemispheres_available": False,
+    }
+
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas._remote_version = (1, 0)
+    atlas._local_full_name = None
+    atlas.atlas_name = "test_mouse_100um"
+    atlas.brainglobe_dir = tmp_path
+    atlas.fs = MagicMock()
+
+    monkeypatch.setattr(
+        brainglobe_atlasapi.bg_atlas,
+        "check_s3_status",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        brainglobe_atlasapi.bg_atlas,
+        "read_json",
+        lambda path: metadata,
+    )
+
+    atlas.download()
+
+    requested_paths = [call.args[0] for call in atlas.fs.get.call_args_list]
+    assert not any(V3_HEMISPHERES_NAME in path for path in requested_paths)
 
 
 @pytest.mark.parametrize(

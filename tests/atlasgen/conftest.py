@@ -14,7 +14,7 @@ from brainglobe_atlasapi.list_atlases import (
 
 
 @pytest.fixture(autouse=True, scope="session")
-def setup_preexisting_local_atlases():
+def setup_preexisting_local_atlases(mock_brainglobe_user_folders):
     """Set up all tests to have three downloaded atlases in the test user data.
 
     Automatically downloads and sets up predefined atlases for testing

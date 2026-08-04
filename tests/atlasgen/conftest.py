@@ -9,7 +9,6 @@ import pytest
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.list_atlases import (
     get_downloaded_atlases,
-    get_local_atlas_version,
 )
 
 
@@ -21,16 +20,15 @@ def setup_preexisting_local_atlases(mock_brainglobe_user_folders):
     purposes, ensuring they are available locally before test execution.
     """
     preexisting_atlases = [
-        ("example_mouse_100um", "3.0"),
-        ("allen_mouse_100um", "3.0"),
-        ("kim_dev_mouse_e11-5_mri-adc_31.5um", "3.0"),
+        "example_mouse_100um",
+        "allen_mouse_100um",
+        "kim_dev_mouse_e11-5_mri-adc_31.5um",
     ]
 
     local_atlases = get_downloaded_atlases()
 
-    for atlas_name, version in preexisting_atlases:
-        local_version = get_local_atlas_version(atlas_name)
-        if (atlas_name not in local_atlases) or (local_version != version):
+    for atlas_name in preexisting_atlases:
+        if atlas_name not in local_atlases:
             _ = BrainGlobeAtlas(atlas_name)
 
 

@@ -4,9 +4,13 @@ import copy
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
+import s3fs
+import zarr
 
-from brainglobe_atlasapi import bg_atlas
+from brainglobe_atlasapi import bg_atlas, descriptors
+from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -169,3 +173,105 @@ def test_resolution_rejected_when_it_contradicts_manifest():
     with pytest.raises(ValueError) as error:
         bg_atlas._normalize_manifest(raw, 10, Path("."))
     assert "25.0" in str(error.value)
+
+
+ATLAS_ASSETS_NAME = "allen-adult-mouse-ccf-atlas"
+
+_ANNOTATION_SET = (
+    f"{descriptors.ATLAS_ASSETS_REMOTE_ROOT}/annotation-sets"
+    f"/allen-adult-mouse-annotation/2017"
+)
+
+ATLAS_ASSETS_SPATIAL_ASSETS = {
+    # 4-D (channel, z, y, x), so this also exercises the [-3:] axis guard.
+    "annotation": f"{_ANNOTATION_SET}/{descriptors.V3_ANNOTATION_NAME}",
+    "annotation_masks": (
+        f"{_ANNOTATION_SET}/{descriptors.V3_ANNOTATION_MASKS_NAME}"
+    ),
+    "template": (
+        f"{descriptors.ATLAS_ASSETS_REMOTE_ROOT}/templates"
+        f"/allen-adult-mouse-stpt-template/2015"
+        f"/{descriptors.V3_TEMPLATE_NAME}"
+    ),
+}
+
+# The bucket's zarrs declare OME-Zarr "0.6.dev3". No released ngff-zarr
+# accepts that string, and rewriting it to "0.6" fails differently -- the
+# metadata predates 0.6's required `coordinateSystems` block. Every test
+# that builds a BrainGlobeAtlas from this bucket therefore cannot pass
+# until the bucket is republished against released OME-Zarr 0.6. They are
+# strict xfails so the suite stays green now and fails loudly, as XPASS,
+# the moment that happens.
+blocked_on_ome_version = pytest.mark.xfail(
+    strict=True,
+    reason="atlas-assets bucket declares OME-Zarr 0.6.dev3; see "
+    "descriptors.ATLAS_ASSETS_REMOTE_ROOT",
+)
+
+
+@blocked_on_ome_version
+@pytest.mark.slow
+def test_load_atlas_assets_atlas():
+    """A spec-conformant atlas loads at a requested resolution."""
+    atlas = BrainGlobeAtlas(ATLAS_ASSETS_NAME, resolution=100)
+
+    assert atlas.resolution == (100.0, 100.0, 100.0)
+    assert atlas.orientation == "asl"
+    assert len(atlas.shape) == 3
+    assert atlas.metadata["species"] == "Mus musculus"
+    assert atlas.metadata["citation"] is None
+    assert atlas.structures["root"]["id"] == 997
+
+
+@blocked_on_ome_version
+@pytest.mark.slow
+def test_atlas_assets_cache_is_namespaced():
+    """Downloads land under the configured root's directory."""
+    atlas = BrainGlobeAtlas(ATLAS_ASSETS_NAME, resolution=100)
+    assert atlas.brainglobe_dir.name == "allen"
+
+
+@blocked_on_ome_version
+@pytest.mark.slow
+def test_atlas_assets_hemispheres_are_synthesized():
+    """No hemispheres asset exists, so hemispheres are synthesized."""
+    atlas = BrainGlobeAtlas(ATLAS_ASSETS_NAME, resolution=100)
+    hemispheres = atlas.hemispheres
+    assert hemispheres.shape == tuple(atlas.shape)
+    assert set(np.unique(hemispheres)) <= {1, 2}
+
+
+@pytest.mark.slow
+def test_orientation_is_consistent_across_an_atlas_assets_atlas():
+    """Every spatial asset of one atlas declares the same axis directions.
+
+    An atlas is returned in the orientation it is stored in, so the only
+    orientation requirement is internal: the annotation and the template
+    must agree, because normalisation derives the atlas-wide orientation
+    from the annotation alone and `core.Atlas` then applies it to both.
+
+    Deliberately reads the zarr metadata with `zarr` rather than through
+    `BrainGlobeAtlas`, so it exercises the live bucket without depending
+    on the OME version that currently blocks the tests below.
+    """
+    # skip_instance_cache: an earlier test in this file builds a
+    # BrainGlobeAtlas, which creates its own S3FileSystem and then raises.
+    # Reusing that cached instance here inherits its torn-down session.
+    fs = s3fs.S3FileSystem(anon=True, skip_instance_cache=True)
+    origins = {}
+    for name, url in ATLAS_ASSETS_SPATIAL_ASSETS.items():
+        store = zarr.storage.FsspecStore(fs, path=url[len("s3://") :])
+        attrs = zarr.open_group(store, mode="r").attrs["ome"]
+        origins[name] = bg_atlas._orientation_from_axes(attrs)
+
+    assert set(origins.values()) == {"asl"}, origins
+
+
+@blocked_on_ome_version
+@pytest.mark.slow
+def test_atlas_assets_structure_mask():
+    """A structure mask lies inside the annotation's non-zero extent."""
+    atlas = BrainGlobeAtlas(ATLAS_ASSETS_NAME, resolution=100)
+    mask = atlas.get_structure_mask("root")
+    assert mask.shape == tuple(atlas.shape)
+    assert mask.max() == 1

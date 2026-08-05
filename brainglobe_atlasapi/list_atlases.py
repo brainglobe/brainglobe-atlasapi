@@ -11,6 +11,9 @@ from rich.table import Table
 
 from brainglobe_atlasapi import config, descriptors, utils
 
+# Rich markup for the tick shown in the atlas table for a boolean "yes".
+CHECK_MARK = "[green]:heavy_check_mark:[/green]"
+
 
 def folder_version_to_dotted(version: Optional[str]) -> Optional[str]:
     """Convert on-disk version folder names (e.g. 3_0) to dotted form (3.0)."""
@@ -269,13 +272,13 @@ def add_atlas_to_row(
 
     """
     if info["downloaded"]:
-        downloaded = "[green]:heavy_check_mark:[/green]"
+        downloaded = CHECK_MARK
 
         if info["updated"] is None:
             # No known remote version to compare the local files against.
             updated = ""
         elif info["updated"]:
-            updated = "[green]:heavy_check_mark:[/green]"
+            updated = CHECK_MARK
         else:
             updated = "[red dim]x"
 
@@ -283,7 +286,7 @@ def add_atlas_to_row(
         downloaded = ""
         updated = ""
 
-    custom = "[green]:heavy_check_mark:[/green]" if info.get("custom") else ""
+    custom = CHECK_MARK if info.get("custom") else ""
 
     row = [
         "[bold]" + atlas,

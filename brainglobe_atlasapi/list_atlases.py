@@ -80,6 +80,27 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
         return None
 
 
+def get_custom_atlases() -> Dict[str, Any]:
+    """Read the versions of the locally registered custom atlases.
+
+    Returns
+    -------
+    dict
+        A mapping from custom atlas name to version. Empty if no custom
+        atlases have been registered.
+    """
+    custom_path = (
+        config.get_brainglobe_dir()
+        / "brainglobe-atlasapi"
+        / descriptors.V3_ATLAS_ROOTDIR
+        / "custom_atlases.conf"
+    )
+    try:
+        return dict(utils.conf_from_file(custom_path)["atlases"])
+    except (FileNotFoundError, KeyError):
+        return {}
+
+
 def get_all_atlases_lastversions() -> Dict[str, Any]:
     """Read from URL or local cache all available last versions."""
     v2_dir = descriptors.V3_ATLAS_ROOTDIR
@@ -88,12 +109,6 @@ def get_all_atlases_lastversions() -> Dict[str, Any]:
         / "brainglobe-atlasapi"
         / v2_dir
         / "last_versions.conf"
-    )
-    custom_path = (
-        config.get_brainglobe_dir()
-        / "brainglobe-atlasapi"
-        / v2_dir
-        / "custom_atlases.conf"
     )
 
     if utils.check_internet_connection(raise_error=False):
@@ -106,11 +121,8 @@ def get_all_atlases_lastversions() -> Dict[str, Any]:
     else:
         print("Cannot fetch latest atlas versions from the server.")
         official_atlases = utils.conf_from_file(cache_path)
-    try:
-        custom_atlases = utils.conf_from_file(custom_path)
-        return {**official_atlases["atlases"], **custom_atlases["atlases"]}
-    except (FileNotFoundError, KeyError):
-        return dict(official_atlases["atlases"])
+
+    return {**official_atlases["atlases"], **get_custom_atlases()}
 
 
 def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
@@ -123,23 +135,30 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
     dict
         A dictionary with metadata about already installed atlases. The
         ``version`` and ``latest_version`` fields use the same dotted form
-        (e.g. ``3.0``), matching ``last_versions.conf``.
+        (e.g. ``3.0``), matching ``last_versions.conf``. Atlases installed by
+        the user rather than distributed by BrainGlobe are flagged with
+        ``custom=True``. A custom atlas that is not registered in
+        ``custom_atlases.conf`` has no version to compare against, so its
+        ``latest_version`` is empty and ``updated`` is None.
     """
     available_atlases = get_all_atlases_lastversions()
+    custom_atlases = get_custom_atlases()
 
     # Get downloaded atlases looping over folders in brainglobe directory:
     atlases = {}
     for name in get_downloaded_atlases():
-        if name in available_atlases.keys():
-            local_version = get_local_atlas_version(name)
-            latest = str(available_atlases[name])
-            atlases[name] = dict(
-                downloaded=True,
-                local=name,
-                version=local_version,
-                latest_version=latest,
-                updated=local_version == latest,
-            )
+        local_version = get_local_atlas_version(name)
+        latest = (
+            str(available_atlases[name]) if name in available_atlases else ""
+        )
+        atlases[name] = dict(
+            downloaded=True,
+            local=name,
+            version=local_version,
+            latest_version=latest,
+            updated=local_version == latest if latest else None,
+            custom=name in custom_atlases or name not in available_atlases,
+        )
     return atlases
 
 
@@ -176,6 +195,7 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
                 version="",
                 latest_version=str(available_atlases[atlas]),
                 updated=None,
+                custom=False,
             )
 
     # Create table
@@ -189,6 +209,7 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
 
     table.add_column("Name", no_wrap=True, width=32)
     table.add_column("Downloaded", justify="center")
+    table.add_column("Custom", justify="center")
     table.add_column("Updated", justify="center")
     table.add_column("Local version", justify="center")
     table.add_column("Latest version", justify="center")
@@ -250,7 +271,10 @@ def add_atlas_to_row(
     if info["downloaded"]:
         downloaded = "[green]:heavy_check_mark:[/green]"
 
-        if info["updated"]:
+        if info["updated"] is None:
+            # No known remote version to compare the local files against.
+            updated = ""
+        elif info["updated"]:
             updated = "[green]:heavy_check_mark:[/green]"
         else:
             updated = "[red dim]x"
@@ -259,9 +283,12 @@ def add_atlas_to_row(
         downloaded = ""
         updated = ""
 
+    custom = "[green]:heavy_check_mark:[/green]" if info.get("custom") else ""
+
     row = [
         "[bold]" + atlas,
         downloaded,
+        custom,
         updated,
         (
             "[#c4c4c4]" + info["version"]

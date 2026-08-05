@@ -111,7 +111,7 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         The main reference volume and the lateral annotation volume.
     """
-    directory, filename = REFERENCE_FILES["md"]
+    directory, filename = REFERENCE_FILES["mgre-unmasked"]
     path = SOURCE_DATA_DIR / directory / f"{filename}.nhdr"
     reference = sitk.GetArrayFromImage(sitk.ReadImage(str(path)))
     reference = reference.astype(np.float32, copy=False)
@@ -235,7 +235,7 @@ def retrieve_additional_references():
     """
     references = {}
     for name, (directory, filename) in REFERENCE_FILES.items():
-        if name == "md":
+        if name == "mgre-unmasked":
             continue
         path = SOURCE_DATA_DIR / directory / f"{filename}.nhdr"
         reference = sitk.GetArrayFromImage(sitk.ReadImage(str(path)))

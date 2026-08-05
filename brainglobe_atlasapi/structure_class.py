@@ -20,7 +20,7 @@ from brainglobe_atlasapi.descriptors import DEFAULT_REMOTE_ROOT
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
-def _read_legacy_mesh(fs, manifest_path: str) -> tuple:
+def _read_legacy_mesh(fs, manifest_path: str) -> tuple[np.ndarray, np.ndarray]:
     """Read a `neuroglancer_legacy_mesh` manifest and its fragments.
 
     The atlas-assets bucket stores each structure as a JSON manifest at
@@ -44,6 +44,10 @@ def _read_legacy_mesh(fs, manifest_path: str) -> tuple:
     """
     remote_dir = manifest_path.rsplit("/", 1)[0]
     fragments = json.loads(fs.cat(manifest_path))["fragments"]
+    if not fragments:
+        raise FileNotFoundError(
+            f"Legacy manifest {manifest_path} lists no fragments"
+        )
 
     all_points, all_faces, offset = [], [], 0
     for fragment in fragments:
@@ -190,6 +194,7 @@ class Structure(UserDict):
         try:
             if convert:
                 points, faces = _read_legacy_mesh(fs, legacy_manifest_path)
+                file_name.parent.mkdir(parents=True, exist_ok=True)
                 file_name.write_bytes(_encode_draco(points, faces))
             else:
                 fs.get(remote_mesh_path, file_name, callback=TqdmCallback())

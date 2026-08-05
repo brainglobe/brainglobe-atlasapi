@@ -289,6 +289,19 @@ def test_read_legacy_mesh_missing_fragment_raises():
         structure_class._read_legacy_mesh(fs, "root/mesh/997:0")
 
 
+def test_read_legacy_mesh_empty_manifest_raises():
+    """A manifest listing no fragments raises FileNotFoundError.
+
+    `{"fragments": []}` is the legacy convention for a segment with no
+    mesh. It must surface as a type `Structure.__getitem__` already
+    catches, not as the bare ValueError numpy would raise.
+    """
+    fs = _FakeCat({"root/mesh/997:0": json.dumps({"fragments": []}).encode()})
+
+    with pytest.raises(FileNotFoundError):
+        structure_class._read_legacy_mesh(fs, "root/mesh/997:0")
+
+
 def test_encode_draco_round_trips_within_quantization_error():
     """Encoded bytes decode back to the input within range / 65536."""
     encoded = structure_class._encode_draco(LEGACY_POINTS, LEGACY_FACES)
@@ -303,8 +316,10 @@ def _legacy_fakes(points, faces, fragments=("997:0:0",)):
     """Build (exists, cat) fakes for a bucket with only the legacy layout.
 
     `_download_mesh` derives the remote path from the last six segments of
-    the local path, which varies with `tmp_path`, so the fakes key off the
-    `:0` suffix rather than a hard-coded absolute path.
+    the local path, which varies with `tmp_path`, so the fakes key off path
+    shape rather than a hard-coded absolute path: `exists` matches any path
+    ending in `:0`, and `cat` distinguishes the manifest from a fragment by
+    colon count (`997:0` has one, `997:0:0` has two or more).
     """
     manifest = json.dumps({"fragments": list(fragments)}).encode()
     blobs = {}

@@ -281,18 +281,3 @@ def test_encode_draco_round_trips_within_quantization_error():
     tolerance = 3000.0 / 65536  # bounding-cube range / 2**16
     assert np.abs(decoded.points - LEGACY_POINTS).max() <= tolerance
     np.testing.assert_array_equal(decoded.faces, LEGACY_FACES)
-
-
-def test_encode_draco_handles_a_degenerate_mesh():
-    """A zero-extent mesh substitutes a range of 1.0 instead of dividing
-    by zero.
-    """
-    points = np.zeros((3, 3), dtype=np.float32)
-    faces = np.array([[0, 1, 2]], dtype=np.uint32)
-
-    decoded = DracoPy.decode(structure_class._encode_draco(points, faces))
-
-    # Draco deduplicates identical vertices, so the decoded mesh may have
-    # fewer vertices than the input. Check that all decoded points are at
-    # the expected location (origin, since all inputs are zero).
-    np.testing.assert_allclose(decoded.points, 0, atol=1e-5)

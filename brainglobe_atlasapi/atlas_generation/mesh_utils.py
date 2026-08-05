@@ -358,7 +358,9 @@ def construct_meshes_from_annotation(
     volume_size = volume.size
     if parallel:
         compressor = zarr.codecs.BloscCodec(
-            cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.bitshuffle
+            cname="zstd",
+            clevel=6,
+            shuffle="bitshuffle",
         )
 
         if ann_path.exists():

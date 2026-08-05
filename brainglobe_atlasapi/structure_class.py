@@ -3,18 +3,99 @@ Provide a class for representing hierarchical structures,
 such as brain regions in an atlas.
 """
 
+import json
 import os
 import warnings
 from collections import UserDict
+from io import BytesIO
 from pathlib import Path
 
 import DracoPy
 import meshio as mio
+import numpy as np
 import s3fs
 from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import DEFAULT_REMOTE_ROOT
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+
+
+def _read_legacy_mesh(fs, manifest_path: str) -> tuple:
+    """Read a `neuroglancer_legacy_mesh` manifest and its fragments.
+
+    The atlas-assets bucket stores each structure as a JSON manifest at
+    `<id>:0` listing fragment object names, each of which is a raw legacy
+    mesh blob. Fragment names are full object names, resolved against the
+    directory holding the manifest.
+
+    Parameters
+    ----------
+    fs : s3fs.S3FileSystem
+        Filesystem exposing a single-path ``cat(path) -> bytes``.
+    manifest_path : str
+        Full remote path of the `<id>:0` manifest.
+
+    Returns
+    -------
+    tuple of numpy.ndarray
+        `(points, faces)`; float32 (N, 3) vertices in the units and axis
+        order of the source bucket, and uint32 (M, 3) triangle indices
+        offset so they index into the concatenated vertex array.
+    """
+    remote_dir = manifest_path.rsplit("/", 1)[0]
+    fragments = json.loads(fs.cat(manifest_path))["fragments"]
+
+    all_points, all_faces, offset = [], [], 0
+    for fragment in fragments:
+        mesh = mio.read(
+            BytesIO(fs.cat(f"{remote_dir}/{fragment}")),
+            file_format="neuroglancer",
+        )
+        all_points.append(mesh.points)
+        all_faces.append(mesh.cells[0].data + offset)
+        offset += len(mesh.points)
+
+    points = np.concatenate(all_points).astype(np.float32)
+    faces = np.concatenate(all_faces).astype(np.uint32)
+    return points, faces
+
+
+def _encode_draco(points: np.ndarray, faces: np.ndarray) -> bytes:
+    """Encode a mesh as a single Draco fragment.
+
+    Mirrors `atlas_generation.mesh_utils.write_mesh`: 16-bit quantization
+    against the bounding *cube*, because Draco quantizes every axis
+    against one uniform range and a per-axis range would distort.
+
+    Parameters
+    ----------
+    points : numpy.ndarray
+        (N, 3) vertices.
+    faces : numpy.ndarray
+        (M, 3) triangle indices.
+
+    Returns
+    -------
+    bytes
+        The Draco-encoded fragment, byte-for-byte what a BrainGlobe atlas
+        stores at `<id>`.
+    """
+    vertices = np.ascontiguousarray(points, dtype=np.float32)
+    triangles = np.ascontiguousarray(faces, dtype=np.uint32)
+
+    bbox_min = vertices.min(axis=0)
+    qrange = float((vertices.max(axis=0) - bbox_min).max())
+    if qrange <= 0.0:  # degenerate (single point / planar in all axes)
+        qrange = 1.0
+
+    return DracoPy.encode(
+        vertices,
+        triangles,
+        quantization_bits=16,
+        compression_level=0,
+        quantization_range=qrange,
+        quantization_origin=bbox_min.tolist(),
+    )
 
 
 class Structure(UserDict):

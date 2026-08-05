@@ -166,18 +166,33 @@ class Structure(UserDict):
         return self.data[item]
 
     def _download_mesh(self, file_name: Path) -> None:
-        """Download the mesh from the remote S3 bucket if it is not cached."""
+        """Download the mesh from the remote S3 bucket if it is not cached.
+
+        BrainGlobe buckets store a Draco fragment at `<id>`, atlas-assets
+        buckets a `neuroglancer_legacy_mesh` manifest at `<id>:0` plus its
+        fragments. The legacy form is converted on the way in, so the local
+        cache holds `<id>` either way.
+        """
         root_path = "/".join(str(file_name).split(os.sep)[-6:])
         remote_mesh_path = f"{self.remote_root}/{root_path}"
         fs = s3fs.S3FileSystem(anon=True)
 
-        if not fs.exists(remote_mesh_path):
+        legacy_manifest_path = f"{remote_mesh_path}:0"
+        if fs.exists(remote_mesh_path):
+            convert = False
+        elif fs.exists(legacy_manifest_path):
+            convert = True
+        else:
             raise FileNotFoundError(
                 f"Mesh file {file_name} not found locally or remotely."
             )
 
         try:
-            fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
+            if convert:
+                points, faces = _read_legacy_mesh(fs, legacy_manifest_path)
+                file_name.write_bytes(_encode_draco(points, faces))
+            else:
+                fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
         except BaseException:
             file_name.unlink(missing_ok=True)  # Removes corrupt file
             raise

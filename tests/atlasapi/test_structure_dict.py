@@ -108,18 +108,34 @@ def test_read_mesh_invalid_file_raises(tmp_path):
         _ = struct_dict["root"]["mesh"]
 
 
-def _fake_s3_factory(exists, get_impl):
-    """Build a fake `s3fs.S3FileSystem` class for monkeypatching."""
+def _fake_s3_factory(exists, get_impl, cat_impl=None):
+    """Build a fake `s3fs.S3FileSystem` class for monkeypatching.
+
+    Parameters
+    ----------
+    exists : bool or callable
+        A constant answer for every path, or a `path -> bool` predicate.
+    get_impl : callable
+        `(remote, local) -> None`, standing in for `fs.get`.
+    cat_impl : callable, optional
+        `path -> bytes`, standing in for `fs.cat`. Absent by default, so a
+        test that does not opt in fails loudly if the code reaches `cat`.
+    """
 
     class FakeS3FileSystem:
         def __init__(self, *args, **kwargs):
             pass
 
         def exists(self, path):
-            return exists
+            return exists(path) if callable(exists) else exists
 
         def get(self, remote, local, callback=None):
             return get_impl(remote, local)
+
+        def cat(self, path):
+            if cat_impl is None:
+                raise AssertionError(f"unexpected cat({path!r})")
+            return cat_impl(path)
 
     return FakeS3FileSystem
 
@@ -281,3 +297,171 @@ def test_encode_draco_round_trips_within_quantization_error():
     tolerance = 3000.0 / 65536  # bounding-cube range / 2**16
     assert np.abs(decoded.points - LEGACY_POINTS).max() <= tolerance
     np.testing.assert_array_equal(decoded.faces, LEGACY_FACES)
+
+
+def _legacy_fakes(points, faces, fragments=("997:0:0",)):
+    """Build (exists, cat) fakes for a bucket with only the legacy layout.
+
+    `_download_mesh` derives the remote path from the last six segments of
+    the local path, which varies with `tmp_path`, so the fakes key off the
+    `:0` suffix rather than a hard-coded absolute path.
+    """
+    manifest = json.dumps({"fragments": list(fragments)}).encode()
+    blobs = {}
+    for i, fragment in enumerate(fragments):
+        # Offset each fragment's points to make them distinct
+        fragment_points = points + np.float32(i * 10000)
+        blobs[fragment] = _legacy_bytes(fragment_points, faces)
+
+    def exists(path):
+        return path.endswith(":0")
+
+    def cat(path):
+        last_part = path.rsplit("/", 1)[1]
+        # Manifest has 1 colon (997:0), fragments have 2+ (997:0:0)
+        if last_part.count(":") == 1:
+            return manifest
+        return blobs[last_part]
+
+    return exists, cat
+
+
+def test_legacy_mesh_converted_on_download(tmp_path, monkeypatch):
+    """An atlas-assets structure is converted and read back correctly.
+
+    Round trip through `__getitem__`: the legacy fragment is fetched,
+    Draco-encoded to `<id>`, then `_read_mesh` applies nm -> um and
+    XYZ -> ZYX.
+    """
+    mesh_file = tmp_path / "997"
+    exists, cat = _legacy_fakes(LEGACY_POINTS, LEGACY_FACES)
+
+    monkeypatch.setattr(
+        structure_class.s3fs,
+        "S3FileSystem",
+        _fake_s3_factory(
+            exists=exists,
+            get_impl=lambda remote, local: pytest.fail("used fs.get"),
+            cat_impl=cat,
+        ),
+    )
+
+    struct_dict = StructuresDict(structures_list)
+    struct_dict["root"]["mesh_filename"] = mesh_file
+    mesh = struct_dict["root"]["mesh"]
+
+    assert mesh_file.exists()
+    expected = (LEGACY_POINTS / 1000.0)[:, [2, 1, 0]]
+    tolerance = (3000.0 / 65536) / 1000.0  # quantization error, in um
+    assert np.abs(mesh.points - expected).max() <= tolerance
+    np.testing.assert_array_equal(
+        mesh.cells[0].data, LEGACY_FACES[:, [2, 1, 0]]
+    )
+
+
+def test_legacy_conversion_writes_only_the_id_file(tmp_path, monkeypatch):
+    """Conversion writes `<id>` alone -- no `<id>.index`, no `info`."""
+    mesh_dir = tmp_path / "mesh"
+    mesh_dir.mkdir()
+    mesh_file = mesh_dir / "997"
+    exists, cat = _legacy_fakes(LEGACY_POINTS, LEGACY_FACES)
+
+    monkeypatch.setattr(
+        structure_class.s3fs,
+        "S3FileSystem",
+        _fake_s3_factory(
+            exists=exists,
+            get_impl=lambda remote, local: None,
+            cat_impl=cat,
+        ),
+    )
+
+    struct_dict = StructuresDict(structures_list)
+    struct_dict["root"]._download_mesh(mesh_file)
+
+    assert [p.name for p in mesh_dir.iterdir()] == ["997"]
+
+
+def test_legacy_conversion_concatenates_fragments(tmp_path, monkeypatch):
+    """A two-fragment manifest produces one mesh with all the geometry."""
+    mesh_file = tmp_path / "997"
+    exists, cat = _legacy_fakes(
+        LEGACY_POINTS,
+        LEGACY_FACES,
+        fragments=("997:0:0", "997:0:1"),
+    )
+
+    monkeypatch.setattr(
+        structure_class.s3fs,
+        "S3FileSystem",
+        _fake_s3_factory(
+            exists=exists,
+            get_impl=lambda remote, local: None,
+            cat_impl=cat,
+        ),
+    )
+
+    struct_dict = StructuresDict(structures_list)
+    struct_dict["root"]._download_mesh(mesh_file)
+    decoded = DracoPy.decode(mesh_file.read_bytes())
+
+    assert len(decoded.points) == 2 * len(LEGACY_POINTS)
+    assert decoded.faces.max() == 2 * len(LEGACY_POINTS) - 1
+
+
+def test_brainglobe_mesh_skips_the_legacy_probe(tmp_path, monkeypatch):
+    """A present `<id>` downloads directly, never probing `<id>:0`."""
+    mesh_file = tmp_path / "997"
+    probed = []
+
+    def exists(path):
+        probed.append(path)
+        return not path.endswith(":0")
+
+    monkeypatch.setattr(
+        structure_class.s3fs,
+        "S3FileSystem",
+        _fake_s3_factory(
+            exists=exists,
+            get_impl=lambda remote, local: local.write_bytes(_draco_bytes()),
+        ),
+    )
+
+    struct_dict = StructuresDict(structures_list)
+    struct_dict["root"]._download_mesh(mesh_file)
+
+    assert not any(path.endswith(":0") for path in probed)
+    assert mesh_file.exists()
+
+
+def test_interrupted_conversion_removes_the_partial_file(
+    tmp_path, monkeypatch
+):
+    """A `cat` failure mid-conversion leaves no `<id>` behind.
+
+    Extends the corrupt-file guarantee that
+    `test_download_mesh_removes_corrupt_file_on_error` asserts for the
+    BrainGlobe branch to the conversion branch.
+    """
+    mesh_file = tmp_path / "997"
+    mesh_file.write_bytes(b"stale partial file")
+
+    def failing_cat(path):
+        raise ConnectionError("network dropped mid-conversion")
+
+    monkeypatch.setattr(
+        structure_class.s3fs,
+        "S3FileSystem",
+        _fake_s3_factory(
+            exists=lambda path: path.endswith(":0"),
+            get_impl=lambda remote, local: None,
+            cat_impl=failing_cat,
+        ),
+    )
+
+    struct_dict = StructuresDict(structures_list)
+
+    with pytest.raises(ConnectionError):
+        struct_dict["root"]._download_mesh(mesh_file)
+
+    assert not mesh_file.exists()

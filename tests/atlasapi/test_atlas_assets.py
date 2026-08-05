@@ -4,6 +4,7 @@ import copy
 import json
 from pathlib import Path
 
+import DracoPy
 import numpy as np
 import pytest
 import s3fs
@@ -11,6 +12,7 @@ import zarr
 
 from brainglobe_atlasapi import bg_atlas, descriptors
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+from brainglobe_atlasapi.structure_class import Structure
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -195,6 +197,12 @@ ATLAS_ASSETS_SPATIAL_ASSETS = {
     ),
 }
 
+# The 2017 annotation set's precomputed `info` declares
+# size = [1140, 800, 1320] voxels at resolution = [10000] * 3 nm, in
+# precomputed XYZ. Vertices are implicitly in the enclosing volume's
+# units, which is the assumption this test exists to pin.
+_ANNOTATION_EXTENT_NM = np.array([1140, 800, 1320]) * 10000.0
+
 # The bucket's zarrs declare OME-Zarr "0.6.dev3". No released ngff-zarr
 # accepts that string, and rewriting it to "0.6" fails differently -- the
 # metadata predates 0.6's required `coordinateSystems` block. Every test
@@ -275,3 +283,42 @@ def test_atlas_assets_structure_mask():
     mask = atlas.get_structure_mask("root")
     assert mask.shape == tuple(atlas.shape)
     assert mask.max() == 1
+
+
+@pytest.mark.slow
+def test_atlas_assets_legacy_mesh_is_nanometres_in_xyz(tmp_path):
+    """Real Allen legacy vertices land inside the declared volume extent.
+
+    Drives `Structure._download_mesh` directly rather than through
+    `BrainGlobeAtlas`, which cannot be constructed from this bucket while
+    gap 1 (OME-Zarr 0.6.dev3) stands. This is therefore the only check
+    that exercises the conversion against real Allen bytes.
+    """
+    # `_download_mesh` derives the remote path from the last six segments
+    # of the local path, so the local tree has to mirror the remote one.
+    mesh_dir = (
+        tmp_path
+        / "annotation-sets"
+        / "allen-adult-mouse-annotation"
+        / "2017"
+        / descriptors.V3_MESHES_DIRECTORY
+    )
+    mesh_dir.mkdir(parents=True)
+    mesh_file = mesh_dir / "997"
+
+    struct = Structure(id=997, acronym="root", mesh_filename=mesh_file)
+    struct.remote_root = descriptors.ATLAS_ASSETS_REMOTE_ROOT
+    struct._download_mesh(mesh_file)
+
+    points = DracoPy.decode(mesh_file.read_bytes()).points
+    lower, upper = points.min(axis=0), points.max(axis=0)
+
+    # Inside the declared box on every axis, with 1% slack for the
+    # surface extraction overshooting the voxel grid at the boundary.
+    slack = 0.01 * _ANNOTATION_EXTENT_NM
+    assert np.all(lower >= -slack), lower
+    assert np.all(upper <= _ANNOTATION_EXTENT_NM + slack), upper
+    # ...and actually filling it, which is what rules out a unit or axis
+    # mix-up: a micrometre mesh would be 1000x too small, and a ZYX mesh
+    # would overflow the 1140-voxel first axis with the 1320-voxel one.
+    assert np.all(upper >= 0.9 * _ANNOTATION_EXTENT_NM), upper

@@ -3,6 +3,7 @@
 import shutil
 from unittest.mock import PropertyMock, patch
 
+import fsspec
 import pytest
 
 import brainglobe_atlasapi
@@ -98,6 +99,80 @@ def test_str(atlas, capsys):
     expected_doi = "https://doi.org/10.1016/j.cell.2020.04.007"
     assert expected_doi in captured.out
     assert captured.err == ""
+
+
+@pytest.mark.parametrize(
+    "recursive",
+    [pytest.param(False, id="one file"), pytest.param(True, id="directory")],
+)
+def test_download_callback_reports_bytes(tmp_path, recursive):
+    """`_download_callback` reports transferred bytes to `fn_update`.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Temporary path to fetch files into.
+    recursive : bool
+        Whether to fetch a whole directory or a single file.
+    """
+    from brainglobe_atlasapi.bg_atlas import _download_callback
+
+    calls = []
+    memory_fs = fsspec.filesystem("memory")
+    memory_fs.pipe("/atlas/first.json", b"a" * 4096)
+    memory_fs.pipe("/atlas/second.json", b"b" * 2048)
+
+    source = "/atlas/" if recursive else "/atlas/first.json"
+    memory_fs.get(
+        source,
+        str(tmp_path / "destination"),
+        recursive=recursive,
+        callback=_download_callback(
+            lambda completed, total: calls.append((completed, total))
+        ),
+    )
+
+    assert calls, "fn_update was never called"
+    assert all(0 <= completed <= total for completed, total in calls)
+    assert (4096, 4096) in calls
+    if recursive:
+        assert (2048, 2048) in calls
+
+
+def test_download_callback_without_fn_update(tmp_path):
+    """`_download_callback` still transfers files when no handler is given."""
+    from brainglobe_atlasapi.bg_atlas import _download_callback
+
+    memory_fs = fsspec.filesystem("memory")
+    memory_fs.pipe("/atlas/first.json", b"a" * 8)
+
+    memory_fs.get(
+        "/atlas/first.json",
+        str(tmp_path / "first.json"),
+        callback=_download_callback(None),
+    )
+
+    assert (tmp_path / "first.json").read_bytes() == b"a" * 8
+
+
+def test_fn_update_called_on_install(tmp_path):
+    """`fn_update` is called while an atlas is downloaded.
+
+    `BrainGlobeAtlas` accepts `fn_update` so that external progress bars can
+    follow an install, but the download used to ignore it entirely.
+    """
+    calls = []
+
+    BrainGlobeAtlas(
+        "example_mouse_100um",
+        brainglobe_dir=tmp_path,
+        check_latest=False,
+        fn_update=lambda completed, total: calls.append((completed, total)),
+    )
+
+    assert calls, "fn_update was not called during the atlas download"
+    assert all(0 <= completed <= total for completed, total in calls)
+    assert any(completed == total > 0 for completed, total in calls)
 
 
 def test_local_search(tmpdir):

@@ -4,10 +4,9 @@ Use this script as a starting point to package a new BrainGlobe atlas by
 filling in the required functions and metadata.
 """
 
+import os
 from pathlib import Path
 
-import os
-import pooch
 import nibabel as nib
 import numpy as np
 import pooch
@@ -53,54 +52,47 @@ REGION_INDICES = {
         4: "MLD",
         5: "Ov",
         6: "Field L2",
-        },
+    },
     "auditory2": {
         1: "OS",
         2: "LLv",
         3: "LLd",
-        },
+    },
     "arcopallium": {
         1: "S",
         2: "GP",
         3: "TnA",
-        },
-    "Olfactory": {
-        1: "BO",
-        2: "CPP",
-        3: "CPi"
-        },
-    "GLd-and-rotundus": {
-        1: "Rt",
-        2: "GLd",
-        3: "GLd"
-        },
+    },
+    "Olfactory": {1: "BO", 2: "CPP", 3: "CPi"},
+    "GLd-and-rotundus": {1: "Rt", 2: "GLd", 3: "GLd"},
     "visual-Wulst_HA_HI_HD-until-A13": {
         1: "HA",
         2: "HI - HD",
-        },
+    },
     "nBOR-Lentiformis-mesencephali": {
         1: "nBOR",
         2: "LM",
-        },
+    },
     "SLu-Ipc-Imc-left": {
         1: "Imc",
         2: "Ipc",
         3: "SLu",
-        },
+    },
     "PrV-and-Basalis": {
         1: "PrV",
         2: "Bas",
-        },
+    },
     "Wulst_HA_HI_HD-frontal-from-A13": {
-        1: "HA", 
+        1: "HA",
         2: "HI - HD",
-        },
+    },
     "GC_DLP_DIVA": {
         1: "GC",
         2: "DLP",
         3: "DIVA",
-        },
+    },
 }
+
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -170,8 +162,8 @@ def retrieve_hemisphere_map():
     )
     left = nib.load(hemisphere_dir / "brainsurface_left.hdr")
     left_hemisphere = left.get_fdata()
-    
-    hemispheres_stack = np.where(left_hemisphere == 0, 2, 1)    
+
+    hemispheres_stack = np.where(left_hemisphere == 0, 2, 1)
     return hemispheres_stack
 
 
@@ -201,7 +193,6 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
     structures_by_acronym = {
         "root": {
             "id": ROOT_ID,
@@ -211,7 +202,7 @@ def retrieve_structure_information():
             "rgb_triplet": [255, 255, 255],
         }
     }
-    
+
     startpath = str(DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME.strip(".zip"))
     for root, dirs, files in os.walk(startpath):
         current_dir = root.replace(startpath, "").strip(os.sep)
@@ -222,7 +213,7 @@ def retrieve_structure_information():
         for i in range(level):
             structure_name_path.append(root.split(os.sep)[-(level - i)])
         print(structure_name_path)
-        
+
     return None
 
 

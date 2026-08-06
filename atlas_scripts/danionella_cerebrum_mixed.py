@@ -77,23 +77,17 @@ def download_resources():
 
 
 def retrieve_reference_and_annotation():
-    """Load and validate the reference and annotation volumes."""
+    """Load the reference and annotation volumes."""
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
 
     reference = load_any(reference_path, as_numpy=True)
     annotation = load_any(annotation_path, as_numpy=True)
 
-    if reference.shape != annotation.shape:
-        raise ValueError(
-            "Reference and annotation shapes do not match: "
-            f"{reference.shape} != {annotation.shape}"
-        )
-
-    np.maximum(reference, 0, out=reference)
+    reference = np.maximum(reference, 0)
     maximum = float(np.max(reference))
     reference *= np.iinfo(np.uint16).max / maximum
-    np.rint(reference, out=reference)
+    reference = np.rint(reference)
     reference = reference.astype(np.uint16)
 
     return reference, annotation.astype(np.uint32)
@@ -111,20 +105,10 @@ def retrieve_structure_information():
     with open(hierarchy_path) as hierarchy_file:
         source_hierarchy = json.load(hierarchy_file)
 
-    if source_hierarchy["id"] != ROOT_ID:
-        raise ValueError(
-            f"Expected root ID {ROOT_ID}, got {source_hierarchy['id']}."
-        )
-
     structures = []
-    structure_ids = set()
-    acronyms = set()
 
     def add_structure(node, structure_id_path):
         structure_id = int(node["id"])
-        if structure_id in structure_ids:
-            raise ValueError(f"Duplicate structure ID: {structure_id}.")
-        structure_ids.add(structure_id)
 
         name = re.sub(r"\s*/\s*", " / ", node["name"].strip())
         name = re.sub(r"\s+", " ", name)
@@ -140,10 +124,6 @@ def retrieve_structure_information():
             # names as acronyms.
             acronym = name
             rgb_triplet = node["rgb"]
-
-        if acronym in acronyms:
-            raise ValueError(f"Duplicate structure acronym: {acronym}.")
-        acronyms.add(acronym)
 
         current_path = [*structure_id_path, structure_id]
         structures.append(
@@ -185,10 +165,10 @@ def retrieve_additional_references():
         DOWNLOAD_DIR_PATH / CONFOCAL_REFERENCE_FNAME, as_numpy=True
     )
 
-    np.maximum(reference, 0, out=reference)
+    reference = np.maximum(reference, 0)
     maximum = float(np.max(reference))
     reference *= np.iinfo(np.uint16).max / maximum
-    np.rint(reference, out=reference)
+    reference = np.rint(reference)
     reference = reference.astype(np.uint16)
 
     return {CONFOCAL_REFERENCE_NAME: reference}

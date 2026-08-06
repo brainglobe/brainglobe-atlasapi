@@ -186,7 +186,7 @@ def retrieve_structure_information(annotation):
         structures.append(
             {
                 "id": row.id,
-                "name": label_name.replace,
+                "name": label_name,
                 "acronym": acronym,
                 "structure_id_path": [ROOT_ID, row.id],
                 "rgb_triplet": [row.r, row.g, row.b],

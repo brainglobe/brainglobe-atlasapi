@@ -454,9 +454,12 @@ class AtlasPackagingData:
             self.additional_references[i] = (stack_tuple[0], ref_stack)
 
         self.symmetric = self.hemispheres_stack is None
-
+        
         if not self.symmetric:
             self.hemispheres_stack = _load_stack(self.hemispheres_stack)
+            self.hemispheres_stack = _reorient_stacks(
+                    self.hemispheres_stack, self.space_convention
+                )
         else:
             self.hemispheres_stack = _auto_generate_hemispheres(
                 shapes=[stack.shape for stack in self.annotation_stack],

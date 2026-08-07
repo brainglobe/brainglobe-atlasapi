@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pooch
 import SimpleITK as sitk
+import tensorstore as ts
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -27,7 +28,7 @@ ATLAS_PACKAGER = "Amirreza Bahramani"
 
 ORIENTATION = "ipr"
 ROOT_ID = 997
-RESOLUTION = 15
+RESOLUTIONS = (15, 25, 50, 75, 100, 150)
 
 SOURCE_DATA_DIR = (
     Path.home() / "brainglobe_workingdir" / ATLAS_NAME / "source_data"
@@ -69,16 +70,13 @@ def download_resources():
             STRUCTURES_ZIP_PATH,
         )
     ]
-
-    image_files = [("", ANNOTATION_STEM), *REFERENCE_FILES.values()]
-    for directory, filename in image_files:
-        for suffix in (".nhdr", ".raw"):
-            downloads.append(
-                (
-                    f"{DOWNLOAD_BASE_URL}{filename}{suffix}",
-                    SOURCE_DATA_DIR / directory / f"{filename}{suffix}",
-                )
+    for suffix in (".nhdr", ".raw"):
+        downloads.append(
+            (
+                f"{DOWNLOAD_BASE_URL}{ANNOTATION_STEM}{suffix}",
+                SOURCE_DATA_DIR / f"{ANNOTATION_STEM}{suffix}",
             )
+        )
 
     missing_paths = [
         destination for _, destination in downloads if not destination.exists()
@@ -108,20 +106,35 @@ def retrieve_reference_and_annotation():
 
     Returns
     -------
-    tuple[numpy.ndarray, numpy.ndarray]
-        The main reference volume and the lateral annotation volume.
+    tuple[list[numpy.ndarray], list[numpy.ndarray]]
+        Reference and annotation volumes at each isotropic resolution.
     """
-    directory, filename = REFERENCE_FILES["mgre-unmasked"]
-    path = SOURCE_DATA_DIR / directory / f"{filename}.nhdr"
-    reference = sitk.GetArrayFromImage(sitk.ReadImage(str(path)))
-    reference = reference.astype(np.float32, copy=False)
-    reference -= reference.min()
-    reference *= np.iinfo(np.uint16).max / reference.max()
-    reference = np.rint(reference).astype(np.uint16)
+    stem = REFERENCE_FILES["mgre-unmasked"][1].removesuffix("_M4D")
+    n5 = {"driver": "n5", "kvstore": f"{DOWNLOAD_BASE_URL}{stem}.n5/"}
+    references = []
+    for scale in range(len(RESOLUTIONS)):
+        reference = np.asarray(
+            ts.open(n5 | {"path": f"setup0/timepoint0/s{scale}"}).result()
+        ).T
+        reference -= reference.min()
+        reference *= np.iinfo(np.uint16).max / reference.max()
+        references.append(np.rint(reference).astype(np.uint16))
 
-    annotation = sitk.GetArrayFromImage(sitk.ReadImage(str(ANNOTATION_PATH)))
-    annotation = annotation.astype(np.uint32, copy=False)
-    return reference, annotation
+    annotation_image = sitk.ReadImage(str(ANNOTATION_PATH))
+    annotations = [
+        sitk.GetArrayFromImage(
+            sitk.Resample(
+                annotation_image,
+                size=reference.shape[::-1],
+                interpolator=sitk.sitkNearestNeighbor,
+                outputOrigin=annotation_image.GetOrigin(),
+                outputSpacing=(resolution / 1000,) * 3,
+                outputDirection=annotation_image.GetDirection(),
+            )
+        )
+        for resolution, reference in zip(RESOLUTIONS, references)
+    ]
+    return references, annotations
 
 
 def retrieve_hemisphere_map(annotation):
@@ -234,22 +247,26 @@ def retrieve_additional_references():
         A mapping from contrast names to image stacks.
     """
     references = {}
-    for name, (directory, filename) in REFERENCE_FILES.items():
+    for name, (_, filename) in REFERENCE_FILES.items():
         if name == "mgre-unmasked":
             continue
-        path = SOURCE_DATA_DIR / directory / f"{filename}.nhdr"
-        reference = sitk.GetArrayFromImage(sitk.ReadImage(str(path)))
-        reference = reference.astype(np.float32, copy=False)
-        reference -= reference.min()
-        reference *= np.iinfo(np.uint16).max / reference.max()
-        references[name] = np.rint(reference).astype(np.uint16)
+        stem = filename.removesuffix("_M4D")
+        n5 = {"driver": "n5", "kvstore": f"{DOWNLOAD_BASE_URL}{stem}.n5/"}
+        references[name] = []
+        for scale in range(len(RESOLUTIONS)):
+            reference = np.asarray(
+                ts.open(n5 | {"path": f"setup0/timepoint0/s{scale}"}).result()
+            ).T
+            reference -= reference.min()
+            reference *= np.iinfo(np.uint16).max / reference.max()
+            references[name].append(np.rint(reference).astype(np.uint16))
     return references
 
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
-    atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
+    atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTIONS[0])
     existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
     if existing:
         raise FileExistsError(
@@ -259,11 +276,14 @@ if __name__ == "__main__":
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
     additional_references = retrieve_additional_references()
-    hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
-    annotated_volume[annotated_volume >= 1000] -= 1000
-    structures = retrieve_structure_information(annotated_volume)
+    hemispheres_stack = [
+        retrieve_hemisphere_map(annotation) for annotation in annotated_volume
+    ]
+    for annotation in annotated_volume:
+        annotation[annotation >= 1000] -= 1000
+    structures = retrieve_structure_information(annotated_volume[0])
     print(structures)
-    meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)
+    meshes_dict = retrieve_or_construct_meshes(annotated_volume[0], structures)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -271,7 +291,7 @@ if __name__ == "__main__":
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(RESOLUTION,) * 3,
+        resolution=[(res,) * 3 for res in RESOLUTIONS],
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=reference_volume,
@@ -283,6 +303,6 @@ if __name__ == "__main__":
         hemispheres_stack=hemispheres_stack,
         scale_meshes=True,
         additional_references=additional_references,
-        overwrite=True
+        overwrite=True,
     )
     print(f"Atlas saved to {output_filename}")

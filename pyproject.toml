@@ -76,6 +76,7 @@ atlasgen = [
     "vedo",
     "xmltodict",
     "pooch",
+    "tensorstore",
     "zarr",
     "nibabel[minc2]"]
 

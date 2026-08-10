@@ -3,38 +3,36 @@
 from collections.abc import Callable
 from typing import Optional
 
-from fsspec.callbacks import Callback, TqdmCallback
+from fsspec.callbacks import TqdmCallback
 
 
 class _ProgressCallback(TqdmCallback):
     """Show a tqdm bar and report progress to an external handler.
 
     ``fsspec`` drives the callback passed to ``get`` with a file count, and
-    asks it for a per-file callback through ``branched`` which is driven with
-    a byte count. ``fn_update`` is documented to take completed and total
-    bytes, so it is attached to the branched callbacks.
+    that count is what is reported. An atlas is an OME-Zarr store, so a byte
+    count would tick through thousands of small chunks and read as a stalling
+    bar, while the file count advances once per file.
+
+    ``TqdmCallback`` replaces :meth:`fsspec.callbacks.Callback.call` with one
+    that only drives the bar and never runs ``hooks``, so the handler is
+    invoked from an override rather than passed in as a hook.
 
     Parameters
     ----------
     fn_update : Callable
-        Handler called as ``fn_update(completed, total)`` with the bytes
-        transferred so far and the total size of the file being fetched.
+        Handler called as ``fn_update(completed, total)`` with the number of
+        files fetched so far and the total number of files to fetch.
     """
 
     def __init__(self, fn_update: Callable[[int, int], None], **kwargs):
         super().__init__(**kwargs)
         self.fn_update = fn_update
 
-    def branched(self, path_1, path_2, **kwargs):
-        """Return a per-file callback that reports bytes to ``fn_update``."""
-        kwargs["callback"] = Callback(
-            hooks={
-                "fn_update": lambda size, value, **_: self.fn_update(
-                    value, size or 0
-                )
-            }
-        )
-        return super().branched(path_1, path_2, **kwargs)
+    def call(self, *args, **kwargs):
+        """Advance the tqdm bar, then report the file count to the handler."""
+        super().call(*args, **kwargs)
+        self.fn_update(self.value, self.size or 0)
 
 
 def _download_callback(

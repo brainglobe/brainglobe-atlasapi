@@ -177,16 +177,15 @@ def retrieve_structure_information():
     """
     labels = pd.read_csv(LABELS_PATH)
     structures_by_id: dict[int, dict] = {
-            ROOT_ID: {
-                "id": ROOT_ID,
-                "name": "root",
-                "acronym": "root",
-                "structure_id_path": [ROOT_ID],
-                "rgb_triplet": [255, 255, 255],
-            }
+        ROOT_ID: {
+            "id": ROOT_ID,
+            "name": "root",
+            "acronym": "root",
+            "structure_id_path": [ROOT_ID],
+            "rgb_triplet": [255, 255, 255],
         }
+    }
     rgbs = generate_pseudorandom_rgbs(labels.shape[0], 1337)
-
 
     for index, row in labels.iterrows():
         id = int(row["left label"])
@@ -194,22 +193,24 @@ def retrieve_structure_information():
         acronym = row["abbreviation"].strip()
         structure_id_path = [ROOT_ID, id]
         structures_by_id[id] = {
-                "id": id,
-                "name": name,
-                "acronym": acronym,
-                "structure_id_path": structure_id_path,
-                "rgb_triplet": rgbs[index],
-            }
-    
+            "id": id,
+            "name": name,
+            "acronym": acronym,
+            "structure_id_path": structure_id_path,
+            "rgb_triplet": rgbs[index],
+        }
+
     # Amend some duplicate names and aconyms in the provided data
-    structures_by_id[75]["name"] = "Dorsal Nucleus of the Inferior Reticular Formation"
+    structures_by_id[75][
+        "name"
+    ] = "Dorsal Nucleus of the Inferior Reticular Formation"
     structures_by_id[75]["acronym"] = "DIRtF"
-    
+
     structures_by_id[215]["acronym"] = "DLT"
-    
+
     structures_by_id[109]["acronym"] = "IPD"
     structures_by_id[110]["acronym"] = "IPV"
-    
+
     structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures

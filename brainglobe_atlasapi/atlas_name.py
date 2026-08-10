@@ -142,11 +142,7 @@ AtlasName: TypeAlias = Literal[
     "drosophila_wingdisc_instar3_2um",
     "eurasian_blackcap_25um",
     "example_mouse_100um",
-<<<<<<< HEAD
     "hoops_tawny_dragon_50um",
-=======
-    "hoops_dragon_50um",
->>>>>>> main
     "kim_dev_mouse_e11-5_lsfm_20um",
     "kim_dev_mouse_e11-5_mri-adc_31.5um",
     "kim_dev_mouse_e11-5_mri-dwi_31.5um",

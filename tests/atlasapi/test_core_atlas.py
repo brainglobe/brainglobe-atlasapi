@@ -583,15 +583,17 @@ def test_core_atlas_shares_the_progress_handler(mocker):
     references are fetched lazily from the same store, so a caller passing a
     handler should see those as well.
     """
-    from brainglobe_atlasapi import core
+    from fsspec.callbacks import TqdmCallback
+
+    from brainglobe_atlasapi import callback as callback_module
 
     handler = mocker.Mock()
 
-    callback = core._download_callback(handler)
-    assert isinstance(callback, core._ProgressCallback)
+    callback = callback_module._download_callback(handler)
+    assert isinstance(callback, callback_module._ProgressCallback)
     assert callback.fn_update is handler
 
     # Without a handler the plain tqdm bar is used and nothing is reported.
-    plain = core._download_callback(None)
-    assert isinstance(plain, core.TqdmCallback)
-    assert not isinstance(plain, core._ProgressCallback)
+    plain = callback_module._download_callback(None)
+    assert isinstance(plain, TqdmCallback)
+    assert not isinstance(plain, callback_module._ProgressCallback)

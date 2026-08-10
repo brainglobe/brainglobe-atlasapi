@@ -12,7 +12,7 @@ from rich.console import Console
 
 from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
-from brainglobe_atlasapi.core import _download_callback
+from brainglobe_atlasapi.callback import _download_callback
 from brainglobe_atlasapi.descriptors import (
     V3_ANNOTATION_MAP_NAME,
     V3_ANNOTATION_MASKS_NAME,

@@ -115,7 +115,7 @@ def test_download_callback_reports_bytes(tmp_path, recursive):
     recursive : bool
         Whether to fetch a whole directory or a single file.
     """
-    from brainglobe_atlasapi.bg_atlas import _download_callback
+    from brainglobe_atlasapi.callback import _download_callback
 
     calls = []
     memory_fs = fsspec.filesystem("memory")
@@ -141,7 +141,7 @@ def test_download_callback_reports_bytes(tmp_path, recursive):
 
 def test_download_callback_without_fn_update(tmp_path):
     """`_download_callback` still transfers files when no handler is given."""
-    from brainglobe_atlasapi.bg_atlas import _download_callback
+    from brainglobe_atlasapi.callback import _download_callback
 
     memory_fs = fsspec.filesystem("memory")
     memory_fs.pipe("/atlas/first.json", b"a" * 8)

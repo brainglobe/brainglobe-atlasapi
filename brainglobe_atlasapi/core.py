@@ -56,8 +56,6 @@ def _determine_pyramid_level(
     raise ValueError(f"Requested resolution {resolution} um is invalid.")
 
 
-
-
 class Atlas:
     """Base class to handle atlases in BrainGlobe.
 

@@ -21,16 +21,18 @@ requires-python = ">=3.11"
 dependencies = [
     "brainglobe-space >= 1.0.0",
     "click",
+    "DracoPy",
     "fsspec",
     "meshio",
-    "ngff-zarr",
+    "ngff-zarr<0.37.0",
     "numpy",
     "pandas",
     "pyarrow",
     "requests",
     "rich >= 9.0.0",
-    "s3fs",
+    "s3fs >= 2026",
     "tifffile>=2018.11.6",
+    "tqdm >= 4.46.1",
     "treelib",
 ]
 dynamic = ["version"]
@@ -65,11 +67,12 @@ kocher_bumblebee = ["vtk"]
 
 atlasgen = [
     "brainglobe-utils",
+    "cloud-volume",
     "loguru",
-    "ome-zarr",
+    "numba",
+    "ome-zarr<0.17.0",
     "PyMCubes",
     "SimpleITK",
-    "tqdm>=4.46.1",
     "vedo",
     "xmltodict",
     "pooch",

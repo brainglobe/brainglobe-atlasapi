@@ -1,24 +1,18 @@
-# brainglobe-atlasapi
-
-[![Python Version](https://img.shields.io/pypi/pyversions/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
-[![PyPI](https://img.shields.io/pypi/v/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi/)
-[![Anaconda version](https://anaconda.org/conda-forge/brainglobe-atlasapi/badges/version.svg)](https://anaconda.org/conda-forge/brainglobe-atlasapi)
-[![Wheel](https://img.shields.io/pypi/wheel/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
-[![Development Status](https://img.shields.io/pypi/status/brainatlas-api.svg)](https://github.com/SainsburyWellcomeCentre/brainatlas-api)
-[![Downloads](https://pepy.tech/badge/brainglobe-atlasapi)](https://pepy.tech/project/brainglobe-atlasapi)
-[![Tests](https://img.shields.io/github/actions/workflow/status/brainglobe/brainglobe-atlasapi/test_and_deploy.yml?branch=main)](
-    https://github.com/brainglobe/brainglobe-atlasapi/actions)
-[![codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/branch/main/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
-[![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/format.json)](https://github.com/astral-sh/ruff)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.02668/status.svg)](https://doi.org/10.21105/joss.02668)
+[![Docs](https://img.shields.io/badge/Docs-brainglobe--atlasapi-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/index.html)
+[![Get in Touch](https://img.shields.io/badge/Get%20in%20Touch-BrainGlobe-blue)](https://brainglobe.info/contact.html)
+[![DOI](https://img.shields.io/badge/DOI-10.21105%2Fjoss.02668-green)](https://doi.org/10.21105/joss.02668)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Contributions](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg)](https://docs.brainglobe.info/cellfinder/contributing)
-[![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/documentation/brainglobe-atlasapi/index.html)
-[![image.sc forum](https://img.shields.io/badge/dynamic/json.svg?label=forum&url=https%3A%2F%2Fforum.image.sc%2Ftags%2Fbrainglobe.json&query=%24.topic_list.tags.0.topic_count&colorB=brightgreen&suffix=%20topics&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAABPklEQVR42m3SyyqFURTA8Y2BER0TDyExZ+aSPIKUlPIITFzKeQWXwhBlQrmFgUzMMFLKZeguBu5y+//17dP3nc5vuPdee6299gohUYYaDGOyyACq4JmQVoFujOMR77hNfOAGM+hBOQqB9TjHD36xhAa04RCuuXeKOvwHVWIKL9jCK2bRiV284QgL8MwEjAneeo9VNOEaBhzALGtoRy02cIcWhE34jj5YxgW+E5Z4iTPkMYpPLCNY3hdOYEfNbKYdmNngZ1jyEzw7h7AIb3fRTQ95OAZ6yQpGYHMMtOTgouktYwxuXsHgWLLl+4x++Kx1FJrjLTagA77bTPvYgw1rRqY56e+w7GNYsqX6JfPwi7aR+Y5SA+BXtKIRfkfJAYgj14tpOF6+I46c4/cAM3UhM3JxyKsxiOIhH0IO6SH/A1Kb1WBeUjbkAAAAAElFTkSuQmCC)](https://forum.image.sc/tag/brainglobe)
-[![Bluesky](https://img.shields.io/badge/Bluesky-0285FF?logo=bluesky&logoColor=fff)](https://bsky.app/profile/brainglobe.info)
-[![Mastodon](https://img.shields.io/badge/Mastodon-6364FF?logo=mastodon&logoColor=fff)](https://mastodon.online/@brainglobe)
+[![Tests](https://github.com/brainglobe/brainglobe-atlasapi/actions/workflows/test_and_deploy.yml/badge.svg)](https://github.com/brainglobe/brainglobe-atlasapi/actions/workflows/test_and_deploy.yml)
+[![Codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
+[![Python Version](https://img.shields.io/pypi/pyversions/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
+[![PyPI](https://img.shields.io/pypi/v/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
+[![Conda](https://anaconda.org/conda-forge/brainglobe-atlasapi/badges/version.svg)](https://anaconda.org/conda-forge/brainglobe-atlasapi)
+[![Downloads](https://static.pepy.tech/badge/brainglobe-atlasapi)](https://pepy.tech/project/brainglobe-atlasapi)
+[![Code Style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/format.json)](https://github.com/astral-sh/ruff)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-green?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-green.svg)](https://brainglobe.info/community/developers/index.html)
+
+# brainglobe-atlasapi
 
 The BrainGlobe Atlas API (`brainglobe-atlasapi`) provides a common interface for programmers to download and process brain atlas data from multiple sources.
 
@@ -55,7 +49,7 @@ A number of atlases are in development; those available currently are shown in t
 | [MRI Mouse Lemur Brain Atlas](https://doi.org/10.1016/j.dib.2018.10.067) | 91 micron | 15–58 months  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#mri-mouse-lemur-brain-atlas) |
 | [Australian Mouse Brain Atlas](https://doi.org/10.1016/j.ymeth.2015.01.005) | 15 micron | 12 week old | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#australian-mouse-brain-atlas) |
 | [Cat Brain Atlas](https://doi.org/10.1002/cne.24271) | 500 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#cat-brain-atlas) |
-| [Eurasian Blackcap Atlas](https://doi.org/10.1101/2025.03.04.641293) | 25 micron| Adult | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#eurasian-blackcap-atlas) |                                                         |
+| [Eurasian Blackcap Atlas](https://doi.org/10.1016/j.cub.2026.03.034) | 25 micron| Adult | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#eurasian-blackcap-atlas) |                                                         |
 | [BlueBrain CCFv3 Augmented](https://doi.org/10.1162/imag_a_00565) | 10 and 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#ccfv3-augmented-mouse-atlas) |
 | [Columbia Cuttlefish Atlas](https://doi.org/10.1016/j.cub.2023.06.007) | 50 micron | 6-7 months | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#columbia-cuttlefish-atlas) |
 | [Kocher Bumblebee Brain Atlas](https://doi.org/10.1016/j.cub.2022.04.066) | 2.542 x 1.2407 x 1.2407 micron | Adult Worker | Confocal | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kocher-bumblebee-brain-atlas) |
@@ -129,9 +123,9 @@ atlas = BrainGlobeAtlas("allen_mouse_25um")
 The various files associated with the atlas can then be accessed as attributes of the class:
 
 ```python
-# reference image
-reference_image = atlas.reference
-print(reference_image.shape)
+# template image
+template_image = atlas.template
+print(template_image.shape)
 # (528, 320, 456)
 
 # annotation image
@@ -162,7 +156,7 @@ atlas.lookup_df.head(8)
 # 7       FRP1         68          Frontal pole, layer 1
 ```
 
-Each brain region can also be access by the acronym, e.g. for primary visual cortex (VISp):
+Each brain region can also be accessed by the acronym, e.g. for primary visual cortex (VISp):
 
 ```python
 from pprint import pprint

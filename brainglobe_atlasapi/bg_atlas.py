@@ -14,6 +14,8 @@ from rich.console import Console
 from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
+    V3_ANNOTATION_MAP_NAME,
+    V3_ANNOTATION_MASKS_NAME,
     V3_ANNOTATION_NAME,
     V3_ATLAS_ROOTDIR,
     V3_HEMISPHERES_NAME,
@@ -308,7 +310,41 @@ class BrainGlobeAtlas(core.Atlas):
                     callback=TqdmCallback(),
                 )
                 mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
-                mesh_path.mkdir(exist_ok=True)
+                mesh_path.mkdir(parents=True, exist_ok=True)
+
+                # Download 4D masks metadata (JSON only; chunk data is lazy)
+                try:
+                    masks_metadata_glob = (
+                        annotation_location
+                        + f"/{V3_ANNOTATION_MASKS_NAME}/**/*.json"
+                    )
+                    remote_masks_metadata = remote_url_s3.format(
+                        masks_metadata_glob
+                    )
+                    self.fs.get(
+                        remote_masks_metadata,
+                        str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
+                        callback=TqdmCallback(),
+                    )
+                    masks_annotation_values_path = (
+                        annotation_location + f"/{V3_ANNOTATION_MASKS_NAME}"
+                        f"/{V3_ANNOTATION_MAP_NAME}"
+                    )
+                    remote_masks_annotation_values_path = remote_url_s3.format(
+                        masks_annotation_values_path
+                    )
+                    self.fs.get(
+                        remote_masks_annotation_values_path,
+                        str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
+                        callback=TqdmCallback(),
+                        recursive=True,
+                    )
+                except FileNotFoundError as e:
+                    raise FileNotFoundError(
+                        f"Annotation masks metadata not found for atlas "
+                        f"{self.atlas_name} "
+                        f"v{remote_version_str.replace('_', '.')}."
+                    ) from e
 
                 if not self.metadata["symmetric"]:
                     root_hemisphere_path = (
@@ -321,6 +357,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_root_hemisphere_path,
                         local_annotation_path / V3_HEMISPHERES_NAME,
+                        callback=TqdmCallback(),
                     )
 
             # Download template metadata files

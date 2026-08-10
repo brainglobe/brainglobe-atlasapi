@@ -1,6 +1,7 @@
 """Unit tests for brainglobe_atlasapi/descriptors.py format functions."""
 
 from brainglobe_atlasapi import descriptors
+from brainglobe_atlasapi.descriptors import V3_ANNOTATION_MASKS_NAME
 
 
 def test_format_component_stub_structure():
@@ -68,3 +69,8 @@ def test_format_meshes_stub():
         f"/{descriptors.V3_MESHES_DIRECTORY}"
     )
     assert result == expected
+
+
+def test_v3_annotation_name_masks_value():
+    """V3_ANNOTATION_MASKS_NAME must equal the filename expected on disk."""
+    assert V3_ANNOTATION_MASKS_NAME == "annotations.ome.zarr"

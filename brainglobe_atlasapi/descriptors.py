@@ -8,8 +8,10 @@ import numpy.typing as npt
 
 # Base url of the gin repository:
 remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
-remote_url_s3 = "s3://brainglobe/atlas/{}"
-remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
+remote_url_s3 = "s3://brainglobe/atlas-rc2/{}"
+remote_url_s3_http = (
+    "https://brainglobe.s3.us-west-2.amazonaws.com/atlas-rc2/{}"
+)
 
 # Major version of atlases used by current brainglobe-atlasapi release:
 ATLAS_MAJOR_V = 0
@@ -60,15 +62,18 @@ V3_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
 V3_TEMPLATE_ROOTDIR = "templates"
 V3_TERMINOLOGY_ROOTDIR = "terminologies"
 V3_TERMINOLOGY_NAME = "terminology.csv"
-V3_MESHES_DIRECTORY = "annotation.precomputed"
-V3_TEMPLATE_NAME = "anatomical_template.ome.zarr"
-V3_ANNOTATION_NAME = "annotation.ome.zarr"
+V3_MESHES_DIRECTORY = "annotations.precomputed/mesh"
+V3_TEMPLATE_NAME = "template.ome.zarr"
+V3_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
+V3_ANNOTATION_MASKS_NAME = "annotations.ome.zarr"
+V3_ANNOTATION_MAP_NAME = "annotation_values"
 V3_HEMISPHERES_NAME = "hemispheres.ome.zarr"
 
 # Types for the atlas stacks:
 REFERENCE_DTYPE = np.uint16
 ANNOTATION_DTYPE = np.uint32
 HEMISPHERES_DTYPE = np.uint8
+ANNOTATION_MASKS_DTYPE = np.uint8
 
 # Standard orientation origin: Anterior, Superior, Right
 # (using brainglobe-space definition)

@@ -43,6 +43,8 @@ BG_OME_ZARR_AXES = [
     },
 ]
 
+BG_OME_ZARR_4D_AXES = [{"name": "c", "type": "channel"}, *BG_OME_ZARR_AXES]
+
 
 def write_stack(stack, filename):
     """Write an image stack to a TIFF file.
@@ -61,7 +63,7 @@ def write_multiscale_ome_zarr(
     images: List[npt.NDArray],
     output_path: Path,
     transformations: List[List[dict]],
-    axes: List[dict] = BG_OME_ZARR_AXES,
+    axes: List[dict],
 ):
     """Write a multiscale image pyramid to an OME-Zarr file.
 
@@ -115,6 +117,7 @@ def _save_as_ome_zarr(
     dtype: npt.DTypeLike,
     output_path: Path,
     transformations: List[List[Dict]],
+    axes: List[Dict] = BG_OME_ZARR_AXES,
 ) -> None:
     stack = [s.astype(dtype) for s in stack]
 
@@ -125,6 +128,7 @@ def _save_as_ome_zarr(
         images=stack,
         output_path=output_path,
         transformations=transformations,
+        axes=axes,
     )
 
 
@@ -197,4 +201,30 @@ def save_hemispheres(
         descriptors.HEMISPHERES_DTYPE,
         output_dir / descriptors.V3_HEMISPHERES_NAME,
         transformations,
+    )
+
+
+def save_annotation_masks(
+    stack: List[npt.NDArray],
+    output_dir: Path,
+    transformations: List[List[Dict]],
+) -> None:
+    """Save the 4D annotation masks array.
+
+    Parameters
+    ----------
+    stack : List[np.ndarray]
+        List of 4D (N, Z, Y, X) arrays, one per scale level.
+    output_dir : Path
+        Directory in which to create annotations.ome.zarr.
+    transformations : List[List[Dict]]
+        OME-Zarr coordinate transformations, one list per scale level.
+        Each scale must be 4-element: [1, z_mm, y_mm, x_mm].
+    """
+    _save_as_ome_zarr(
+        stack,
+        descriptors.ANNOTATION_MASKS_DTYPE,
+        output_dir / descriptors.V3_ANNOTATION_MASKS_NAME,
+        transformations,
+        axes=BG_OME_ZARR_4D_AXES,
     )

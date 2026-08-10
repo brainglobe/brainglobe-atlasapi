@@ -19,6 +19,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "aiobotocore >= 3.6.0",
     "brainglobe-space >= 1.0.0",
     "click",
     "DracoPy",
@@ -67,7 +68,7 @@ kocher_bumblebee = ["vtk"]
 
 atlasgen = [
     "brainglobe-utils",
-    "cloud-volume",
+    "cloud-volume>=12",
     "loguru",
     "numba",
     "ome-zarr<0.17.0",

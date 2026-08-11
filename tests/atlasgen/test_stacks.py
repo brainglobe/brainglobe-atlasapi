@@ -293,7 +293,7 @@ def test_save_annotation_masks_creates_zarr(tmp_path):
 
 
 def test_save_annotation_masks_chunk_shape(tmp_path):
-    """save_annotation_masks writes one annotation per spatial chunk."""
+    """save_annotation_masks writes (1, 128, 128, 128) chunks."""
     arr = da.zeros((3, 5, 5, 5), chunks=(1, 5, 5, 5), dtype="uint8")
     transformations = [
         [{"type": "scale", "scale": [1.0, 0.025, 0.025, 0.025]}]

@@ -575,24 +575,44 @@ def test_get_structure_mask_downloads_once_and_caches(atlas, monkeypatch):
             shutil.rmtree(chunk_dir)
 
 
-def test_core_atlas_shares_the_progress_handler(mocker):
-    """A core Atlas keeps `fn_update` so its lazy fetches report progress too.
+def test_atlas_passes_fn_update_to_additional_references(atlas_path):
+    """`Atlas` hands `fn_update` to the lazily fetched additional references.
 
-    The download in `BrainGlobeAtlas` was the only place that reported
-    progress, but the template, annotation, hemispheres and additional
-    references are fetched lazily from the same store, so a caller passing a
-    handler should see those as well.
+    The template, annotation and hemispheres are fetched from `Atlas` itself,
+    but an additional reference is downloaded later by `AdditionalRefDict`,
+    which is a separate object. It therefore needs the handler passed into it,
+    otherwise that download reports nothing.
     """
-    from brainglobe_atlasapi.callback import AtlasCallback
 
+    def handler(completed, total):
+        return None
+
+    atlas = core.Atlas(atlas_path, fn_update=handler)
+
+    assert atlas.additional_references.fn_update is handler
+
+
+def test_additional_ref_dict_reports_download_progress(temp_path, mocker):
+    """A lazy additional reference download reports through `fn_update`.
+
+    `AdditionalRefDict.__getitem__` used to reach for `self.fn_update`, which
+    was never set on it, so this path raised `AttributeError` as soon as an
+    atlas built with a handler touched an additional reference.
+    """
     handler = mocker.Mock()
+    fake_data = [
+        {
+            "name": "allen-adult-mouse-stpt-template",
+            "version": "2015",
+            "location": "/templates/allen-adult-mouse-stpt-template/2015",
+        }
+    ]
 
-    callback = AtlasCallback(handler)
-    assert callback.fn_update is handler
-    callback.relative_update(1)
-    handler.assert_called_once_with(1, 0)
+    add_ref_dict = AdditionalRefDict(
+        fake_data,
+        temp_path,
+        resolution=(100.0, 100.0, 100.0),
+        fn_update=handler,
+    )
 
-    # Without a handler only the tqdm bar moves and nothing is reported.
-    plain = AtlasCallback()
-    assert plain.fn_update is None
-    plain.relative_update(1)
+    assert add_ref_dict.fn_update is handler

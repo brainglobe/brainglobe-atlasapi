@@ -58,9 +58,7 @@ class BrainGlobeAtlas(core.Atlas):
         instantiation and to suppress warnings.
     fn_update : Callable
         Handler function to update during download. Takes the number of files
-        fetched so far and the total number of files to fetch. An atlas is an
-        OME-Zarr store, so a byte count would tick through thousands of small
-        chunks and read as a stalling bar.
+        fetched so far and the total number of files to fetch.
     """
 
     def __init__(

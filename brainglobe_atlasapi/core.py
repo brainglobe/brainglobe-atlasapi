@@ -147,6 +147,7 @@ class Atlas:
                 references_list=additional_references,
                 data_path=self.root_dir,
                 resolution=self.resolution,
+                fn_update=self.fn_update,
             )
         except KeyError:
             warnings.warn(
@@ -750,6 +751,7 @@ class AdditionalRefDict(UserDict):
         references_list: List[Dict[str, str]],
         data_path,
         resolution: Tuple[float, float, float],
+        fn_update: Optional[Callable] = None,
         *args,
         **kwargs,
     ):
@@ -757,6 +759,10 @@ class AdditionalRefDict(UserDict):
         self.references_names = [ref["name"] for ref in references_list]
         self.references_dict = {ref["name"]: ref for ref in references_list}
         self.resolution = resolution
+        # An additional reference is fetched lazily on first access, long after
+        # the owning `Atlas` was built, so the handler has to be carried here
+        # rather than read off the atlas at download time.
+        self.fn_update = fn_update
 
         super().__init__(*args, **kwargs)
 

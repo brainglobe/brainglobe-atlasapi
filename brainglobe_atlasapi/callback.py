@@ -10,8 +10,7 @@ class AtlasCallback(TqdmCallback):
     """Show a tqdm bar for an atlas download and report progress onwards.
 
     An atlas is an OME-Zarr store, so this reports the number of files fetched
-    rather than the number of bytes. Bytes would tick through thousands of
-    small chunks and read as a stalling bar.
+    rather than the number of bytes.
 
     Parameters
     ----------

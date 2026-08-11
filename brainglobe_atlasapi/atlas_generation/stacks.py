@@ -90,6 +90,11 @@ def write_multiscale_ome_zarr(
         group=root,
         axes=axes,
         coordinate_transformations=transformations,
+        storage_options={
+            "chunks": (1, 128, 128, 128)
+            if images[0].ndim == 4
+            else (128, 128, 128)
+        },
     )
 
     store.close()

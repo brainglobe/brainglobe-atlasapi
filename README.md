@@ -60,6 +60,7 @@ A number of atlases are in development; those available currently are shown in t
 | [Allen CCFv2 Mouse Brain Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-mouse-brain-atlas) |
 | [Allen CCFv2 Mouse Fiber Tracts Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-mouse-fiber-tracts-atlas) |
 | [Allen CCFv2 Developmental Mouse Brain Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-developmental-mouse-brain-atlas) |
+| [Hoops Tawny Dragon Brain Atlas](https://doi.org/10.1007/s00429-021-02282-z) | 50 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#hoops-tawny-dragon-brain-atlas) |
 
 <!-- END_ATLAS_TABLE -->
 

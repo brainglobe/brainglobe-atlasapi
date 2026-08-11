@@ -63,6 +63,7 @@ allenmouse = ["allensdk"]
 allenmouse_barrels = [
     "allensdk",
     "voxcell"]
+duke_mouse = ["tensorstore"]
 perens_stereotaxic_mri_mouse = ["py7zr"]
 kocher_bumblebee = ["vtk"]
 

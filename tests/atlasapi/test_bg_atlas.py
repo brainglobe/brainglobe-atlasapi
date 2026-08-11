@@ -106,7 +106,7 @@ def test_str(atlas, capsys):
     [pytest.param(False, id="one file"), pytest.param(True, id="directory")],
 )
 def test_download_callback_reports_file_counts(tmp_path, recursive):
-    """`_download_callback` reports fetched file counts to `fn_update`.
+    """`AtlasCallback` reports fetched file counts to `fn_update`.
 
     An atlas is an OME-Zarr store, so byte progress would tick through
     thousands of small chunks. The file count is the useful proxy.
@@ -118,7 +118,7 @@ def test_download_callback_reports_file_counts(tmp_path, recursive):
     recursive : bool
         Whether to fetch a whole directory or a single file.
     """
-    from brainglobe_atlasapi.callback import _download_callback
+    from brainglobe_atlasapi.callback import AtlasCallback
 
     calls = []
     memory_fs = fsspec.filesystem("memory")
@@ -130,7 +130,7 @@ def test_download_callback_reports_file_counts(tmp_path, recursive):
         source,
         str(tmp_path / "destination"),
         recursive=recursive,
-        callback=_download_callback(
+        callback=AtlasCallback(
             lambda completed, total: calls.append((completed, total))
         ),
     )
@@ -151,8 +151,8 @@ def test_download_callback_reports_file_counts(tmp_path, recursive):
 
 
 def test_download_callback_without_fn_update(tmp_path):
-    """`_download_callback` still transfers files when no handler is given."""
-    from brainglobe_atlasapi.callback import _download_callback
+    """`AtlasCallback` still transfers files when no handler is given."""
+    from brainglobe_atlasapi.callback import AtlasCallback
 
     memory_fs = fsspec.filesystem("memory")
     memory_fs.pipe("/atlas/first.json", b"a" * 8)
@@ -160,7 +160,7 @@ def test_download_callback_without_fn_update(tmp_path):
     memory_fs.get(
         "/atlas/first.json",
         str(tmp_path / "first.json"),
-        callback=_download_callback(None),
+        callback=AtlasCallback(None),
     )
 
     assert (tmp_path / "first.json").read_bytes() == b"a" * 8

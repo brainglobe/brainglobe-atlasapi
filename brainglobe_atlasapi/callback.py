@@ -6,51 +6,36 @@ from typing import Optional
 from fsspec.callbacks import TqdmCallback
 
 
-class _ProgressCallback(TqdmCallback):
-    """Show a tqdm bar and report progress to an external handler.
+class AtlasCallback(TqdmCallback):
+    """Show a tqdm bar for an atlas download and report progress onwards.
 
-    ``fsspec`` drives the callback passed to ``get`` with a file count, and
-    that count is what is reported. An atlas is an OME-Zarr store, so a byte
-    count would tick through thousands of small chunks and read as a stalling
-    bar, while the file count advances once per file.
-
-    ``TqdmCallback`` replaces :meth:`fsspec.callbacks.Callback.call` with one
-    that only drives the bar and never runs ``hooks``, so the handler is
-    invoked from an override rather than passed in as a hook.
-
-    Parameters
-    ----------
-    fn_update : Callable
-        Handler called as ``fn_update(completed, total)`` with the number of
-        files fetched so far and the total number of files to fetch.
-    """
-
-    def __init__(self, fn_update: Callable[[int, int], None], **kwargs):
-        super().__init__(**kwargs)
-        self.fn_update = fn_update
-
-    def call(self, *args, **kwargs):
-        """Advance the tqdm bar, then report the file count to the handler."""
-        super().call(*args, **kwargs)
-        self.fn_update(self.value, self.size or 0)
-
-
-def _download_callback(
-    fn_update: Optional[Callable[[int, int], None]],
-) -> TqdmCallback:
-    """Build the fsspec callback used for a single atlas download step.
+    An atlas is an OME-Zarr store, so this reports the number of files fetched
+    rather than the number of bytes. Bytes would tick through thousands of
+    small chunks and read as a stalling bar.
 
     Parameters
     ----------
     fn_update : Callable, optional
-        Handler to report download progress to. If None, only the tqdm
-        progress bar is shown.
-
-    Returns
-    -------
-    TqdmCallback
-        The callback to pass to ``fsspec``.
+        Handler called as ``fn_update(completed, total)`` with the number of
+        files fetched so far and the total number of files to fetch. If None,
+        only the tqdm progress bar is shown.
     """
-    if fn_update is None:
-        return TqdmCallback()
-    return _ProgressCallback(fn_update)
+
+    def __init__(
+        self,
+        fn_update: Optional[Callable[[int, int], None]] = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.fn_update = fn_update
+
+    def call(self, *args, **kwargs):
+        """Advance the tqdm bar, then report the file count to the handler.
+
+        ``TqdmCallback`` overrides :meth:`fsspec.callbacks.Callback.call` with
+        a version that never runs ``hooks``, so the handler has to be called
+        from here rather than registered as one.
+        """
+        super().call(*args, **kwargs)
+        if self.fn_update:
+            self.fn_update(self.value, self.size or 0)

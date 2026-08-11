@@ -20,7 +20,7 @@ import s3fs
 import zarr
 from brainglobe_space import AnatomicalSpace
 
-from brainglobe_atlasapi.callback import _download_callback
+from brainglobe_atlasapi.callback import AtlasCallback
 from brainglobe_atlasapi.descriptors import (
     ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
@@ -230,7 +230,7 @@ class Atlas:
                 remote_path,
                 resolution_path,
                 recursive=True,
-                callback=_download_callback(self.fn_update),
+                callback=AtlasCallback(self.fn_update),
             )
 
         self._template = multiscale.images[
@@ -278,7 +278,7 @@ class Atlas:
                 remote_path,
                 resolution_path,
                 recursive=True,
-                callback=_download_callback(self.fn_update),
+                callback=AtlasCallback(self.fn_update),
             )
 
         self._annotation = multiscale.images[
@@ -339,7 +339,7 @@ class Atlas:
                     remote_path,
                     resolution_path,
                     recursive=True,
-                    callback=_download_callback(self.fn_update),
+                    callback=AtlasCallback(self.fn_update),
                 )
 
             self._hemispheres = multiscale.images[
@@ -725,7 +725,7 @@ class Atlas:
                     remote_path,
                     local_path,
                     recursive=True,
-                    callback=_download_callback(self.fn_update),
+                    callback=AtlasCallback(self.fn_update),
                 )
             except FileNotFoundError as e:
                 raise FileNotFoundError(
@@ -820,7 +820,7 @@ class AdditionalRefDict(UserDict):
                     remote_path,
                     resolution_path,
                     recursive=True,
-                    callback=_download_callback(self.fn_update),
+                    callback=AtlasCallback(self.fn_update),
                 )
             self.data[key] = multiscale.images[pyramid_level].data.compute()
 

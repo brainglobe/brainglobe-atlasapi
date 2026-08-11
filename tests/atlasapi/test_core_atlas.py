@@ -578,22 +578,21 @@ def test_get_structure_mask_downloads_once_and_caches(atlas, monkeypatch):
 def test_core_atlas_shares_the_progress_handler(mocker):
     """A core Atlas keeps `fn_update` so its lazy fetches report progress too.
 
-    The download in `BrainGlobeAtlas` was the only place that reported byte
+    The download in `BrainGlobeAtlas` was the only place that reported
     progress, but the template, annotation, hemispheres and additional
     references are fetched lazily from the same store, so a caller passing a
     handler should see those as well.
     """
-    from fsspec.callbacks import TqdmCallback
-
-    from brainglobe_atlasapi import callback as callback_module
+    from brainglobe_atlasapi.callback import AtlasCallback
 
     handler = mocker.Mock()
 
-    callback = callback_module._download_callback(handler)
-    assert isinstance(callback, callback_module._ProgressCallback)
+    callback = AtlasCallback(handler)
     assert callback.fn_update is handler
+    callback.relative_update(1)
+    handler.assert_called_once_with(1, 0)
 
-    # Without a handler the plain tqdm bar is used and nothing is reported.
-    plain = callback_module._download_callback(None)
-    assert isinstance(plain, TqdmCallback)
-    assert not isinstance(plain, callback_module._ProgressCallback)
+    # Without a handler only the tqdm bar moves and nothing is reported.
+    plain = AtlasCallback()
+    assert plain.fn_update is None
+    plain.relative_update(1)

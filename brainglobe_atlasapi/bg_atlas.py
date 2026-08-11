@@ -12,7 +12,7 @@ from rich.console import Console
 
 from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
-from brainglobe_atlasapi.callback import _download_callback
+from brainglobe_atlasapi.callback import AtlasCallback
 from brainglobe_atlasapi.descriptors import (
     V3_ANNOTATION_MAP_NAME,
     V3_ANNOTATION_MASKS_NAME,
@@ -253,7 +253,7 @@ class BrainGlobeAtlas(core.Atlas):
         self.fs.get(
             remote_path,
             local_path,
-            callback=_download_callback(self.fn_update),
+            callback=AtlasCallback(self.fn_update),
         )
         self.metadata = read_json(local_path)
 
@@ -273,7 +273,7 @@ class BrainGlobeAtlas(core.Atlas):
                     remote_terminology_path,
                     local_terminology_path,
                     recursive=True,
-                    callback=_download_callback(self.fn_update),
+                    callback=AtlasCallback(self.fn_update),
                 )
 
             # Download coordinate space files
@@ -293,7 +293,7 @@ class BrainGlobeAtlas(core.Atlas):
                     remote_coordspace_path,
                     local_coordspace_path,
                     recursive=True,
-                    callback=_download_callback(self.fn_update),
+                    callback=AtlasCallback(self.fn_update),
                 )
 
             # Download annotation metadata files
@@ -315,7 +315,7 @@ class BrainGlobeAtlas(core.Atlas):
                 self.fs.get(
                     remote_root_metadata_path,
                     local_annotation_path / V3_ANNOTATION_NAME,
-                    callback=_download_callback(self.fn_update),
+                    callback=AtlasCallback(self.fn_update),
                 )
                 mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
                 mesh_path.mkdir(parents=True, exist_ok=True)
@@ -332,7 +332,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_masks_metadata,
                         str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
-                        callback=_download_callback(self.fn_update),
+                        callback=AtlasCallback(self.fn_update),
                     )
                     masks_annotation_values_path = (
                         annotation_location + f"/{V3_ANNOTATION_MASKS_NAME}"
@@ -344,7 +344,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_masks_annotation_values_path,
                         str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
-                        callback=_download_callback(self.fn_update),
+                        callback=AtlasCallback(self.fn_update),
                         recursive=True,
                     )
                 except FileNotFoundError as e:
@@ -365,7 +365,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_root_hemisphere_path,
                         local_annotation_path / V3_HEMISPHERES_NAME,
-                        callback=_download_callback(self.fn_update),
+                        callback=AtlasCallback(self.fn_update),
                     )
 
             # Download template metadata files
@@ -388,7 +388,7 @@ class BrainGlobeAtlas(core.Atlas):
                 self.fs.get(
                     remote_root_metadata_path,
                     local_template_path / V3_TEMPLATE_NAME,
-                    callback=_download_callback(self.fn_update),
+                    callback=AtlasCallback(self.fn_update),
                 )
 
             additional_reference_names = self.metadata.get(
@@ -413,7 +413,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_root_metadata_path,
                         local_template_path / V3_TEMPLATE_NAME,
-                        callback=_download_callback(self.fn_update),
+                        callback=AtlasCallback(self.fn_update),
                     )
             # Reset local_full_name to ensure it is updated with new location
             self._local_full_name = None

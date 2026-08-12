@@ -10,7 +10,7 @@ import numpy.typing as npt
 remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
 
 # Default remote root: an "s3://bucket/prefix" with no trailing slash.
-DEFAULT_REMOTE_ROOT = "s3://brainglobe/atlas-rc2"
+DEFAULT_REMOTE_ROOT = "s3://brainglobe/atlas"
 DEFAULT_ROOT_KEY = "brainglobe-atlasapi"
 ATLAS_ASSETS_REMOTE_ROOT = (
     "s3://aind-scratch-data/david.feng/allen-atlas-assets-rc11"
@@ -18,9 +18,7 @@ ATLAS_ASSETS_REMOTE_ROOT = (
 
 # Retained for backwards compatibility with existing imports:
 remote_url_s3 = DEFAULT_REMOTE_ROOT + "/{}"
-remote_url_s3_http = (
-    "https://brainglobe.s3.us-west-2.amazonaws.com/atlas-rc2/{}"
-)
+remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
 
 # Major version of atlases used by current brainglobe-atlasapi release:
 ATLAS_MAJOR_V = 0

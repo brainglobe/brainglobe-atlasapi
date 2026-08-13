@@ -555,9 +555,10 @@ def load_structures_from_csv(structures_path):
         },
         converters={
             "root_identifier_path": _parse_identifier_list,
-            "color_hex_triplet": lambda x: [
-                int(x.strip("#")[i : i + 2], 16) for i in (0, 2, 4)
-            ],
+            # zfill: upstream CSVs sometimes drop the leading zero (#19399)
+            "color_hex_triplet": lambda x: list(
+                bytes.fromhex(x.lstrip("#").zfill(6))
+            ),
         },
         keep_default_na=False,
         na_values=["", "NaN", "NULL", "nan", "N/A", "na", "null"],

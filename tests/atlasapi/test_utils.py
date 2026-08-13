@@ -537,6 +537,21 @@ def test_load_structures_atlas_assets_dialect():
     assert result[2]["rgb_triplet"] == [176, 240, 255]
 
 
+def test_load_structures_short_hex_colour(tmp_path):
+    """Hex triplets missing the leading zero parse to the right RGB."""
+    path = tmp_path / "terminology.csv"
+    path.write_text(
+        "identifier,annotation_value,parent_identifier,name,"
+        "abbreviation,color_hex_triplet,root_identifier_path\n"
+        "MBA:696,696,,root,AUDpo1,#19399,['MBA:696']\n"
+    )
+    assert utils.load_structures_from_csv(path)[0]["rgb_triplet"] == [
+        1,
+        147,
+        153,
+    ]
+
+
 def test_load_structures_key_set_is_stable():
     """Both dialects produce the same key set, with no spec extras."""
     expected_keys = {

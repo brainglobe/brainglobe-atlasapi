@@ -314,7 +314,7 @@ def test_save_annotation_masks_uses_4d_axes(tmp_path):
     ]
     save_annotation_masks([arr], tmp_path, transformations)
     ms = nz.from_ngff_zarr(tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME)
-    axes = ms.metadata.axes
+    axes = ms.metadata.coordinateSystems[0].axes
     assert len(axes) == 4
     assert axes[0].name == "c"
     assert axes[0].type == "channel"

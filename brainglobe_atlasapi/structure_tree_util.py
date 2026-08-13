@@ -70,6 +70,7 @@ def get_structures_tree(structures_list: List[Dict]) -> Tree:
     try:
         root = acronym_to_id_map["root"]
     except KeyError:
+        root = None
         empty_parent_list = [
             s for s in structures_list if len(s["structure_id_path"]) == 1
         ]
@@ -81,13 +82,14 @@ def get_structures_tree(structures_list: List[Dict]) -> Tree:
                     root = s["id"]
                     break
 
-        raise ValueError(
-            "Could not find a single root structure. Please check the "
-            "structures list for a structure with acronym 'root', or a "
-            "structure with no parent. If there are multiple structures "
-            "with no parent, please ensure that one of them has acronym "
-            "'CNS', 'Br', or 'brain'."
-        )
+        if root is None:
+            raise ValueError(
+                "Could not find a single root structure. Please check the "
+                "structures list for a structure with acronym 'root', or a "
+                "structure with no parent. If there are multiple structures "
+                "with no parent, please ensure that one of them has acronym "
+                "'CNS', 'Br', or 'brain'."
+            )
 
     tree = Tree()
     tree.create_node(tag=f"root ({root})", identifier=root)

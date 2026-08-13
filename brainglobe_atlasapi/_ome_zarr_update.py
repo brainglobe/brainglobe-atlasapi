@@ -1,4 +1,4 @@
-"""Repair malformed OME-Zarr group metadata from atlas-assets.
+"""Update OME-Zarr group metadata from atlas-assets.
 
 Every ``.ome.zarr`` group in the atlas-assets bucket
 (``s3://aind-scratch-data/david.feng/allen-atlas-assets-rc12``) ships a
@@ -13,9 +13,7 @@ deltas from valid v0.6, each independently fatal:
    the multiscale that refers to it.
 
 This module is a temporary shim, applied to each group as it is
-downloaded. Delete it, along with the ``repair_ome_zarr_metadata``
-calls in ``bg_atlas.BrainGlobeAtlas.download``, once the bucket ships
-valid v0.6 metadata.
+downloaded.
 """
 
 import json
@@ -72,7 +70,7 @@ def _wrap_references(transforms, dataset_paths: Set[str]) -> bool:
 
 
 def update_ome_zarr_attributes(group_path: Union[str, Path]) -> bool:
-    """Rewrite a malformed ``zarr.json`` in place.
+    """Rewrite an old ``zarr.json`` in place.
 
     A no-op on valid metadata and on paths that hold no OME attributes,
     so it is safe to call on any downloaded group.

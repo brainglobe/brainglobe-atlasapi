@@ -77,13 +77,17 @@ def get_structures_tree(structures_list: List[Dict]) -> Tree:
             root = empty_parent_list[0]["id"]
         else:
             for s in empty_parent_list:
-                if (
-                    s["acronym"] == "CNS"
-                    or s["acronym"] == "Br"
-                    or s["acronym"] == "brain"
-                ):
+                if s["acronym"] in {"CNS", "Br", "brain"}:
                     root = s["id"]
                     break
+
+        raise ValueError(
+            "Could not find a single root structure. Please check the "
+            "structures list for a structure with acronym 'root', or a "
+            "structure with no parent. If there are multiple structures "
+            "with no parent, please ensure that one of them has acronym "
+            "'CNS', 'Br', or 'brain'."
+        )
 
     tree = Tree()
     tree.create_node(tag=f"root ({root})", identifier=root)

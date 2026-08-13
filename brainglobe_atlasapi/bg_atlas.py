@@ -18,7 +18,7 @@ from brainglobe_atlasapi import config, core, descriptors
 # ponytail: temporary shim for the malformed OME-Zarr metadata in the
 # atlas-assets bucket. Delete the import and its call sites in
 # download() once the bucket ships valid v0.6.
-from brainglobe_atlasapi._ome_zarr_repair import update_ome_zarr_attributes
+from brainglobe_atlasapi._ome_zarr_update import update_ome_zarr_attributes
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
     V3_ANNOTATION_MAP_NAME,

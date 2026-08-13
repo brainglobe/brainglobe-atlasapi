@@ -203,26 +203,12 @@ ATLAS_ASSETS_SPATIAL_ASSETS = {
 # units, which is the assumption this test exists to pin.
 _ANNOTATION_EXTENT_NM = np.array([1140, 800, 1320]) * 10000.0
 
-# The bucket's zarrs are still pre-release OME-Zarr: version "0.6.dev3",
-# `coordinateSystems` at the `ome` level rather than per-multiscale, and
-# transform `input`/`output` as bare strings rather than `{"path": ...}` /
-# `{"name": ...}` objects. ngff-zarr rejects the version string outright.
-# Every test that builds a BrainGlobeAtlas from this bucket therefore
-# cannot pass until it is republished against released OME-Zarr 0.6. They
-# are strict xfails so the suite stays green now and fails loudly, as
-# XPASS, the moment that happens.
-blocked_on_ome_version = pytest.mark.xfail(
-    strict=True,
-    reason="atlas-assets bucket declares OME-Zarr 0.6.dev3; see "
-    "descriptors.ATLAS_ASSETS_REMOTE_ROOT",
-)
 
-
-@blocked_on_ome_version
-@pytest.mark.slow
 def test_load_atlas_assets_atlas():
     """A spec-conformant atlas loads at a requested resolution."""
-    atlas = BrainGlobeAtlas(ATLAS_ASSETS_NAME, resolution=100)
+    atlas = BrainGlobeAtlas(
+        ATLAS_ASSETS_NAME, resolution=100, check_latest=False
+    )
 
     assert atlas.resolution == (100.0, 100.0, 100.0)
     assert atlas.orientation == "asl"
@@ -232,25 +218,24 @@ def test_load_atlas_assets_atlas():
     assert atlas.structures["root"]["id"] == 997
 
 
-@blocked_on_ome_version
-@pytest.mark.slow
 def test_atlas_assets_cache_is_namespaced():
     """Downloads land under the configured root's directory."""
-    atlas = BrainGlobeAtlas(ATLAS_ASSETS_NAME, resolution=100)
+    atlas = BrainGlobeAtlas(
+        ATLAS_ASSETS_NAME, resolution=100, check_latest=False
+    )
     assert atlas.brainglobe_dir.name == "allen"
 
 
-@blocked_on_ome_version
-@pytest.mark.slow
 def test_atlas_assets_hemispheres_are_synthesized():
     """No hemispheres asset exists, so hemispheres are synthesized."""
-    atlas = BrainGlobeAtlas(ATLAS_ASSETS_NAME, resolution=100)
+    atlas = BrainGlobeAtlas(
+        ATLAS_ASSETS_NAME, resolution=100, check_latest=False
+    )
     hemispheres = atlas.hemispheres
     assert hemispheres.shape == tuple(atlas.shape)
     assert set(np.unique(hemispheres)) <= {1, 2}
 
 
-@pytest.mark.slow
 def test_orientation_is_consistent_across_an_atlas_assets_atlas():
     """Every spatial asset of one atlas declares the same axis directions.
 
@@ -276,17 +261,16 @@ def test_orientation_is_consistent_across_an_atlas_assets_atlas():
     assert set(origins.values()) == {"asl"}, origins
 
 
-@blocked_on_ome_version
-@pytest.mark.slow
 def test_atlas_assets_structure_mask():
     """A structure mask lies inside the annotation's non-zero extent."""
-    atlas = BrainGlobeAtlas(ATLAS_ASSETS_NAME, resolution=100)
+    atlas = BrainGlobeAtlas(
+        ATLAS_ASSETS_NAME, resolution=100, check_latest=False
+    )
     mask = atlas.get_structure_mask("root")
     assert mask.shape == tuple(atlas.shape)
     assert mask.max() == 1
 
 
-@pytest.mark.slow
 def test_atlas_assets_legacy_mesh_is_nanometres_in_xyz(tmp_path):
     """Real Allen legacy vertices land inside the declared volume extent.
 

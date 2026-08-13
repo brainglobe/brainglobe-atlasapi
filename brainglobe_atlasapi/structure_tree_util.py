@@ -67,7 +67,24 @@ def get_structures_tree(structures_list: List[Dict]) -> Tree:
     id_to_acronym_map = {s["id"]: s["acronym"] for s in structures_list}
     acronym_to_id_map = {v: k for k, v in id_to_acronym_map.items()}
 
-    root = acronym_to_id_map["root"]
+    try:
+        root = acronym_to_id_map["root"]
+    except KeyError:
+        empty_parent_list = [
+            s for s in structures_list if len(s["structure_id_path"]) == 1
+        ]
+        if len(empty_parent_list) == 1:
+            root = empty_parent_list[0]["id"]
+        else:
+            for s in empty_parent_list:
+                if (
+                    s["acronym"] == "CNS"
+                    or s["acronym"] == "Br"
+                    or s["acronym"] == "brain"
+                ):
+                    root = s["id"]
+                    break
+
     tree = Tree()
     tree.create_node(tag=f"root ({root})", identifier=root)
 

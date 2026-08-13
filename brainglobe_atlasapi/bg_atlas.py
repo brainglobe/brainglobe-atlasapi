@@ -286,7 +286,7 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
         "citation": None,
         "atlas_link": None,
         "species": _species_from_name(raw["name"]),
-        "symmetric": False,
+        "symmetric": True,
         "resolution": [float(resolution)] * 3,
         "orientation": _orientation_from_axes(ome_attrs),
         "shape": list(shape[-3:]),

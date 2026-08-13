@@ -14,6 +14,11 @@ from rich import print as rprint
 from rich.console import Console
 
 from brainglobe_atlasapi import config, core, descriptors
+
+# ponytail: temporary shim for the malformed OME-Zarr metadata in the
+# atlas-assets bucket. Delete the import and its call sites in
+# download() once the bucket ships valid v0.6.
+from brainglobe_atlasapi._ome_zarr_repair import update_ome_zarr_attributes
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
     V3_ANNOTATION_MAP_NAME,
@@ -110,6 +115,8 @@ _ORIGIN_BY_AXIS_DIRECTION = {
     "ventral-to-dorsal": "i",
     "left-to-right": "l",
     "right-to-left": "r",
+    "caudal-to-rostral": "a",
+    "rostral-to-caudal": "p",
 }
 
 
@@ -654,6 +661,9 @@ class BrainGlobeAtlas(core.Atlas):
                     local_annotation_path / V3_ANNOTATION_NAME,
                     callback=TqdmCallback(),
                 )
+                update_ome_zarr_attributes(
+                    local_annotation_path / V3_ANNOTATION_NAME
+                )
                 mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
                 mesh_path.mkdir(parents=True, exist_ok=True)
 
@@ -684,6 +694,9 @@ class BrainGlobeAtlas(core.Atlas):
                         callback=TqdmCallback(),
                         recursive=True,
                     )
+                    update_ome_zarr_attributes(
+                        local_annotation_path / V3_ANNOTATION_MASKS_NAME
+                    )
                 except FileNotFoundError as e:
                     raise FileNotFoundError(
                         f"Annotation masks metadata not found for atlas "
@@ -710,6 +723,9 @@ class BrainGlobeAtlas(core.Atlas):
                         local_annotation_path / V3_HEMISPHERES_NAME,
                         callback=TqdmCallback(),
                     )
+                    update_ome_zarr_attributes(
+                        local_annotation_path / V3_HEMISPHERES_NAME
+                    )
 
             # Download template metadata files
             template = _component(self.metadata, "template")
@@ -723,14 +739,14 @@ class BrainGlobeAtlas(core.Atlas):
                     f"{self._remote_root}/{root_metadata_path}"
                 )
 
-                print(
-                    f"Downloading template metadata "
-                    f"for {template['name']}:"
-                )
+                print(f"Downloading template metadata for {template['name']}:")
                 self.fs.get(
                     remote_root_metadata_path,
                     local_template_path / V3_TEMPLATE_NAME,
                     callback=TqdmCallback(),
+                )
+                update_ome_zarr_attributes(
+                    local_template_path / V3_TEMPLATE_NAME
                 )
 
             additional_reference_names = self.metadata.get(
@@ -753,6 +769,9 @@ class BrainGlobeAtlas(core.Atlas):
                         remote_root_metadata_path,
                         local_template_path / V3_TEMPLATE_NAME,
                         callback=TqdmCallback(),
+                    )
+                    update_ome_zarr_attributes(
+                        local_template_path / V3_TEMPLATE_NAME
                     )
             # Reset local_full_name to ensure it is updated with new location
             self._local_full_name = None

@@ -26,7 +26,7 @@ dependencies = [
     "fsspec",
     "meshio",
     "ngff-zarr<0.37.0",
-    "numpy",
+    "numpy<2.5",
     "pandas",
     "pyarrow",
     "requests",

@@ -25,7 +25,7 @@ dependencies = [
     "DracoPy",
     "fsspec",
     "meshio",
-    "ngff-zarr>=0.37.0",
+    "ngff-zarr>=0.39.0",
     "numpy<2.5",
     "pandas",
     "pyarrow",
@@ -70,6 +70,7 @@ kocher_bumblebee = ["vtk"]
 atlasgen = [
     "brainglobe-utils",
     "cloud-volume>=12",
+    "dask[array]>=2026.1.2",
     "loguru",
     "numba",
     "ome-zarr<0.17.0",

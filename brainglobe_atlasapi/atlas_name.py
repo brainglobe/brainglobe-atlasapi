@@ -32,6 +32,7 @@ AtlasName: TypeAlias = Literal[
     "ccfv3augmented_mouse_25um",
     "columbia_cuttlefish_50um",
     "csl_cat_500um",
+    "danionella_cerebrum_mixed_2.5um",
     "demba_allen_seg_dev_mouse_p10_20um",
     "demba_allen_seg_dev_mouse_p10_25um",
     "demba_allen_seg_dev_mouse_p11_20um",

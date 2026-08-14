@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 
 import dask.array as da
-import ngff_zarr as nz
 import numpy as np
 import pytest
 import tifffile
@@ -313,8 +312,9 @@ def test_save_annotation_masks_uses_4d_axes(tmp_path):
         [{"type": "scale", "scale": [1.0, 0.025, 0.025, 0.025]}]
     ]
     save_annotation_masks([arr], tmp_path, transformations)
-    ms = nz.from_ngff_zarr(tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME)
-    axes = ms.metadata.axes
-    assert len(axes) == 4
-    assert axes[0].name == "c"
-    assert axes[0].type == "channel"
+    out_zarr = zarr.open(
+        str(tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME), mode="r"
+    )
+    ome_metadata = out_zarr.attrs["ome"]
+    axes = ome_metadata["multiscales"][0]["axes"]
+    assert axes == BG_OME_ZARR_4D_AXES

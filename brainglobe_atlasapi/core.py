@@ -42,9 +42,37 @@ from brainglobe_atlasapi.utils import (
 def _determine_pyramid_level(
     multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
 ) -> int:
-    for idx, metadata in enumerate(multiscale.metadata.datasets):
+    """Return the pyramid level matching ``resolution``.
+
+    The scale of each level is read from ``NgffImage.scale``, which ngff-zarr
+    populates from the coordinate transformations of the corresponding
+    dataset. That mapping is keyed by dimension name and is the same whatever
+    OME-Zarr version the store is written in, so it avoids interpreting the
+    version-specific transformation metadata directly.
+
+    ``images`` and ``metadata.datasets`` are built in the same pass over the
+    stored datasets, so their indices refer to the same pyramid level.
+
+    Parameters
+    ----------
+    multiscale : nz.Multiscales
+        The multiscale image to search.
+    resolution : tuple of float
+        Requested resolution in microns, in ``(z, y, x)`` order.
+
+    Returns
+    -------
+    int
+        Index of the matching pyramid level.
+
+    Raises
+    ------
+    ValueError
+        If no pyramid level has the requested resolution.
+    """
+    for idx, image in enumerate(multiscale.images):
         # Only check spatial scale against resolution
-        scales = metadata.coordinateTransformations[0].scale[-3:]
+        scales = [image.scale[dim] for dim in image.dims[-3:]]
         if all(
             np.isclose(res / 1000, scale)
             for res, scale in zip(resolution, scales)

@@ -3,7 +3,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import brainglobe_space as bgs
 import dask.array as da
@@ -14,6 +14,7 @@ import numpy.typing as npt
 import pandas as pd
 import treelib
 import zarr
+from cloudvolume import CloudVolume
 from numba.core import types
 from numba.typed import Dict as TypedDict
 from tqdm import tqdm
@@ -25,6 +26,10 @@ from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
     CoordinateSpaceInfo,
     TemplateInfo,
     TerminologyInfo,
+)
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    write_mesh,
+    write_mesh_info,
 )
 from brainglobe_atlasapi.atlas_generation.metadata_utils import (
     generate_metadata_dict,
@@ -117,10 +122,7 @@ def _insert_into_multiscale(
     stack_list = [
         resolution_to_data[res].astype(dtype) for res in merged_resolutions
     ]
-    new_transformations = [
-        [{"type": "scale", "scale": list(res_tuple)}]
-        for res_tuple in merged_resolutions
-    ]
+    new_transformations = _transformations_from_scales(merged_resolutions)
 
     write_multiscale_ome_zarr(
         images=stack_list,
@@ -130,12 +132,48 @@ def _insert_into_multiscale(
     )
 
 
-def _build_transformations(
-    resolution_standard: ResolutionList,
+def _transformations_from_scales(
+    scales: Sequence[Sequence[float]],
 ) -> List[List[dict]]:
+    """Build OME-Zarr coordinate transformations from per-level scales.
+
+    Parameters
+    ----------
+    scales : sequence of sequences of float
+        Scale (voxel size) per axis for each pyramid level, ordered from
+        highest to lowest resolution.
+    """
+    scales = [list(level) for level in scales]
+    if not scales:
+        raise ValueError(
+            "scales must be a non-empty sequence of per-level scales"
+        )
+
+    ndim = len(scales[0])
+    if any(len(level) != ndim for level in scales):
+        raise ValueError(f"All scale levels must have {ndim} axes: {scales}")
+
+    if any(
+        any(curr < prev for curr, prev in zip(scales[i], scales[i - 1]))
+        for i in range(1, len(scales))
+    ):
+        raise ValueError(
+            f"Resolutions must be ordered from highest to lowest: {scales}"
+        )
+
+    base = scales[0]
     return [
-        [{"type": "scale", "scale": [res / 1000 for res in res_tuple]}]
-        for res_tuple in resolution_standard
+        [
+            {"type": "scale", "scale": list(level)},
+            {
+                "type": "translation",
+                "translation": [
+                    round((scale - reference) / 2, 9)
+                    for scale, reference in zip(level, base)
+                ],
+            },
+        ]
+        for level in scales
     ]
 
 
@@ -176,6 +214,96 @@ def _save_coordinate_space_manifest(
         json.dump(coordinate_space_metadata, f, indent=4)
 
 
+def _save_precomputed_directory(
+    packaging_data: AtlasPackagingData,
+    mesh_dest_dir: Path,
+    scale_meshes: bool,
+    resolution_mapping: List[int] | None,
+):
+    _save_meshes(
+        packaging_data.meshes_dict,
+        mesh_dest_dir,
+        packaging_data.space_convention,
+        scale_meshes,
+        packaging_data.resolution,
+        resolution_mapping,
+    )
+
+    output_dir = mesh_dest_dir.parent
+
+    _write_precomputed_annotations(packaging_data, output_dir)
+
+
+def _write_precomputed_annotations(
+    packaging_data: AtlasPackagingData,
+    output_dir: Path,
+):
+    cloudpath = f"file://{output_dir.resolve()}"
+    annotations = packaging_data.annotation_stack[0]
+    resolution_nm = np.array(packaging_data.resolution[0]) * 1000
+
+    # All values in XYZ
+    resolution_nm = resolution_nm[[2, 1, 0]]
+    annotations = annotations.transpose(2, 1, 0).astype(
+        descriptors.ANNOTATION_DTYPE
+    )  # ZYX -> XYZ
+    voxel_offset = (0, 0, 0)
+    chunk_size = (256, 256, 64)
+    cseg_block_size = (8, 8, 8)
+
+    info = CloudVolume.create_new_info(
+        num_channels=1,
+        layer_type="segmentation",
+        data_type=str(annotations.dtype),
+        encoding="compressed_segmentation",
+        resolution=list(resolution_nm),
+        voxel_offset=list(voxel_offset),
+        chunk_size=list(chunk_size),
+        compressed_segmentation_block_size=list(cseg_block_size),
+        volume_size=list(annotations.shape),
+        mesh="mesh",
+    )
+
+    info["segment_properties"] = "segment_properties"
+
+    vol = CloudVolume(cloudpath, info=info, compress=False, progress=True)
+    vol.commit_info()
+    vol[:] = annotations
+
+    prop_out = output_dir / "segment_properties"
+    prop_out.mkdir()
+
+    terminology_path = (
+        packaging_data.working_dir / packaging_data.terminology_info.stub
+    )
+    ontology = pd.read_csv(terminology_path)
+
+    formatted_ontology = ontology.apply(
+        lambda row: (
+            str(row["identifier"]),
+            f"{row['abbreviation']}: ({row['name']})",
+        ),
+        axis=1,
+    ).to_list()
+
+    segment_properties = {
+        "@type": "neuroglancer_segment_properties",
+        "inline": {
+            "ids": [id for id, _ in formatted_ontology],
+            "properties": [
+                {
+                    "id": "abbreviation",
+                    "type": "label",
+                    "values": [abbr for _, abbr in formatted_ontology],
+                }
+            ],
+        },
+    }
+
+    with open(prop_out / "info", "w") as f:
+        json.dump(segment_properties, f, indent=4)
+
+
 def _save_meshes(
     meshes_dict: Dict[int | str, str | Path],
     mesh_dest_dir: Path,
@@ -196,27 +324,31 @@ def _save_meshes(
         if len(mesh.points) == 0:
             continue
 
+        # Scale from voxel to physical units (um) if requested
         if scale_meshes:
             if not resolution_mapping:
-                mesh.points *= resolution_standard[0]
+                mesh.points *= np.array(resolution_standard[0])
             else:
                 original_resolution = (
                     resolution_standard[0][resolution_mapping[0]],
                     resolution_standard[0][resolution_mapping[1]],
                     resolution_standard[0][resolution_mapping[2]],
                 )
-                mesh.points *= original_resolution
+                mesh.points *= np.array(original_resolution)
 
+        # Reorient to the atlas space convention
         mesh.points = space_convention.map_points_to(
             descriptors.ATLAS_ORIENTATION, mesh.points
         )
 
+        # Reorient from ZYX to XYZ for Neuroglancer and scale from um to nm
+        mesh.points = mesh.points[:, [2, 1, 0]] * 1000  # um -> nm
+        mesh.cells[0].data = mesh.cells[0].data[:, [2, 1, 0]]
+
         # TODO: parallelise and copy if not scaling or reorienting
-        mio.write(
-            mesh_dest_dir / f"{mesh_id}",
-            mesh,
-            file_format="neuroglancer",
-        )
+        write_mesh(mesh, mesh_dest_dir, mesh_id)
+
+    write_mesh_info(mesh_dest_dir)
 
 
 def _save_template_data(
@@ -352,12 +484,10 @@ def _save_annotation_data(
             annotation_info.name, annotation_info.version
         )
         mesh_dest_dir = packaging_data.working_dir / meshes_stub
-        _save_meshes(
-            packaging_data.meshes_dict,
+        _save_precomputed_directory(
+            packaging_data,
             mesh_dest_dir,
-            packaging_data.space_convention,
             scale_meshes,
-            packaging_data.resolution,
             resolution_mapping,
         )
 
@@ -400,7 +530,7 @@ def _compute_4d_masks_for_scale(
         scratch_path,
         mode="w",
         shape=(n_structures, z, y, x),
-        chunks=(1, 256, 256, 256),
+        chunks=(1, 128, 128, 128),
         dtype=descriptors.ANNOTATION_MASKS_DTYPE,
     )
 
@@ -447,10 +577,9 @@ def _save_4d_annotation_data(
     structures_tree = get_structures_tree(packaging_data.structures_list)
     mapping = _generate_annotation_mapping(structures_tree)
 
-    transformations_4d = [
-        [{"type": "scale", "scale": [1.0] + t[0]["scale"]}]
-        for t in transformations
-    ]
+    transformations_4d = _transformations_from_scales(
+        [[1.0] + t[0]["scale"] for t in transformations]
+    )
 
     masks_path = dest_dir / descriptors.V3_ANNOTATION_MASKS_NAME
     scratch_dir = dest_dir / ".mask_scratch"
@@ -551,10 +680,9 @@ def _insert_into_4d_masks(
         )
 
         merged_stack = [resolution_to_data[res] for res in merged_resolutions]
-        transformations_4d = [
-            [{"type": "scale", "scale": [1.0] + list(res)}]
-            for res in merged_resolutions
-        ]
+        transformations_4d = _transformations_from_scales(
+            [[1.0] + list(res) for res in merged_resolutions]
+        )
 
         save_annotation_masks(merged_stack, target_dir, transformations_4d)
 
@@ -943,7 +1071,9 @@ def wrapup_atlas_from_data(
         additional_metadata=additional_metadata,
     )
 
-    transformations = _build_transformations(packaging_data.resolution)
+    transformations = _transformations_from_scales(
+        [[res / 1000 for res in t] for t in packaging_data.resolution]
+    )
 
     template_multiscale = _save_template_data(
         packaging_data,
@@ -968,18 +1098,6 @@ def wrapup_atlas_from_data(
         ].data.shape
         shapes[resolution] = closest_template_shape
 
-    _save_annotation_data(
-        packaging_data,
-        transformations,
-        scale_meshes,
-        resolution_mapping,
-    )
-
-    _save_4d_annotation_data(
-        packaging_data,
-        transformations,
-    )
-
     _save_additional_references(
         packaging_data,
         transformations,
@@ -1001,6 +1119,18 @@ def wrapup_atlas_from_data(
         _save_coordinate_space_manifest(
             coordinate_space_info.metadata, coordinate_space_path
         )
+
+    _save_annotation_data(
+        packaging_data,
+        transformations,
+        scale_meshes,
+        resolution_mapping,
+    )
+
+    _save_4d_annotation_data(
+        packaging_data,
+        transformations,
+    )
 
     for resolution in packaging_data.resolution:
         shape = shapes[resolution]

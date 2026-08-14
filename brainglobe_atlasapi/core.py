@@ -42,9 +42,37 @@ from brainglobe_atlasapi.utils import (
 def _determine_pyramid_level(
     multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
 ) -> int:
-    for idx, metadata in enumerate(multiscale.metadata.datasets):
+    """Return the pyramid level matching ``resolution``.
+
+    The scale of each level is read from ``NgffImage.scale``, which ngff-zarr
+    populates from the coordinate transformations of the corresponding
+    dataset. That mapping is keyed by dimension name and is the same whatever
+    OME-Zarr version the store is written in, so it avoids interpreting the
+    version-specific transformation metadata directly.
+
+    ``images`` and ``metadata.datasets`` are built in the same pass over the
+    stored datasets, so their indices refer to the same pyramid level.
+
+    Parameters
+    ----------
+    multiscale : nz.Multiscales
+        The multiscale image to search.
+    resolution : tuple of float
+        Requested resolution in microns, in ``(z, y, x)`` order.
+
+    Returns
+    -------
+    int
+        Index of the matching pyramid level.
+
+    Raises
+    ------
+    ValueError
+        If no pyramid level has the requested resolution.
+    """
+    for idx, image in enumerate(multiscale.images):
         # Only check spatial scale against resolution
-        scales = metadata.coordinateTransformations[0].scale[-3:]
+        scales = [image.scale[dim] for dim in image.dims[-3:]]
         if all(
             np.isclose(res / 1000, scale)
             for res, scale in zip(resolution, scales)
@@ -125,7 +153,7 @@ class Atlas:
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = meshes_path / str(struct["id"])
+            struct["mesh_filename"] = meshes_path / f'{struct["id"]}'
 
         self.structures = StructuresDict(structures_list)
 
@@ -706,13 +734,10 @@ class Atlas:
         dataset_path = multiscale.metadata.datasets[
             self._annotation_masks_pyramid_level
         ].path
-        # Zarr v3 stores chunk i of a (1,Z,Y,X) array at c/i/0/0/0
-        # Use the presence of the corner chunk as a proxy for
-        # existance, if not, download recursively the whole mask
-        chunk_path = (
-            masks_path / dataset_path / "c" / str(index) / "0" / "0" / "0"
-        )
-        if not chunk_path.exists():
+        # Check if the mask is cached locally. The presence of the
+        # directory for the specific index indicates that the mask is cached.
+        local_path = masks_path / dataset_path / "c" / str(index)
+        if not local_path.exists():
             annotation_location = self.metadata["annotation_set"]["location"][
                 1:
             ]
@@ -720,8 +745,6 @@ class Atlas:
                 f"{annotation_location}/{V3_ANNOTATION_MASKS_NAME}"
                 f"/{dataset_path}/c/{index}/"
             )
-            local_path = masks_path / dataset_path / "c" / str(index)
-            chunk_path.parent.mkdir(parents=True, exist_ok=True)
             try:
                 self.fs.get(
                     remote_path,

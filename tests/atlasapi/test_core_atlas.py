@@ -1,7 +1,9 @@
 """Test the core Atlas class."""
 
 import contextlib
+import shutil
 from io import StringIO
+from unittest.mock import MagicMock
 
 import ngff_zarr as nz
 import numpy as np
@@ -208,6 +210,7 @@ def test_meshfile_from_id(atlas):
         atlas.root_dir
         / atlas.metadata["annotation_set"]["location"][1:]
         / "annotations.precomputed"
+        / "mesh"
     )
     assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567"
     assert atlas.root_meshfile() == mesh_root_path / "997"
@@ -222,13 +225,13 @@ def test_mesh_from_id(atlas):
         The atlas fixture.
     """
     mesh = atlas.structures[567]["mesh"]
-    assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
+    assert np.allclose(mesh.points[0], [7795.2515, 5022.5635, 9309.463])
 
     mesh = atlas.mesh_from_structure(567)
-    assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
+    assert np.allclose(mesh.points[0], [7795.2515, 5022.5635, 9309.463])
 
     mesh = atlas.root_mesh()
-    assert np.allclose(mesh.points[0], [7896.56, 3384.15, 503.781])
+    assert np.allclose(mesh.points[0], [10229.547, 1233.6494, 3263.8508])
 
 
 def test_lookup_df(atlas):
@@ -539,3 +542,34 @@ def test_get_structure_mask_raises_for_unknown_structure(atlas_with_masks):
     """get_structure_mask raises KeyError for an unknown structure."""
     with pytest.raises(KeyError):
         atlas_with_masks.get_structure_mask("nonexistent_region")
+
+
+def test_get_structure_mask_downloads_once_and_caches(atlas, monkeypatch):
+    """A mask is downloaded from S3 once and reused from the local cache."""
+    structure_id = 8
+    index = atlas._annotation_mapping[structure_id]
+    multiscale = nz.from_ngff_zarr(atlas._annotation_masks_path)
+    dataset_path = multiscale.metadata.datasets[
+        atlas._annotation_masks_pyramid_level
+    ].path
+    chunk_dir = atlas._annotation_masks_path / dataset_path / "c" / str(index)
+
+    # Start from a clean slate so the first call genuinely downloads.
+    if chunk_dir.exists():
+        shutil.rmtree(chunk_dir)
+
+    try:
+        # First call downloads the mask from S3.
+        mask = atlas.get_structure_mask(structure_id)
+        assert chunk_dir.exists()
+        assert mask.sum() > 0
+
+        # Second call must reuse the cache and not hit S3 again.
+        mock_get = MagicMock()
+        monkeypatch.setattr(atlas.fs, "get", mock_get)
+        atlas.get_structure_mask(structure_id)
+        mock_get.assert_not_called()
+    finally:
+        # Remove the on-demand chunk we materialised; it re-downloads lazily.
+        if chunk_dir.exists():
+            shutil.rmtree(chunk_dir)

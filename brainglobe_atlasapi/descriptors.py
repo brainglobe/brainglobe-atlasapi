@@ -8,10 +8,8 @@ import numpy.typing as npt
 
 # Base url of the gin repository:
 remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
-remote_url_s3 = "s3://brainglobe/atlas-rc2/{}"
-remote_url_s3_http = (
-    "https://brainglobe.s3.us-west-2.amazonaws.com/atlas-rc2/{}"
-)
+remote_url_s3 = "s3://brainglobe/atlas/{}"
+remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
 
 # Major version of atlases used by current brainglobe-atlasapi release:
 ATLAS_MAJOR_V = 0
@@ -62,7 +60,7 @@ V3_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
 V3_TEMPLATE_ROOTDIR = "templates"
 V3_TERMINOLOGY_ROOTDIR = "terminologies"
 V3_TERMINOLOGY_NAME = "terminology.csv"
-V3_MESHES_DIRECTORY = "annotations.precomputed"
+V3_MESHES_DIRECTORY = "annotations.precomputed/mesh"
 V3_TEMPLATE_NAME = "template.ome.zarr"
 V3_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
 V3_ANNOTATION_MASKS_NAME = "annotations.ome.zarr"

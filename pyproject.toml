@@ -19,18 +19,21 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "aiobotocore >= 3.6.0",
     "brainglobe-space >= 1.0.0",
     "click",
+    "DracoPy",
     "fsspec",
     "meshio",
-    "ngff-zarr",
-    "numpy",
+    "ngff-zarr>=0.37.0",
+    "numpy<2.5",
     "pandas",
     "pyarrow",
     "requests",
     "rich >= 9.0.0",
-    "s3fs",
+    "s3fs >= 2026",
     "tifffile>=2018.11.6",
+    "tqdm >= 4.46.1",
     "treelib",
 ]
 dynamic = ["version"]
@@ -60,22 +63,23 @@ allenmouse = ["allensdk"]
 allenmouse_barrels = [
     "allensdk",
     "voxcell"]
+duke_mouse = ["tensorstore"]
 perens_stereotaxic_mri_mouse = ["py7zr"]
 kocher_bumblebee = ["vtk"]
 
 atlasgen = [
     "brainglobe-utils",
+    "cloud-volume>=12",
     "loguru",
     "numba",
     "ome-zarr<0.17.0",
     "PyMCubes",
     "SimpleITK",
-    "tqdm>=4.46.1",
     "vedo",
     "xmltodict",
     "pooch",
-    "zarr"
-]
+    "zarr",
+    "nibabel[minc2]"]
 
 [project.scripts]
 brainglobe = "brainglobe_atlasapi.cli:bg_cli"

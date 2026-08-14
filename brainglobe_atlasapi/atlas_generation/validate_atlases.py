@@ -315,7 +315,7 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     ------
     AssertionError
         If any structure ID found in `atlas.structures` does not have a
-        matching `.obj` file in the atlas's `meshes` directory.
+        matching mesh file in the atlas's `meshes` directory.
     """
     ids_from_bg_atlas_api = list(atlas.structures.keys())
 
@@ -326,10 +326,11 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
         Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
     )
 
+    # Mesh files are named as <structure_id>
     ids_from_mesh_files = [
-        int(Path(f).stem)
-        for f in os.listdir(mesh_path)
-        if (Path(f).stem.isdigit())
+        int(f.stem)
+        for f in mesh_path.iterdir()
+        if (f.name != "info" and f.suffix != ".index")
     ]
 
     in_bg_not_mesh = []
@@ -375,9 +376,9 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     )
 
     ids_from_mesh_files = [
-        int(Path(f).stem)
-        for f in os.listdir(mesh_path)
-        if (Path(f).stem.isdigit())
+        int(f.stem)
+        for f in mesh_path.iterdir()
+        if (f.name != "info" and f.suffix != ".index")
     ]
 
     in_mesh_not_bg = []
@@ -450,9 +451,14 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
         If the annotation labels at the chosen symmetric points are different.
     """
     annotation = atlas.annotation
-    centre = np.array(annotation.shape) // 2
+
+    annotation_shape = np.array(annotation.shape)
+    remainder = annotation_shape[2] % 2
+    centre = annotation_shape // 2
     central_leftright_axis_annotations = annotation[centre[0], centre[1], :]
-    label_5_left_of_centre = central_leftright_axis_annotations[centre[2] + 5]
+    label_5_left_of_centre = central_leftright_axis_annotations[
+        centre[2] + (4 + remainder)
+    ]
     label_5_right_of_centre = central_leftright_axis_annotations[centre[2] - 5]
     assert (
         label_5_left_of_centre == label_5_right_of_centre

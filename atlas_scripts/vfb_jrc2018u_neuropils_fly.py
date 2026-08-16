@@ -63,13 +63,6 @@ def _retrieve(url, download_dir, file_name):
     )
 
 
-def _load_nrrd_array(nrrd_path):
-    """Read a VFB NRRD into the x, y, z array order used by this script."""
-    return sitk.GetArrayFromImage(sitk.ReadImage(str(nrrd_path))).transpose(
-        2, 1, 0
-    )
-
-
 def _source_space(source_shape):
     physical_shape = tuple(
         size * resolution
@@ -179,7 +172,7 @@ def download_resources():
 
 def retrieve_reference_and_annotation():
     """Load the reference and combine ROI masks into one annotation."""
-    reference = _load_nrrd_array(REFERENCE_PATH)
+    reference = sitk.GetArrayFromImage(sitk.ReadImage(str(REFERENCE_PATH))).transpose(2, 1, 0)
     annotation = np.zeros(reference.shape, dtype=np.uint16)
 
     roi_paths = sorted(
@@ -188,7 +181,7 @@ def retrieve_reference_and_annotation():
     )
     for roi_path in roi_paths:
         structure_id = int(roi_path.stem)
-        roi_mask = _load_nrrd_array(roi_path)
+        roi_mask = sitk.GetArrayFromImage(sitk.ReadImage(str(roi_path))).transpose(2, 1, 0)
         mask_voxels = roi_mask > 0
         annotation[mask_voxels] = structure_id
 
@@ -243,7 +236,7 @@ def retrieve_or_construct_meshes():
     with open(DOMAIN_METADATA_PATH, encoding="utf-8") as f:
         domain_metadata = json.load(f)
 
-    source_shape = _load_nrrd_array(REFERENCE_PATH).shape
+    source_shape = sitk.GetArrayFromImage(sitk.ReadImage(str(REFERENCE_PATH))).transpose(2, 1, 0).shape
     root_mesh_path = MESHES_DIR / f"{ROOT_ID}.obj"
     meshes_dict = {
         ROOT_ID: _map_mesh_to_asr(

@@ -95,9 +95,7 @@ MESHES_DIR = SOURCE_DATA_DIR / "meshes"
 def pooch_init(temp_download_dir):
     """Initialize Pooch with the VNC atlas registry."""
     dawg = pooch.create(path=temp_download_dir, base_url="")
-    dawg.load_registry(
-        Path(__file__).parent / "hashes" / f"{ATLAS_NAME}.txt"
-    )
+    dawg.load_registry(Path(__file__).parent / "hashes" / f"{ATLAS_NAME}.txt")
     return dawg
 
 
@@ -120,9 +118,7 @@ def download_resources():
 
     docs = response["response"]["docs"]
     if not docs:
-        raise RuntimeError(
-            "No VFB term-info record found"
-        )
+        raise RuntimeError("No VFB term-info record found")
 
     term_info = docs[0]["term_info"]
     if isinstance(term_info, list):
@@ -162,12 +158,16 @@ def download_resources():
 
 def retrieve_reference_and_annotation(reference_path, roi_paths):
     """Load the VNC reference and combine ROI masks into one annotation."""
-    reference = sitk.GetArrayFromImage(sitk.ReadImage(str(reference_path))).transpose(2, 1, 0)
+    reference = sitk.GetArrayFromImage(
+        sitk.ReadImage(str(reference_path))
+    ).transpose(2, 1, 0)
     annotation = np.zeros(reference.shape, dtype=np.uint16)
 
     roi_sizes = []
     for structure_id, roi_path in roi_paths.items():
-        roi_mask = sitk.GetArrayFromImage(sitk.ReadImage(str(roi_path))).transpose(2, 1, 0)
+        roi_mask = sitk.GetArrayFromImage(
+            sitk.ReadImage(str(roi_path))
+        ).transpose(2, 1, 0)
         if roi_mask.shape != reference.shape:
             raise ValueError(
                 f"ROI {structure_id} has shape {roi_mask.shape}, "
@@ -179,7 +179,12 @@ def retrieve_reference_and_annotation(reference_path, roi_paths):
     # Some VNC domains overlap. Write broad masks first so smaller domains
     # remain visible in the single-label BrainGlobe annotation image.
     for _, structure_id in sorted(roi_sizes, reverse=True):
-        mask_voxels = sitk.GetArrayFromImage(sitk.ReadImage(str(roi_paths[structure_id]))).transpose(2, 1, 0) > 0
+        mask_voxels = (
+            sitk.GetArrayFromImage(
+                sitk.ReadImage(str(roi_paths[structure_id]))
+            ).transpose(2, 1, 0)
+            > 0
+        )
         annotation[mask_voxels] = structure_id
 
     return reference, annotation

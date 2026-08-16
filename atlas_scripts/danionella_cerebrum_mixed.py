@@ -200,7 +200,7 @@ if __name__ == "__main__":
         hemispheres_stack=hemispheres_stack,
         scale_meshes=True,
         additional_references=additional_references,
-        overwrite=True
+        overwrite=True,
     )
 
     print(f"Atlas packaged at: {output_filename}")

@@ -19,7 +19,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 ### Metadata ###
 
-__version__ = 0
+__version__ = 1
 ATLAS_NAME = "danionella_cerebrum_mixed"
 CITATION = (
     "Kadobianskyi et al. 2026, bioRxiv, "
@@ -27,7 +27,7 @@ CITATION = (
 )
 SPECIES = "Danionella cerebrum"
 ATLAS_LINK = "https://gin.g-node.org/danionella/dc_atlas"
-ORIENTATION = "lps"
+ORIENTATION = "las"
 ROOT_ID = 9999
 RESOLUTION = 2.5
 ATLAS_PACKAGER = "Amirreza Bahramani"
@@ -200,6 +200,7 @@ if __name__ == "__main__":
         hemispheres_stack=hemispheres_stack,
         scale_meshes=True,
         additional_references=additional_references,
+        overwrite=True
     )
 
     print(f"Atlas packaged at: {output_filename}")

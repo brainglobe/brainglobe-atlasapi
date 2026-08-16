@@ -151,7 +151,8 @@ def fetch_ontology(pooch_: pooch.Pooch):
     -------
     list
         A list of dictionaries, where each dictionary represents a brain
-        structure with its properties (id, acronym, name, structure_id_path, RGB color).
+        structure with its properties (id, acronym, name, structure_id_path,
+        RGB color).
     """
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)

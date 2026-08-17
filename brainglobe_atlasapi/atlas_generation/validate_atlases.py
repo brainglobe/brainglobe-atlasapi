@@ -19,7 +19,7 @@ from brainglobe_atlasapi.list_atlases import (
 from brainglobe_atlasapi.update_atlases import update_atlas
 
 
-def validate_atlas_files(atlas: BrainGlobeAtlas):
+def validate_atlas_files(atlas: BrainGlobeAtlas) -> bool:
     """
     Check if essential files exist in the atlas folder.
 
@@ -90,7 +90,9 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
     return True
 
 
-def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
+def _assert_close(
+    mesh_coord, annotation_coord, pixel_size, diff_tolerance=10
+) -> bool:
     """
     Check if mesh and annotation coordinates are sufficiently close.
 
@@ -130,7 +132,7 @@ def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
     return True
 
 
-def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
+def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas) -> bool:
     """Check if the mesh and the image extents are similar.
 
     Validates that the spatial extents of the `root` mesh align with the
@@ -193,7 +195,7 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
     return True
 
 
-def open_for_visual_check(atlas: BrainGlobeAtlas):
+def open_for_visual_check(atlas: BrainGlobeAtlas) -> bool:
     """Open the atlas for visual inspection (not implemented).
 
     This function is a placeholder for future visual validation routines.
@@ -212,7 +214,7 @@ def open_for_visual_check(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_checksum(atlas: BrainGlobeAtlas):
+def validate_checksum(atlas: BrainGlobeAtlas) -> bool:
     """Validate the atlas checksum (not implemented).
 
     This function is a placeholder for future checksum validation routines.
@@ -231,7 +233,7 @@ def validate_checksum(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_image_dimensions(atlas: BrainGlobeAtlas):
+def validate_image_dimensions(atlas: BrainGlobeAtlas) -> bool:
     """Check that annotation and template images have identical dimensions.
 
     Parameters
@@ -257,7 +259,7 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_additional_references(atlas: BrainGlobeAtlas):
+def validate_additional_references(atlas: BrainGlobeAtlas) -> bool:
     """Check that additional references have expected properties.
 
     Verifies that all additional reference images:
@@ -297,7 +299,9 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
     return True
 
 
-def _get_structure_and_mesh_ids(atlas: BrainGlobeAtlas):
+def _get_structure_and_mesh_ids(
+    atlas: BrainGlobeAtlas,
+) -> tuple[list[int], list[int]]:
     """Get structure IDs from the atlas and mesh IDs from the meshes folder.
 
     Parameters
@@ -330,7 +334,7 @@ def _get_structure_and_mesh_ids(atlas: BrainGlobeAtlas):
     return ids_from_bg_atlas_api, ids_from_mesh_files
 
 
-def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
+def catch_missing_mesh_files(atlas: BrainGlobeAtlas) -> bool:
     """Check if all structures in the atlas have a corresponding mesh file.
 
     Parameters
@@ -367,7 +371,7 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     return True
 
 
-def catch_missing_structures(atlas: BrainGlobeAtlas):
+def catch_missing_structures(atlas: BrainGlobeAtlas) -> bool:
     """Check if all mesh files in the atlas folder are listed as a structure.
 
     Parameters
@@ -404,7 +408,7 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_template_image_pixels(atlas: BrainGlobeAtlas):
+def validate_template_image_pixels(atlas: BrainGlobeAtlas) -> bool:
     """Validate that the template image was correctly rescaled.
 
     This check aims to catch issues where a float64 template image (e.g., from
@@ -436,7 +440,7 @@ def validate_template_image_pixels(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
+def validate_annotation_symmetry(atlas: BrainGlobeAtlas) -> bool:
     """Validate that equivalent regions in left and right hemispheres have the
     same annotation value.
 
@@ -476,7 +480,7 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_unique_acronyms(atlas: BrainGlobeAtlas):
+def validate_unique_acronyms(atlas: BrainGlobeAtlas) -> bool:
     """Validate that all structure acronyms in the atlas are unique.
 
     Duplicate acronyms are incompatible with the current implementation
@@ -515,7 +519,7 @@ def validate_unique_acronyms(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_atlas_name(atlas: BrainGlobeAtlas):
+def validate_atlas_name(atlas: BrainGlobeAtlas) -> bool:
     """Validate the naming convention of the atlas.
 
     Checks if the atlas name adheres to specific rules:
@@ -559,7 +563,7 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_atlas_name_listed(atlas: BrainGlobeAtlas):
+def validate_atlas_name_listed(atlas: BrainGlobeAtlas) -> bool:
     """Validate that the atlas name is listed in atlas_name.py.
 
     Parameters
@@ -584,7 +588,7 @@ def validate_atlas_name_listed(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_metadata(atlas: BrainGlobeAtlas):
+def validate_metadata(atlas: BrainGlobeAtlas) -> bool:
     """Validate the atlas metadata.
 
     Checks that the metadata of the given atlas has the correct format.

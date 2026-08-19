@@ -505,6 +505,45 @@ def validate_unique_acronyms(atlas: BrainGlobeAtlas):
     return True
 
 
+def validate_acronym_whitespace(atlas: BrainGlobeAtlas):
+    """Validate that no structure acronym has leading or trailing whitespace.
+
+    Acronyms are used as a primary key to fetch details for a region, so
+    an acronym padded with whitespace is hard to look up and easy to
+    mistake for its stripped counterpart.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if no acronym has leading or trailing whitespace.
+
+    Raises
+    ------
+    AssertionError
+        If any acronym in the atlas structures has leading or trailing
+        whitespace.
+    """
+    padded = []
+
+    for structure in atlas.structures:
+        acronym = atlas.structures[structure]["acronym"]
+        if acronym != acronym.strip():
+            name = atlas.structures[structure]["name"]
+            # repr the acronym, otherwise the whitespace is invisible
+            padded.append(f"{acronym!r} ({name})")
+
+    assert len(padded) == 0, (
+        "Acronyms with leading or trailing whitespace found in atlas "
+        f"structures: {', '.join(sorted(padded))}"
+    )
+    return True
+
+
 def validate_atlas_name(atlas: BrainGlobeAtlas):
     """Validate the naming convention of the atlas.
 
@@ -662,6 +701,7 @@ def get_all_validation_functions():
         validate_template_image_pixels,
         validate_annotation_symmetry,
         validate_unique_acronyms,
+        validate_acronym_whitespace,
         validate_atlas_name,
         validate_atlas_name_listed,
     ]

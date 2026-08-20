@@ -21,43 +21,18 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-# Copy-paste this script into a new file and fill in the functions to package
-# your own atlas.
-
 ### Metadata ###
-
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
 __version__ = 0
-
-# The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
-# Institution_SpeciesCommonName, e.g. allen_mouse.
-# remember to add {ATLAS_NAME}_{RESOLUTION}um to:
-# brainglobe_atlasapi/atlas_names.py
 ATLAS_NAME = "bma2.0_marmoset"
-
-# DOI of the most relevant citable document
 CITATION = "https://doi.org/10.1038/s41597-026-06601-z"
-
-# The scientific name of the species, ie; Rattus norvegicus
 SPECIES = "Callithrix jacchus"
 
-# The URL for the data files
 ATLAS_LINK = "https://figshare.com/articles/dataset/The_Brain_MINDS_3D_Digital_Marmoset_Brain_Atlas_Version_2_0/29992687/5"
 
-# The orientation of the **original** atlas data, in BrainGlobe convention:
-# https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
 ORIENTATION = "lpi"
 
-# The id of the highest level of the atlas. This is commonly called root or
-# brain. Include some information on what to do if your atlas is not
-# hierarchical
 ROOT_ID = 1
 
-# The resolution of your volume in microns. Details on how to format this
-# parameter for non isotropic datasets or datasets with multiple resolutions.
 RESOLUTION = 100
 
 ATLAS_PACKAGER = "Jung Woo Kim"

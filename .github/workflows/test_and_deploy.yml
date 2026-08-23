@@ -16,12 +16,12 @@ jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
-      - uses: neuroinformatics-unit/actions/lint@v2
+      - uses: neuroinformatics-unit/actions/lint@34bedfdfd70c6010be02182c9ca37fae8a1fd99d # v3.0.0
 
   manifest:
     runs-on: ubuntu-latest
     steps:
-      - uses: neuroinformatics-unit/actions/check_manifest@v2
+      - uses: neuroinformatics-unit/actions/check_manifest@34bedfdfd70c6010be02182c9ca37fae8a1fd99d # v3.0.0
 
   get-week-number:
     runs-on: ubuntu-latest
@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Cache atlases
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: | # ensure we don't cache any interrupted atlas download and extraction, if e.g. we cancel the workflow manually
             ~/.brainglobe
@@ -60,15 +60,15 @@ jobs:
               brainglobe-${{ runner.os }}-
               brainglobe
 
-      - uses: neuroinformatics-unit/actions/test@v2
+      - name: Run tests
+        uses: neuroinformatics-unit/actions/test-uv@34bedfdfd70c6010be02182c9ca37fae8a1fd99d # v3.0.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "${{ matrix.python-version }}"
           secret-codecov-token: ${{ secrets.CODECOV_TOKEN }}
-
 
       - name: Notify slack on scheduled failure
         if: failure() && github.event_name == 'schedule'
-        uses: ravsamhq/notify-slack-action@v2
+        uses: ravsamhq/notify-slack-action@be814b201e233b2dc673608aa46e5447c8ab13f2 # v2.5.0
         with:
           status: ${{ job.status }} # required
           notify_when: 'failure'
@@ -82,7 +82,7 @@ jobs:
     if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
-    - uses: neuroinformatics-unit/actions/build_sdist_wheels@v2
+    - uses: neuroinformatics-unit/actions/build_sdist_wheels@34bedfdfd70c6010be02182c9ca37fae8a1fd99d # v3.0.0
 
   upload_all:
     name: Publish build distributions

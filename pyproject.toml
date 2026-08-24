@@ -58,7 +58,6 @@ dev = [
     "ruff",
     "setuptools_scm",
 ]
-allenmouse = ["allensdk"]
 allenmouse_barrels = [
     "allensdk",
     "voxcell"]

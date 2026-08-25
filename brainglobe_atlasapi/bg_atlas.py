@@ -7,12 +7,12 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import s3fs
-from fsspec.callbacks import TqdmCallback
 from rich import print as rprint
 from rich.console import Console
 
 from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
+from brainglobe_atlasapi.callback import AtlasCallback
 from brainglobe_atlasapi.descriptors import (
     V3_ANNOTATION_MAP_NAME,
     V3_ANNOTATION_MASKS_NAME,
@@ -57,8 +57,8 @@ class BrainGlobeAtlas(core.Atlas):
         this to False to avoid waiting for remote server response on atlas
         instantiation and to suppress warnings.
     fn_update : Callable
-        Handler function to update during download. Takes completed and total
-        bytes.
+        Handler function to update during download. Takes the number of files
+        fetched so far and the total number of files to fetch.
     """
 
     def __init__(
@@ -113,7 +113,9 @@ class BrainGlobeAtlas(core.Atlas):
                     "download."
                 )
 
-        super().__init__(self.brainglobe_dir / self.local_full_name)
+        super().__init__(
+            self.brainglobe_dir / self.local_full_name, fn_update=fn_update
+        )
 
         if check_latest:
             self.check_latest_version()
@@ -246,7 +248,11 @@ class BrainGlobeAtlas(core.Atlas):
             f"Downloading {self.atlas_name} atlas "
             f"v{remote_version_str.replace('_', '.')} manifest:"
         )
-        self.fs.get(remote_path, local_path, callback=TqdmCallback())
+        self.fs.get(
+            remote_path,
+            local_path,
+            callback=AtlasCallback(self.fn_update),
+        )
         self.metadata = read_json(local_path)
 
         try:
@@ -265,7 +271,7 @@ class BrainGlobeAtlas(core.Atlas):
                     remote_terminology_path,
                     local_terminology_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=AtlasCallback(self.fn_update),
                 )
 
             # Download coordinate space files
@@ -285,7 +291,7 @@ class BrainGlobeAtlas(core.Atlas):
                     remote_coordspace_path,
                     local_coordspace_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=AtlasCallback(self.fn_update),
                 )
 
             # Download annotation metadata files
@@ -307,7 +313,7 @@ class BrainGlobeAtlas(core.Atlas):
                 self.fs.get(
                     remote_root_metadata_path,
                     local_annotation_path / V3_ANNOTATION_NAME,
-                    callback=TqdmCallback(),
+                    callback=AtlasCallback(self.fn_update),
                 )
                 mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
                 mesh_path.mkdir(parents=True, exist_ok=True)
@@ -324,7 +330,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_masks_metadata,
                         str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
-                        callback=TqdmCallback(),
+                        callback=AtlasCallback(self.fn_update),
                     )
                     masks_annotation_values_path = (
                         annotation_location + f"/{V3_ANNOTATION_MASKS_NAME}"
@@ -336,7 +342,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_masks_annotation_values_path,
                         str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
-                        callback=TqdmCallback(),
+                        callback=AtlasCallback(self.fn_update),
                         recursive=True,
                     )
                 except FileNotFoundError as e:
@@ -357,7 +363,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_root_hemisphere_path,
                         local_annotation_path / V3_HEMISPHERES_NAME,
-                        callback=TqdmCallback(),
+                        callback=AtlasCallback(self.fn_update),
                     )
 
             # Download template metadata files
@@ -380,7 +386,7 @@ class BrainGlobeAtlas(core.Atlas):
                 self.fs.get(
                     remote_root_metadata_path,
                     local_template_path / V3_TEMPLATE_NAME,
-                    callback=TqdmCallback(),
+                    callback=AtlasCallback(self.fn_update),
                 )
 
             additional_reference_names = self.metadata.get(
@@ -405,7 +411,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_root_metadata_path,
                         local_template_path / V3_TEMPLATE_NAME,
-                        callback=TqdmCallback(),
+                        callback=AtlasCallback(self.fn_update),
                     )
             # Reset local_full_name to ensure it is updated with new location
             self._local_full_name = None

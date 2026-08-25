@@ -20,6 +20,45 @@ from brainglobe_atlasapi.list_atlases import (
 )
 
 
+@pytest.fixture
+def mock_installed_atlases(mocker):
+    """Pretend one official and one custom atlas are installed locally.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.plugin.MockerFixture
+        The mocker fixture.
+
+    Returns
+    -------
+    Callable
+        Call with the contents of ``custom_atlases.conf`` to apply the mocks.
+    """
+
+    def _apply(registered_custom):
+        official = {"example_mouse_100um": "3.0"}
+        mocker.patch(
+            "brainglobe_atlasapi.list_atlases.get_downloaded_atlases",
+            return_value=["example_mouse_100um", "my_custom_atlas_10um"],
+        )
+        mocker.patch(
+            "brainglobe_atlasapi.list_atlases.get_all_atlases_lastversions",
+            return_value={**official, **registered_custom},
+        )
+        mocker.patch(
+            "brainglobe_atlasapi.list_atlases.get_custom_atlases",
+            return_value=registered_custom,
+        )
+        mocker.patch(
+            "brainglobe_atlasapi.list_atlases.get_local_atlas_version",
+            side_effect=lambda name: (
+                "3.0" if name == "example_mouse_100um" else "1.0"
+            ),
+        )
+
+    return _apply
+
+
 def test_folder_version_to_dotted():
     """Test conversion from folder-style version to dotted version."""
     assert folder_version_to_dotted("3_0") == "3.0"
@@ -82,6 +121,73 @@ def test_show_atlases():
     """Test displaying a table of available atlases."""
     # TODO add more valid testing than just look for errors when running:
     show_atlases(show_local_path=True)
+
+
+def test_lastversions_unregistered_custom_atlas(mock_installed_atlases):
+    """A locally installed atlas absent from both conf files is listed.
+
+    Parameters
+    ----------
+    mock_installed_atlases : Callable
+        Fixture mocking the set of installed atlases.
+    """
+    mock_installed_atlases({})
+
+    atlases = get_atlases_lastversions()
+
+    assert "my_custom_atlas_10um" in atlases
+    custom = atlases["my_custom_atlas_10um"]
+    assert custom["custom"] is True
+    assert custom["downloaded"] is True
+    assert custom["version"] == "1.0"
+    # There is no known remote version to compare the local files against.
+    assert custom["latest_version"] == ""
+    assert custom["updated"] is None
+
+    official = atlases["example_mouse_100um"]
+    assert official["custom"] is False
+    assert official["latest_version"] == "3.0"
+    assert official["updated"] is True
+
+
+def test_lastversions_registered_custom_atlas(mock_installed_atlases):
+    """An atlas in custom_atlases.conf is listed and flagged as custom.
+
+    Parameters
+    ----------
+    mock_installed_atlases : Callable
+        Fixture mocking the set of installed atlases.
+    """
+    mock_installed_atlases({"my_custom_atlas_10um": "1.0"})
+
+    atlases = get_atlases_lastversions()
+
+    custom = atlases["my_custom_atlas_10um"]
+    assert custom["custom"] is True
+    assert custom["latest_version"] == "1.0"
+    assert custom["updated"] is True
+    assert atlases["example_mouse_100um"]["custom"] is False
+
+
+def test_show_atlases_lists_custom_atlas(mock_installed_atlases, capsys):
+    """Custom atlases appear in the printed table.
+
+    Parameters
+    ----------
+    mock_installed_atlases : Callable
+        Fixture mocking the set of installed atlases.
+    capsys : pytest.CaptureFixture
+        Fixture to capture stdout/stderr.
+    """
+    mock_installed_atlases({})
+
+    show_atlases()
+
+    # The "Custom" column is dropped by rich on narrow terminals, so only
+    # the name is checked here. The marker itself is covered by
+    # `test_add_atlas_to_row`.
+    captured = capsys.readouterr()
+    assert "my_custom_atlas_10um" in captured.out
 
 
 def test_get_all_atlases_lastversions():
@@ -229,8 +335,9 @@ def test_get_all_atlases_lastversions_gin_down():
                 "version": "1",
                 "latest_version": "2",
                 "updated": False,
+                "custom": False,
             },
-            "│ awesome_name │ ✔ │ x │ 1 │ 2 │",
+            "│ awesome_name │ ✔ │  │ x │ 1 │ 2 │",
             id="version != latest_version",
         ),
         pytest.param(
@@ -238,9 +345,20 @@ def test_get_all_atlases_lastversions_gin_down():
                 "version": "1",
                 "latest_version": "1",
                 "updated": True,
+                "custom": False,
             },
-            "│ awesome_name │ ✔ │ ✔ │ 1 │ 1 │",
+            "│ awesome_name │ ✔ │  │ ✔ │ 1 │ 1 │",
             id="version == latest_version",
+        ),
+        pytest.param(
+            {
+                "version": "1",
+                "latest_version": "",
+                "updated": None,
+                "custom": True,
+            },
+            "│ awesome_name │ ✔ │ ✔ │  │ 1 │  │",
+            id="custom atlas without a remote version",
         ),
     ],
 )
@@ -261,6 +379,7 @@ def test_add_atlas_to_row(version, expected_print, capsys):
         "version": version["version"],
         "latest_version": version["latest_version"],
         "updated": version["updated"],
+        "custom": version["custom"],
     }
     table = add_atlas_to_row(atlas="awesome_name", info=info, table=Table())
     Console().print(table)

@@ -96,9 +96,7 @@ REGION_INDICES = {
     "hippocampus.hdr": {
         1: "H",
     },
-    "Nucleus-Taeniae.hdr": {
-        1: "TnA"
-    }
+    "Nucleus-Taeniae.hdr": {1: "TnA"},
 }
 
 # For HA, HD, HI and IHA regions, additional hierarchical information is
@@ -120,7 +118,6 @@ ACRONYMS = {
     "Rt": "n. rotundus",
     "Slu": "n. semilunaris",
     "T": "n. triangularis",
-    
     # Somatosensory Systems
     "Bas": "n. basorostralis palii",
     "DIVA": "n. dorsalis intermedius ventralis anterior",
@@ -131,7 +128,6 @@ ACRONYMS = {
     "HI - HD (s)": "hyperpallium intercalatum - dorsale (somatosensory)",
     "IHA (s)": "interstitial nucleus of the HA (somatosensory)",
     "PrV": "n. sensorius principalis nervi trigemini",
-    
     # Auditory System
     "An": "n. angularis",
     "Field L2": "Field L2",
@@ -142,24 +138,19 @@ ACRONYMS = {
     "MLD": "n. mesencephalicus lateralis pars dorsalis",
     "OS": "oliva superior",
     "Ov": "n. ovoidalis",
-    
     # Olfactory System
     "BO": "Bulbus olfactorius",
     "CPi": "cortex piriformis",
     "CPP": "cortex prepiriformis",
     "TnA": "n. taeniae amygdalae",
-    
     # Hippocampus
     "H": "hippocampus",
-    
     # Descending Systems
     "A": "Arcopallium/amygdala",
     "GP": "globus pallidus",
     "S": "striatum (S)",
-    
     # Descending and Visual Systems
     "HA (v)": "hyperpallium apicale (visual)",
-    
     # Descending and Somatosensory Systems
     "HA (s)": "hyperpallium apicale (somatosensory)",
 }
@@ -240,13 +231,13 @@ def retrieve_hemisphere_map():
 
 def retrieve_structure_information(reference_volume: np.ndarray):
     """
-    Return a list of dictionaries with information about the atlas, 
-    as well as the annotated volume. 
+    Return a list of dictionaries with information about the atlas,
+    as well as the annotated volume.
 
     Returns a list of dictionaries, where each dictionary represents a
     structure and contains its ID, name, acronym, hierarchical path,
     and RGB triplet.
-    Also returns a numpy array for the annotated volume. 
+    Also returns a numpy array for the annotated volume.
 
     The expected format for each dictionary is:
 
@@ -265,7 +256,7 @@ def retrieve_structure_information(reference_volume: np.ndarray):
     list[dict]
         A list of dictionaries, each containing information for a single
         atlas structure.
-        
+
     np.ndarrary
         Annotation volume for the atlas, with the IDs for each atlas
         structure
@@ -285,7 +276,7 @@ def retrieve_structure_information(reference_volume: np.ndarray):
         current_dir = root.replace(startpath, "").strip(os.sep)
         if current_dir in NON_STRUCTURAL_DIRS:
             continue
-        if not any('.hdr' in f for f in files):
+        if not any(".hdr" in f for f in files):
             print(current_dir)
             continue
         level = root.replace(startpath, "").count(os.sep)
@@ -301,15 +292,17 @@ def retrieve_structure_information(reference_volume: np.ndarray):
             region_data = np.array(region_file.get_fdata()).astype(np.uint32)
             for i in np.unique(region_data):
                 if np.count_nonzero(region_data == i) <= 1:
-                    continue 
+                    continue
                 if i == 0:
                     continue
                 current_acronym = REGION_INDICES.get(hdr).get(i)
                 print(i)
-                region_data[region_data == i] = list(ACRONYMS).index(current_acronym)
+                region_data[region_data == i] = list(ACRONYMS).index(
+                    current_acronym
+                )
             print(np.unique(region_data))
-            
-            # Check annotation_volume, 
+
+            # Check annotation_volume,
         # print(hdrs)
 
     structures = list(structures_by_acronym.values())
@@ -368,7 +361,9 @@ if __name__ == "__main__":
     reference_volume = retrieve_reference()
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
-    structures, annotated_volume = retrieve_structure_information(reference_volume)
+    structures, annotated_volume = retrieve_structure_information(
+        reference_volume
+    )
     meshes_dict = retrieve_or_construct_meshes()
 
     quit()

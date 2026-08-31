@@ -385,7 +385,7 @@ def retrieve_additional_references():
     te40 = load_any(TE40_PATH, as_numpy = True)
     te40 = scale_to_uint16(te40)
     
-    te70 = load_any(TE40_PATH, as_numpy = True)
+    te70 = load_any(TE70_PATH, as_numpy = True)
     te70 = scale_to_uint16(te70)
     
     te100 = load_any(TE100_PATH, as_numpy = True)
@@ -406,19 +406,15 @@ def retrieve_additional_references():
 ### If the code above this line has been filled correctly, nothing needs to be
 ### edited below (unless variables need to be passed between the functions).
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-    bg_root_dir.mkdir(parents=True, exist_ok=True)
+    BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
     # Fail early if any version of this atlas already exists
     atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
-    existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
+    existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
 
     if existing:
         raise FileExistsError(
-            f"Atlas output already exists in {bg_root_dir}. "
+            f"Atlas output already exists in {BG_ROOT_DIR}. "
         )
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
@@ -428,7 +424,7 @@ if __name__ == "__main__":
     meshes_dict = retrieve_or_construct_meshes(
         annotated_volume=annotated_volume,
         structures=structures,
-        working_dir=bg_root_dir,
+        working_dir=BG_ROOT_DIR,
     )
 
     output_filename = wrapup_atlas_from_data(
@@ -444,7 +440,7 @@ if __name__ == "__main__":
         annotation_stack=annotated_volume,
         structures_list=structures,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=BG_ROOT_DIR,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,

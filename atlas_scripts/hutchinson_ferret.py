@@ -165,7 +165,7 @@ def download_resources():
             DEC_URL,
             path=DOWNLOAD_DIR_PATH,
             fname=DEC_FNAME,
-            known_hash=None,
+            known_hash="4349ebab361244b3c1e62508808ae8a960968261fccd27856358d898b82b07d4",
             progressbar=True,
         )
     if should_fetch(FA_PATH):
@@ -173,7 +173,7 @@ def download_resources():
                 FA_URL,
                 path=DOWNLOAD_DIR_PATH,
                 fname=FA_FNAME,
-                known_hash=None,
+                known_hash="313fa3580e400d0ed3c4509aa3af0e5c4821e058b16592a8cc3369dcf772f292",
                 progressbar=True,
         )
     if should_fetch(TR_PATH):
@@ -181,7 +181,7 @@ def download_resources():
                 TR_URL,
                 path=DOWNLOAD_DIR_PATH,
                 fname=TR_FNAME,
-                known_hash=None,
+                known_hash="abc8862b6f9cdd3879d8b594fee541388d53827198a35677b59422c0ec00cecd",
                 progressbar=True,
         )
     if should_fetch(TE10_PATH):
@@ -189,7 +189,7 @@ def download_resources():
                 TE10_URL,
                 path=DOWNLOAD_DIR_PATH,
                 fname=TE10_FNAME,
-                known_hash=None,
+                known_hash="93af2457ad192744796742a35cb1b5e83f333f3f80e7552842461c8e406d22f2",
                 progressbar=True,
         )
     if should_fetch(TE40_PATH):
@@ -197,7 +197,7 @@ def download_resources():
                 TE40_URL,
                 path=DOWNLOAD_DIR_PATH,
                 fname=TE40_FNAME,
-                known_hash=None,
+                known_hash="5725371b594f0eabb7035288d0a321fbc9c63b3608254144b5aeb891fc576611",
                 progressbar=True,
         )
     if should_fetch(TE70_PATH):
@@ -205,7 +205,7 @@ def download_resources():
                 TE70_URL,
                 path=DOWNLOAD_DIR_PATH,
                 fname=TE70_FNAME,
-                known_hash=None,
+                known_hash="5ec79c478e4e5090bfbe6eefbe40b0f126abb358da37d4528dc3f1619b7a50da",
                 progressbar=True,
         )
     if should_fetch(TE100_PATH):
@@ -213,7 +213,7 @@ def download_resources():
                 TE100_URL,
                 path=DOWNLOAD_DIR_PATH,
                 fname=TE100_FNAME,
-                known_hash=None,
+                known_hash="e3783d44de351f912b12e43bf6768f111e0e091c35ec7f0dce416fd56c499672",
                 progressbar=True,
         )
 
@@ -365,10 +365,13 @@ def retrieve_additional_references():
     dict
         A dictionary mapping reference image names to their image stack data.
     """
-    dec = load_any(DEC_PATH, as_numpy = True)
-    # Quick fix to make 3d colourmap compatible; use only R channel
-    
-    dec = scale_to_uint16(dec)
+    # # DEC template seems to have issues with load_any, commenting out for now.
+    # dec = load_any(DEC_PATH, as_numpy = True)
+    # # Quick fix to make 3d colourmap compatible; use only R channel
+    # dec = np.asarray(dec)[
+    #     :, :, :, 0
+    # ]
+    # dec = scale_to_uint16(dec)
     
     fa = load_any(FA_PATH, as_numpy = True)
     fa = scale_to_uint16(fa)
@@ -382,13 +385,20 @@ def retrieve_additional_references():
     te40 = load_any(TE40_PATH, as_numpy = True)
     te40 = scale_to_uint16(te40)
     
+    te70 = load_any(TE40_PATH, as_numpy = True)
+    te70 = scale_to_uint16(te70)
+    
     te100 = load_any(TE100_PATH, as_numpy = True)
     te100 = scale_to_uint16(te100)
     
     additional_references = {
-        "evDTI-DEC": dec,
+        # "evDTI-DEC": dec,
         "evDTI-FA": fa, 
-        
+        "evDTI-TR": tr,
+        "multi-echo T2 TE=10": te10,
+        "multi-echo T2 TE=40": te40,
+        "multi-echo T2 TE=70": te70,
+        "multi-echo T2 TE=100": te100,
     }
     return additional_references
 

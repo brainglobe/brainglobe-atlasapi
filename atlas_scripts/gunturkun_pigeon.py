@@ -42,10 +42,11 @@ NON_STRUCTURAL_DIRS = [
     "CT",
     "T2",
     "T2star",
+    r"Descending systems\Wulst",
 ]
 
 REGION_INDICES = {
-    "auditory1": {
+    "auditory1.hdr": {
         1: "An",
         2: "La",
         3: "Mc",
@@ -53,44 +54,114 @@ REGION_INDICES = {
         5: "Ov",
         6: "Field L2",
     },
-    "auditory2": {
+    "auditory2.hdr": {
         1: "OS",
         2: "LLv",
         3: "LLd",
     },
-    "arcopallium": {
+    "arcopallium.hdr": {
         1: "S",
         2: "GP",
         3: "TnA",
+        4: "TnA",
     },
-    "Olfactory": {1: "BO", 2: "CPP", 3: "CPi"},
-    "GLd-and-rotundus": {1: "Rt", 2: "GLd", 3: "GLd"},
-    "visual-Wulst_HA_HI_HD-until-A13": {
-        1: "HA",
-        2: "HI - HD",
+    "Olfactory.hdr": {1: "BO", 2: "CPP", 3: "CPi"},
+    "GLd-and-rotundus.hdr": {1: "Rt", 2: "GLd", 3: "GLd"},
+    "visual-Wulst_HA_HI_HD-until-A13.hdr": {
+        1: "HA (v)",
+        2: "HI - HD (v)",
     },
-    "nBOR-Lentiformis-mesencephali": {
+    "nBOR-Lentiformis-mesencephali.hdr": {
         1: "nBOR",
         2: "LM",
     },
-    "SLu-Ipc-Imc-left": {
+    "SLu-Ipc-Imc-left.hdr": {
         1: "Imc",
         2: "Ipc",
         3: "SLu",
     },
-    "PrV-and-Basalis": {
+    "PrV-and-Basalis.hdr": {
         1: "PrV",
         2: "Bas",
     },
-    "Wulst_HA_HI_HD-frontal-from-A13": {
-        1: "HA",
-        2: "HI - HD",
+    "Wulst_HA_HI_HD-frontal-from-A13.hdr": {
+        1: "HA (s)",
+        2: "HI - HD (s)",
     },
-    "GC_DLP_DIVA": {
+    "GC_DLP_DIVA.hdr": {
         1: "GC",
         2: "DLP",
         3: "DIVA",
     },
+    "hippocampus.hdr": {
+        1: "H",
+    },
+    "Nucleus-Taeniae.hdr": {
+        1: "TnA"
+    }
+}
+
+# For HA, HD, HI and IHA regions, additional hierarchical information is
+# provided in parentheses due to repeated acronym usage in the original atlas.
+
+ACRONYMS = {
+    # Visual Systems
+    "E": "entopallium",
+    "GLd": "n. geniculatus lateralis pars dorsalis",
+    # "HA (v)": "hyperpallium apicale (visual)",
+    "HI - HD (v)": "hyperpallium intercalatum - dorsale (visual)",
+    "Imc": "n. isthmi pars magnocellularis",
+    "IHA (v)": "interstitial nucleus of the HA (visual)",
+    "IO": "n. isthmo-opticus",
+    "Ipc": "n. isthmi pars parvocellularis",
+    "LM": "n. lentiformis mesencephali",
+    "nBOR": "n. of the basal optic root",
+    "PM": "n. pontis medialis",
+    "Rt": "n. rotundus",
+    "Slu": "n. semilunaris",
+    "T": "n. triangularis",
+    
+    # Somatosensory Systems
+    "Bas": "n. basorostralis palii",
+    "DIVA": "n. dorsalis intermedius ventralis anterior",
+    "DLP": "n. dorsolateralis posterior thalami",
+    "Ex": "n. externus",
+    "GC": "n. gracilis et cuneatus",
+    # "HA (s)": "hyperpallium apicale (somatosensory)",
+    "HI - HD (s)": "hyperpallium intercalatum - dorsale (somatosensory)",
+    "IHA (s)": "interstitial nucleus of the HA (somatosensory)",
+    "PrV": "n. sensorius principalis nervi trigemini",
+    
+    # Auditory System
+    "An": "n. angularis",
+    "Field L2": "Field L2",
+    "La": "n. laminaris",
+    "LLv": "n. of the lateral lemniscus (ventral)",
+    "LLd": "n. of the lateral lemniscus (dorsal)",
+    "Mc": "n. magnocellularis",
+    "MLD": "n. mesencephalicus lateralis pars dorsalis",
+    "OS": "oliva superior",
+    "Ov": "n. ovoidalis",
+    
+    # Olfactory System
+    "BO": "Bulbus olfactorius",
+    "CPi": "cortex piriformis",
+    "CPP": "cortex prepiriformis",
+    "TnA": "n. taeniae amygdalae",
+    
+    # Hippocampus
+    "H": "hippocampus",
+    
+    # Descending Systems
+    "A": "Arcopallium/amygdala",
+    "GP": "globus pallidus",
+    "S": "striatum (S)",
+    
+    # Descending and Visual Systems
+    "HA (v)": "hyperpallium apicale (visual)",
+    
+    # Descending and Somatosensory Systems
+    "HA (s)": "hyperpallium apicale (somatosensory)",
 }
 
 
@@ -167,13 +238,15 @@ def retrieve_hemisphere_map():
     return hemispheres_stack
 
 
-def retrieve_structure_information():
+def retrieve_structure_information(reference_volume: np.ndarray):
     """
-    Return a list of dictionaries with information about the atlas.
+    Return a list of dictionaries with information about the atlas, 
+    as well as the annotated volume. 
 
     Returns a list of dictionaries, where each dictionary represents a
     structure and contains its ID, name, acronym, hierarchical path,
     and RGB triplet.
+    Also returns a numpy array for the annotated volume. 
 
     The expected format for each dictionary is:
 
@@ -192,6 +265,10 @@ def retrieve_structure_information():
     list[dict]
         A list of dictionaries, each containing information for a single
         atlas structure.
+        
+    np.ndarrary
+        Annotation volume for the atlas, with the IDs for each atlas
+        structure
     """
     structures_by_acronym = {
         "root": {
@@ -202,19 +279,42 @@ def retrieve_structure_information():
             "rgb_triplet": [255, 255, 255],
         }
     }
-
+    annotation_volume = np.zeros(reference_volume.shape)
     startpath = str(DOWNLOAD_DIR_PATH / ATLAS_DOWNLOAD_FNAME.strip(".zip"))
     for root, dirs, files in os.walk(startpath):
         current_dir = root.replace(startpath, "").strip(os.sep)
         if current_dir in NON_STRUCTURAL_DIRS:
             continue
+        if not any('.hdr' in f for f in files):
+            print(current_dir)
+            continue
         level = root.replace(startpath, "").count(os.sep)
         structure_name_path = ["root"]
         for i in range(level):
             structure_name_path.append(root.split(os.sep)[-(level - i)])
-        print(structure_name_path)
+        # print(structure_name_path)
+        hdrs = list(filter(lambda x: ".hdr" in x, files))
+        # print(root)
+        for hdr in hdrs:
+            print(hdr)
+            region_file = nib.load(Path(root) / hdr)
+            region_data = np.array(region_file.get_fdata()).astype(np.uint32)
+            for i in np.unique(region_data):
+                if np.count_nonzero(region_data == i) <= 1:
+                    continue 
+                if i == 0:
+                    continue
+                current_acronym = REGION_INDICES.get(hdr).get(i)
+                print(i)
+                region_data[region_data == i] = list(ACRONYMS).index(current_acronym)
+            print(np.unique(region_data))
+            
+            # Check annotation_volume, 
+        # print(hdrs)
 
-    return None
+    structures = list(structures_by_acronym.values())
+    structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    return structures, annotation_volume
 
 
 def retrieve_or_construct_meshes():
@@ -266,10 +366,9 @@ if __name__ == "__main__":
         )
     download_resources()
     reference_volume = retrieve_reference()
-    annotated_volume = None
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information()
+    structures, annotated_volume = retrieve_structure_information(reference_volume)
     meshes_dict = retrieve_or_construct_meshes()
 
     quit()

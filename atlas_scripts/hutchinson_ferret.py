@@ -395,10 +395,10 @@ def retrieve_additional_references():
         # "evDTI-DEC": dec,
         "evDTI-FA": fa, 
         "evDTI-TR": tr,
-        "multi-echo T2 TE=10": te10,
-        "multi-echo T2 TE=40": te40,
-        "multi-echo T2 TE=70": te70,
-        "multi-echo T2 TE=100": te100,
+        "multi-echo T2, TE=10": te10,
+        "multi-echo T2, TE=40": te40,
+        "multi-echo T2, TE=70": te70,
+        "multi-echo T2, TE=100": te100,
     }
     return additional_references
 

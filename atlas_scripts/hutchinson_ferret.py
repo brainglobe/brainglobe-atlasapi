@@ -1,3 +1,10 @@
+"""Package the Hutchinson Ferret Brain Atlas.
+
+This script packages the Hutchinson Ferret Brain atlas to create a BrainGlobe
+atlas. It downloads necessary files, processes annotation volumes, generates
+region meshes, and wraps up the data into a BrainGlobe-compatible atlas.
+"""
+
 import json
 from pathlib import Path
 
@@ -13,39 +20,18 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 ### Metadata ###
-
-# The minor version of the atlas in the brainglobe_atlasapi, this is internal,
-# if this is the first time this atlas has been added the value should be 0
-# (minor version is the first number after the decimal point, ie the minor
-# version of 1.2 is 2)
 __version__ = 0
 
-# The expected format is FirstAuthor_SpeciesCommonName, e.g. kleven_rat, or
-# Institution_SpeciesCommonName, e.g. allen_mouse.
-# remember to add {ATLAS_NAME}_{RESOLUTION}um to:
-# brainglobe_atlasapi/atlas_names.py
 ATLAS_NAME = "hutchinson_ferret"
-
-# DOI of the most relevant citable document
 CITATION = "https://doi.org/10.1016/j.neuroimage.2017.03.009"
-
-# The scientific name of the species, ie; Rattus norvegicus
 SPECIES = "Mustela putorius furo"
 
-# The URL for the data files
 ATLAS_LINK = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evT2_template.nii.gz"
 
-# The orientation of the **original** atlas data, in BrainGlobe convention:
-# https://brainglobe.info/documentation/setting-up/image-definition.html#orientation
 ORIENTATION = "lpi"
 
-# The id of the highest level of the atlas. This is commonly called root or
-# brain. Include some information on what to do if your atlas is not
-# hierarchical
 ROOT_ID = 999
 
-# The resolution of your volume in microns. Details on how to format this
-# parameter for non isotropic datasets or datasets with multiple resolutions.
 RESOLUTION = 500
 
 # --- Script toggles (no CLI args) ---
@@ -55,9 +41,15 @@ TEMPLATE_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/e
 ANNOTATION_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evDTI_SEGMENTATION.nii.gz"
 LABELS_URL = "https://scalablebrainatlas.incf.org/services/labelmapper.php?template=HSRetal17&to=all&format=json"
 
-WHOLE_BRAIN_MESH_URL = (
-    "https://scalablebrainatlas.incf.org/templates/HSRetal17/wholebrain.x3d"
-)
+# Additional template URLs
+DEC_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evDTI_template_DEC.nii.gz"
+FA_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evDTI_template_FA.nii.gz"
+TR_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/evDTI_template_TR.nii.gz"
+TE10_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/Template4D_TE010.nii.gz"
+TE40_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/Template4D_TE040.nii.gz"
+TE70_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/Template4D_TE070.nii.gz"
+TE100_URL = "https://scalablebrainatlas.incf.org/templates/HSRetal17/source/Template4D_TE100.nii.gz"
+
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
@@ -66,10 +58,49 @@ TEMPLATE_FNAME = "evT2_template.nii.gz"
 ANNOTATION_FNAME = "evDTI_SEGMENTATION.nii.gz"
 LABELS_FNAME = "labelmapper.json"
 
-WHOLE_BRAIN_MESH_FNAME = "wholebrain.x3d"
+# Additional template file names
+DEC_FNAME = "evDTI_template_DEC.nii.gz"
+FA_FNAME = "evDTI_template_FA.nii.gz"
+TR_FNAME = "evDTI_template_TR.nii.gz"
+TE10_FNAME = "Template4D_TE010.nii.gz"
+TE40_FNAME = "Template4D_TE040.nii.gz"
+TE70_FNAME = "Template4D_TE070.nii.gz"
+TE100_FNAME = "Template4D_TE100.nii.gz"
+
+TEMPLATE_PATH = DOWNLOAD_DIR_PATH / TEMPLATE_FNAME
+ANNOTATION_PATH = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+LABELS_PATH = DOWNLOAD_DIR_PATH / LABELS_FNAME
+
+DEC_PATH = DOWNLOAD_DIR_PATH / DEC_FNAME
+FA_PATH = DOWNLOAD_DIR_PATH / FA_FNAME
+TR_PATH = DOWNLOAD_DIR_PATH / TR_FNAME
+TE10_PATH = DOWNLOAD_DIR_PATH / TE10_FNAME
+TE40_PATH = DOWNLOAD_DIR_PATH / TE40_FNAME
+TE70_PATH = DOWNLOAD_DIR_PATH / TE70_FNAME
+TE100_PATH = DOWNLOAD_DIR_PATH / TE100_FNAME
 
 ATLAS_PACKAGER = "Jung Woo Kim"
 
+def scale_to_uint16(volume: np.ndarray):
+    """Scale a volume's elements such that they are in uint16
+
+    Parameters
+    ----------
+    volume : np.ndarray
+        The volume to be converted, which would normally be a template.
+    
+    Returns
+    -------
+    np.ndarray
+        The correctly scaled array matching the original volume's dimensions.
+    """
+    scaled_volume = volume
+    scaled_volume = scaled_volume - scaled_volume.min()
+    scaled_volume = scaled_volume / scaled_volume.max()
+    scaled_volume = scaled_volume * 65535
+    scaled_volume = scaled_volume.astype(np.uint16)
+    
+    return scaled_volume
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -97,24 +128,15 @@ def download_resources():
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    template_path = DOWNLOAD_DIR_PATH / TEMPLATE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
-    labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
 
-    needs_download = (
-        (not template_path.exists())
-        or (not annotation_path.exists())
-        or (not labels_path.exists())
-    )
-    if needs_download:
-        utils.check_internet_connection()
+
 
     def should_fetch(path: Path) -> bool:
         if not path.exists():
             return True
         return not SKIP_DOWNLOADS_IF_PRESENT
 
-    if should_fetch(template_path):
+    if should_fetch(TEMPLATE_PATH):
         pooch.retrieve(
             TEMPLATE_URL,
             path=DOWNLOAD_DIR_PATH,
@@ -122,7 +144,7 @@ def download_resources():
             known_hash="05f9a5cd5dc4c35d8f5eddf395fd3d79b6a40faeb99b08694adb59ebdb0fefbe",
             progressbar=True,
         )
-    if should_fetch(annotation_path):
+    if should_fetch(ANNOTATION_PATH):
         pooch.retrieve(
             ANNOTATION_URL,
             path=DOWNLOAD_DIR_PATH,
@@ -130,13 +152,69 @@ def download_resources():
             known_hash="f167a9aa8b67ec547e82609275530720153da6f37f2ae70128f54819af4b31f4",
             progressbar=True,
         )
-    if should_fetch(labels_path):
+    if should_fetch(LABELS_PATH):
         pooch.retrieve(
             LABELS_URL,
             path=DOWNLOAD_DIR_PATH,
             fname=LABELS_FNAME,
             known_hash="286f4cab8cd1a355574f221215d0075963c2f6a40c9b46c727804181637f4da1",
             progressbar=True,
+        )
+    if should_fetch(DEC_PATH):
+        pooch.retrieve(
+            DEC_URL,
+            path=DOWNLOAD_DIR_PATH,
+            fname=DEC_FNAME,
+            known_hash=None,
+            progressbar=True,
+        )
+    if should_fetch(FA_PATH):
+            pooch.retrieve(
+                FA_URL,
+                path=DOWNLOAD_DIR_PATH,
+                fname=FA_FNAME,
+                known_hash=None,
+                progressbar=True,
+        )
+    if should_fetch(TR_PATH):
+            pooch.retrieve(
+                TR_URL,
+                path=DOWNLOAD_DIR_PATH,
+                fname=TR_FNAME,
+                known_hash=None,
+                progressbar=True,
+        )
+    if should_fetch(TE10_PATH):
+            pooch.retrieve(
+                TE10_URL,
+                path=DOWNLOAD_DIR_PATH,
+                fname=TE10_FNAME,
+                known_hash=None,
+                progressbar=True,
+        )
+    if should_fetch(TE40_PATH):
+            pooch.retrieve(
+                TE40_URL,
+                path=DOWNLOAD_DIR_PATH,
+                fname=TE40_FNAME,
+                known_hash=None,
+                progressbar=True,
+        )
+    if should_fetch(TE70_PATH):
+            pooch.retrieve(
+                TE70_URL,
+                path=DOWNLOAD_DIR_PATH,
+                fname=TE70_FNAME,
+                known_hash=None,
+                progressbar=True,
+        )
+    if should_fetch(TE100_PATH):
+            pooch.retrieve(
+                TE100_URL,
+                path=DOWNLOAD_DIR_PATH,
+                fname=TE100_FNAME,
+                known_hash=None,
+                progressbar=True,
         )
 
 
@@ -151,11 +229,11 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    template_path = DOWNLOAD_DIR_PATH / TEMPLATE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
-
-    reference = load_any(template_path, as_numpy=True)
-    annotation = load_any(annotation_path, as_numpy=True)
+    reference = load_any(TEMPLATE_PATH, as_numpy=True)
+    reference = scale_to_uint16(reference)
+    
+    annotation = load_any(ANNOTATION_PATH, as_numpy=True)
+    annotation = annotation.astype(np.uint32)
 
     return reference, annotation
 
@@ -287,8 +365,31 @@ def retrieve_additional_references():
     dict
         A dictionary mapping reference image names to their image stack data.
     """
-    # ADD DEC AND OTHER IMAGES AVAILABLE ON THE WEBSITE
-    additional_references = {}
+    dec = load_any(DEC_PATH, as_numpy = True)
+    # Quick fix to make 3d colourmap compatible; use only R channel
+    
+    dec = scale_to_uint16(dec)
+    
+    fa = load_any(FA_PATH, as_numpy = True)
+    fa = scale_to_uint16(fa)
+    
+    tr = load_any(TR_PATH, as_numpy = True)
+    tr = scale_to_uint16(tr)
+    
+    te10 = load_any(TE10_PATH, as_numpy = True)
+    te10 = scale_to_uint16(te10)
+    
+    te40 = load_any(TE40_PATH, as_numpy = True)
+    te40 = scale_to_uint16(te40)
+    
+    te100 = load_any(TE100_PATH, as_numpy = True)
+    te100 = scale_to_uint16(te100)
+    
+    additional_references = {
+        "evDTI-DEC": dec,
+        "evDTI-FA": fa, 
+        
+    }
     return additional_references
 
 

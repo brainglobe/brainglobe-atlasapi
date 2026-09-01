@@ -141,6 +141,8 @@ print(hemispheres_image.shape)
 # (528, 320, 456)
 ```
 
+Pass `lazy=True` to `BrainGlobeAtlas` to return dask arrays for these images; index/slice them as usual, then call `.compute()` when you need the numpy result.
+
 #### Brain regions
 
 There are multiple ways to work with individual brain regions. To see a dataframe of each brain region, with it's unique ID, acronym and full name, use `atlas.lookup_df`:

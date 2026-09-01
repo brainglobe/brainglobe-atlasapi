@@ -54,8 +54,8 @@ def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
 
 
 class BrainGlobeAtlas(
-    core.Atlas[core.ReferenceArray, core.AnnotationArray, core.LabelArray],
-    Generic[core.ReferenceArray, core.AnnotationArray, core.LabelArray],
+    core.Atlas[core.TemplateArray, core.AnnotationArray, core.LabelArray],
+    Generic[core.TemplateArray, core.AnnotationArray, core.LabelArray],
 ):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.

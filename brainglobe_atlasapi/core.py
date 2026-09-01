@@ -44,8 +44,8 @@ from brainglobe_atlasapi.utils import (
     read_json,
 )
 
-ReferenceArray = TypeVar(
-    "ReferenceArray", bound=Union[npt.NDArray[np.uint16], da.Array]
+TemplateArray = TypeVar(
+    "TemplateArray", bound=Union[npt.NDArray[np.uint16], da.Array]
 )
 AnnotationArray = TypeVar(
     "AnnotationArray", bound=Union[npt.NDArray[np.uint32], da.Array]
@@ -98,7 +98,7 @@ def _determine_pyramid_level(
     raise ValueError(f"Requested resolution {resolution} um is invalid.")
 
 
-class Atlas(Generic[ReferenceArray, AnnotationArray, LabelArray]):
+class Atlas(Generic[TemplateArray, AnnotationArray, LabelArray]):
     """Base class to handle atlases in BrainGlobe.
 
     Parameters
@@ -278,10 +278,10 @@ class Atlas(Generic[ReferenceArray, AnnotationArray, LabelArray]):
         return self._lookup
 
     @property
-    def template(self) -> ReferenceArray:
+    def template(self) -> TemplateArray:
         """Return the template image data. Loads it if not already loaded."""
         if self._template is not None:
-            return cast(ReferenceArray, self._template)
+            return cast(TemplateArray, self._template)
 
         template_location = self.metadata["annotation_set"]["template"][
             "location"
@@ -310,7 +310,7 @@ class Atlas(Generic[ReferenceArray, AnnotationArray, LabelArray]):
         data = multiscale.images[self._template_pyramid_level].data
         self._template = data if self.lazy else data.compute()
 
-        return cast(ReferenceArray, self._template)
+        return cast(TemplateArray, self._template)
 
     @property
     def reference(self):

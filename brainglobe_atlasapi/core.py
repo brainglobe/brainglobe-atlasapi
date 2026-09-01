@@ -1,15 +1,23 @@
 """Module containing the core Atlas class."""
 
+from __future__ import annotations
+
 import warnings
 from collections import UserDict, deque
 from pathlib import Path
 from typing import (
     Dict,
+    Generic,
     List,
+    Literal,
     Tuple,
+    TypeVar,
     Union,
+    cast,
+    overload,
 )
 
+import dask.array as da
 import ngff_zarr as nz
 import numpy as np
 import numpy.typing as npt
@@ -20,9 +28,7 @@ from brainglobe_space import AnatomicalSpace
 from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import (
-    ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
-    REFERENCE_DTYPE,
     V3_ANNOTATION_MAP_NAME,
     V3_ANNOTATION_MASKS_NAME,
     V3_ANNOTATION_NAME,
@@ -36,6 +42,16 @@ from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import (
     load_structures_from_csv,
     read_json,
+)
+
+ReferenceArray = TypeVar(
+    "ReferenceArray", bound=Union[npt.NDArray[np.uint16], da.Array]
+)
+AnnotationArray = TypeVar(
+    "AnnotationArray", bound=Union[npt.NDArray[np.uint32], da.Array]
+)
+LabelArray = TypeVar(
+    "LabelArray", bound=Union[npt.NDArray[np.uint8], da.Array]
 )
 
 
@@ -82,19 +98,52 @@ def _determine_pyramid_level(
     raise ValueError(f"Requested resolution {resolution} um is invalid.")
 
 
-class Atlas:
+class Atlas(Generic[ReferenceArray, AnnotationArray, LabelArray]):
     """Base class to handle atlases in BrainGlobe.
 
     Parameters
     ----------
     path : str or Path object
         Path to folder containing data info.
+    lazy : bool
+        If True, atlas array properties return dask arrays instead of loading
+        them into memory as numpy arrays.
     """
 
     left_hemisphere_value = 1
     right_hemisphere_value = 2
 
-    def __init__(self, path):
+    @overload
+    def __init__(
+        self: Atlas[
+            npt.NDArray[np.uint16],
+            npt.NDArray[np.uint32],
+            npt.NDArray[np.uint8],
+        ],
+        path: Union[str, Path],
+        lazy: Literal[False] = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: Atlas[da.Array, da.Array, da.Array],
+        path: Union[str, Path],
+        lazy: Literal[True] = True,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: Atlas[
+            Union[npt.NDArray[np.uint16], da.Array],
+            Union[npt.NDArray[np.uint32], da.Array],
+            Union[npt.NDArray[np.uint8], da.Array],
+        ],
+        path: Union[str, Path],
+        lazy: bool = False,
+    ) -> None: ...
+
+    def __init__(self, path: Union[str, Path], lazy: bool = False):
+        self.lazy = lazy
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
         self.fs = s3fs.S3FileSystem(anon=True)
@@ -229,10 +278,10 @@ class Atlas:
         return self._lookup
 
     @property
-    def template(self) -> npt.NDArray[REFERENCE_DTYPE]:
+    def template(self) -> ReferenceArray:
         """Return the template image data. Loads it if not already loaded."""
         if self._template is not None:
-            return self._template
+            return cast(ReferenceArray, self._template)
 
         template_location = self.metadata["annotation_set"]["template"][
             "location"
@@ -258,11 +307,10 @@ class Atlas:
                 callback=TqdmCallback(),
             )
 
-        self._template = multiscale.images[
-            self._template_pyramid_level
-        ].data.compute()
+        data = multiscale.images[self._template_pyramid_level].data
+        self._template = data if self.lazy else data.compute()
 
-        return self._template
+        return cast(ReferenceArray, self._template)
 
     @property
     def reference(self):
@@ -278,10 +326,10 @@ class Atlas:
         return self.template
 
     @property
-    def annotation(self) -> npt.NDArray[ANNOTATION_DTYPE]:
+    def annotation(self) -> AnnotationArray:
         """Return the annotation image data. Loads it if not already loaded."""
         if self._annotation is not None:
-            return self._annotation
+            return cast(AnnotationArray, self._annotation)
 
         annotation_location = self.metadata["annotation_set"]["location"][1:]
         annotation_path = (
@@ -306,14 +354,13 @@ class Atlas:
                 callback=TqdmCallback(),
             )
 
-        self._annotation = multiscale.images[
-            self._annotation_pyramid_level
-        ].data.compute()
+        data = multiscale.images[self._annotation_pyramid_level].data
+        self._annotation = data if self.lazy else data.compute()
 
-        return self._annotation
+        return cast(AnnotationArray, self._annotation)
 
     @property
-    def hemispheres(self):
+    def hemispheres(self) -> LabelArray:
         """
         Returns a stack with the hemisphere information. 1 - left, 2 - right.
 
@@ -323,24 +370,43 @@ class Atlas:
         the middle plane is assigned to the left hemisphere.
         """
         if self._hemispheres is not None:
-            return self._hemispheres
+            return cast(LabelArray, self._hemispheres)
 
         # If reference is symmetric generate hemispheres block:
         if self.metadata["symmetric"]:
-            # initialize empty stack:
-            stack = np.full(self.metadata["shape"], 2, dtype=np.uint8)
-
-            # Use bgspace description to fill out with hemisphere values:
+            shape = tuple(self.metadata["shape"])
             front_ax_idx = self.space.axes_order.index("frontal")
+            split = round(shape[front_ax_idx] / 2)
 
-            # Fill out with 2s the right hemisphere:
-            slices = [slice(None) for _ in range(3)]
-            slices[front_ax_idx] = slice(
-                round(stack.shape[front_ax_idx] / 2), None
-            )
-            stack[tuple(slices)] = 1
+            if self.lazy:
+                right_shape = list(shape)
+                right_shape[front_ax_idx] = split
+                left_shape = list(shape)
+                left_shape[front_ax_idx] -= split
+                self._hemispheres = da.concatenate(
+                    [
+                        da.full(
+                            right_shape,
+                            self.right_hemisphere_value,
+                            dtype=np.uint8,
+                        ),
+                        da.full(
+                            left_shape,
+                            self.left_hemisphere_value,
+                            dtype=np.uint8,
+                        ),
+                    ],
+                    axis=front_ax_idx,
+                )
+            else:
+                stack = np.full(
+                    shape, self.right_hemisphere_value, dtype=np.uint8
+                )
+                slices = [slice(None) for _ in range(3)]
+                slices[front_ax_idx] = slice(split, None)
+                stack[tuple(slices)] = self.left_hemisphere_value
 
-            self._hemispheres = stack
+                self._hemispheres = stack
         else:
             annotation_location = self.metadata["annotation_set"]["location"][
                 1:
@@ -367,11 +433,10 @@ class Atlas:
                     callback=TqdmCallback(),
                 )
 
-            self._hemispheres = multiscale.images[
-                self._annotation_pyramid_level
-            ].data.compute()
+            data = multiscale.images[self._annotation_pyramid_level].data
+            self._hemispheres = data if self.lazy else data.compute()
 
-        return self._hemispheres
+        return cast(LabelArray, self._hemispheres)
 
     def hemisphere_from_coords(
         self,
@@ -399,6 +464,8 @@ class Atlas:
 
         """
         hem = self.hemispheres[self._idx_from_coords(coords, microns)]
+        if self.lazy:
+            hem = int(hem.compute())
         if as_string:
             hem = ["left", "right"][hem - 1]
         return hem
@@ -432,6 +499,8 @@ class Atlas:
             Structure containing the coordinates.
         """
         rid = self.annotation[self._idx_from_coords(coords, microns)]
+        if self.lazy:
+            rid = int(rid.compute())
 
         # If we want to cut the result at some high level of the hierarchy:
         if hierarchy_lev is not None:
@@ -693,7 +762,7 @@ class Atlas:
             return [self.structures[sid]["acronym"] for sid in result]
         return result
 
-    def get_structure_mask(self, structure) -> npt.NDArray[np.uint8]:
+    def get_structure_mask(self, structure) -> LabelArray:
         """Return binary uint8 mask for the given structure.
 
         Reads directly from the pre-built 4D annotation masks array.
@@ -758,11 +827,10 @@ class Atlas:
                     f"not found at {remote_path}"
                 ) from e
 
-        return (
-            multiscale.images[self._annotation_masks_pyramid_level]
-            .data[index]
-            .compute()
-        )
+        data = multiscale.images[self._annotation_masks_pyramid_level].data[
+            index
+        ]
+        return cast(LabelArray, data if self.lazy else data.compute())
 
 
 class AdditionalRefDict(UserDict):

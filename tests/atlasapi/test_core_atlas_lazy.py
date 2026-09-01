@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import dask.array as da
 import numpy as np
+import pytest
 
 from brainglobe_atlasapi import BrainGlobeAtlas, core
 
@@ -51,18 +52,23 @@ def _atlas(tmp_path, monkeypatch, data):
     return atlas
 
 
-def test_example_atlas_lazy_properties_are_dask_arrays(atlas):
+@pytest.mark.parametrize(
+    "stack_name, val",
+    [
+        ("template", [[[155, 146], [157, 153]], [[151, 148], [154, 153]]]),
+        ("annotation", [[[59, 59], [59, 59]], [[59, 59], [59, 59]]]),
+        ("hemispheres", [[[2, 1], [2, 1]], [[2, 1], [2, 1]]]),
+    ],
+)
+def test_example_atlas_lazy_properties_are_dask_arrays(atlas, stack_name, val):
     """BrainGlobeAtlas(..., lazy=True) works on the example atlas."""
     lazy_atlas = BrainGlobeAtlas(
         atlas.atlas_name, check_latest=False, lazy=True
     )
+    loaded_stack = getattr(lazy_atlas, stack_name)
 
-    assert isinstance(lazy_atlas.template, da.Array)
-    assert isinstance(lazy_atlas.annotation, da.Array)
-    assert isinstance(lazy_atlas.hemispheres, da.Array)
-    assert lazy_atlas.template[65, 39, 56].compute() == 155
-    assert lazy_atlas.annotation[65, 39, 56].compute() == 59
-    assert lazy_atlas.hemispheres[65, 39, 56].compute() == 2
+    assert isinstance(loaded_stack, da.Array)
+    assert np.allclose(loaded_stack[65:67, 39:41, 56:58].compute(), val)
 
 
 def test_lazy_coord_lookups_return_scalars(tmp_path, monkeypatch):

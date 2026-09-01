@@ -1,5 +1,6 @@
 """Test atlas validation functions."""
 
+import copy
 import os
 import re
 
@@ -21,6 +22,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
     validate_metadata,
+    validate_nested_metadata_structure,
     validate_template_image_pixels,
     validate_unique_acronyms,
 )
@@ -523,6 +525,76 @@ def test_validate_metadata(atlas, metadata, expected_output, error_message):
             validate_metadata(atlas)
     else:
         assert validate_metadata(atlas) == expected_output
+
+
+def test_validate_nested_metadata_structure_passes(atlas):
+    """Verify `validate_nested_metadata_structure` passes for a valid atlas.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        A valid BrainGlobeAtlas instance.
+    """
+    assert validate_nested_metadata_structure(atlas)
+
+
+@pytest.mark.parametrize(
+    ["metadata_transform", "expected_error_message"],
+    [
+        pytest.param(
+            lambda metadata: metadata.pop("coordinate_space"),
+            r"atlas\.metadata is missing key: coordinate_space",
+            id="missing top-level component",
+        ),
+        pytest.param(
+            lambda metadata: metadata.update(
+                {"terminology": ["not", "a", "dict"]}
+            ),
+            r"terminology should be a dict, but got list\.",
+            id="component not a dict",
+        ),
+        pytest.param(
+            lambda metadata: metadata["template"].pop("location"),
+            r"template is missing key: location",
+            id="missing location key",
+        ),
+        pytest.param(
+            lambda metadata: metadata["coordinate_space"].update(
+                {"version": 3.0}
+            ),
+            r"coordinate_space\.version should be of type str, "
+            r"but got float\.",
+            id="key with non-str value",
+        ),
+        pytest.param(
+            lambda metadata: metadata["annotation_set"].pop("terminology"),
+            r"annotation_set is missing key: terminology",
+            id="missing nested sub-dict in annotation_set",
+        ),
+    ],
+)
+def test_validate_nested_metadata_structure_negative(
+    atlas, metadata_transform, expected_error_message
+):
+    """Verify `validate_nested_metadata_structure` fails with a message
+    identifying the failing key for various malformed metadata structures.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    metadata_transform : callable
+        Function that mutates a deep copy of `atlas.metadata` in place
+        to introduce a specific structural fault.
+    expected_error_message : str
+        Regex matching the expected AssertionError message.
+    """
+    mutated_metadata = copy.deepcopy(atlas.metadata)
+    metadata_transform(mutated_metadata)
+    atlas.metadata = mutated_metadata
+
+    with pytest.raises(AssertionError, match=expected_error_message):
+        validate_nested_metadata_structure(atlas)
 
 
 def test_validate_unique_acronyms_fail(mocker, atlas):

@@ -607,6 +607,114 @@ def validate_metadata(atlas: BrainGlobeAtlas):
     return True
 
 
+def _validate_component_metadata_shape(
+    component: dict, label: str, nested_keys: tuple[str, ...] = ()
+) -> bool:
+    """Validate that a component metadata dict has the expected shape.
+
+    Recursively checks that `component` is a dict containing `name`,
+    `version`, and `location` keys of type `str`, and that any sub-dicts
+    named in `nested_keys` are themselves present and have the same
+    three-key shape.
+
+    Parameters
+    ----------
+    component : dict
+        The component metadata dict to validate (e.g.
+        `atlas.metadata["template"]`).
+    label : str
+        A human-readable label for `component`, used in assertion
+        messages (e.g. "template", "annotation_set.template").
+    nested_keys : tuple of str, optional
+        Names of sub-dicts within `component` that should be recursively
+        validated against the same three-key shape. By default, empty.
+
+    Returns
+    -------
+    bool
+        True if `component` and any nested sub-dicts have the expected
+        shape.
+
+    Raises
+    ------
+    AssertionError
+        If `component` is not a dict, is missing a required key, a key
+        has the wrong type, or a nested sub-dict fails the same checks.
+    """
+    assert isinstance(
+        component, dict
+    ), f"{label} should be a dict, but got {type(component).__name__}."
+
+    for key in ("name", "version", "location"):
+        assert key in component, f"{label} is missing key: {key}"
+        assert isinstance(component[key], str), (
+            f"{label}.{key} should be of type str, "
+            f"but got {type(component[key]).__name__}."
+        )
+
+    for nested_key in nested_keys:
+        assert nested_key in component, f"{label} is missing key: {nested_key}"
+        _validate_component_metadata_shape(
+            component[nested_key], f"{label}.{nested_key}"
+        )
+
+    return True
+
+
+def validate_nested_metadata_structure(atlas: BrainGlobeAtlas) -> bool:
+    """Validate the nested component metadata structure of the atlas.
+
+    Checks that `atlas.metadata` contains `template`, `annotation_set`,
+    `terminology`, and `coordinate_space` entries, that each is a dict
+    with `name`, `version`, and `location` string keys, that
+    `annotation_set` additionally contains `template` and `terminology`
+    sub-dicts of the same shape, and that `coordinate_space` additionally
+    contains a `template` sub-dict of the same shape.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to validate.
+
+    Returns
+    -------
+    bool
+        True if the nested metadata structure adheres to the expected
+        shape.
+
+    Raises
+    ------
+    AssertionError
+        If a required component is missing from the metadata, is not a
+        dict, or is missing a required string key.
+    """
+    required_keys = (
+        "template",
+        "annotation_set",
+        "terminology",
+        "coordinate_space",
+    )
+    for key in required_keys:
+        assert key in atlas.metadata, f"atlas.metadata is missing key: {key}"
+
+    _validate_component_metadata_shape(atlas.metadata["template"], "template")
+    _validate_component_metadata_shape(
+        atlas.metadata["terminology"], "terminology"
+    )
+    _validate_component_metadata_shape(
+        atlas.metadata["annotation_set"],
+        "annotation_set",
+        nested_keys=("template", "terminology"),
+    )
+    _validate_component_metadata_shape(
+        atlas.metadata["coordinate_space"],
+        "coordinate_space",
+        nested_keys=("template",),
+    )
+
+    return True
+
+
 def report_validation_results(validation_results: dict) -> None:
     """
     Print a summary of atlas validation results.
@@ -664,6 +772,7 @@ def get_all_validation_functions():
         validate_unique_acronyms,
         validate_atlas_name,
         validate_atlas_name_listed,
+        validate_nested_metadata_structure,
     ]
 
 

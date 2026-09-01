@@ -51,19 +51,6 @@ def _atlas(tmp_path, monkeypatch, data):
     return atlas
 
 
-def test_lazy_properties_return_dask_arrays(tmp_path, monkeypatch):
-    """lazy=True returns dask arrays for atlas volume components."""
-    data = da.from_array(np.arange(8, dtype=np.uint8).reshape(2, 2, 2))
-    atlas = _atlas(tmp_path, monkeypatch, data)
-
-    assert isinstance(atlas.template, da.Array)
-    assert isinstance(atlas.annotation, da.Array)
-    assert isinstance(atlas.hemispheres, da.Array)
-    assert atlas.template.compute()[0, 0, 1] == 1
-    assert atlas.annotation.compute()[0, 1, 0] == 2
-    assert atlas.hemispheres.compute()[0, 0, 1] == atlas.left_hemisphere_value
-
-
 def test_example_atlas_lazy_properties_are_dask_arrays(atlas):
     """BrainGlobeAtlas(..., lazy=True) works on the example atlas."""
     lazy_atlas = BrainGlobeAtlas(

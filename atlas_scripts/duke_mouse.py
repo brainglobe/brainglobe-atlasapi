@@ -109,7 +109,7 @@ def retrieve_reference_and_annotation():
     tuple[list[numpy.ndarray], list[numpy.ndarray]]
         Reference and annotation volumes at each isotropic resolution.
     """
-    stem = REFERENCE_FILES["mgre-unmasked"][1].removesuffix("_M4D")
+    stem = REFERENCE_FILES["fa"][1].removesuffix("_M4D")
     n5 = {"driver": "n5", "kvstore": f"{DOWNLOAD_BASE_URL}{stem}.n5/"}
     references = []
     for scale in range(len(RESOLUTIONS)):
@@ -248,7 +248,7 @@ def retrieve_additional_references():
     """
     references = {}
     for name, (_, filename) in REFERENCE_FILES.items():
-        if name == "mgre-unmasked":
+        if name == "fa":
             continue
         stem = filename.removesuffix("_M4D")
         n5 = {"driver": "n5", "kvstore": f"{DOWNLOAD_BASE_URL}{stem}.n5/"}

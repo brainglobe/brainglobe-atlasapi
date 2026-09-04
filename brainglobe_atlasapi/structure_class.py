@@ -7,7 +7,6 @@ import json
 import os
 import warnings
 from collections import UserDict
-from io import BytesIO
 from pathlib import Path
 
 import DracoPy
@@ -20,48 +19,78 @@ from brainglobe_atlasapi.descriptors import DEFAULT_REMOTE_ROOT
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
-def _read_legacy_mesh(fs, manifest_path: str) -> tuple[np.ndarray, np.ndarray]:
-    """Read a `neuroglancer_legacy_mesh` manifest and its fragments.
+def _read_multilod_draco(fs, mesh_path: str) -> tuple[np.ndarray, np.ndarray]:
+    """Read a `neuroglancer_multilod_draco` fragment into real coordinates.
 
-    The atlas-assets bucket stores each structure as a JSON manifest at
-    `<id>:0` listing fragment object names, each of which is a raw legacy
-    mesh blob. Fragment names are full object names, resolved against the
-    directory holding the manifest.
+    The Draco payload at `<id>` holds vertices quantized into the chunk
+    described by `<id>.index`, so decoding alone yields grid integers in
+    ``[0, 2 ** bits - 1]``. The index header supplies the chunk, and
+    `info` the affine that takes the result to the units of the source
+    bucket.
 
     Parameters
     ----------
     fs : s3fs.S3FileSystem
         Filesystem exposing a single-path ``cat(path) -> bytes``.
-    manifest_path : str
-        Full remote path of the `<id>:0` manifest.
+    mesh_path : str
+        Full remote path of the `<id>` fragment.
 
     Returns
     -------
     tuple of numpy.ndarray
         `(points, faces)`; float32 (N, 3) vertices in the units and axis
-        order of the source bucket, and uint32 (M, 3) triangle indices
-        offset so they index into the concatenated vertex array.
+        order of the source bucket, and uint32 (M, 3) triangle indices.
+
+    Raises
+    ------
+    NotImplementedError
+        If the fragment declares more than one level of detail, or more
+        than one fragment within its level.
     """
-    remote_dir = manifest_path.rsplit("/", 1)[0]
-    fragments = json.loads(fs.cat(manifest_path))["fragments"]
-    if not fragments:
-        raise FileNotFoundError(
-            f"Legacy manifest {manifest_path} lists no fragments"
+    header = fs.cat(f"{mesh_path}.index")
+    chunk_shape = np.frombuffer(header, np.float32, count=3, offset=0)
+    grid_origin = np.frombuffer(header, np.float32, count=3, offset=12)
+    (num_lods,) = np.frombuffer(header, np.uint32, count=1, offset=24)
+
+    # lod_scales, then vertex_offsets, then the per-lod fragment counts.
+    offset = 28 + 4 * num_lods
+    vertex_offsets = np.frombuffer(
+        header, np.float32, count=3 * num_lods, offset=offset
+    )
+    offset += 12 * num_lods
+    fragments_per_lod = np.frombuffer(
+        header, np.uint32, count=num_lods, offset=offset
+    )
+    offset += 4 * num_lods
+
+    if num_lods != 1 or fragments_per_lod[0] != 1:
+        raise NotImplementedError(
+            f"{mesh_path} declares {num_lods} level(s) of detail and "
+            f"{fragments_per_lod.tolist()} fragment(s); only a single "
+            "single-fragment level is supported."
         )
 
-    all_points, all_faces, offset = [], [], 0
-    for fragment in fragments:
-        mesh = mio.read(
-            BytesIO(fs.cat(f"{remote_dir}/{fragment}")),
-            file_format="neuroglancer",
-        )
-        all_points.append(mesh.points)
-        all_faces.append(mesh.cells[0].data + offset)
-        offset += len(mesh.points)
+    fragment_position = np.frombuffer(
+        header, np.uint32, count=3, offset=offset
+    )
 
-    points = np.concatenate(all_points).astype(np.float32)
-    faces = np.concatenate(all_faces).astype(np.uint32)
-    return points, faces
+    info = json.loads(fs.cat(f"{mesh_path.rsplit('/', 1)[0]}/info"))
+    quantization = float(2 ** info["vertex_quantization_bits"] - 1)
+    transform = np.asarray(info["transform"], dtype=np.float64).reshape(3, 4)
+
+    mesh = DracoPy.decode(fs.cat(mesh_path))
+    quantized = np.asarray(mesh.points, dtype=np.float64)
+    points = (
+        grid_origin
+        + vertex_offsets[:3]
+        + chunk_shape * (fragment_position + quantized / quantization)
+    )
+    points = points @ transform[:, :3].T + transform[:, 3]
+
+    return (
+        points.astype(np.float32),
+        np.asarray(mesh.faces, dtype=np.uint32),
+    )
 
 
 def _encode_draco(points: np.ndarray, faces: np.ndarray) -> bytes:
@@ -172,32 +201,29 @@ class Structure(UserDict):
     def _download_mesh(self, file_name: Path) -> None:
         """Download the mesh from the remote S3 bucket if it is not cached.
 
-        BrainGlobe buckets store a Draco fragment at `<id>`, atlas-assets
-        buckets a `neuroglancer_legacy_mesh` manifest at `<id>:0` plus its
-        fragments. The legacy form is converted on the way in, so the local
-        cache holds `<id>` either way.
+        Both buckets store `neuroglancer_multilod_draco`, but they quantize
+        differently: atlas-assets follows the specification and keeps the
+        chunk in `<id>.index`, while BrainGlobe bakes absolute quantization
+        into the Draco header so `<id>` decodes to coordinates on its own.
+        The former is dequantized on the way in, so the local cache holds
+        BrainGlobe's form either way and `_read_mesh` stays uniform.
         """
         root_path = "/".join(str(file_name).split(os.sep)[-6:])
         remote_mesh_path = f"{self.remote_root}/{root_path}"
         fs = s3fs.S3FileSystem(anon=True)
 
-        legacy_manifest_path = f"{remote_mesh_path}:0"
-        if fs.exists(remote_mesh_path):
-            convert = False
-        elif fs.exists(legacy_manifest_path):
-            convert = True
-        else:
+        if not fs.exists(remote_mesh_path):
             raise FileNotFoundError(
                 f"Mesh file {file_name} not found locally or remotely."
             )
 
         try:
-            if convert:
-                points, faces = _read_legacy_mesh(fs, legacy_manifest_path)
+            if self.remote_root == DEFAULT_REMOTE_ROOT:
+                fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
+            else:
+                points, faces = _read_multilod_draco(fs, remote_mesh_path)
                 file_name.parent.mkdir(parents=True, exist_ok=True)
                 file_name.write_bytes(_encode_draco(points, faces))
-            else:
-                fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
         except BaseException:
             file_name.unlink(missing_ok=True)  # Removes corrupt file
             raise

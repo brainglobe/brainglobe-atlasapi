@@ -14,6 +14,7 @@ from brainglobe_atlasapi import core
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
+from brainglobe_atlasapi.structure_class import StructuresDict
 
 
 def test_initialization(atlas):
@@ -214,6 +215,32 @@ def test_meshfile_from_id(atlas):
     )
     assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567"
     assert atlas.root_meshfile() == mesh_root_path / "997"
+
+
+def test_root_meshfile_without_a_root_acronym(atlas):
+    """The root mesh resolves by identity, not by the acronym "root".
+
+    Only one atlas-assets terminology names its root "root"; the others
+    use "brain", "mouse" or "NS".
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
+    expected = atlas.root_meshfile()
+
+    renamed = [
+        {k: v for k, v in structure.items() if k != "mesh"}
+        for structure in atlas.structures.values()
+    ]
+    for structure in renamed:
+        if structure["acronym"] == "root":
+            structure["acronym"] = "NS"
+    atlas.structures = StructuresDict(renamed)
+
+    assert "root" not in atlas.structures.acronym_to_id_map
+    assert atlas.root_meshfile() == expected
 
 
 def test_mesh_from_id(atlas):

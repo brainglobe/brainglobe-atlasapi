@@ -13,7 +13,7 @@ remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
 DEFAULT_REMOTE_ROOT = "s3://brainglobe/atlas"
 DEFAULT_ROOT_KEY = "brainglobe-atlasapi"
 ATLAS_ASSETS_REMOTE_ROOT = (
-    "s3://aind-scratch-data/david.feng/allen-atlas-assets-rc12"
+    "s3://aind-scratch-data/david.feng/allen-atlas-assets-rc13"
 )
 
 # Retained for backwards compatibility with existing imports:

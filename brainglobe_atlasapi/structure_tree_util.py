@@ -1,6 +1,6 @@
 """Utility functions for working with structure trees."""
 
-from collections import deque
+from collections import Counter, deque
 from collections.abc import Generator
 from typing import Dict, List
 
@@ -65,34 +65,27 @@ def get_structures_tree(structures_list: List[Dict]) -> Tree:
 
     # Create a Tree structure and initialise with root
     id_to_acronym_map = {s["id"]: s["acronym"] for s in structures_list}
-    acronym_to_id_map = {v: k for k, v in id_to_acronym_map.items()}
 
-    try:
-        root = acronym_to_id_map["root"]
-    except KeyError:
-        root = None
-        empty_parent_list = [
-            s for s in structures_list if len(s["structure_id_path"]) == 1
-        ]
-        if len(empty_parent_list) == 1:
-            root = empty_parent_list[0]["id"]
-        else:
-            for s in empty_parent_list:
-                if s["acronym"] in {"CNS", "Br", "brain"}:
-                    root = s["id"]
-                    break
-
-        if root is None:
-            raise ValueError(
-                "Could not find a single root structure. Please check the "
-                "structures list for a structure with acronym 'root', or a "
-                "structure with no parent. If there are multiple structures "
-                "with no parent, please ensure that one of them has acronym "
-                "'CNS', 'Br', or 'brain'."
-            )
+    # Every structure's path starts at its own root, so the root of the
+    # atlas is the one shared by the bulk of them. Terminologies that
+    # carry a handful of extra top-level entries (an "unassigned" label,
+    # say) contribute their own paths; those are outvoted here and left
+    # off the tree, as they always have been.
+    root_counts = Counter(
+        s["structure_id_path"][0]
+        for s in structures_list
+        if s["structure_id_path"]
+    )
+    if not root_counts:
+        raise ValueError(
+            "Could not find a root structure: no structure in the list "
+            "has a structure_id_path."
+        )
+    root = root_counts.most_common(1)[0][0]
+    root_acronym = id_to_acronym_map[root]
 
     tree = Tree()
-    tree.create_node(tag=f"root ({root})", identifier=root)
+    tree.create_node(tag=f"{root_acronym} ({root})", identifier=root)
 
     # Recursively iterate through hierarchy#
     for child in child_ids(root, structures_list):

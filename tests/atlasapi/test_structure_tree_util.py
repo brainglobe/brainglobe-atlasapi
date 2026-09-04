@@ -1,5 +1,7 @@
 """Test the structure tree utility functions."""
 
+import pytest
+
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
     postorder_depth_first_search,
@@ -97,3 +99,49 @@ def test_postorder_dfs_parent_always_after_children():
         idx = order.index(node_id)
         for child in tree.children(node_id):
             assert order.index(child.identifier) < idx
+
+
+def test_root_found_without_a_root_acronym():
+    """The root is the shared head of the paths, whatever it is called.
+
+    Only one of the atlas-assets terminologies calls its root "root";
+    the others use "brain", "mouse" or "NS".
+    """
+    renamed = [dict(s) for s in STRUCTURES_LIST]
+    renamed[0]["acronym"] = "NS"
+    renamed[0]["name"] = "nervous system"
+
+    tree = get_structures_tree(renamed)
+
+    assert tree.root == 997
+    assert set(tree.nodes) == {s["id"] for s in renamed}
+
+
+def test_extra_top_level_structures_are_outvoted():
+    """A stray parentless entry does not become the root or join the tree.
+
+    Some terminologies carry labels such as "unassigned" alongside the
+    real root, each its own one-element path.
+    """
+    with_orphan = [dict(s) for s in STRUCTURES_LIST] + [
+        {
+            "acronym": "unassigned",
+            "id": 0,
+            "name": "unassigned",
+            "structure_id_path": [0],
+            "rgb_triplet": [0, 0, 0],
+        }
+    ]
+
+    tree = get_structures_tree(with_orphan)
+
+    assert tree.root == 997
+    assert 0 not in tree.nodes
+
+
+def test_no_paths_raises():
+    """A list with no usable paths reports that, rather than KeyError."""
+    pathless = [{"acronym": "x", "id": 1, "structure_id_path": []}]
+
+    with pytest.raises(ValueError, match="root structure"):
+        get_structures_tree(pathless)

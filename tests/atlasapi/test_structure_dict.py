@@ -1,7 +1,7 @@
 """Test the StructuresDict class for handling atlas structures."""
 
-import io
 import json
+from pathlib import Path
 
 import DracoPy
 import meshio as mio
@@ -203,20 +203,75 @@ def test_download_mesh_removes_corrupt_file_on_error(tmp_path, monkeypatch):
     assert not mesh_file.exists()
 
 
-def _legacy_bytes(points, faces):
-    """Serialise a mesh to the neuroglancer_legacy_mesh byte layout.
+ATLAS_ASSETS_ROOT = descriptors.ATLAS_ASSETS_REMOTE_ROOT
 
-    `<I` vertex count, then N x 3 little-endian float32 vertices, then
-    M x 3 little-endian uint32 triangle indices -- exactly what the
-    atlas-assets bucket stores at `<id>:0:0`.
+# A real fragment from the atlas-assets bucket: structure 332 of
+# allen-adult-mouse-annotation/2017, the smallest mesh there that is also
+# labelled in the annotation volume, so its coordinates can be checked
+# against the atlas rather than against this module's own arithmetic.
+MESH_DIR = Path(__file__).parent / "data" / "allen_mesh"
+ALLEN_ID = "332"
+ALLEN_FRAGMENT = (MESH_DIR / ALLEN_ID).read_bytes()
+ALLEN_INDEX = (MESH_DIR / f"{ALLEN_ID}.index").read_bytes()
+ALLEN_INFO = (MESH_DIR / "info").read_bytes()
+
+# Where structure 332 sits, in nanometres and the bucket's XYZ order.
+# Cross-checked against the 100 um annotation volume, whose label 332
+# spans (5.2, 6.2, 6.2) mm to (6.2, 6.3, 6.3) mm in ZYX.
+ALLEN_BBOX_NM = (
+    np.array([5200000.0, 6150000.0, 6120000.0]),
+    np.array([6200000.0, 6300000.0, 6300000.0]),
+)
+ALLEN_VERTEX_COUNT = 134
+ALLEN_FACE_COUNT = 260
+
+# The chunk the fragment is quantized into, as its index declares it.
+ALLEN_CHUNK_SHAPE = np.frombuffer(ALLEN_INDEX, np.float32, count=3, offset=0)
+QUANTIZATION = float(2**16 - 1)
+
+
+def _index_bytes(
+    vertex_offsets=(0.0, 0.0, 0.0),
+    fragment_position=(0, 0, 0),
+    num_lods=1,
+    fragments_per_lod=(1,),
+):
+    """Rebuild the real index header with fields overridden.
+
+    Little-endian: chunk shape and grid origin as 3 x float32, the level
+    count as uint32, then per level a float32 scale, three float32 vertex
+    offsets and a uint32 fragment count, then the fragment positions and
+    offsets. The chunk shape and grid origin are kept from the real
+    fragment so the geometry stays the bucket's.
     """
-    buffer = io.BytesIO()
-    mio.write(
-        buffer,
-        mio.Mesh(points=points, cells=[("triangle", faces)]),
-        file_format="neuroglancer",
-    )
-    return buffer.getvalue()
+    parts = [
+        ALLEN_INDEX[:24],  # chunk shape and grid origin, as shipped
+        np.uint32(num_lods).astype("<u4").tobytes(),
+        np.ones(num_lods, dtype="<f4").tobytes(),
+        np.tile(np.asarray(vertex_offsets, dtype="<f4"), num_lods).tobytes(),
+        np.asarray(fragments_per_lod, dtype="<u4").tobytes(),
+    ]
+    for count in fragments_per_lod:
+        parts.append(
+            np.tile(
+                np.asarray(fragment_position, dtype="<u4"), count
+            ).tobytes()
+        )
+        parts.append(np.zeros(count, dtype="<u4").tobytes())
+    return b"".join(parts)
+
+
+def _info_bytes(transform=None, bits=16):
+    """Serialise a `mesh/info` document."""
+    if transform is None:
+        transform = json.loads(ALLEN_INFO)["transform"]
+    return json.dumps(
+        {
+            "@type": "neuroglancer_multilod_draco",
+            "vertex_quantization_bits": bits,
+            "transform": transform,
+        }
+    ).encode()
 
 
 class _FakeCat:
@@ -231,125 +286,164 @@ class _FakeCat:
         return self.contents[path]
 
 
-# Nanometre-scale so the 16-bit quantization tolerance is realistic.
-LEGACY_POINTS = np.array(
-    [[0, 0, 0], [1000, 0, 0], [0, 2000, 0], [0, 0, 3000]],
-    dtype=np.float32,
-)
-LEGACY_FACES = np.array([[0, 1, 2], [0, 1, 3]], dtype=np.uint32)
+def _mesh_contents(index=None, info=None, payload=None):
+    """Bucket contents for one fragment: `<id>`, `<id>.index` and `info`."""
+    return {
+        f"root/mesh/{ALLEN_ID}": (
+            ALLEN_FRAGMENT if payload is None else payload
+        ),
+        f"root/mesh/{ALLEN_ID}.index": ALLEN_INDEX if index is None else index,
+        "root/mesh/info": ALLEN_INFO if info is None else info,
+    }
 
 
-def test_read_legacy_mesh_single_fragment():
-    """A one-fragment manifest yields that fragment's points and faces."""
-    fs = _FakeCat(
-        {
-            "root/mesh/997:0": json.dumps({"fragments": ["997:0:0"]}).encode(),
-            "root/mesh/997:0:0": _legacy_bytes(LEGACY_POINTS, LEGACY_FACES),
-        }
-    )
-
-    points, faces = structure_class._read_legacy_mesh(fs, "root/mesh/997:0")
-
-    np.testing.assert_array_equal(points, LEGACY_POINTS)
-    np.testing.assert_array_equal(faces, LEGACY_FACES)
+ALLEN_PATH = f"root/mesh/{ALLEN_ID}"
 
 
-def test_read_legacy_mesh_concatenates_fragments():
-    """A multi-fragment manifest concatenates points and offsets faces."""
-    second_points = LEGACY_POINTS + np.float32(10000)
-    fs = _FakeCat(
-        {
-            "root/mesh/997:0": json.dumps(
-                {"fragments": ["997:0:0", "997:0:1"]}
-            ).encode(),
-            "root/mesh/997:0:0": _legacy_bytes(LEGACY_POINTS, LEGACY_FACES),
-            "root/mesh/997:0:1": _legacy_bytes(second_points, LEGACY_FACES),
-        }
-    )
+def test_read_multilod_draco_recovers_allen_coordinates():
+    """A real fragment lands where the annotation volume says it should.
 
-    points, faces = structure_class._read_legacy_mesh(fs, "root/mesh/997:0")
-
-    assert points.shape == (8, 3)
-    np.testing.assert_array_equal(points[:4], LEGACY_POINTS)
-    np.testing.assert_array_equal(points[4:], second_points)
-    # Second fragment's indices are offset by the first fragment's 4 points.
-    np.testing.assert_array_equal(faces[:2], LEGACY_FACES)
-    np.testing.assert_array_equal(faces[2:], LEGACY_FACES + 4)
-
-
-def test_read_legacy_mesh_missing_fragment_raises():
-    """A manifest naming an absent fragment raises FileNotFoundError."""
-    fs = _FakeCat(
-        {
-            "root/mesh/997:0": json.dumps({"fragments": ["997:0:0"]}).encode(),
-        }
-    )
-
-    with pytest.raises(FileNotFoundError):
-        structure_class._read_legacy_mesh(fs, "root/mesh/997:0")
-
-
-def test_read_legacy_mesh_empty_manifest_raises():
-    """A manifest listing no fragments raises FileNotFoundError.
-
-    `{"fragments": []}` is the legacy convention for a segment with no
-    mesh. It must surface as a type `Structure.__getitem__` already
-    catches, not as the bare ValueError numpy would raise.
+    The Draco payload alone decodes to grid integers spanning the whole
+    quantization range, so this is what separates a correct read from one
+    that skips the index.
     """
-    fs = _FakeCat({"root/mesh/997:0": json.dumps({"fragments": []}).encode()})
+    fs = _FakeCat(_mesh_contents())
+
+    points, faces = structure_class._read_multilod_draco(fs, ALLEN_PATH)
+
+    assert points.shape == (ALLEN_VERTEX_COUNT, 3)
+    assert faces.shape == (ALLEN_FACE_COUNT, 3)
+    lower, upper = ALLEN_BBOX_NM
+    # One 10 um voxel of slack on the surface extraction.
+    np.testing.assert_allclose(points.min(axis=0), lower, atol=10000)
+    np.testing.assert_allclose(points.max(axis=0), upper, atol=10000)
+
+    quantized = np.asarray(DracoPy.decode(ALLEN_FRAGMENT).points)
+    assert quantized.max() > 0.99 * QUANTIZATION, (
+        "fixture is no longer chunk-quantized; the test would pass "
+        "even without the index"
+    )
+
+
+def test_read_multilod_draco_honours_offsets_and_fragment_position():
+    """Vertex offsets and a non-zero fragment position both shift the mesh."""
+    offsets = (1.0, 2.0, 3.0)
+    position = (1, 2, 3)
+    base, _ = structure_class._read_multilod_draco(
+        _FakeCat(_mesh_contents()), ALLEN_PATH
+    )
+    shifted, _ = structure_class._read_multilod_draco(
+        _FakeCat(
+            _mesh_contents(
+                index=_index_bytes(
+                    vertex_offsets=offsets, fragment_position=position
+                )
+            )
+        ),
+        ALLEN_PATH,
+    )
+
+    affine = np.asarray(json.loads(ALLEN_INFO)["transform"]).reshape(3, 4)
+    expected_shift = (
+        np.asarray(offsets) + ALLEN_CHUNK_SHAPE * np.asarray(position)
+    ) @ affine[:, :3].T
+
+    np.testing.assert_allclose(
+        shifted - base,
+        np.broadcast_to(expected_shift, shifted.shape),
+        rtol=1e-5,
+    )
+
+
+def test_read_multilod_draco_applies_the_info_transform():
+    """`info`'s 3 x 4 affine is applied, translation column included."""
+    scaled = list(np.asarray(json.loads(ALLEN_INFO)["transform"]) * 2.0)
+    scaled[3], scaled[7], scaled[11] = 5.0, 6.0, 7.0  # translation column
+    base, _ = structure_class._read_multilod_draco(
+        _FakeCat(_mesh_contents()), ALLEN_PATH
+    )
+    points, _ = structure_class._read_multilod_draco(
+        _FakeCat(_mesh_contents(info=_info_bytes(transform=scaled))),
+        ALLEN_PATH,
+    )
+
+    np.testing.assert_allclose(
+        points, base * 2.0 + np.array([5.0, 6.0, 7.0]), rtol=1e-5
+    )
+
+
+def test_read_multilod_draco_rejects_multiple_levels():
+    """More than one level of detail is refused rather than guessed at."""
+    fs = _FakeCat(
+        _mesh_contents(
+            index=_index_bytes(num_lods=2, fragments_per_lod=(1, 1))
+        )
+    )
+
+    with pytest.raises(NotImplementedError):
+        structure_class._read_multilod_draco(fs, ALLEN_PATH)
+
+
+def test_read_multilod_draco_rejects_multiple_fragments():
+    """A level holding several fragments is refused for the same reason."""
+    fs = _FakeCat(_mesh_contents(index=_index_bytes(fragments_per_lod=(2,))))
+
+    with pytest.raises(NotImplementedError):
+        structure_class._read_multilod_draco(fs, ALLEN_PATH)
+
+
+def test_read_multilod_draco_missing_index_raises():
+    """A fragment with no index raises rather than decoding grid units."""
+    contents = _mesh_contents()
+    del contents[f"root/mesh/{ALLEN_ID}.index"]
 
     with pytest.raises(FileNotFoundError):
-        structure_class._read_legacy_mesh(fs, "root/mesh/997:0")
+        structure_class._read_multilod_draco(_FakeCat(contents), ALLEN_PATH)
 
 
 def test_encode_draco_round_trips_within_quantization_error():
     """Encoded bytes decode back to the input within range / 65536."""
-    encoded = structure_class._encode_draco(LEGACY_POINTS, LEGACY_FACES)
-    decoded = DracoPy.decode(encoded)
+    points, faces = structure_class._read_multilod_draco(
+        _FakeCat(_mesh_contents()), ALLEN_PATH
+    )
+    decoded = DracoPy.decode(structure_class._encode_draco(points, faces))
 
-    tolerance = 3000.0 / 65536  # bounding-cube range / 2**16
-    assert np.abs(decoded.points - LEGACY_POINTS).max() <= tolerance
-    np.testing.assert_array_equal(decoded.faces, LEGACY_FACES)
+    span = float(np.ptp(points, axis=0).max())
+    assert np.abs(decoded.points - points).max() <= span / 65536
+    np.testing.assert_array_equal(decoded.faces, faces)
 
 
-def _legacy_fakes(points, faces, fragments=("997:0:0",)):
-    """Build (exists, cat) fakes for a bucket with only the legacy layout.
+def _mesh_fakes(contents=None):
+    """Build (exists, cat) fakes for a bucket in the atlas-assets layout.
 
     `_download_mesh` derives the remote path from the last six segments of
-    the local path, which varies with `tmp_path`, so the fakes key off path
-    shape rather than a hard-coded absolute path: `exists` matches any path
-    ending in `:0`, and `cat` distinguishes the manifest from a fragment by
-    colon count (`997:0` has one, `997:0:0` has two or more).
+    the local path, which varies with `tmp_path`, so `cat` keys off the
+    trailing path segment rather than a hard-coded absolute path.
     """
-    manifest = json.dumps({"fragments": list(fragments)}).encode()
-    blobs = {}
-    for i, fragment in enumerate(fragments):
-        # Offset each fragment's points to make them distinct
-        fragment_points = points + np.float32(i * 10000)
-        blobs[fragment] = _legacy_bytes(fragment_points, faces)
+    contents = _mesh_contents() if contents is None else contents
+    blobs = {key.rsplit("/", 1)[1]: value for key, value in contents.items()}
 
     def exists(path):
-        return path.endswith(":0")
+        return True
 
     def cat(path):
-        last_part = path.rsplit("/", 1)[1]
-        # Manifest has 1 colon (997:0), fragments have 2+ (997:0:0)
-        if last_part.count(":") == 1:
-            return manifest
-        return blobs[last_part]
+        name = path.rsplit("/", 1)[1]
+        if name not in blobs:
+            raise FileNotFoundError(path)
+        return blobs[name]
 
     return exists, cat
 
 
-def test_legacy_mesh_converted_on_download(tmp_path, monkeypatch):
-    """An atlas-assets structure is converted and read back correctly.
+def test_atlas_assets_mesh_converted_on_download(tmp_path, monkeypatch):
+    """A real Allen fragment is dequantized and read back correctly.
 
-    Round trip through `__getitem__`: the legacy fragment is fetched,
-    Draco-encoded to `<id>`, then `_read_mesh` applies nm -> um and
-    XYZ -> ZYX.
+    Round trip through `__getitem__`: the fragment is fetched and
+    dequantized, re-encoded to `<id>`, then `_read_mesh` applies
+    nm -> um and XYZ -> ZYX.
     """
-    mesh_file = tmp_path / "997"
-    exists, cat = _legacy_fakes(LEGACY_POINTS, LEGACY_FACES)
+    mesh_file = tmp_path / ALLEN_ID
+    exists, cat = _mesh_fakes()
 
     monkeypatch.setattr(
         structure_class.s3fs,
@@ -361,25 +455,27 @@ def test_legacy_mesh_converted_on_download(tmp_path, monkeypatch):
         ),
     )
 
-    struct_dict = StructuresDict(structures_list)
+    struct_dict = StructuresDict(
+        structures_list, remote_root=ATLAS_ASSETS_ROOT
+    )
     struct_dict["root"]["mesh_filename"] = mesh_file
     mesh = struct_dict["root"]["mesh"]
 
     assert mesh_file.exists()
-    expected = (LEGACY_POINTS / 1000.0)[:, [2, 1, 0]]
-    tolerance = (3000.0 / 65536) / 1000.0  # quantization error, in um
-    assert np.abs(mesh.points - expected).max() <= tolerance
-    np.testing.assert_array_equal(
-        mesh.cells[0].data, LEGACY_FACES[:, [2, 1, 0]]
-    )
+    lower, upper = (b[::-1] / 1000.0 for b in ALLEN_BBOX_NM)  # um, ZYX
+    np.testing.assert_allclose(mesh.points.min(axis=0), lower, atol=10)
+    np.testing.assert_allclose(mesh.points.max(axis=0), upper, atol=10)
+    assert len(mesh.cells[0].data) == ALLEN_FACE_COUNT
 
 
-def test_legacy_conversion_writes_only_the_id_file(tmp_path, monkeypatch):
+def test_atlas_assets_conversion_writes_only_the_id_file(
+    tmp_path, monkeypatch
+):
     """Conversion writes `<id>` alone -- no `<id>.index`, no `info`."""
     mesh_dir = tmp_path / "mesh"
     mesh_dir.mkdir()
-    mesh_file = mesh_dir / "997"
-    exists, cat = _legacy_fakes(LEGACY_POINTS, LEGACY_FACES)
+    mesh_file = mesh_dir / ALLEN_ID
+    exists, cat = _mesh_fakes()
 
     monkeypatch.setattr(
         structure_class.s3fs,
@@ -391,53 +487,27 @@ def test_legacy_conversion_writes_only_the_id_file(tmp_path, monkeypatch):
         ),
     )
 
-    struct_dict = StructuresDict(structures_list)
+    struct_dict = StructuresDict(
+        structures_list, remote_root=ATLAS_ASSETS_ROOT
+    )
     struct_dict["root"]._download_mesh(mesh_file)
 
-    assert [p.name for p in mesh_dir.iterdir()] == ["997"]
+    assert [p.name for p in mesh_dir.iterdir()] == [ALLEN_ID]
 
 
-def test_legacy_conversion_concatenates_fragments(tmp_path, monkeypatch):
-    """A two-fragment manifest produces one mesh with all the geometry."""
+def test_brainglobe_mesh_downloads_without_dequantizing(tmp_path, monkeypatch):
+    """A BrainGlobe mesh is fetched as-is: its Draco header is absolute.
+
+    `cat_impl` is left unset, so the fake raises if the conversion branch
+    is taken for the default remote root.
+    """
     mesh_file = tmp_path / "997"
-    exists, cat = _legacy_fakes(
-        LEGACY_POINTS,
-        LEGACY_FACES,
-        fragments=("997:0:0", "997:0:1"),
-    )
 
     monkeypatch.setattr(
         structure_class.s3fs,
         "S3FileSystem",
         _fake_s3_factory(
-            exists=exists,
-            get_impl=lambda remote, local: None,
-            cat_impl=cat,
-        ),
-    )
-
-    struct_dict = StructuresDict(structures_list)
-    struct_dict["root"]._download_mesh(mesh_file)
-    decoded = DracoPy.decode(mesh_file.read_bytes())
-
-    assert len(decoded.points) == 2 * len(LEGACY_POINTS)
-    assert decoded.faces.max() == 2 * len(LEGACY_POINTS) - 1
-
-
-def test_brainglobe_mesh_skips_the_legacy_probe(tmp_path, monkeypatch):
-    """A present `<id>` downloads directly, never probing `<id>:0`."""
-    mesh_file = tmp_path / "997"
-    probed = []
-
-    def exists(path):
-        probed.append(path)
-        return not path.endswith(":0")
-
-    monkeypatch.setattr(
-        structure_class.s3fs,
-        "S3FileSystem",
-        _fake_s3_factory(
-            exists=exists,
+            exists=True,
             get_impl=lambda remote, local: local.write_bytes(_draco_bytes()),
         ),
     )
@@ -445,8 +515,7 @@ def test_brainglobe_mesh_skips_the_legacy_probe(tmp_path, monkeypatch):
     struct_dict = StructuresDict(structures_list)
     struct_dict["root"]._download_mesh(mesh_file)
 
-    assert not any(path.endswith(":0") for path in probed)
-    assert mesh_file.exists()
+    assert mesh_file.read_bytes() == _draco_bytes()
 
 
 def test_interrupted_conversion_removes_the_partial_file(
@@ -458,7 +527,7 @@ def test_interrupted_conversion_removes_the_partial_file(
     `test_download_mesh_removes_corrupt_file_on_error` asserts for the
     BrainGlobe branch to the conversion branch.
     """
-    mesh_file = tmp_path / "997"
+    mesh_file = tmp_path / ALLEN_ID
     mesh_file.write_bytes(b"stale partial file")
 
     def failing_cat(path):
@@ -468,13 +537,15 @@ def test_interrupted_conversion_removes_the_partial_file(
         structure_class.s3fs,
         "S3FileSystem",
         _fake_s3_factory(
-            exists=lambda path: path.endswith(":0"),
+            exists=True,
             get_impl=lambda remote, local: None,
             cat_impl=failing_cat,
         ),
     )
 
-    struct_dict = StructuresDict(structures_list)
+    struct_dict = StructuresDict(
+        structures_list, remote_root=ATLAS_ASSETS_ROOT
+    )
 
     with pytest.raises(ConnectionError):
         struct_dict["root"]._download_mesh(mesh_file)

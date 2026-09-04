@@ -14,7 +14,6 @@ from rich import print as rprint
 from rich.console import Console
 
 from brainglobe_atlasapi import config, core, descriptors
-from brainglobe_atlasapi._ome_zarr_update import update_ome_zarr_attributes
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
     V3_ANNOTATION_MAP_NAME,
@@ -140,6 +139,49 @@ def _species_from_name(atlas_name: str) -> Optional[str]:
     return None
 
 
+def _intrinsic_axes(multiscale: dict) -> list:
+    """Return the axes of the space the array indices live in.
+
+    OME-Zarr 0.5 (the BrainGlobe bucket) declares one set of axes on the
+    multiscale. 0.6 (atlas-assets) declares several coordinate systems
+    and names, on each dataset, the one its indices map into; that
+    intrinsic system is the one describing storage order, as opposed to
+    any anatomical space derived from it.
+
+    Parameters
+    ----------
+    multiscale : dict
+        One entry of the ``multiscales`` list.
+
+    Returns
+    -------
+    list
+        The axis dictionaries, in storage order.
+
+    Raises
+    ------
+    KeyError
+        If neither shape declares axes.
+    """
+    axes = multiscale.get("axes")
+    if axes is not None:
+        return axes
+
+    outputs = {
+        transform["output"]["name"]
+        for transform in multiscale["datasets"][0]["coordinateTransformations"]
+        if "name" in transform.get("output", {})
+    }
+    for system in multiscale.get("coordinateSystems", []):
+        if system["name"] in outputs:
+            return system["axes"]
+
+    raise KeyError(
+        "Multiscale declares no axes and no coordinate system matching "
+        f"the output(s) {sorted(outputs)} of its datasets."
+    )
+
+
 def _orientation_from_axes(ome_attrs: dict) -> str:
     """Derive a brainglobe-space origin from OME axis metadata.
 
@@ -158,7 +200,7 @@ def _orientation_from_axes(ome_attrs: dict) -> str:
     KeyError
         If an axis carries no recognised anatomical orientation.
     """
-    axes = ome_attrs["multiscales"][0]["axes"][-3:]
+    axes = _intrinsic_axes(ome_attrs["multiscales"][0])[-3:]
     letters = []
     for axis in axes:
         direction = axis.get("orientation", {}).get("value")
@@ -657,9 +699,6 @@ class BrainGlobeAtlas(core.Atlas):
                     local_annotation_path / V3_ANNOTATION_NAME,
                     callback=TqdmCallback(),
                 )
-                update_ome_zarr_attributes(
-                    local_annotation_path / V3_ANNOTATION_NAME
-                )
                 mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
                 mesh_path.mkdir(parents=True, exist_ok=True)
 
@@ -690,9 +729,6 @@ class BrainGlobeAtlas(core.Atlas):
                         callback=TqdmCallback(),
                         recursive=True,
                     )
-                    update_ome_zarr_attributes(
-                        local_annotation_path / V3_ANNOTATION_MASKS_NAME
-                    )
                 except FileNotFoundError as e:
                     raise FileNotFoundError(
                         f"Annotation masks metadata not found for atlas "
@@ -719,9 +755,6 @@ class BrainGlobeAtlas(core.Atlas):
                         local_annotation_path / V3_HEMISPHERES_NAME,
                         callback=TqdmCallback(),
                     )
-                    update_ome_zarr_attributes(
-                        local_annotation_path / V3_HEMISPHERES_NAME
-                    )
 
             # Download template metadata files
             template = _component(self.metadata, "template")
@@ -740,9 +773,6 @@ class BrainGlobeAtlas(core.Atlas):
                     remote_root_metadata_path,
                     local_template_path / V3_TEMPLATE_NAME,
                     callback=TqdmCallback(),
-                )
-                update_ome_zarr_attributes(
-                    local_template_path / V3_TEMPLATE_NAME
                 )
 
             additional_reference_names = self.metadata.get(
@@ -765,9 +795,6 @@ class BrainGlobeAtlas(core.Atlas):
                         remote_root_metadata_path,
                         local_template_path / V3_TEMPLATE_NAME,
                         callback=TqdmCallback(),
-                    )
-                    update_ome_zarr_attributes(
-                        local_template_path / V3_TEMPLATE_NAME
                     )
             # Reset local_full_name to ensure it is updated with new location
             self._local_full_name = None

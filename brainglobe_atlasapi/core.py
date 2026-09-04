@@ -564,7 +564,7 @@ class Atlas:
         -------
             The mesh data for the root structure.
         """
-        return self.mesh_from_structure("root")
+        return self.mesh_from_structure(self.structures.tree.root)
 
     def root_meshfile(self):
         """
@@ -574,7 +574,7 @@ class Atlas:
         -------
             str: The path to the mesh file for the root structure.
         """
-        return self.meshfile_from_structure("root")
+        return self.meshfile_from_structure(self.structures.tree.root)
 
     def _idx_from_coords(self, coords, microns):
         # If microns are passed, convert:

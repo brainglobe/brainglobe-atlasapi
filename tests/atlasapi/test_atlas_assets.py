@@ -271,13 +271,11 @@ def test_atlas_assets_structure_mask():
     assert mask.max() == 1
 
 
-def test_atlas_assets_legacy_mesh_is_nanometres_in_xyz(tmp_path):
-    """Real Allen legacy vertices land inside the declared volume extent.
+def test_atlas_assets_mesh_is_nanometres_in_xyz(tmp_path):
+    """Real Allen vertices land inside the declared volume extent.
 
-    Drives `Structure._download_mesh` directly rather than through
-    `BrainGlobeAtlas`, which cannot be constructed from this bucket while
-    gap 1 (OME-Zarr 0.6.dev3) stands. This is therefore the only check
-    that exercises the conversion against real Allen bytes.
+    Drives `Structure._download_mesh` directly, so the dequantization
+    is exercised against real Allen bytes rather than fixtures.
     """
     # `_download_mesh` derives the remote path from the last six segments
     # of the local path, so the local tree has to mirror the remote one.

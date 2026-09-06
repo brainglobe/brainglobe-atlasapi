@@ -197,9 +197,7 @@ def retrieve_structure_information(annotation):
     ancestor_source_ids = set()
     for source_path in labels["source_path"]:
         ancestor_source_ids.update(
-            int(source_id)
-            for source_id in source_path.split("/")
-            if source_id
+            int(source_id) for source_id in source_path.split("/") if source_id
         )
     ancestor_source_ids.remove(ROOT_ID)
     parent_rows = lookup[
@@ -235,8 +233,7 @@ def retrieve_structure_information(annotation):
                 "id": int(row.hashed_id),
                 "name": label_name,
                 "acronym": acronym,
-                "structure_id_path": structure_id_path
-                + [int(row.hashed_id)],
+                "structure_id_path": structure_id_path + [int(row.hashed_id)],
                 "rgb_triplet": [int(row.r), int(row.g), int(row.b)],
             }
         )

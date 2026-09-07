@@ -197,6 +197,8 @@ class BrainGlobeAtlas(core.Atlas):
         bucket_path = remote_url_s3.format(f"atlases/{self.atlas_name}")
 
         if self.fs.exists(bucket_path) is False:
+            if self.local_full_name is not None:
+                return None
             raise FileNotFoundError(
                 f"{self.atlas_name} is not a valid atlas name!"
             )

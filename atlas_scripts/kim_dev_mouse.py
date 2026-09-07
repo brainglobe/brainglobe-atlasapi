@@ -123,8 +123,8 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     else:
         raise RuntimeError(f"Unknown reference image modality: {modality}")
     members = [
-        f"{age}/{age.replace('.','-')}_DevCCF_Annotations_{resolution_um}um.nii.gz",
-        f"{age}/{age.replace('.','-')}_{modality}_{resolution_um}um.nii.gz",
+        f"{age}/{age.replace('.', '-')}_DevCCF_Annotations_{resolution_um}um.nii.gz",
+        f"{age}/{age.replace('.', '-')}_{modality}_{resolution_um}um.nii.gz",
     ]
     fetched_paths = pooch_.fetch(
         archive,
@@ -290,7 +290,7 @@ def create_mesh_dict(structures, meshes_dir_path):
     structures_with_mesh = []
     for s in structures:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it")
             continue
@@ -472,7 +472,8 @@ if __name__ == "__main__":
             and (
                 cache_dir := bg_root_dir
                 / f"{ATLAS_NAME}_{age.replace('.', '-')}"
-                f"_{cached_modality}".lower() / "meshes"
+                f"_{cached_modality}".lower()
+                / "meshes"
             ).exists()
         ):
             meshes_dir_path = cache_dir

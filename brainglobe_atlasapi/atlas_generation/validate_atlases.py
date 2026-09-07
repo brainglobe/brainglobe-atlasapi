@@ -83,9 +83,9 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
         ),
     ]
     for _, expected_path in expected_files:
-        assert (
-            expected_path.exists()
-        ), f"Expected file not found at {expected_path}"
+        assert expected_path.exists(), (
+            f"Expected file not found at {expected_path}"
+        )
 
     return True
 
@@ -291,9 +291,9 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
             f"Additional reference {additional_reference} "
             "has unexpected dimension."
         )
-        assert not np.all(
-            additional_reference == atlas.template
-        ), "Additional reference is not different to main reference."
+        assert not np.all(additional_reference == atlas.template), (
+            "Additional reference is not different to main reference."
+        )
     return True
 
 
@@ -420,9 +420,9 @@ def validate_template_image_pixels(atlas: BrainGlobeAtlas):
         If all pixel values in the template image are less than 128,
         suggesting incorrect scaling.
     """
-    assert not np.all(
-        atlas.template < 128
-    ), f"Template image is likely wrongly rescaled to {REFERENCE_DTYPE}"
+    assert not np.all(atlas.template < 128), (
+        f"Template image is likely wrongly rescaled to {REFERENCE_DTYPE}"
+    )
     return True
 
 
@@ -460,9 +460,9 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
         centre[2] + (4 + remainder)
     ]
     label_5_right_of_centre = central_leftright_axis_annotations[centre[2] - 5]
-    assert (
-        label_5_left_of_centre == label_5_right_of_centre
-    ), "Annotation labels are asymmetric."
+    assert label_5_left_of_centre == label_5_right_of_centre, (
+        "Annotation labels are asymmetric."
+    )
     return True
 
 
@@ -499,9 +499,9 @@ def validate_unique_acronyms(atlas: BrainGlobeAtlas):
         else:
             seen.add(acronym)
 
-    assert (
-        len(duplicates) == 0
-    ), f"Duplicate acronyms found in atlas structures: {sorted(duplicates)}"
+    assert len(duplicates) == 0, (
+        f"Duplicate acronyms found in atlas structures: {sorted(duplicates)}"
+    )
     return True
 
 
@@ -536,9 +536,9 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
 
     assert name == name.lower(), f"Atlas name {name} cannot contain capitals."
 
-    assert re.match(
-        allowed_chars, name
-    ), f"Atlas name {name} contains invalid characters."
+    assert re.match(allowed_chars, name), (
+        f"Atlas name {name} contains invalid characters."
+    )
 
     resolution_pattern = r"\d+(\.\d+)?(nm|um|mm)$"
     assert re.search(resolution_pattern, res), (
@@ -568,9 +568,9 @@ def validate_atlas_name_listed(atlas: BrainGlobeAtlas):
         If the atlas name is not listed in atlas_name.py.
     """
     name = atlas.atlas_name
-    assert name in get_args(
-        AtlasName
-    ), f"Atlas name {name} is not listed in atlas_name.py"
+    assert name in get_args(AtlasName), (
+        f"Atlas name {name} is not listed in atlas_name.py"
+    )
     return True
 
 

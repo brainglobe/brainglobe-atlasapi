@@ -299,7 +299,6 @@ def create_atlas(working_dir, resolution):
         total=tree.size(),
         description="Creating meshes",
     ):
-
         create_region_mesh(
             [
                 meshes_dir_path,  # Directory where mesh files will be saved

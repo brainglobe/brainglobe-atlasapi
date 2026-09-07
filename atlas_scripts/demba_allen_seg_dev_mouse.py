@@ -51,7 +51,6 @@ def download_resources(download_dir_path, atlas_file_url, atlas_name):
     download_name = atlas_name
     destination_path = download_dir_path / download_name
     for url in atlas_file_url:
-
         pooch.retrieve(
             url=url,
             known_hash=None,
@@ -131,7 +130,6 @@ def retrieve_reference_and_annotation(
     zoom_factors = tuple(volume_resolution / resolution for _ in range(3))
     reference = zoom(reference, zoom_factors, order=1)
     if annotation.shape != reference.shape:
-
         zoom_factors = tuple(
             ref_dim / ann_dim
             for ref_dim, ann_dim in zip(reference.shape, annotation.shape)

@@ -172,12 +172,12 @@ def create_atlas(
     working_dir: Path,
 ):
     """Package the swc_female_rat atlas."""
-    assert (
-        len(ORIENTATION) == 3
-    ), f"Orientation is not 3 characters, got {ORIENTATION}"
-    assert (
-        len(RESOLUTION) == 3
-    ), f"Resolution is not length 3, got {RESOLUTION}"
+    assert len(ORIENTATION) == 3, (
+        f"Orientation is not 3 characters, got {ORIENTATION}"
+    )
+    assert len(RESOLUTION) == 3, (
+        f"Resolution is not length 3, got {RESOLUTION}"
+    )
 
     working_dir.mkdir(exist_ok=True, parents=True)
 

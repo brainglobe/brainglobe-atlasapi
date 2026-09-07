@@ -369,11 +369,12 @@ def retrieve_structure_information(nmt_dir: Path) -> list[dict]:
     )
 
 
-def load_combined_gifti_mesh_in_voxel_space(
+def write_combined_gifti_mesh(
     mesh_paths: list[Path],
     ras_mm_to_voxel: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Load, transform, and combine GIFTI meshes."""
+    output_path: Path,
+) -> Path:
+    """Load, transform, combine, and write GIFTI meshes as OBJ."""
     all_vertices = []
     all_faces = []
     vertex_offset = 0
@@ -395,7 +396,12 @@ def load_combined_gifti_mesh_in_voxel_space(
         all_faces.append(faces + vertex_offset)
         vertex_offset += vertices.shape[0]
 
-    return np.vstack(all_vertices), np.vstack(all_faces)
+    mesh = mio.Mesh(
+        points=np.vstack(all_vertices),
+        cells=[("triangle", np.vstack(all_faces))],
+    )
+    mio.write(output_path, mesh)
+    return output_path
 
 
 def collect_source_meshes(
@@ -487,16 +493,11 @@ def retrieve_or_construct_meshes(
         surfaces_dir / "rh.gray_surface.rsl.gii",
     ]
 
-    cortex_vertices, cortex_faces = load_combined_gifti_mesh_in_voxel_space(
+    meshes_dict[CORTEX_ID] = write_combined_gifti_mesh(
         mesh_paths=cortex_surface_paths,
         ras_mm_to_voxel=ras_mm_to_voxel,
+        output_path=cortex_mesh_path,
     )
-    cortex_mesh = mio.Mesh(
-        points=cortex_vertices,
-        cells=[("triangle", cortex_faces)],
-    )
-    mio.write(cortex_mesh_path, cortex_mesh)
-    meshes_dict[CORTEX_ID] = cortex_mesh_path
 
     subcortex_mesh_path = output_mesh_dir / f"{SUBCORTEX_ID}.obj"
     subcortex_mask = np.isin(annotation_volume, subcortex_ids).astype(np.uint8)
@@ -518,17 +519,11 @@ def retrieve_or_construct_meshes(
     )
 
     for canonical_id, mesh_source in sorted(mesh_sources.items()):
-        vertices, faces = load_combined_gifti_mesh_in_voxel_space(
+        meshes_dict[canonical_id] = write_combined_gifti_mesh(
             mesh_paths=mesh_source["paths"],
             ras_mm_to_voxel=ras_mm_to_voxel,
+            output_path=output_mesh_dir / f"{canonical_id}.obj",
         )
-        output_mesh_path = output_mesh_dir / f"{canonical_id}.obj"
-        region_mesh = mio.Mesh(
-            points=vertices,
-            cells=[("triangle", faces)],
-        )
-        mio.write(output_mesh_path, region_mesh)
-        meshes_dict[canonical_id] = output_mesh_path
 
     return meshes_dict
 

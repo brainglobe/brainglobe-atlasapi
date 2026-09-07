@@ -186,7 +186,7 @@ class BrainGlobeAtlas(core.Atlas):
         """Reads remote version from s3 bucket.
 
         Largest numerical version assumed to be latest.
-        If we are offline, return None.
+        If we are offline or using a custom atlas, return None.
         """
         if self._remote_version is not None:
             return self._remote_version

@@ -24,6 +24,7 @@ AtlasName: TypeAlias = Literal[
     "allen_mouse_bluebrain_barrels_25um",
     "australian_mouse_15um",
     "azba_zfish_4um",
+    "bma2.0_marmoset_100um",
     "carea_mouse_25um",
     "ccfv2_mouse_25um",
     "ccfv2_fiber_mouse_25um",

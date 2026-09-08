@@ -129,6 +129,14 @@ def build_arm_id_mappings(
     return source_to_canonical, canonical_info_by_id
 
 
+def normalize_to_uint16(image: np.ndarray) -> np.ndarray:
+    """Scale image intensities to the full uint16 range."""
+    image = image.astype(np.float32)
+    image -= image.min()
+    image /= image.max()
+    return (image * np.iinfo(np.uint16).max).astype(np.uint16)
+
+
 def retrieve_reference_and_annotation(
     nmt_dir: Path,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -137,10 +145,8 @@ def retrieve_reference_and_annotation(
     reference = load_nii(
         full_head_dir / NMT_REFERENCE_FILENAME,
         as_array=True,
-    ).astype(np.float32)
-    reference -= reference.min()
-    reference /= reference.max()
-    reference = (reference * np.iinfo(np.uint16).max).astype(np.uint16)
+    )
+    reference = normalize_to_uint16(reference)
 
     annotation = load_nii(
         full_head_dir / "supplemental_ARM" / ARM_ANNOTATION_FILENAME,
@@ -161,12 +167,8 @@ def retrieve_additional_references(nmt_dir: Path) -> dict[str, np.ndarray]:
     skull_stripped = load_nii(
         nmt_dir / "NMT_v2.1_sym_fh" / NMT_SKULL_STRIPPED_FILENAME,
         as_array=True,
-    ).astype(np.float32)
-    skull_stripped -= skull_stripped.min()
-    skull_stripped /= skull_stripped.max()
-    skull_stripped = (skull_stripped * np.iinfo(np.uint16).max).astype(
-        np.uint16
     )
+    skull_stripped = normalize_to_uint16(skull_stripped)
 
     return {"skull_stripped": skull_stripped}
 
@@ -493,6 +495,7 @@ if __name__ == "__main__":
         scale_meshes=True,
         atlas_packager=ATLAS_PACKAGER,
         additional_references=additional_references,
+        overwrite=True,
     )
 
     print("Packaged atlas:", output_filename)

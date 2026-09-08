@@ -1,6 +1,5 @@
 """Atlas generation script for the ARM macaque atlas."""
 
-import colorsys
 import re
 from pathlib import Path
 
@@ -177,101 +176,34 @@ def retrieve_hemisphere_map() -> np.ndarray | None:
     return None
 
 
-def arm_sarm_cmap_gen(
-    arm_table: pd.DataFrame,
+def read_sarm_colours(
+    sarm_dir: Path,
     source_to_canonical: dict[int, int],
-    seed: int = 77,
 ) -> dict[int, list[int]]:
-    """Generate deterministic subcortical ARM RGB triplets."""
-    base_color_hex = {
-        "LVPal": "#EC9830",
-        "MPal": "#7ED04B",
-        "Amy": "#9DE79C",
-        "BG": "#98D6F9",
-        "DSP": "#96A7D3",
-        "POC": "#FF5547",
-        "Hy": "#E64438",
-        "PreThal": "#F2483B",
-        "Thal": "#FF7080",
-        "EpiThal": "#FF909F",
-        "PrT": "#FF90FF",
-        "Mid": "#FF64FF",
-        "Pons": "#FF9B88",
-        "Cb": "#F0F080",
-        "Med": "#FF9BCD",
-        "HF": "#7ED04B",
-        "Str": "#98D6F9",
-        "Pd": "#8599CC",
-    }
-    base_colors = {
-        acronym: list(bytes.fromhex(hex_color.removeprefix("#")))
-        for acronym, hex_color in base_color_hex.items()
-    }
+    """Read subcortical RGB triplets from the SARM mesh label tables."""
     rgb_triplets = {}
-    level_1_children = {}
 
-    subcortex_table = arm_table[
-        arm_table["Level_0"].str.strip().str.lower() == "subcortex"
-    ]
+    for level in range(1, 7):
+        # Each mesh at a level contains the same complete label table.
+        path = next(
+            iter(sorted((sarm_dir / f"Level_{level}").glob("*.niml.dset")))
+        )
+        text = path.read_bytes().decode("utf-8", errors="replace")
+        label_table = text.split("<AFNI_labeltable", 1)[1]
+        rows = label_table.split("<SPARSE_DATA", 1)[1].split(">", 1)[1]
+        rows = rows.split("</SPARSE_DATA>", 1)[0]
 
-    for _, row in subcortex_table.iterrows():
-        parsed_path = []
-
-        for level in range(1, 7):
-            structure = {
-                "id": source_to_canonical[int(row[f"Level_{level}_index"])],
-                "name": HEMISPHERE_PREFIX_RE.sub(
-                    "", str(row[f"Level_{level}"]).strip()
-                ),
-                "acronym": HEMISPHERE_PREFIX_RE.sub(
-                    "", str(row[f"Level_{level}_abbr"]).strip()
-                ),
-            }
-
-            if not parsed_path or structure["id"] != parsed_path[-1]["id"]:
-                parsed_path.append(structure)
-
-        if len(parsed_path) > 1:
-            level_1_children.setdefault(parsed_path[0]["id"], set()).add(
-                parsed_path[1]["id"]
-            )
-
-        anchor_rgb = None
-        for structure in parsed_path:
-            if structure["acronym"] in base_colors:
-                anchor_rgb = base_colors[structure["acronym"]]
-
-            if structure["id"] in rgb_triplets:
-                continue
-
-            if anchor_rgb is None:
-                rgb_triplets[structure["id"]] = [255, 255, 255]
-                continue
-
-            if structure["acronym"] in base_colors:
-                rgb_triplets[structure["id"]] = anchor_rgb
-                continue
-
-            rng = np.random.default_rng(seed + structure["id"])
-            hue, lightness, saturation = colorsys.rgb_to_hls(
-                *(channel / 255 for channel in anchor_rgb)
-            )
-            lightness = np.clip(lightness + rng.uniform(-0.10, 0.10), 0, 1)
-            saturation = np.clip(saturation * rng.uniform(0.90, 1.10), 0, 1)
-            rgb_triplets[structure["id"]] = [
-                int(round(channel * 255))
-                for channel in colorsys.hls_to_rgb(hue, lightness, saturation)
-            ]
-
-    for structure_id, children in level_1_children.items():
-        child_colours = [
-            rgb_triplets[child_id]
-            for child_id in children
-            if child_id in rgb_triplets
-        ]
-        rgb_triplets[structure_id] = [
-            int(round(channel)) for channel in np.mean(child_colours, axis=0)
-        ]
+        for row in rows.strip().splitlines():
+            red, green, blue, _, key, _ = row.split(maxsplit=5)
+            source_id = int(key)
+            canonical_id = source_to_canonical[source_id]
+            # Keep the canonical hemisphere's supplied colour. Later levels
+            # overwrite earlier ones to match the deepest mesh selection.
+            if source_id == canonical_id:
+                rgb_triplets[canonical_id] = [
+                    int(round(float(channel) * 255))
+                    for channel in (red, green, blue)
+                ]
 
     return rgb_triplets
 
@@ -291,7 +223,10 @@ def retrieve_structure_information(nmt_dir: Path) -> list[dict]:
         structure_id: list(bytes.fromhex(hex_color.removeprefix("#")))
         for structure_id, hex_color in enumerate(palette_lines[1:], start=1)
     }
-    sarm_rgb_triplets = arm_sarm_cmap_gen(arm_table, source_to_canonical)
+    sarm_rgb_triplets = read_sarm_colours(
+        nmt_dir / "NMT_v2.1_sym_surfaces" / "atlases" / "SARM",
+        source_to_canonical,
+    )
 
     structures_by_id = {
         ROOT_ID: {

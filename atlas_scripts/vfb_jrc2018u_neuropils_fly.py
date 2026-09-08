@@ -295,6 +295,6 @@ if __name__ == "__main__":
         hemispheres_stack=hemispheres_stack,
         scale_meshes=False,
         additional_references=additional_references,
-        overwrite=True
+        overwrite=True,
     )
     print(f"Atlas packaged: {output_filename}")

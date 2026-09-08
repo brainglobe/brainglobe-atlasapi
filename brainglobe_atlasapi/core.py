@@ -191,6 +191,11 @@ class Atlas:
         return tuple(self.metadata["resolution"])
 
     @property
+    def license(self):
+        """Return the atlas license metadata, if provided."""
+        return self.metadata.get("license")
+
+    @property
     def _annotation_masks_path(self) -> Path:
         annotation_location = self.metadata["annotation_set"]["location"][1:]
         return self.root_dir / annotation_location / V3_ANNOTATION_MASKS_NAME

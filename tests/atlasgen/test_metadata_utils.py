@@ -66,6 +66,12 @@ def metadata_input_template():
         "shape": [172, 256, 154],  # Keep as list/tuple input type
         "additional_references": [],
         "atlas_packager": "people who packaged the atlas",
+        "license": {
+            "license": "CC-BY-4.0",
+            "link_to_license": (
+                "https://creativecommons.org/licenses/by/4.0/"
+            ),
+        },
         "coordinate_space": coordinate_space,
         "terminology": terminology,
         "annotation_set": annotation_set,
@@ -99,6 +105,7 @@ def test_generate_metadata_dict(metadata_input_template):
         "shape": "shape",
         "additional_references": "additional_references",
         "atlas_packager": "atlas_packager",
+        "license": "license",
         "coordinate_space": "coordinate_space",
         "terminology": "terminology",
         "annotation_set": "annotation_set",
@@ -148,6 +155,80 @@ def test_generate_metadata_dict(metadata_input_template):
     assert (
         output_keys == expected_keys
     ), f"Output keys {output_keys} do not match expected keys {expected_keys}"
+
+
+def test_generate_metadata_dict_without_license(metadata_input_template):
+    """Unset license metadata is stored as ``None``."""
+    metadata_input_template["license"] = None
+    metadata_input_template["citation"] = "unpublished"
+
+    output = generate_metadata_dict(**metadata_input_template)
+
+    assert output["license"] is None
+
+
+def test_generate_metadata_dict_with_license(metadata_input_template):
+    """License metadata is included unchanged."""
+    metadata_input_template["citation"] = "unpublished"
+    expected = metadata_input_template["license"]
+
+    output = generate_metadata_dict(**metadata_input_template)
+
+    assert output["license"] == expected
+
+
+def test_generate_metadata_dict_with_unlicensed_marker(
+    metadata_input_template,
+):
+    """An explicitly unlicensed atlas may omit a license URL."""
+    expected = {"license": "unlicensed", "link_to_license": None}
+    metadata_input_template["license"] = expected
+    metadata_input_template["citation"] = "unpublished"
+
+    output = generate_metadata_dict(**metadata_input_template)
+
+    assert output["license"] == expected
+
+
+@pytest.mark.parametrize(
+    "license_metadata, error, message",
+    [
+        ("CC-BY-4.0", TypeError, "must be a dictionary"),
+        (
+            {"license": "CC-BY-4.0"},
+            ValueError,
+            "missing required fields: link_to_license",
+        ),
+        (
+            {"license": 4, "link_to_license": "https://example.com"},
+            TypeError,
+            "license must be a string",
+        ),
+        (
+            {"license": "CC-BY-4.0", "link_to_license": 4},
+            TypeError,
+            "link_to_license must be a string or None",
+        ),
+        (
+            {
+                "license": "CC-BY-4.0",
+                "link_to_license": "https://example.com",
+                "copyright_holder": "Example Institute",
+            },
+            ValueError,
+            "unexpected fields: copyright_holder",
+        ),
+    ],
+)
+def test_generate_metadata_dict_rejects_invalid_license(
+    metadata_input_template, license_metadata, error, message
+):
+    """License metadata must contain valid required fields."""
+    metadata_input_template["citation"] = "unpublished"
+    metadata_input_template["license"] = license_metadata
+
+    with pytest.raises(error, match=message):
+        generate_metadata_dict(**metadata_input_template)
 
 
 @pytest.mark.parametrize(

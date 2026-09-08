@@ -470,22 +470,27 @@ def retrieve_or_construct_meshes(
 
     print("Creating ARM root, cortex, and subcortex parent meshes")
 
-    root_mesh_path = output_mesh_dir / f"{ROOT_ID}.obj"
     root_mask = load_nii(brainmask_path, as_array=True).astype(np.uint8)
-    extract_mesh_from_mask(
-        root_mask,
-        obj_filepath=root_mesh_path,
-        smooth=True,
-        closing_n_iters=8,
-        decimate_fraction=0.6,
-    )
-    meshes_dict[ROOT_ID] = root_mesh_path
-
     subcortex_ids = [
         structure_id
         for structure_id, info in canonical_info_by_id.items()
         if info["domain"] == "subcortex"
     ]
+    subcortex_mask = np.isin(annotation_volume, subcortex_ids).astype(np.uint8)
+
+    for structure_id, mask in (
+        (ROOT_ID, root_mask),
+        (SUBCORTEX_ID, subcortex_mask),
+    ):
+        path = output_mesh_dir / f"{structure_id}.obj"
+        extract_mesh_from_mask(
+            mask,
+            obj_filepath=path,
+            smooth=True,
+            closing_n_iters=8,
+            decimate_fraction=0.6,
+        )
+        meshes_dict[structure_id] = path
 
     cortex_mesh_path = output_mesh_dir / f"{CORTEX_ID}.obj"
     cortex_surface_paths = [
@@ -498,17 +503,6 @@ def retrieve_or_construct_meshes(
         ras_mm_to_voxel=ras_mm_to_voxel,
         output_path=cortex_mesh_path,
     )
-
-    subcortex_mesh_path = output_mesh_dir / f"{SUBCORTEX_ID}.obj"
-    subcortex_mask = np.isin(annotation_volume, subcortex_ids).astype(np.uint8)
-    extract_mesh_from_mask(
-        subcortex_mask,
-        obj_filepath=subcortex_mesh_path,
-        smooth=True,
-        closing_n_iters=8,
-        decimate_fraction=0.6,
-    )
-    meshes_dict[SUBCORTEX_ID] = subcortex_mesh_path
 
     print("Converting CHARM/SARM GIFTI meshes to merged ARM OBJ files")
 

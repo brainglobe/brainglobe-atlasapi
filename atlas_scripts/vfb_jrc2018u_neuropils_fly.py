@@ -293,9 +293,8 @@ if __name__ == "__main__":
         working_dir=BG_ROOT_DIR,
         atlas_packager=ATLAS_PACKAGER,
         hemispheres_stack=hemispheres_stack,
-        cleanup_files=False,
-        compress=True,
         scale_meshes=False,
         additional_references=additional_references,
+        overwrite=True
     )
     print(f"Atlas packaged: {output_filename}")

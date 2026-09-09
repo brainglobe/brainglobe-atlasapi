@@ -168,12 +168,6 @@ def retrieve_additional_references(nmt_dir: Path) -> dict[str, np.ndarray]:
     skull_stripped = load_nii(
         nmt_dir / "NMT_v2.1_asym_fh" / NMT_SKULL_STRIPPED_FILENAME,
         as_array=True,
-    ).astype(np.float32)
-    skull_stripped -= skull_stripped.min()
-    skull_stripped /= skull_stripped.max()
-    skull_stripped = (skull_stripped * np.iinfo(np.uint16).max).astype(
-        np.uint16
-    )
     )
     skull_stripped = normalize_to_uint16(skull_stripped)
 
@@ -236,9 +230,6 @@ def retrieve_structure_information(nmt_dir: Path) -> list[dict]:
     source_to_canonical, _ = build_arm_id_mappings(arm_table)
     palette_lines = [
         line.strip()
-        for line in (nmt_dir / "tables_CHARM" / "hue_CHARM_cmap.pal")
-        .read_text()
-        .splitlines()
         for line in (nmt_dir / "tables_CHARM" / "hue_CHARM_cmap.pal")
         .read_text()
         .splitlines()

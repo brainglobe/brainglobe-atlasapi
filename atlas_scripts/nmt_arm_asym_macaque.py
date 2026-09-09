@@ -1,6 +1,5 @@
 """Atlas generation script for the asymmetric NMT ARM macaque atlas."""
 
-import colorsys
 import re
 from pathlib import Path
 
@@ -131,6 +130,14 @@ def build_arm_id_mappings(
     return source_to_canonical, canonical_info_by_id
 
 
+def normalize_to_uint16(image: np.ndarray) -> np.ndarray:
+    """Scale image intensities to the full uint16 range."""
+    image = image.astype(np.float32)
+    image -= image.min()
+    image /= image.max()
+    return (image * np.iinfo(np.uint16).max).astype(np.uint16)
+
+
 def retrieve_reference_and_annotation(
     nmt_dir: Path,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -139,10 +146,8 @@ def retrieve_reference_and_annotation(
     reference = load_nii(
         full_head_dir / NMT_REFERENCE_FILENAME,
         as_array=True,
-    ).astype(np.float32)
-    reference -= reference.min()
-    reference /= reference.max()
-    reference = (reference * np.iinfo(np.uint16).max).astype(np.uint16)
+    )
+    reference = normalize_to_uint16(reference)
 
     annotation = load_nii(
         full_head_dir / "supplemental_ARM" / ARM_ANNOTATION_FILENAME,
@@ -169,6 +174,8 @@ def retrieve_additional_references(nmt_dir: Path) -> dict[str, np.ndarray]:
     skull_stripped = (skull_stripped * np.iinfo(np.uint16).max).astype(
         np.uint16
     )
+    )
+    skull_stripped = normalize_to_uint16(skull_stripped)
 
     return {"skull_stripped": skull_stripped}
 
@@ -191,101 +198,34 @@ def retrieve_hemisphere_map(nmt_dir: Path) -> np.ndarray:
     return hemispheres
 
 
-def arm_sarm_cmap_gen(
-    arm_table: pd.DataFrame,
+def read_sarm_colours(
+    sarm_dir: Path,
     source_to_canonical: dict[int, int],
-    seed: int = 77,
 ) -> dict[int, list[int]]:
-    """Generate deterministic subcortical ARM RGB triplets."""
-    base_color_hex = {
-        "LVPal": "#EC9830",
-        "MPal": "#7ED04B",
-        "Amy": "#9DE79C",
-        "BG": "#98D6F9",
-        "DSP": "#96A7D3",
-        "POC": "#FF5547",
-        "Hy": "#E64438",
-        "PreThal": "#F2483B",
-        "Thal": "#FF7080",
-        "EpiThal": "#FF909F",
-        "PrT": "#FF90FF",
-        "Mid": "#FF64FF",
-        "Pons": "#FF9B88",
-        "Cb": "#F0F080",
-        "Med": "#FF9BCD",
-        "HF": "#7ED04B",
-        "Str": "#98D6F9",
-        "Pd": "#8599CC",
-    }
-    base_colors = {
-        acronym: list(bytes.fromhex(hex_color.removeprefix("#")))
-        for acronym, hex_color in base_color_hex.items()
-    }
+    """Read subcortical RGB triplets from the SARM mesh label tables."""
     rgb_triplets = {}
-    level_1_children = {}
 
-    subcortex_table = arm_table[
-        arm_table["Level_0"].str.strip().str.lower() == "subcortex"
-    ]
+    for level in range(1, 7):
+        # Each mesh at a level contains the same complete label table.
+        path = next(
+            iter(sorted((sarm_dir / f"Level_{level}").glob("*.niml.dset")))
+        )
+        text = path.read_bytes().decode("utf-8", errors="replace")
+        label_table = text.split("<AFNI_labeltable", 1)[1]
+        rows = label_table.split("<SPARSE_DATA", 1)[1].split(">", 1)[1]
+        rows = rows.split("</SPARSE_DATA>", 1)[0]
 
-    for _, row in subcortex_table.iterrows():
-        parsed_path = []
-
-        for level in range(1, 7):
-            structure = {
-                "id": source_to_canonical[int(row[f"Level_{level}_index"])],
-                "name": HEMISPHERE_PREFIX_RE.sub(
-                    "", str(row[f"Level_{level}"]).strip()
-                ),
-                "acronym": HEMISPHERE_PREFIX_RE.sub(
-                    "", str(row[f"Level_{level}_abbr"]).strip()
-                ),
-            }
-
-            if not parsed_path or structure["id"] != parsed_path[-1]["id"]:
-                parsed_path.append(structure)
-
-        if len(parsed_path) > 1:
-            level_1_children.setdefault(parsed_path[0]["id"], set()).add(
-                parsed_path[1]["id"]
-            )
-
-        anchor_rgb = None
-        for structure in parsed_path:
-            if structure["acronym"] in base_colors:
-                anchor_rgb = base_colors[structure["acronym"]]
-
-            if structure["id"] in rgb_triplets:
-                continue
-
-            if anchor_rgb is None:
-                rgb_triplets[structure["id"]] = [255, 255, 255]
-                continue
-
-            if structure["acronym"] in base_colors:
-                rgb_triplets[structure["id"]] = anchor_rgb
-                continue
-
-            rng = np.random.default_rng(seed + structure["id"])
-            hue, lightness, saturation = colorsys.rgb_to_hls(
-                *(channel / 255 for channel in anchor_rgb)
-            )
-            lightness = np.clip(lightness + rng.uniform(-0.10, 0.10), 0, 1)
-            saturation = np.clip(saturation * rng.uniform(0.90, 1.10), 0, 1)
-            rgb_triplets[structure["id"]] = [
-                int(round(channel * 255))
-                for channel in colorsys.hls_to_rgb(hue, lightness, saturation)
-            ]
-
-    for structure_id, children in level_1_children.items():
-        child_colours = [
-            rgb_triplets[child_id]
-            for child_id in children
-            if child_id in rgb_triplets
-        ]
-        rgb_triplets[structure_id] = [
-            int(round(channel)) for channel in np.mean(child_colours, axis=0)
-        ]
+        for row in rows.strip().splitlines():
+            red, green, blue, _, key, _ = row.split(maxsplit=5)
+            source_id = int(key)
+            canonical_id = source_to_canonical[source_id]
+            # Keep the canonical hemisphere's supplied colour. Later levels
+            # overwrite earlier ones to match the deepest mesh selection.
+            if source_id == canonical_id:
+                rgb_triplets[canonical_id] = [
+                    int(round(float(channel) * 255))
+                    for channel in (red, green, blue)
+                ]
 
     return rgb_triplets
 
@@ -299,13 +239,19 @@ def retrieve_structure_information(nmt_dir: Path) -> list[dict]:
         for line in (nmt_dir / "tables_CHARM" / "hue_CHARM_cmap.pal")
         .read_text()
         .splitlines()
+        for line in (nmt_dir / "tables_CHARM" / "hue_CHARM_cmap.pal")
+        .read_text()
+        .splitlines()
         if line.strip()
     ]
     charm_rgb_triplets = {
         structure_id: list(bytes.fromhex(hex_color.removeprefix("#")))
         for structure_id, hex_color in enumerate(palette_lines[1:], start=1)
     }
-    sarm_rgb_triplets = arm_sarm_cmap_gen(arm_table, source_to_canonical)
+    sarm_rgb_triplets = read_sarm_colours(
+        nmt_dir / "NMT_v2.1_asym_surfaces" / "atlases" / "SARM",
+        source_to_canonical,
+    )
 
     structures_by_id = {
         ROOT_ID: {
@@ -383,11 +329,12 @@ def retrieve_structure_information(nmt_dir: Path) -> list[dict]:
     )
 
 
-def load_combined_gifti_mesh_in_voxel_space(
+def write_combined_gifti_mesh(
     mesh_paths: list[Path],
     ras_mm_to_voxel: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Load, transform, and combine GIFTI meshes."""
+    output_path: Path,
+) -> Path:
+    """Load, transform, combine, and write GIFTI meshes as OBJ."""
     all_vertices = []
     all_faces = []
     vertex_offset = 0
@@ -409,7 +356,12 @@ def load_combined_gifti_mesh_in_voxel_space(
         all_faces.append(faces + vertex_offset)
         vertex_offset += vertices.shape[0]
 
-    return np.vstack(all_vertices), np.vstack(all_faces)
+    mesh = mio.Mesh(
+        points=np.vstack(all_vertices),
+        cells=[("triangle", np.vstack(all_faces))],
+    )
+    mio.write(output_path, mesh)
+    return output_path
 
 
 def collect_source_meshes(
@@ -478,22 +430,27 @@ def retrieve_or_construct_meshes(
 
     print("Creating ARM root, cortex, and subcortex parent meshes")
 
-    root_mesh_path = output_mesh_dir / f"{ROOT_ID}.obj"
     root_mask = load_nii(brainmask_path, as_array=True).astype(np.uint8)
-    extract_mesh_from_mask(
-        root_mask,
-        obj_filepath=root_mesh_path,
-        smooth=True,
-        closing_n_iters=8,
-        decimate_fraction=0.6,
-    )
-    meshes_dict[ROOT_ID] = root_mesh_path
-
     subcortex_ids = [
         structure_id
         for structure_id, info in canonical_info_by_id.items()
         if info["domain"] == "subcortex"
     ]
+    subcortex_mask = np.isin(annotation_volume, subcortex_ids).astype(np.uint8)
+
+    for structure_id, mask in (
+        (ROOT_ID, root_mask),
+        (SUBCORTEX_ID, subcortex_mask),
+    ):
+        path = output_mesh_dir / f"{structure_id}.obj"
+        extract_mesh_from_mask(
+            mask,
+            obj_filepath=path,
+            smooth=True,
+            closing_n_iters=8,
+            decimate_fraction=0.6,
+        )
+        meshes_dict[structure_id] = path
 
     cortex_mesh_path = output_mesh_dir / f"{CORTEX_ID}.obj"
     cortex_surface_paths = [
@@ -501,27 +458,11 @@ def retrieve_or_construct_meshes(
         surfaces_dir / "rh.gray_surface.rsl.gii",
     ]
 
-    cortex_vertices, cortex_faces = load_combined_gifti_mesh_in_voxel_space(
+    meshes_dict[CORTEX_ID] = write_combined_gifti_mesh(
         mesh_paths=cortex_surface_paths,
         ras_mm_to_voxel=ras_mm_to_voxel,
+        output_path=cortex_mesh_path,
     )
-    cortex_mesh = mio.Mesh(
-        points=cortex_vertices,
-        cells=[("triangle", cortex_faces)],
-    )
-    mio.write(cortex_mesh_path, cortex_mesh)
-    meshes_dict[CORTEX_ID] = cortex_mesh_path
-
-    subcortex_mesh_path = output_mesh_dir / f"{SUBCORTEX_ID}.obj"
-    subcortex_mask = np.isin(annotation_volume, subcortex_ids).astype(np.uint8)
-    extract_mesh_from_mask(
-        subcortex_mask,
-        obj_filepath=subcortex_mesh_path,
-        smooth=True,
-        closing_n_iters=8,
-        decimate_fraction=0.6,
-    )
-    meshes_dict[SUBCORTEX_ID] = subcortex_mesh_path
 
     print("Converting CHARM/SARM GIFTI meshes to merged ARM OBJ files")
 
@@ -532,17 +473,11 @@ def retrieve_or_construct_meshes(
     )
 
     for canonical_id, mesh_source in sorted(mesh_sources.items()):
-        vertices, faces = load_combined_gifti_mesh_in_voxel_space(
+        meshes_dict[canonical_id] = write_combined_gifti_mesh(
             mesh_paths=mesh_source["paths"],
             ras_mm_to_voxel=ras_mm_to_voxel,
+            output_path=output_mesh_dir / f"{canonical_id}.obj",
         )
-        output_mesh_path = output_mesh_dir / f"{canonical_id}.obj"
-        region_mesh = mio.Mesh(
-            points=vertices,
-            cells=[("triangle", faces)],
-        )
-        mio.write(output_mesh_path, region_mesh)
-        meshes_dict[canonical_id] = output_mesh_path
 
     return meshes_dict
 
@@ -583,6 +518,7 @@ if __name__ == "__main__":
         scale_meshes=True,
         atlas_packager=ATLAS_PACKAGER,
         additional_references=additional_references,
+        overwrite=True,
     )
 
     print("Packaged atlas:", output_filename)

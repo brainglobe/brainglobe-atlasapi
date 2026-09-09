@@ -35,7 +35,7 @@ dependencies = [
     "tifffile>=2018.11.6",
     "tqdm >= 4.46.1",
     "treelib",
-    "zarr>3"
+    "zarr>=3"
 ]
 dynamic = ["version"]
 

@@ -7,8 +7,7 @@ references remain to be selected after source-file inspection.
 
 from pathlib import Path
 
-from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.utils import atlas_name_from_repr
+import pooch
 
 # BrainGlobe package revision; distinct from SIGMA source version 2.0.
 __version__ = 0
@@ -33,15 +32,21 @@ RESOLUTION = None
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 SOURCE_DATA_DIR = BG_ROOT_DIR / "source_data"
+ARCHIVE_FILENAME = "sigma_wistar_rat_brain_templatesandatlases_version_2.0.zip"
+ARCHIVE_URL = f"{ATLAS_LINK}/files/{ARCHIVE_FILENAME}"
+ARCHIVE_HASH = "md5:a47ba53555cb33fed270b94071940f38"
 
 
 def download_resources():
-    """
-    Download the necessary resources for the atlas.
-
-    If possible, please use the Pooch library to retrieve any resources.
-    """
-    pass
+    """Download, verify, and extract the SIGMA v2 archive from Zenodo."""
+    pooch.retrieve(
+        url=ARCHIVE_URL,
+        known_hash=ARCHIVE_HASH,
+        fname=ARCHIVE_FILENAME,
+        path=SOURCE_DATA_DIR,
+        processor=pooch.Unzip(extract_dir="extracted"),
+        progressbar=True,
+    )
 
 
 def retrieve_reference_and_annotation():
@@ -140,47 +145,6 @@ def retrieve_additional_references():
     return additional_references
 
 
-### If the code above this line has been filled correctly, nothing needs to be
-### edited below (unless variables need to be passed between the functions).
+# Temporary entry point: run only the download step during development.
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-    bg_root_dir.mkdir(parents=True, exist_ok=True)
-
-    # Fail early if any version of this atlas already exists
-    atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
-    existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
-
-    if existing:
-        raise FileExistsError(
-            f"Atlas output already exists in {bg_root_dir}. "
-        )
     download_resources()
-    reference_volume, annotated_volume = retrieve_reference_and_annotation()
-    additional_references = retrieve_additional_references()
-    hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information()
-    meshes_dict = retrieve_or_construct_meshes()
-
-    output_filename = wrapup_atlas_from_data(
-        atlas_name=ATLAS_NAME,
-        atlas_minor_version=__version__,
-        citation=CITATION,
-        atlas_link=ATLAS_LINK,
-        species=SPECIES,
-        resolution=(RESOLUTION,) * 3,
-        orientation=ORIENTATION,
-        root_id=ROOT_ID,
-        reference_stack=reference_volume,
-        annotation_stack=annotated_volume,
-        structures_list=structures,
-        meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
-        hemispheres_stack=None,
-        cleanup_files=False,
-        compress=True,
-        scale_meshes=True,
-        additional_references=additional_references,
-    )

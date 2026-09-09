@@ -95,6 +95,7 @@ To see a list of atlases use `brainglobe_atlasapi.show_atlases`
 
 ```python
 from brainglobe_atlasapi import show_atlases
+
 show_atlases()
 #                                Brainglobe Atlases
 # ╭──────────────────────────────────┬────────────┬───────────────┬──────────────╮
@@ -119,6 +120,7 @@ e.g. for the 25um Allen Mouse Brain Atlas:
 
 ```python
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+
 atlas = BrainGlobeAtlas("allen_mouse_25um")
 ```
 
@@ -162,6 +164,7 @@ Each brain region can also be accessed by the acronym, e.g. for primary visual c
 
 ```python
 from pprint import pprint
+
 VISp = atlas.structures["VISp"]
 pprint(VISp)
 # {'acronym': 'VISp',
@@ -215,7 +218,7 @@ The raw data should be hosted on a publicly accessible repository so that anyone
 If you need to add any dependencies, please add them as an extra in the `pyproject.toml` file, e.g.:
 
 ```python
-[project.optional-dependencies]
+[project.optional - dependencies]
 allenmouse = ["allensdk"]
 newatlas = ["dependency_1", "dependency_2"]
 ```

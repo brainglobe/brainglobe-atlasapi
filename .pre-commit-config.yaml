@@ -24,3 +24,28 @@ repos:
       - id: ruff-format
         args:
           - --config=pyproject.toml
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-setuptools
+
+  - repo: https://github.com/mgedmin/check-manifest
+    rev: "0.50"
+    hooks:
+      - id: check-manifest
+        args: [--no-build-isolation]
+        additional_dependencies:
+          - setuptools>=77
+          - wheel
+          - setuptools-scm[toml]>=8
+
+  - repo: https://github.com/codespell-project/codespell
+    # Configuration for codespell is in pyproject.toml
+    rev: v2.4.3
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli

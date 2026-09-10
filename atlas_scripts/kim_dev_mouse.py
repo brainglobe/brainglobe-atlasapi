@@ -122,9 +122,11 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
                 resolution_um = 50
     else:
         raise RuntimeError(f"Unknown reference image modality: {modality}")
+
+    age_hyphen = age.replace(".", "-")
     members = [
-        f"{age}/{age.replace('.', '-')}_DevCCF_Annotations_{resolution_um}um.nii.gz",
-        f"{age}/{age.replace('.', '-')}_{modality}_{resolution_um}um.nii.gz",
+        f"{age}/{age_hyphen}_DevCCF_Annotations_{resolution_um}um.nii.gz",
+        f"{age}/{age_hyphen}_{modality}_{resolution_um}um.nii.gz",
     ]
     fetched_paths = pooch_.fetch(
         archive,

@@ -214,6 +214,7 @@ AtlasName: TypeAlias = Literal[
     "mpin_zfish_1um",
     "nadkarni_mri_mouselemur_91um",
     "nmt_arm_asym_macaque_250um",
+    "nmt_arm_sym_macaque_250um",
     "osten_mouse_100um",
     "osten_mouse_10um",
     "osten_mouse_25um",

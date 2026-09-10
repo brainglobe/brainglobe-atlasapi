@@ -597,6 +597,49 @@ def test_validate_nested_metadata_structure_negative(
         validate_nested_metadata_structure(atlas)
 
 
+@pytest.mark.parametrize(
+    ["metadata", "expected_type_name"],
+    [
+        pytest.param(None, "NoneType", id="metadata is None"),
+        pytest.param(
+            ["template", "annotation_set", "terminology", "coordinate_space"],
+            "list",
+            id="metadata is a list of the expected key names",
+        ),
+        pytest.param(
+            "template annotation_set terminology coordinate_space",
+            "str",
+            id="metadata is a string containing the expected key names",
+        ),
+    ],
+)
+def test_validate_nested_metadata_structure_non_dict_metadata(
+    atlas, metadata, expected_type_name
+):
+    """Verify `validate_nested_metadata_structure` fails with a message
+    naming the actual type when `atlas.metadata` is not a dict.
+
+    The list and string cases both contain the expected key names, so a
+    plain membership test would wrongly report them as present.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    metadata : object
+        A non-dict value to assign to `atlas.metadata`.
+    expected_type_name : str
+        The type name expected to appear in the AssertionError message.
+    """
+    atlas.metadata = metadata
+
+    expected_error_message = re.escape(
+        f"atlas.metadata should be a dict, but got {expected_type_name}."
+    )
+    with pytest.raises(AssertionError, match=expected_error_message):
+        validate_nested_metadata_structure(atlas)
+
+
 def test_validate_unique_acronyms_fail(mocker, atlas):
     """Check that an atlas with duplicate acronyms fails validation.
 

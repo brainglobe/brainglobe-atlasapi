@@ -688,6 +688,11 @@ def validate_nested_metadata_structure(atlas: BrainGlobeAtlas) -> bool:
         If a required component is missing from the metadata, is not a
         dict, or is missing a required string key.
     """
+    assert isinstance(atlas.metadata, dict), (
+        "atlas.metadata should be a dict, but got "
+        f"{type(atlas.metadata).__name__}."
+    )
+
     required_keys = (
         "template",
         "annotation_set",

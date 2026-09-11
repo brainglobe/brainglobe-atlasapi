@@ -1,10 +1,11 @@
 """Module to package the Allen Human Reference Atlas."""
 
-__version__ = "0"
+__version__ = "1"
 
 import json
 import time
 
+import brainglobe_space as bgs
 import numpy as np
 import pandas as pd
 import pooch
@@ -12,12 +13,11 @@ import treelib
 import urllib3
 from allensdk.core.structure_tree import StructureTree
 from brainglobe_utils.IO.image import load_nii
-from rich.progress import track
 
-from brainglobe_atlasapi import utils
+from brainglobe_atlasapi import BrainGlobeAtlas, utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
-    create_region_mesh,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
@@ -38,10 +38,8 @@ def prune_tree(tree):
     """
     Prunes the input tree based on the 'has_label' attribute of its nodes.
 
-    Nodes are removed if:
-    - They have a label, and all their children are removed
-    (meaning only the labeled parent is kept).
-    - They do not have a label, and none of their descendants have a label.
+    A node is removed only when neither it nor any of its descendants has a
+    label in the annotation volume.
 
     Parameters
     ----------
@@ -56,36 +54,23 @@ def prune_tree(tree):
         The pruned tree.
     """
     nodes = tree.nodes.copy()
-    for key, node in nodes.items():
-        if node.tag == "root":
+    for node in nodes.values():
+        if node.identifier == tree.root:
             continue
-        if node.data.has_label:
-            try:
-                children = tree.children(node.identifier)
-            except treelib.exceptions.NodeIDAbsentError:
-                continue
 
-            if children:
-                for child in children:
-                    try:
-                        tree.remove_node(child.identifier)
-                    except treelib.exceptions.NodeIDAbsentError:
-                        pass
-        else:
-            # Remove if none of the children has mesh
-            try:
-                subtree = tree.subtree(node.identifier)
-            except treelib.exceptions.NodeIDAbsentError:
-                continue
-            else:
-                if not np.any(
-                    [c.data.has_label for _, c in subtree.nodes.items()]
-                ):
-                    tree.remove_node(node.identifier)
+        try:
+            subtree = tree.subtree(node.identifier)
+        except treelib.exceptions.NodeIDAbsentError:
+            continue
+
+        if not any(
+            descendant.data.has_label for descendant in subtree.nodes.values()
+        ):
+            tree.remove_node(node.identifier)
     return tree
 
 
-def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
+def download_atlas_files(download_dir_path, atlas_file_url):
     """
     Download the annotation file and anatomy template image for
     the Allen Human Reference Atlas.
@@ -96,8 +81,6 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
         The path to the directory where the files should be downloaded.
     atlas_file_url : str
         The URL for the full annotation NIfTI file (gzipped).
-    template_file_url : str
-        The URL for the anatomy template image NIfTI file (zipped).
 
     Returns
     -------
@@ -107,7 +90,6 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
     utils.check_internet_connection()
 
     data_fld = download_dir_path
-    # data_fld.mkdir(exist_ok=True)
 
     # downloading and un-compressing full annotation file
 
@@ -118,16 +100,6 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
         path=download_dir_path,
         progressbar=True,
         processor=pooch.Decompress(name="annotation_full.nii"),
-    )
-
-    # downloading and un-compressing anatomy image
-    print("Downloading anatomy image...")
-    pooch.retrieve(
-        url=template_file_url,
-        known_hash="acce3b85039176aaf7de2c3169272551ddfcae5d9a4e5ce642025b795f9f1d20",
-        path=download_dir_path,
-        progressbar=True,
-        processor=pooch.Unzip(extract_dir=""),
     )
 
     print("Download and decompression completed.")
@@ -159,18 +131,10 @@ def create_atlas(working_dir):
     # ------------------ #
 
     annotation_full_url = "http://download.alleninstitute.org/informatics-archive/allen_human_reference_atlas_3d_2020/version_1/annotation_full.nii.gz"
-    anatomy_url = "https://www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09b_nifti.zip"
 
-    atlas_files_dir = download_atlas_files(
-        working_dir, annotation_full_url, anatomy_url
-    )
+    atlas_files_dir = download_atlas_files(working_dir, annotation_full_url)
 
     annotations_image = atlas_files_dir / "annotation_full.nii"
-    anatomy_image = (
-        atlas_files_dir
-        / "mni_icbm152_nlin_sym_09b"
-        / "mni_icbm152_pd_tal_nlin_sym_09b_hires.nii"
-    )
 
     # Temporary folder for nrrd files download:
     temp_path = working_dir
@@ -180,15 +144,50 @@ def create_atlas(working_dir):
     uncompr_atlas_path = temp_path / ATLAS_NAME
     uncompr_atlas_path.mkdir(exist_ok=True)
 
+    old_atlas = BrainGlobeAtlas("allen_human_500um")
+
     # ---------------- #
     #   GET TEMPLATE   #
     # ---------------- #
 
-    annotation = load_nii(annotations_image)  # shape (394, 466, 378)
-    anatomy = load_nii(anatomy_image)  # shape (394, 466, 378)
+    template_metadata = old_atlas.metadata["template"]
+    template_name = template_metadata["name"]
+    template_version = template_metadata["version"]
 
-    annotation = annotation.get_fdata()
-    anatomy = anatomy.get_fdata()
+    # Rotate the template to match the orientation of the annotation volume
+    # template must be in the orientation the script declares
+    template = bgs.AnatomicalSpace(
+        old_atlas.orientation, shape=old_atlas.template.shape
+    ).map_stack_to(ORIENTATION, old_atlas.template)
+
+    template_info = {
+        "name": template_name,
+        "version": template_version,
+        "use_existing": True,
+    }
+
+    # ---------------- #
+    #   GET SPACE      #
+    # ---------------- #
+
+    space_metadata = old_atlas.metadata["coordinate_space"]
+    space_name = space_metadata["name"]
+    space_version = space_metadata["version"]
+
+    space_info = {
+        "name": space_name,
+        "version": space_version,
+        "use_existing": True,
+    }
+
+    # ---------------- #
+    #   GET ANNOTATION #
+    # ---------------- #
+
+    annotation = load_nii(annotations_image)  # shape (394, 466, 378)
+    annotation = np.asanyarray(annotation.dataobj).astype(
+        np.uint32, copy=False
+    )
 
     # ------------------------ #
     #   STRUCTURES HIERARCHY   #
@@ -206,7 +205,7 @@ def create_atlas(working_dir):
     http = urllib3.PoolManager()
     r = http.request("GET", query_url)
     data = json.loads(r.data.decode("utf-8"))["msg"]
-    structures = pd.read_json(json.dumps(data))
+    structures = pd.DataFrame(data)
 
     # Create empty list and collect all regions
     # traversing the regions hierarchy:
@@ -237,8 +236,6 @@ def create_atlas(working_dir):
     #   CREATE MESHES   #
     # ----------------- #
     print(f"Saving atlas data at {uncompr_atlas_path}")
-    meshes_dir_path = uncompr_atlas_path / "meshes"
-    meshes_dir_path.mkdir(exist_ok=True)
 
     tree = get_structures_tree(regions_list)
     print(
@@ -257,8 +254,6 @@ def create_atlas(working_dir):
 
         node.data = Region(is_label)
 
-    # tree.show(data_property='has_label')
-
     # Remove nodes for which no mesh can be created
     tree = prune_tree(tree)
     print(
@@ -275,30 +270,18 @@ def create_atlas(working_dir):
 
     print("Starting mesh creation")
 
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
+    pruned_list = [
+        region for region in regions_list if region["id"] in tree.nodes
+    ]
 
-        if node.tag == "root":
-            annotated_volume[annotated_volume > 0] = node.identifier
-        else:
-            annotated_volume = annotated_volume
-
-        create_region_mesh(
-            (
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                annotated_volume,
-                ROOT_ID,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            )
-        )
+    meshes_dict = construct_meshes_from_annotation(
+        uncompr_atlas_path,
+        annotated_volume,
+        pruned_list,
+        closing_n_iters,
+        decimate_fraction,
+        smooth,
+    )
 
     print(
         "Finished mesh extraction in: ",
@@ -306,27 +289,18 @@ def create_atlas(working_dir):
         " minutes",
     )
 
-    # Create meshes dict
-    meshes_dict = dict()
-    structures_with_mesh = []
-    for s in regions_list:
-        # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
-        if not mesh_path.exists():
-            # print(f"No mesh file exists for: {s['name']}")
-            continue
-        else:
-            # Check that the mesh actually exists (i.e. not empty)
-            if mesh_path.stat().st_size < 512:
-                # print(f"obj file for {s['name']} is too small.")
-                continue
-
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
+    # Retain every structure in the annotation-backed hierarchy, regardless
+    # of whether mesh extraction succeeded. Missing meshes are reported by
+    # atlas validation and must not remove structures from the terminology.
+    structures_to_keep = [
+        structure
+        for structure in regions_list
+        if structure["id"] in tree.nodes
+    ]
 
     print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
+        f"Retaining {len(structures_to_keep)} structures, "
+        f"{len(meshes_dict)} of which have meshes"
     )
 
     # ----------- #
@@ -344,15 +318,18 @@ def create_atlas(working_dir):
         resolution=(RES_UM,) * 3,
         orientation=ORIENTATION,
         root_id=ROOT_ID,
-        reference_stack=anatomy,
+        reference_stack=template,
+        template_info=template_info,
+        coordinate_space_info=space_info,
         annotation_stack=annotated_volume,
-        structures_list=structures_with_mesh,
+        structures_list=structures_to_keep,
         meshes_dict=meshes_dict,
         working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
+        overwrite=True,
     )
 
     return output_filename

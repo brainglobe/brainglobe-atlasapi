@@ -230,4 +230,5 @@ AtlasName: TypeAlias = Literal[
     "vfb_jrc2018u_neuropils_fly_0.519um",
     "whs_sd_rat_39um",
     "whs_sd_swc_female_rat_39um",
+    "hoops_tawny_dragon_20um",
 ]

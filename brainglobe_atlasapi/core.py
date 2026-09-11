@@ -153,7 +153,7 @@ class Atlas:
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = meshes_path / f'{struct["id"]}'
+            struct["mesh_filename"] = meshes_path / f"{struct['id']}"
 
         self.structures = StructuresDict(structures_list)
 
@@ -685,7 +685,7 @@ class Atlas:
                 )
             except IndexError:
                 raise ValueError(
-                    f'Structure {self.structures[structure]["acronym"]} '
+                    f"Structure {self.structures[structure]['acronym']} "
                     f"has no descendants at hierarchy level {hierarchy_level}"
                 )
 

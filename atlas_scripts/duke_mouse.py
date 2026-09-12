@@ -16,7 +16,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-__version__ = 0
+__version__ = 1
 ATLAS_NAME = "duke_mouse"
 CITATION = "Mansour et al. 2025, https://doi.org/10.1126/sciadv.adq8089"
 SPECIES = "Mus musculus"
@@ -57,9 +57,9 @@ REFERENCE_FILES = {
 ANNOTATION_STEM = "DMBA_RCCF_labels_M4D"
 ANNOTATION_PATH = SOURCE_DATA_DIR / f"{ANNOTATION_STEM}.nhdr"
 STRUCTURES_ZIP_PATH = SOURCE_DATA_DIR / f"{ANNOTATION_STEM}.zip"
-LABEL_FILE = "DMBA_RCCF.label"
+LOOKUP_FILE = "DMBA_RCCF_labels_lookup.txt"
 
-MESH_NUM_THREADS = 6
+MESH_NUM_THREADS = 10
 
 
 def download_resources():
@@ -109,7 +109,7 @@ def retrieve_reference_and_annotation():
     tuple[list[numpy.ndarray], list[numpy.ndarray]]
         Reference and annotation volumes at each isotropic resolution.
     """
-    stem = REFERENCE_FILES["mgre-unmasked"][1].removesuffix("_M4D")
+    stem = REFERENCE_FILES["md"][1].removesuffix("_M4D")
     n5 = {"driver": "n5", "kvstore": f"{DOWNLOAD_BASE_URL}{stem}.n5/"}
     references = []
     for scale in range(len(RESOLUTIONS)):
@@ -170,17 +170,45 @@ def retrieve_structure_information(annotation):
         Structure IDs, names, acronyms, paths, and RGB colors.
     """
     with zipfile.ZipFile(STRUCTURES_ZIP_PATH) as label_zip:
-        labels = pd.read_csv(
-            label_zip.open(LABEL_FILE),
-            sep=r"\s+",
+        lookup = pd.read_csv(
+            label_zip.open(LOOKUP_FILE),
+            sep="\t",
+            skiprows=30,
             header=None,
-            usecols=[0, 1, 2, 3, 7],
-            names=["id", "r", "g", "b", "name"],
+            usecols=[0, 1, 2, 3, 4, 12, 16, 17, 31, 32],
+            names=[
+                "id",
+                "name",
+                "r",
+                "g",
+                "b",
+                "structure_abi",
+                "hashed_id",
+                "source_id",
+                "level",
+                "source_path",
+            ],
+            encoding="latin1",
         )
 
-    labels = labels[
-        labels["id"].isin(np.unique(annotation)) & (labels["id"] != 0)
+    labels = lookup[
+        lookup["id"].isin(np.unique(annotation)) & (lookup["id"] != 0)
     ]
+    ancestor_source_ids = set()
+    for source_path in labels["source_path"]:
+        ancestor_source_ids.update(
+            int(source_id) for source_id in source_path.split("/") if source_id
+        )
+    ancestor_source_ids.remove(ROOT_ID)
+    parent_rows = lookup[
+        lookup["source_id"].isin(ancestor_source_ids)
+        & ~lookup["name"].str.endswith(("_left", "_right"))
+    ].sort_values("level")
+
+    source_to_bg_id = {ROOT_ID: ROOT_ID}
+    for row in parent_rows.itertuples(index=False):
+        source_to_bg_id[int(row.source_id)] = int(row.hashed_id)
+
     structures = [
         {
             "id": ROOT_ID,
@@ -190,19 +218,48 @@ def retrieve_structure_information(annotation):
             "rgb_triplet": [255, 255, 255],
         }
     ]
+    parent_acronyms = set()
+    for row in parent_rows.itertuples(index=False):
+        acronym, label_name = row.name.split("__", maxsplit=1)
+        parent_acronyms.add(acronym)
+        structure_id_path = [
+            source_to_bg_id[int(source_id)]
+            for source_id in row.source_path.split("/")
+            if source_id
+        ]
+        structures.append(
+            {
+                # Some RCCF structure IDs are negative; we use uint32 IDs instead.
+                "id": int(row.hashed_id),
+                "name": label_name,
+                "acronym": acronym,
+                "structure_id_path": structure_id_path + [int(row.hashed_id)],
+                "rgb_triplet": [int(row.r), int(row.g), int(row.b)],
+            }
+        )
     for row in labels.itertuples(index=False):
         acronym_and_name = row.name.removesuffix("_left")
         (
             acronym,
             label_name,
         ) = acronym_and_name.split("__", maxsplit=1)
+        if acronym in parent_acronyms:
+            # Use the source ABI label when a leaf reuses its parent's acronym.
+            _, acronym = row.structure_abi.removesuffix("_left").split(
+                "__", maxsplit=1
+            )
         structures.append(
             {
-                "id": row.id,
+                "id": int(row.id),
                 "name": label_name,
                 "acronym": acronym,
-                "structure_id_path": [ROOT_ID, row.id],
-                "rgb_triplet": [row.r, row.g, row.b],
+                "structure_id_path": [
+                    source_to_bg_id[int(source_id)]
+                    for source_id in row.source_path.split("/")
+                    if source_id
+                ]
+                + [int(row.id)],
+                "rgb_triplet": [int(row.r), int(row.g), int(row.b)],
             }
         )
 
@@ -248,7 +305,7 @@ def retrieve_additional_references():
     """
     references = {}
     for name, (_, filename) in REFERENCE_FILES.items():
-        if name == "mgre-unmasked":
+        if name == "md":
             continue
         stem = filename.removesuffix("_M4D")
         n5 = {"driver": "n5", "kvstore": f"{DOWNLOAD_BASE_URL}{stem}.n5/"}

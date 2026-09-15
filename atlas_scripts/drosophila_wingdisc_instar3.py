@@ -75,17 +75,17 @@ def retrieve_reference_and_annotation(resources_path: Path):
     annotation_volume_path = Path(
         resources_path / "version_1_annotation.nii.gz"
     )
-    assert (
-        annotation_volume_path.exists()
-    ), f"Annotation volume path {annotation_volume_path} does not exist."
+    assert annotation_volume_path.exists(), (
+        f"Annotation volume path {annotation_volume_path} does not exist."
+    )
 
     reference_volume_path = Path(
         resources_path
         / "template_wingdisc-CSLM-brightness-corrected-trimean.nii.gz"
     )
-    assert (
-        reference_volume_path.exists()
-    ), f"Reference volume path {reference_volume_path} does not exist."
+    assert reference_volume_path.exists(), (
+        f"Reference volume path {reference_volume_path} does not exist."
+    )
 
     annotation = load_nii(annotation_volume_path, as_array=True)
     reference = load_nii(reference_volume_path, as_array=True)

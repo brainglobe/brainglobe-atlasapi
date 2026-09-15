@@ -72,13 +72,13 @@ def retrieve_reference_and_annotation():
     annotation_hash = pooch.file_hash(
         download_dir_path / "annotation" / "ccf_2017" / "annotation_100.nrrd"
     )
-    assert (
-        reference_hash == expected_reference_hash
-    ), "The hash of the reference volume does not match the expected hash."
+    assert reference_hash == expected_reference_hash, (
+        "The hash of the reference volume does not match the expected hash."
+    )
 
-    assert (
-        annotation_hash == expected_annotation_hash
-    ), "The hash of the annotation volume does not match the expected hash."
+    assert annotation_hash == expected_annotation_hash, (
+        "The hash of the annotation volume does not match the expected hash."
+    )
     # Download annotated and template volumes
     return reference_volume, annotation_volume
 
@@ -193,7 +193,6 @@ coordinate_space_info = {
 }
 
 if __name__ == "__main__":
-
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

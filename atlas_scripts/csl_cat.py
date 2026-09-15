@@ -426,7 +426,6 @@ acronym_to_region_map = [
 
 
 if __name__ == "__main__":
-
     bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
     working_dir = bg_root_dir
     temp_download_dir = bg_root_dir / "download_dir"

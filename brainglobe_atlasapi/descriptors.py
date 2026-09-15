@@ -37,6 +37,9 @@ METADATA_TEMPLATE = {
     "additional_references": [],
 }
 
+# Keys from METADATA_TEMPLATE that may be absent in older atlas metadata:
+OPTIONAL_METADATA_KEYS = {"hemispheres_available"}
+
 
 # Template for a structure dictionary:
 STRUCTURE_TEMPLATE = {

@@ -859,6 +859,29 @@ def test_atlas_packaging_data_no_hemispheres_when_unavailable(
     assert data.hemispheres_stack is None
 
 
+def test_atlas_packaging_data_hemispheres_stack_when_unavailable_raises(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData rejects a hemispheres stack when unavailable.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    atlas_packaging_kwargs["hemispheres_stack"] = np.zeros(
+        (4, 4, 4), dtype=np.uint8
+    )
+    atlas_packaging_kwargs["hemispheres_available"] = False
+    with pytest.raises(ValueError, match="hemispheres_available is False"):
+        AtlasPackagingData(**atlas_packaging_kwargs)
+
+
 def test_atlas_packaging_data_calls_check_requested_component(
     mocker, atlas_packaging_kwargs
 ):

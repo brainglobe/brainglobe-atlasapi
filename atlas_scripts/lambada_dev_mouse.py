@@ -13,6 +13,9 @@ import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load_any
 
+from allensdk.api.queries.ontologies_api import OntologiesApi
+from allensdk.core.reference_space_cache import ReferenceSpaceCache
+
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
@@ -28,7 +31,7 @@ SPECIES = "Mus musculus"
 ATLAS_LINK = (
     "https://lambada.icm-institute.org/"
 )
-ORIENTATION = "asr"
+ORIENTATION = "lpi"
 
 ROOT_ID = 999
 RESOLUTION = 25
@@ -250,6 +253,31 @@ def fetch_ontology(pooch_: pooch.Pooch):
     needs_download = not labels_path.exists()
     if needs_download:
         utils.check_internet_connection()
+    
+    spacecache = ReferenceSpaceCache(
+    manifest=download_dir_path / "manifest.json",
+    # downloaded files are stored relative to here
+    resolution=resolution,
+    reference_space_key="annotation/ccf_2017",
+    # use the latest version of the CCF
+    )
+    
+    # Download structures tree:
+    ######################################
+    oapi = OntologiesApi()  # ontologies
+
+    # Find id of set of regions with mesh:
+    select_set = (
+        "Structures whose surfaces are represented by a precomputed mesh"
+    )
+
+    mesh_set_ids = [
+        s["id"]
+        for s in oapi.get_structure_sets()
+        if s["description"] == select_set
+    ]
+
+    structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
 
     labels_path = pooch_.fetch(LABELS_FNAME, progressbar=True)
 

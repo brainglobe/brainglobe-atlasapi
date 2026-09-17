@@ -25,9 +25,7 @@ __version__ = 0
 ATLAS_NAME = "lambada_dev_mouse"
 CITATION = "https://doi.org/10.1016/j.cell.2026.03.013"
 SPECIES = "Mus musculus"
-ATLAS_LINK = (
-    "https://lambada.icm-institute.org/"
-)
+ATLAS_LINK = "https://lambada.icm-institute.org/"
 ORIENTATION = "asr"
 
 ROOT_ID = 999
@@ -134,7 +132,6 @@ ERG_SUFFIXES = {
     "14": "66/LAMBADA_25um_erg_P14_v1.0.nii.gz",
     "21": "45/LAMBADA_25um_erg_P21_v1.0.nii.gz",
 }
-
 
 
 def pooch_init(download_dir_path: Path) -> pooch.Pooch:

@@ -100,6 +100,26 @@ def test_str(atlas, capsys):
     assert captured.err == ""
 
 
+def test_fn_update_called_on_install(tmp_path):
+    """`fn_update` is called while an atlas is downloaded.
+
+    `BrainGlobeAtlas` accepts `fn_update` so that external progress bars can
+    follow an install, but the download used to ignore it entirely.
+    """
+    calls = []
+
+    BrainGlobeAtlas(
+        "example_mouse_100um",
+        brainglobe_dir=tmp_path,
+        check_latest=False,
+        fn_update=lambda completed, total: calls.append((completed, total)),
+    )
+
+    assert calls, "fn_update was not called during the atlas download"
+    assert all(0 <= completed <= total for completed, total in calls)
+    assert any(completed == total > 0 for completed, total in calls)
+
+
 def test_local_search(tmpdir):
     """Test local atlas search and handling of multiple versions."""
     atlas_name = "example_mouse_100um"

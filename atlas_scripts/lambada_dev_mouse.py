@@ -11,10 +11,9 @@ from pathlib import Path
 
 import numpy as np
 import pooch
-from brainglobe_utils.IO.image import load_any
-
 from allensdk.api.queries.ontologies_api import OntologiesApi
 from allensdk.core.reference_space_cache import ReferenceSpaceCache
+from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -250,15 +249,15 @@ def fetch_ontology(pooch_: pooch.Pooch):
     needs_download = not labels_path.exists()
     if needs_download:
         utils.check_internet_connection()
-    
+
     spacecache = ReferenceSpaceCache(
-    manifest=download_dir_path / "manifest.json",
-    # downloaded files are stored relative to here
-    resolution=resolution,
-    reference_space_key="annotation/ccf_2017",
-    # use the latest version of the CCF
+        manifest=download_dir_path / "manifest.json",
+        # downloaded files are stored relative to here
+        resolution=resolution,
+        reference_space_key="annotation/ccf_2017",
+        # use the latest version of the CCF
     )
-    
+
     # Download structures tree:
     ######################################
     oapi = OntologiesApi()  # ontologies

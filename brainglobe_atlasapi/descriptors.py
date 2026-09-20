@@ -12,9 +12,10 @@ remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
 # Default remote root: an "s3://bucket/prefix" with no trailing slash.
 DEFAULT_REMOTE_ROOT = "s3://brainglobe/atlas"
 DEFAULT_ROOT_KEY = "brainglobe-atlasapi"
-ATLAS_ASSETS_REMOTE_ROOT = (
-    "s3://aind-scratch-data/david.feng/allen-atlas-assets-rc13"
-)
+ATLAS_ASSETS_REMOTE_ROOT = "s3://allen-atlas-assets"
+# Matches the bucket name, so the default Allen fallback and an explicit
+# remote_root="s3://allen-atlas-assets" resolve to the same cache directory.
+ATLAS_ASSETS_ROOT_KEY = "allen-atlas-assets"
 
 # Retained for backwards compatibility with existing imports:
 remote_url_s3 = DEFAULT_REMOTE_ROOT + "/{}"

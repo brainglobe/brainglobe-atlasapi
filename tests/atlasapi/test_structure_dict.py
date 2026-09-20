@@ -233,6 +233,8 @@ QUANTIZATION = float(2**16 - 1)
 def _index_bytes(
     vertex_offsets=(0.0, 0.0, 0.0),
     fragment_position=(0, 0, 0),
+    fragment_positions=None,
+    fragment_sizes=None,
     num_lods=1,
     fragments_per_lod=(1,),
 ):
@@ -241,8 +243,19 @@ def _index_bytes(
     Little-endian: chunk shape and grid origin as 3 x float32, the level
     count as uint32, then per level a float32 scale, three float32 vertex
     offsets and a uint32 fragment count, then the fragment positions and
-    offsets. The chunk shape and grid origin are kept from the real
+    sizes. The chunk shape and grid origin are kept from the real
     fragment so the geometry stays the bucket's.
+
+    Parameters
+    ----------
+    fragment_positions : sequence of (x, y, z), optional
+        Per-fragment grid positions for lod 0, one row per fragment.
+        Overrides `fragment_position` (tiled to every fragment) when
+        given.
+    fragment_sizes : sequence of int, optional
+        Byte size of each lod-0 fragment within the mesh payload, in the
+        same order as `fragment_positions`. Defaults to the whole
+        payload in a single fragment.
     """
     parts = [
         ALLEN_INDEX[:24],  # chunk shape and grid origin, as shipped
@@ -251,13 +264,23 @@ def _index_bytes(
         np.tile(np.asarray(vertex_offsets, dtype="<f4"), num_lods).tobytes(),
         np.asarray(fragments_per_lod, dtype="<u4").tobytes(),
     ]
-    for count in fragments_per_lod:
-        parts.append(
-            np.tile(
-                np.asarray(fragment_position, dtype="<u4"), count
-            ).tobytes()
-        )
-        parts.append(np.zeros(count, dtype="<u4").tobytes())
+    for lod, count in enumerate(fragments_per_lod):
+        if lod == 0 and fragment_positions is not None:
+            positions = np.asarray(fragment_positions, dtype="<u4")
+        else:
+            positions = np.tile(
+                np.asarray(fragment_position, dtype="<u4"), (count, 1)
+            )
+        # Stored as all-x, then all-y, then all-z (see _read_multilod_draco).
+        parts.append(positions.tobytes(order="F"))
+
+        if lod == 0 and fragment_sizes is not None:
+            sizes = np.asarray(fragment_sizes, dtype="<u4")
+        else:
+            sizes = np.zeros(count, dtype="<u4")
+            if count == 1:
+                sizes[0] = len(ALLEN_FRAGMENT)
+        parts.append(sizes.tobytes())
     return b"".join(parts)
 
 
@@ -384,12 +407,59 @@ def test_read_multilod_draco_rejects_multiple_levels():
         structure_class._read_multilod_draco(fs, ALLEN_PATH)
 
 
-def test_read_multilod_draco_rejects_multiple_fragments():
-    """A level holding several fragments is refused for the same reason."""
-    fs = _FakeCat(_mesh_contents(index=_index_bytes(fragments_per_lod=(2,))))
+def test_read_multilod_draco_assembles_multiple_fragments():
+    """Several lod-0 fragments are each placed, then concatenated.
 
-    with pytest.raises(NotImplementedError):
-        structure_class._read_multilod_draco(fs, ALLEN_PATH)
+    Regression test for the large-structure case (e.g. root/whole-brain)
+    where the mesh is chunked into more than one fragment.
+    """
+    payload_a = _draco_bytes()
+    payload_b = _draco_bytes()
+    position_a = (0, 0, 0)
+    position_b = (1, 2, 3)
+
+    fs = _FakeCat(
+        _mesh_contents(
+            index=_index_bytes(
+                fragments_per_lod=(2,),
+                fragment_positions=(position_a, position_b),
+                fragment_sizes=(len(payload_a), len(payload_b)),
+            ),
+            payload=payload_a + payload_b,
+        )
+    )
+
+    points, faces = structure_class._read_multilod_draco(fs, ALLEN_PATH)
+
+    fragment_a = DracoPy.decode(payload_a)
+    fragment_b = DracoPy.decode(payload_b)
+    n_a = len(fragment_a.points)
+
+    assert points.shape[0] == n_a + len(fragment_b.points)
+    assert faces.shape[0] == len(fragment_a.faces) + len(fragment_b.faces)
+    # Fragment b's faces are shifted past fragment a's vertices.
+    np.testing.assert_array_equal(
+        faces[len(fragment_a.faces) :] - n_a,
+        np.asarray(fragment_b.faces, dtype=np.uint32),
+    )
+
+    info = json.loads(ALLEN_INFO)
+    quantization = float(2 ** info["vertex_quantization_bits"] - 1)
+    grid_origin = np.frombuffer(ALLEN_INDEX, np.float32, count=3, offset=12)
+    transform = np.asarray(info["transform"]).reshape(3, 4)
+
+    def _expected(quantized, position):
+        stored = grid_origin + ALLEN_CHUNK_SHAPE * (
+            np.asarray(position) + np.asarray(quantized) / quantization
+        )
+        return stored @ transform[:, :3].T + transform[:, 3]
+
+    np.testing.assert_allclose(
+        points[:n_a], _expected(fragment_a.points, position_a), rtol=1e-5
+    )
+    np.testing.assert_allclose(
+        points[n_a:], _expected(fragment_b.points, position_b), rtol=1e-5
+    )
 
 
 def test_read_multilod_draco_missing_index_raises():

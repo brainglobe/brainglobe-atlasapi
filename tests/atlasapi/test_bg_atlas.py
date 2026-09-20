@@ -2,7 +2,7 @@
 
 import shutil
 from types import SimpleNamespace
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -387,6 +387,51 @@ def test_resolve_non_default_root_switches_cache_dir(tmp_path, monkeypatch):
         BrainGlobeAtlas("not_cached_anywhere", brainglobe_dir=tmp_path)
 
     assert (tmp_path / "allen").is_dir()
+
+
+def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
+    """An explicit remote_root takes full priority over configured roots.
+
+    It must be the only root searched: the config/multi-root resolution
+    is skipped entirely, and its local cache directory is named after the
+    bucket rather than any configured root key.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Empty temporary directory used as the brainglobe_dir.
+    monkeypatch : pytest.MonkeyPatch
+        Used to stub S3 access and spy on the config/resolution calls.
+    """
+
+    class _StubFS:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def exists(self, path):
+            return False
+
+        def ls(self, path):
+            raise FileNotFoundError(path)
+
+    resolve_spy = MagicMock()
+    roots_spy = MagicMock()
+
+    monkeypatch.setattr(bg_atlas.s3fs, "S3FileSystem", _StubFS)
+    monkeypatch.setattr(bg_atlas, "check_s3_status", lambda **_: True)
+    monkeypatch.setattr(bg_atlas, "_resolve_remote_root", resolve_spy)
+    monkeypatch.setattr(bg_atlas.config, "get_remote_roots", roots_spy)
+
+    with pytest.raises(FileNotFoundError):
+        BrainGlobeAtlas(
+            "not_cached_anywhere",
+            brainglobe_dir=tmp_path,
+            remote_root="s3://custom-bucket/prefix",
+        )
+
+    resolve_spy.assert_not_called()
+    roots_spy.assert_not_called()
+    assert (tmp_path / "custom-bucket").is_dir()
 
 
 def test_check_latest_version_compares_folder_strings(atlas, monkeypatch):

@@ -148,9 +148,9 @@ def test_default_config_has_remote_roots(conf_path):
         Path to a temporary configuration file.
     """
     roots = config.get_remote_roots(conf_path)
-    assert list(roots) == ["brainglobe-atlasapi", "allen"]
+    assert list(roots) == ["brainglobe-atlasapi", "allen-atlas-assets"]
     assert roots["brainglobe-atlasapi"] == descriptors.DEFAULT_REMOTE_ROOT
-    assert roots["allen"] == descriptors.ATLAS_ASSETS_REMOTE_ROOT
+    assert roots["allen-atlas-assets"] == descriptors.ATLAS_ASSETS_REMOTE_ROOT
 
 
 def test_remote_roots_fallback_for_old_config(temp_path):
@@ -168,7 +168,7 @@ def test_remote_roots_fallback_for_old_config(temp_path):
         f"interm_download_dir = {temp_path}\n"
     )
     roots = config.get_remote_roots(old_config)
-    assert list(roots) == ["brainglobe-atlasapi", "allen"]
+    assert list(roots) == ["brainglobe-atlasapi", "allen-atlas-assets"]
 
 
 def test_remote_roots_reads_user_overrides(temp_path):

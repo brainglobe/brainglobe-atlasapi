@@ -24,7 +24,7 @@ DEFAULT_PATH = Path.home() / ".brainglobe"
 
 DEFAULT_REMOTE_ROOTS = {
     descriptors.DEFAULT_ROOT_KEY: descriptors.DEFAULT_REMOTE_ROOT,
-    "allen": descriptors.ATLAS_ASSETS_REMOTE_ROOT,
+    descriptors.ATLAS_ASSETS_ROOT_KEY: descriptors.ATLAS_ASSETS_REMOTE_ROOT,
 }
 
 TEMPLATE_CONF_DICT = {

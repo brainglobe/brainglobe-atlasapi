@@ -5,6 +5,7 @@ from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
+from urllib.parse import urlparse
 
 import numpy as np
 import s3fs
@@ -381,6 +382,14 @@ class BrainGlobeAtlas(core.Atlas):
         atlases that declare more than one scale; defaulted to the sole
         scale for atlases that declare exactly one. For atlases with a
         single fixed resolution, a value that disagrees with it raises.
+    remote_root : str (optional)
+        An ``s3://bucket/prefix`` to fetch the atlas from. When given, it
+        takes full priority: it is the only root searched, with no
+        fallback to the configured BrainGlobe/Allen defaults if the atlas
+        isn't found there. Its local cache subdirectory is named after
+        the bucket. If None (default), the historical BrainGlobe root is
+        assumed, falling back to the configured remote roots in
+        declaration order.
     """
 
     # Class-level fallback so a partially constructed instance (built via
@@ -401,6 +410,7 @@ class BrainGlobeAtlas(core.Atlas):
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
         resolution: Optional[float] = None,
+        remote_root: Optional[str] = None,
     ):
         self._resolution = resolution
         self._remote_version = None
@@ -423,11 +433,19 @@ class BrainGlobeAtlas(core.Atlas):
         # Read BrainGlobe configuration file:
         conf = config.read_config(config_dir)
 
-        # Assume the historical default root so an atlas that is already
-        # cached locally (or was written directly to disk, as atlas
-        # generation/validation does) is found without any network call.
-        self._root_key = descriptors.DEFAULT_ROOT_KEY
-        self._remote_root = descriptors.DEFAULT_REMOTE_ROOT
+        if remote_root is not None:
+            # Caller-supplied remote takes full priority: it is the only
+            # root searched below, with no fallback to the configured
+            # defaults.
+            self._root_key = urlparse(remote_root).netloc
+            self._remote_root = remote_root
+        else:
+            # Assume the historical default root so an atlas that is
+            # already cached locally (or was written directly to disk, as
+            # atlas generation/validation does) is found without any
+            # network call.
+            self._root_key = descriptors.DEFAULT_ROOT_KEY
+            self._remote_root = descriptors.DEFAULT_REMOTE_ROOT
 
         # Use either input locations or locations from the config file,
         # and create directory if it does not exist:
@@ -440,7 +458,7 @@ class BrainGlobeAtlas(core.Atlas):
 
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
-        if self.local_full_name is None:
+        if remote_root is None and self.local_full_name is None:
             # Not cached under the default root: find out which configured
             # remote root actually holds this atlas before downloading, so
             # it lands in (and is later found in) the matching per-root
@@ -449,7 +467,7 @@ class BrainGlobeAtlas(core.Atlas):
             roots = config.get_remote_roots(config_dir)
             if check_s3_status(raise_error=False):
                 try:
-                    root_key, remote_root = _resolve_remote_root(
+                    root_key, resolved_root = _resolve_remote_root(
                         self.fs, atlas_name, roots
                     )
                 except ValueError as error:
@@ -462,7 +480,7 @@ class BrainGlobeAtlas(core.Atlas):
                 if root_key != self._root_key:
                     self._root_key, self._remote_root = (
                         root_key,
-                        remote_root,
+                        resolved_root,
                     )
                     self.brainglobe_dir = (
                         self.brainglobe_dir.parent / self._root_key

@@ -223,7 +223,7 @@ def test_atlas_assets_cache_is_namespaced():
     atlas = BrainGlobeAtlas(
         ATLAS_ASSETS_NAME, resolution=100, check_latest=False
     )
-    assert atlas.brainglobe_dir.name == "allen"
+    assert atlas.brainglobe_dir.name == "allen-atlas-assets"
 
 
 def test_atlas_assets_hemispheres_are_synthesized():

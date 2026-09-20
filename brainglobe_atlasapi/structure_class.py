@@ -20,20 +20,22 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
 def _read_multilod_draco(fs, mesh_path: str) -> tuple[np.ndarray, np.ndarray]:
-    """Read a `neuroglancer_multilod_draco` fragment into real coordinates.
+    """Read a `neuroglancer_multilod_draco` object into real coordinates.
 
-    The Draco payload at `<id>` holds vertices quantized into the chunk
-    described by `<id>.index`, so decoding alone yields grid integers in
-    ``[0, 2 ** bits - 1]``. The index header supplies the chunk, and
-    `info` the affine that takes the result to the units of the source
-    bucket.
+    Large structures are split into several Draco fragments at lod 0,
+    each quantized into its own chunk. Each fragment is decoded and
+    placed with its own chunk position from `<id>.index`
+    (see the multi-resolution mesh manifest format:
+    https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/meshes.md),
+    then all fragments are concatenated into one mesh; `info` supplies
+    the affine that takes the result to the units of the source bucket.
 
     Parameters
     ----------
     fs : s3fs.S3FileSystem
         Filesystem exposing a single-path ``cat(path) -> bytes``.
     mesh_path : str
-        Full remote path of the `<id>` fragment.
+        Full remote path of the `<id>` object.
 
     Returns
     -------
@@ -44,53 +46,73 @@ def _read_multilod_draco(fs, mesh_path: str) -> tuple[np.ndarray, np.ndarray]:
     Raises
     ------
     NotImplementedError
-        If the fragment declares more than one level of detail, or more
-        than one fragment within its level.
+        If the object declares more than one level of detail.
     """
     header = fs.cat(f"{mesh_path}.index")
     chunk_shape = np.frombuffer(header, np.float32, count=3, offset=0)
     grid_origin = np.frombuffer(header, np.float32, count=3, offset=12)
     (num_lods,) = np.frombuffer(header, np.uint32, count=1, offset=24)
 
+    if num_lods != 1:
+        raise NotImplementedError(
+            f"{mesh_path} declares {num_lods} level(s) of detail; only a "
+            "single level of detail is supported."
+        )
+
     # lod_scales, then vertex_offsets, then the per-lod fragment counts.
     offset = 28 + 4 * num_lods
-    vertex_offsets = np.frombuffer(
-        header, np.float32, count=3 * num_lods, offset=offset
-    )
+    vertex_offset = np.frombuffer(header, np.float32, count=3, offset=offset)
     offset += 12 * num_lods
-    fragments_per_lod = np.frombuffer(
+    (num_fragments,) = np.frombuffer(
         header, np.uint32, count=num_lods, offset=offset
     )
     offset += 4 * num_lods
 
-    if num_lods != 1 or fragments_per_lod[0] != 1:
-        raise NotImplementedError(
-            f"{mesh_path} declares {num_lods} level(s) of detail and "
-            f"{fragments_per_lod.tolist()} fragment(s); only a single "
-            "single-fragment level is supported."
-        )
+    # Fragment grid positions: stored as all-x, then all-y, then all-z.
+    fragment_positions = np.frombuffer(
+        header, np.uint32, count=3 * num_fragments, offset=offset
+    ).reshape((num_fragments, 3), order="F")
+    offset += 12 * num_fragments
 
-    fragment_position = np.frombuffer(
-        header, np.uint32, count=3, offset=offset
+    # Byte size of each fragment, in the mesh data file, in the same order.
+    fragment_sizes = np.frombuffer(
+        header, np.uint32, count=num_fragments, offset=offset
     )
 
     info = json.loads(fs.cat(f"{mesh_path.rsplit('/', 1)[0]}/info"))
     quantization = float(2 ** info["vertex_quantization_bits"] - 1)
     transform = np.asarray(info["transform"], dtype=np.float64).reshape(3, 4)
 
-    mesh = DracoPy.decode(fs.cat(mesh_path))
-    quantized = np.asarray(mesh.points, dtype=np.float64)
-    points = (
-        grid_origin
-        + vertex_offsets[:3]
-        + chunk_shape * (fragment_position + quantized / quantization)
-    )
+    data = fs.cat(mesh_path)
+    fragment_points = []
+    fragment_faces = []
+    vertex_count = 0
+    byte_offset = 0
+    for position, size in zip(fragment_positions, fragment_sizes):
+        fragment_data = data[byte_offset : byte_offset + int(size)]
+        byte_offset += int(size)
+        if not fragment_data:
+            # A child fragment can exist with no corresponding parent
+            # fragment (e.g. from independent per-lod simplification).
+            continue
+
+        fragment = DracoPy.decode(fragment_data)
+        quantized = np.asarray(fragment.points, dtype=np.float64)
+        fragment_points.append(
+            grid_origin
+            + vertex_offset
+            + chunk_shape * (position + quantized / quantization)
+        )
+        fragment_faces.append(
+            np.asarray(fragment.faces, dtype=np.uint32) + vertex_count
+        )
+        vertex_count += quantized.shape[0]
+
+    points = np.concatenate(fragment_points, axis=0)
+    faces = np.concatenate(fragment_faces, axis=0)
     points = points @ transform[:, :3].T + transform[:, 3]
 
-    return (
-        points.astype(np.float32),
-        np.asarray(mesh.faces, dtype=np.uint32),
-    )
+    return points.astype(np.float32), faces
 
 
 def _encode_draco(points: np.ndarray, faces: np.ndarray) -> bytes:

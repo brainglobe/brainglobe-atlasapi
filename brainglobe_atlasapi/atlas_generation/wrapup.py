@@ -530,7 +530,7 @@ def _compute_4d_masks_for_scale(
         scratch_path,
         mode="w",
         shape=(n_structures, z, y, x),
-        chunks=(1, 256, 256, 256),
+        chunks=(1, 128, 128, 128),
         dtype=descriptors.ANNOTATION_MASKS_DTYPE,
     )
 

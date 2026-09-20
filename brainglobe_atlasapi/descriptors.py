@@ -6,9 +6,6 @@ from typing import List, Tuple, TypeAlias
 import numpy as np
 import numpy.typing as npt
 
-# Base url of the gin repository:
-remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
-
 # Default remote root: an "s3://bucket/prefix" with no trailing slash.
 DEFAULT_REMOTE_ROOT = "s3://brainglobe/atlas"
 DEFAULT_ROOT_KEY = "brainglobe-atlasapi"
@@ -19,6 +16,8 @@ ATLAS_ASSETS_ROOT_KEY = "allen-atlas-assets"
 
 # Retained for backwards compatibility with existing imports:
 remote_url_s3 = DEFAULT_REMOTE_ROOT + "/{}"
+# Base URL for the BrainGlobe atlas S3 bucket:
+remote_url_s3 = "s3://brainglobe/atlas/{}"
 remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
 
 # Major version of atlases used by current brainglobe-atlasapi release:

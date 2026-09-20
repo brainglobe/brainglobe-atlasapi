@@ -583,7 +583,7 @@ class BrainGlobeAtlas(core.Atlas):
         """Reads remote version from s3 bucket.
 
         Largest numerical version assumed to be latest.
-        If we are offline, return None.
+        If we are offline or using a custom atlas, return None.
         """
         if self._remote_version is not None:
             return self._remote_version
@@ -596,6 +596,13 @@ class BrainGlobeAtlas(core.Atlas):
         bucket_path = (
             f"{self._remote_root}/{V3_ATLAS_ROOTDIR}/{self.atlas_name}"
         )
+
+        if self.fs.exists(bucket_path) is False:
+            if self.local_full_name is not None:
+                return None
+            raise FileNotFoundError(
+                f"{self.atlas_name} is not a valid atlas name!"
+            )
 
         if self._requested_version is None:
             versions_path = self.fs.ls(bucket_path)

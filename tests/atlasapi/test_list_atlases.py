@@ -187,40 +187,6 @@ def test_get_all_atlases_lastversions_offline():
         cache_path.unlink()
 
 
-def test_get_all_atlases_lastversions_gin_down():
-    """Test retrieving atlas versions from cache when GIN is down."""
-    cleanup_cache = False
-    cache_path = (
-        config.get_brainglobe_dir()
-        / "brainglobe-atlasapi"
-        / "atlases"
-        / "last_versions.conf"
-    )
-
-    if not cache_path.exists():
-        cache_path.touch()
-        cache_path.write_text("""
-            [atlases]
-            example_mouse_100um = 1.0
-            osten_mouse_50um = 1.0
-            allen_mouse_25um = 1.0
-            """)
-        cleanup_cache = True
-
-    with mock.patch(
-        "brainglobe_atlasapi.utils.check_gin_status"
-    ) as mock_check_internet_connection:
-        mock_check_internet_connection.return_value = False
-        last_versions = get_all_atlases_lastversions()
-
-        assert "example_mouse_100um" in last_versions
-        assert "osten_mouse_50um" in last_versions
-        assert "allen_mouse_25um" in last_versions
-
-    if cleanup_cache:
-        cache_path.unlink()
-
-
 @pytest.mark.parametrize(
     ["version", "expected_print"],
     [

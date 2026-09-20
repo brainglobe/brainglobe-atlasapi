@@ -43,7 +43,7 @@ def test_remote_version_missing_from_assumed_root_raises_file_not_found():
     atlas._requested_version = None
     atlas._remote_root = bg_atlas.descriptors.DEFAULT_REMOTE_ROOT
     atlas.atlas_name = "not_actually_here"
-    atlas.fs = SimpleNamespace(ls=lambda path: [])
+    atlas.fs = SimpleNamespace(exists=lambda path: True, ls=lambda path: [])
 
     with patch.object(
         brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
@@ -69,7 +69,8 @@ def test_remote_version_carries_dashed_folder_string():
     atlas._remote_root = bg_atlas.descriptors.DEFAULT_REMOTE_ROOT
     atlas.atlas_name = "allen-adult-mouse-ccf-atlas"
     atlas.fs = SimpleNamespace(
-        ls=lambda path: [f"{path}/2017", f"{path}/2024-05"]
+        exists=lambda path: True,
+        ls=lambda path: [f"{path}/2017", f"{path}/2024-05"],
     )
 
     with patch.object(

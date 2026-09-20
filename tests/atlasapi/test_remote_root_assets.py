@@ -35,7 +35,7 @@ def test_hemispheres_incomplete_cache_raises(atlas, monkeypatch):
     atlas._hemispheres = None
     monkeypatch.setattr(atlas.fs, "exists", lambda path: True)
 
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(ValueError):
         atlas.hemispheres
 
 

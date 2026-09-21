@@ -65,6 +65,14 @@ ANNOTATION_SUFFIXES = {
     "21": "55/LAMBADA_25um_annotation_P21_v1.0.nii.gz",
 }
 
+REFERENCE_FNAMES = {
+    age: f"LAMBADA_25um_reference_P{age}_v1.0.nii.gz" for age in TIMEPOINTS
+}
+
+ANNOTATION_FNAMES = {
+    age: f"LAMBADA_25um_annotation_P{age}_v1.0.nii.gz" for age in TIMEPOINTS
+}
+
 
 def pooch_init(download_dir_path: Path) -> pooch.Pooch:
     """Initialize Pooch for downloading atlas data.
@@ -91,8 +99,10 @@ def pooch_init(download_dir_path: Path) -> pooch.Pooch:
         base_url=DOWNLOAD_ROOT,
         registry=empty_registry,
     )
+    
 
-    p.load_registry(Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt"))
+
+    # p.load_registry(Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt"))
     return p
 
 
@@ -276,16 +286,6 @@ def retrieve_hemisphere_map(annotation_volume: np.ndarray, age: str):
     hemispheres_map = np.full(annotation_volume.shape, 2, dtype=int)
     hemispheres_map[:, hemispheres_map.shape[1] // 2 :, :] = 1
 
-    # Fix midline misalignment for p24
-    if age == "24":
-        hemispheres_map[:, 325:, :] = 1
-        hemispheres_map[:, :325, :] = 2
-
-    # Fix midline misalignment for p40
-    if age == "40":
-        hemispheres_map[:, 330:, :] = 1
-        hemispheres_map[:, :330, :] = 2
-
     return hemispheres_map
 
 
@@ -325,7 +325,7 @@ if __name__ == "__main__":
     # Fail when any timepoints already exist to avoid overwriting
     for age in TIMEPOINTS:
         atlas_prefix = atlas_name_from_repr(
-            ATLAS_NAME + f"_p{age}", RESOLUTION
+            ATLAS_NAME + f"_P{age}", RESOLUTION
         )
         existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
         if existing:
@@ -336,9 +336,10 @@ if __name__ == "__main__":
     odin = pooch_init(DOWNLOAD_DIR_PATH)
     structures = fetch_ontology(odin)
     for age in TIMEPOINTS:
-        atlas_name = f"{ATLAS_NAME}_p{age}"
+        atlas_name = f"{ATLAS_NAME}_P{age}"
         print("\nPackaging atlas for:", atlas_name)
         reference_volume, annotated_volume = fetch_animal(odin, age)
+        continue
         hemispheres_stack = retrieve_hemisphere_map(annotated_volume, age)
         meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
             annotated_volume, structures
@@ -364,3 +365,8 @@ if __name__ == "__main__":
             scale_meshes=True,
             atlas_packager=ATLAS_PACKAGER,
         )
+    pooch.make_registry(
+        directory = DOWNLOAD_DIR_PATH,
+        output= DOWNLOAD_DIR_PATH / "hashes" / "registry.txt",
+        recursive = True
+    )

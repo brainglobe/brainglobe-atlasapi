@@ -1,4 +1,4 @@
-"""Test lazy atlas array loading."""
+"""Test dask atlas array loading."""
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -21,7 +21,7 @@ def _multiscale(data):
 def _atlas(tmp_path, monkeypatch, data):
     """Build a minimal Atlas instance without running full init."""
     atlas = object.__new__(core.Atlas)
-    atlas.lazy = True
+    atlas.dask = True
     atlas.root_dir = tmp_path
     atlas.metadata = {
         "annotation_set": {
@@ -60,19 +60,19 @@ def _atlas(tmp_path, monkeypatch, data):
         ("hemispheres", [[[2, 1], [2, 1]], [[2, 1], [2, 1]]]),
     ],
 )
-def test_example_atlas_lazy_properties_are_dask_arrays(atlas, stack_name, val):
-    """BrainGlobeAtlas(..., lazy=True) works on the example atlas."""
-    lazy_atlas = BrainGlobeAtlas(
-        atlas.atlas_name, check_latest=False, lazy=True
+def test_example_atlas_dask_properties_are_dask_arrays(atlas, stack_name, val):
+    """BrainGlobeAtlas(..., dask=True) works on the example atlas."""
+    dask_atlas = BrainGlobeAtlas(
+        atlas.atlas_name, check_latest=False, dask=True
     )
-    loaded_stack = getattr(lazy_atlas, stack_name)
+    loaded_stack = getattr(dask_atlas, stack_name)
 
     assert isinstance(loaded_stack, da.Array)
     assert np.allclose(loaded_stack[65:67, 39:41, 56:58].compute(), val)
 
 
-def test_lazy_coord_lookups_return_scalars(tmp_path, monkeypatch):
-    """lazy=True keeps coordinate helper return values eager/scalar."""
+def test_dask_coord_lookups_return_scalars(tmp_path, monkeypatch):
+    """dask=True keeps coordinate helper return values eager/scalar."""
     data = da.from_array(np.full((2, 2, 2), 2, dtype=np.uint8))
     atlas = _atlas(tmp_path, monkeypatch, data)
 
@@ -84,8 +84,8 @@ def test_lazy_coord_lookups_return_scalars(tmp_path, monkeypatch):
     assert atlas.hemisphere_from_coords((0, 0, 1), as_string=True) == "left"
 
 
-def test_lazy_get_structure_mask_returns_dask_array(tmp_path, monkeypatch):
-    """lazy=True returns a dask array for structure masks."""
+def test_dask_get_structure_mask_returns_dask_array(tmp_path, monkeypatch):
+    """dask=True returns a dask array for structure masks."""
     data = da.from_array(np.ones((1, 2, 2, 2), dtype=np.uint8))
     atlas = _atlas(tmp_path, monkeypatch, data)
 

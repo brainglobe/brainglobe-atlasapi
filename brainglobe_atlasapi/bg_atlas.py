@@ -54,8 +54,8 @@ def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
 
 
 class BrainGlobeAtlas(
-    core.Atlas[core.TemplateArray, core.AnnotationArray, core.LabelArray],
-    Generic[core.TemplateArray, core.AnnotationArray, core.LabelArray],
+    core.Atlas[core.AtlasArray],
+    Generic[core.AtlasArray],
 ):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
@@ -75,53 +75,45 @@ class BrainGlobeAtlas(
     fn_update : Callable
         Handler function to update during download. Takes completed and total
         bytes.
-    lazy : bool
+    dask : bool
         If True, atlas array properties return dask arrays instead of loading
         them into memory as numpy arrays.
     """
 
     @overload
     def __init__(
-        self: BrainGlobeAtlas[
-            npt.NDArray[np.uint16],
-            npt.NDArray[np.uint32],
-            npt.NDArray[np.uint8],
-        ],
+        self: BrainGlobeAtlas[npt.NDArray[np.integer]],
         atlas_name: AtlasName,
         version: Optional[str] = None,
         brainglobe_dir: Optional[Union[str, Path]] = None,
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
-        lazy: Literal[False] = False,
+        dask: Literal[False] = False,
     ) -> None: ...
 
     @overload
     def __init__(
-        self: BrainGlobeAtlas[da.Array, da.Array, da.Array],
+        self: BrainGlobeAtlas[da.Array],
         atlas_name: AtlasName,
         version: Optional[str] = None,
         brainglobe_dir: Optional[Union[str, Path]] = None,
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
-        lazy: Literal[True] = True,
+        dask: Literal[True] = True,
     ) -> None: ...
 
     @overload
     def __init__(
-        self: BrainGlobeAtlas[
-            Union[npt.NDArray[np.uint16], da.Array],
-            Union[npt.NDArray[np.uint32], da.Array],
-            Union[npt.NDArray[np.uint8], da.Array],
-        ],
+        self: BrainGlobeAtlas[core.AtlasArray],
         atlas_name: AtlasName,
         version: Optional[str] = None,
         brainglobe_dir: Optional[Union[str, Path]] = None,
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
-        lazy: bool = False,
+        dask: bool = False,
     ) -> None: ...
 
     def __init__(
@@ -132,7 +124,7 @@ class BrainGlobeAtlas(
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
-        lazy: bool = False,
+        dask: bool = False,
     ):
         self._remote_version = None
         self._local_full_name = None
@@ -177,7 +169,7 @@ class BrainGlobeAtlas(
                     "download."
                 )
 
-        super().__init__(self.brainglobe_dir / self.local_full_name, lazy=lazy)
+        super().__init__(self.brainglobe_dir / self.local_full_name, dask=dask)
 
         if check_latest:
             self.check_latest_version()

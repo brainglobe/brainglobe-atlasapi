@@ -141,7 +141,7 @@ print(hemispheres_image.shape)
 # (528, 320, 456)
 ```
 
-Pass `lazy=True` to `BrainGlobeAtlas` to return dask arrays for these images; index/slice them as usual, then call `.compute()` when you need the numpy result.
+Pass `dask=True` to `BrainGlobeAtlas` to return dask arrays for these images; index/slice them as usual, then call `.compute()` when you need the numpy result.
 
 #### Brain regions
 

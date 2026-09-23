@@ -6,7 +6,6 @@ annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
-import re
 import json
 from pathlib import Path
 
@@ -75,6 +74,7 @@ ANNOTATION_FNAMES = {
 LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
 LABELS_FNAME = "1.json"
 
+
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
 
@@ -94,6 +94,7 @@ def hex_to_rgb(hex):
         rgb.append(decimal)
 
     return rgb
+
 
 def pooch_init(download_dir_path: Path) -> pooch.Pooch:
     """Initialize Pooch for downloading atlas data.
@@ -120,8 +121,6 @@ def pooch_init(download_dir_path: Path) -> pooch.Pooch:
         base_url=DOWNLOAD_ROOT,
         registry=empty_registry,
     )
-    
-
 
     # p.load_registry(Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt"))
     return p
@@ -189,7 +188,7 @@ def retrieve_ontology():
     and return a list of dictionaries, where each dictionary represents a
     structure and contains its ID, name, acronym, hierarchical path,
     and RGB triplet.
-    
+
     The expected format for each dictionary is:
 
     .. code-block:: python
@@ -207,7 +206,7 @@ def retrieve_ontology():
     list
         A list of dictionaries, where each dictionary represents a brain
         structure with its properties (id, acronym, name, structure_id_path,
-        RGB color). 
+        RGB color).
     """
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
@@ -217,26 +216,27 @@ def retrieve_ontology():
     needs_download = not labels_path.exists()
     if needs_download:
         utils.check_internet_connection()
-    
-    pooch.retrieve(
-                url=LABELS_URL,
-                known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
-                path=DOWNLOAD_DIR_PATH,
-                fname=LABELS_FNAME,
-                progressbar=True,
-    )
 
+    pooch.retrieve(
+        url=LABELS_URL,
+        known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
+        path=DOWNLOAD_DIR_PATH,
+        fname=LABELS_FNAME,
+        progressbar=True,
+    )
 
     structures = []
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
-        
+
         labels_data = json.load(f)
         for structure in labels_data["msg"]:
             id = structure["id"]
             name = structure["name"]
             acronym = structure["acronym"]
-            structure_id_path = structure["structure_id_path"].strip("/").split("/")
+            structure_id_path = (
+                structure["structure_id_path"].strip("/").split("/")
+            )
             rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
 
             structures.append(
@@ -351,7 +351,7 @@ if __name__ == "__main__":
             atlas_packager=ATLAS_PACKAGER,
         )
     pooch.make_registry(
-        directory = DOWNLOAD_DIR_PATH,
-        output= DOWNLOAD_DIR_PATH / "hashes" / "registry.txt",
-        recursive = True
+        directory=DOWNLOAD_DIR_PATH,
+        output=DOWNLOAD_DIR_PATH / "hashes" / "registry.txt",
+        recursive=True,
     )

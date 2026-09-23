@@ -7,12 +7,11 @@ and then wraps it up into the BrainGlobe atlas format.
 """
 
 import re
+import json
 from pathlib import Path
 
 import numpy as np
 import pooch
-from allensdk.api.queries.ontologies_api import OntologiesApi
-from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
@@ -73,6 +72,28 @@ ANNOTATION_FNAMES = {
     age: f"LAMBADA_25um_annotation_P{age}_v1.0.nii.gz" for age in TIMEPOINTS
 }
 
+LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
+LABELS_FNAME = "1.json"
+
+def hex_to_rgb(hex):
+    """Convert a hexadecimal color string to an RGB triplet.
+
+    Parameters
+    ----------
+    hex : str
+        The hexadecimal color string (e.g., "RRGGBB").
+
+    Returns
+    -------
+    list
+        A list of three integers representing the RGB color (0-255).
+    """
+    rgb = []
+    for i in (0, 2, 4):
+        decimal = int(hex[i : i + 2], 16)
+        rgb.append(decimal)
+
+    return rgb
 
 def pooch_init(download_dir_path: Path) -> pooch.Pooch:
     """Initialize Pooch for downloading atlas data.
@@ -88,9 +109,9 @@ def pooch_init(download_dir_path: Path) -> pooch.Pooch:
         Initialized Pooch instance.
     """
     keys = (
-        list(REFERENCE_FNAMES.values())
-        + list(ANNOTATION_FNAMES.values())
-        # + [LABELS_FNAME]
+        list(REFERENCE_SUFFIXES.values())
+        + list(ANNOTATION_SUFFIXES.values())
+        + [LABELS_FNAME]
     )
     empty_registry = {key: None for key in keys}
 
@@ -143,12 +164,12 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
         utils.check_internet_connection()
 
     fetched_reference = pooch_.fetch(
-        REFERENCE_FNAMES[age],
+        REFERENCE_SUFFIXES[age],
         progressbar=True,
     )
 
     fetched_annotation = pooch_.fetch(
-        ANNOTATION_FNAMES[age],
+        ANNOTATION_SUFFIXES[age],
         progressbar=True,
     )
 
@@ -163,23 +184,30 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
     return reference_volume, annotation_volume
 
 
-def fetch_ontology(pooch_: pooch.Pooch):
-    """Fetch and parse the ontology (structure tree) from the labels file,
+def retrieve_ontology():
+    """Download and parse the ontology from the labels file,
     and return a list of dictionaries, where each dictionary represents a
     structure and contains its ID, name, acronym, hierarchical path,
     and RGB triplet.
+    
+    The expected format for each dictionary is:
 
-    Parameters
-    ----------
-    pooch_ : pooch.Pooch
-        The initialized Pooch instance.
+    .. code-block:: python
+
+        {
+            "id": int,
+            "name": str,
+            "acronym": str,
+            "structure_id_path": list[int],
+            "rgb_triplet": list[int, int, int],
+        }
 
     Returns
     -------
     list
         A list of dictionaries, where each dictionary represents a brain
         structure with its properties (id, acronym, name, structure_id_path,
-        RGB color).
+        RGB color). 
     """
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
@@ -189,78 +217,35 @@ def fetch_ontology(pooch_: pooch.Pooch):
     needs_download = not labels_path.exists()
     if needs_download:
         utils.check_internet_connection()
-
-    spacecache = ReferenceSpaceCache(
-        manifest=download_dir_path / "manifest.json",
-        # downloaded files are stored relative to here
-        resolution=resolution,
-        reference_space_key="annotation/ccf_2017",
-        # use the latest version of the CCF
+    
+    pooch.retrieve(
+                url=LABELS_URL,
+                known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
+                path=DOWNLOAD_DIR_PATH,
+                fname=LABELS_FNAME,
+                progressbar=True,
     )
 
-    # Download structures tree:
-    ######################################
-    oapi = OntologiesApi()  # ontologies
 
-    # Find id of set of regions with mesh:
-    select_set = (
-        "Structures whose surfaces are represented by a precomputed mesh"
-    )
-
-    mesh_set_ids = [
-        s["id"]
-        for s in oapi.get_structure_sets()
-        if s["description"] == select_set
-    ]
-
-    structs_with_mesh = struct_tree.get_structures_by_set_id(mesh_set_ids)
-
-    labels_path = pooch_.fetch(LABELS_FNAME, progressbar=True)
-
-    # .txt label file format:
-    # Index Name R G B A
-
-    # Use regex parsing for consistency
-    line_re = re.compile(r"^(\d+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$")
-
-    # Use the name and acronym used within the label files,
-    # and then change them back to "root" later
-    structures = [
-        {
-            "id": ROOT_ID,
-            "name": "root",
-            "acronym": "root",
-            "structure_id_path": [ROOT_ID],
-            "rgb_triplet": [255, 255, 255],
-        }
-    ]
-
+    structures = []
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
-        labels_data = f.read().splitlines()
-        for key, label in enumerate(labels_data):
-            if not label.strip() or label.lstrip().startswith("#"):
-                continue
-            m = line_re.match(label)
-
-            # Skip malformed lines
-            if not m:
-                continue
-
-            # Skip background, root and hemisphere specific labels
-            id = int(m.group(1))
-            name = m.group(2).replace("_", " ")
-            if id == 0:
-                continue
-            rgb_colour = [int(m.group(3)), int(m.group(4)), int(m.group(5))]
+        
+        labels_data = json.load(f)
+        for structure in labels_data["msg"]:
+            id = structure["id"]
+            name = structure["name"]
+            acronym = structure["acronym"]
+            structure_id_path = structure["structure_id_path"].strip("/").split("/")
+            rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
 
             structures.append(
                 {
                     "id": id,
                     "name": name,
-                    "acronym": name,
-                    "structure_id_path": [ROOT_ID, id],
-                    "rgb_triplet": rgb_colour,
+                    "acronym": acronym,
+                    "structure_id_path": structure_id_path,
+                    "rgb_triplet": rgb_triplet,
                 }
             )
 
@@ -334,7 +319,7 @@ if __name__ == "__main__":
             )
 
     odin = pooch_init(DOWNLOAD_DIR_PATH)
-    structures = fetch_ontology(odin)
+    structures = retrieve_ontology()
     for age in TIMEPOINTS:
         atlas_name = f"{ATLAS_NAME}_P{age}"
         print("\nPackaging atlas for:", atlas_name)

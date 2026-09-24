@@ -81,7 +81,8 @@ def check_requested_component(
     if component_info.use_existing:
         # Add wildcard to fetch all OME-Zarr metadata files
         if component_info.file_name.endswith(".ome.zarr"):
-            remote_path += "/**/*.json"
+            remote_path += f"/{component_info.file_name}/**/*.json"
+            local_path = local_path / component_info.file_name
         else:
             remote_path += "/**/*"
 
@@ -456,6 +457,9 @@ class AtlasPackagingData:
 
         if not self.symmetric:
             self.hemispheres_stack = _load_stack(self.hemispheres_stack)
+            self.hemispheres_stack = _reorient_stacks(
+                self.hemispheres_stack, self.space_convention
+            )
         else:
             self.hemispheres_stack = _auto_generate_hemispheres(
                 shapes=[stack.shape for stack in self.annotation_stack],

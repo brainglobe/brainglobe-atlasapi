@@ -1,7 +1,9 @@
 """Test the core Atlas class."""
 
 import contextlib
+import shutil
 from io import StringIO
+from unittest.mock import MagicMock
 
 import ngff_zarr as nz
 import numpy as np
@@ -9,6 +11,7 @@ import pandas as pd
 import pytest
 
 from brainglobe_atlasapi import core
+from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
 
@@ -124,6 +127,11 @@ def test_structures(atlas):
         "root": 997,
         "grey": 8,
         "CH": 567,
+        "CTX": 688,
+        "CTXpl": 695,
+        "Isocortex": 315,
+        "FRP": 184,
+        "FRP1": 68,
     }
     assert atlas._get_from_structure([997, 8, 567], "acronym") == [
         "root",
@@ -201,7 +209,8 @@ def test_meshfile_from_id(atlas):
     mesh_root_path = (
         atlas.root_dir
         / atlas.metadata["annotation_set"]["location"][1:]
-        / "annotation.precomputed"
+        / "annotations.precomputed"
+        / "mesh"
     )
     assert atlas.meshfile_from_structure("CH") == mesh_root_path / "567"
     assert atlas.root_meshfile() == mesh_root_path / "997"
@@ -216,13 +225,13 @@ def test_mesh_from_id(atlas):
         The atlas fixture.
     """
     mesh = atlas.structures[567]["mesh"]
-    assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
+    assert np.allclose(mesh.points[0], [7795.2515, 5022.5635, 9309.463])
 
     mesh = atlas.mesh_from_structure(567)
-    assert np.allclose(mesh.points[0], [8019.52, 3444.48, 507.104])
+    assert np.allclose(mesh.points[0], [7795.2515, 5022.5635, 9309.463])
 
     mesh = atlas.root_mesh()
-    assert np.allclose(mesh.points[0], [7896.56, 3384.15, 503.781])
+    assert np.allclose(mesh.points[0], [10229.547, 1233.6494, 3263.8508])
 
 
 def test_lookup_df(atlas):
@@ -236,9 +245,27 @@ def test_lookup_df(atlas):
     df_lookup = atlas.lookup_df
     df = pd.DataFrame(
         dict(
-            acronym=["root", "grey", "CH"],
-            id=[997, 8, 567],
-            name=["root", "Basic cell groups and regions", "Cerebrum"],
+            acronym=[
+                "root",
+                "grey",
+                "CH",
+                "CTX",
+                "CTXpl",
+                "Isocortex",
+                "FRP",
+                "FRP1",
+            ],
+            id=[997, 8, 567, 688, 695, 315, 184, 68],
+            name=[
+                "root",
+                "Basic cell groups and regions",
+                "Cerebrum",
+                "Cerebral cortex",
+                "Cortical plate",
+                "Isocortex",
+                "Frontal pole, cerebral cortex",
+                "Frontal pole, layer 1",
+            ],
         )
     )
 
@@ -258,12 +285,22 @@ def test_hierarchy(atlas):
     with contextlib.redirect_stdout(temp_stdout):
         print(hier)
     output = temp_stdout.getvalue().strip()
-    assert output == "root (997)\n└── grey (8)\n    └── CH (567)"
+    assert output == (
+        "root (997)\n└── grey (8)\n    └── CH (567)\n        "
+        "└── CTX (688)\n            └── CTXpl (695)\n                "
+        "└── Isocortex (315)\n                    └── FRP (184)\n"
+        "                        └── FRP1 (68)"
+    )
 
     assert {k: v.tag for k, v in hier.nodes.items()} == {
         997: "root (997)",
         8: "grey (8)",
         567: "CH (567)",
+        688: "CTX (688)",
+        695: "CTXpl (695)",
+        315: "Isocortex (315)",
+        184: "FRP (184)",
+        68: "FRP1 (68)",
     }
 
 
@@ -279,7 +316,7 @@ def test_descendants(atlas):
     assert anc == ["root", "grey"]
 
     desc = atlas.get_structure_descendants("root")
-    assert desc == ["grey", "CH"]
+    assert desc == ["grey", "CH", "CTX", "CTXpl", "Isocortex", "FRP", "FRP1"]
 
 
 def test_odd_hemisphere_size(atlas):
@@ -309,52 +346,6 @@ def test_even_hemisphere_size(atlas):
     assert (atlas.hemispheres[:, :, 57] == 1).all()
 
 
-def test_get_structure_mask(atlas):
-    """Generate a structure mask and verify its properties.
-
-    >>> atlas.structures
-    root (997)
-      └── grey (8)
-            └── CH (567)
-
-    The 'structures' "grey" and "CH" are present in the example atlas. Their
-    respective ids are 8 and 567. These labels are not present in the
-    annotation of the example atlas however. Because the labels 7 and 566
-    are present, we reassign the parent and substructure ids to match the
-    annotation for testing purposes.
-
-    Because the "CH" structure is a sub-structure of "grey" it should adopt
-    the parent structure id (7) in the mask where its label (566) is present
-    when get_structure_mask is applied.
-
-    After applying get_structure_mask only the parent structure id (7) should
-    remain in the mask for the regions corresponding to "CH" and "grey".
-
-    All labels belonging to structures that are outside of the parent structure
-    should be set to 0.
-
-    Parameters
-    ----------
-    atlas : brainglobe_atlasapi.core.Atlas
-        The atlas fixture.
-    """
-    atlas.structures["grey"]["id"] = 7
-    atlas.structures["CH"]["id"] = 566
-    loc_ch = np.where(atlas.annotation == 566)
-
-    grey_structure_mask = atlas.get_structure_mask("grey")
-
-    assert (
-        atlas.annotation.shape == grey_structure_mask.shape
-    ), "Mask shape should match annotation shape"
-    assert np.all(
-        grey_structure_mask[loc_ch] == 7
-    ), "Substructure id (566; CH) should adopt parent structure id (7; grey)"
-    assert np.all(
-        (grey_structure_mask == 0) | (grey_structure_mask == 7)
-    ), "Values in grey_structure_mask should be either 0 or 7"
-
-
 @pytest.mark.parametrize(
     "atlas_fixture",
     [
@@ -379,7 +370,7 @@ def test_hemispheres_reads_tiff(atlas_fixture, request, mocker):
     mock_hemispheres_multiscale = nz.to_multiscales(
         mock_hemispheres, scale_factors=1
     )
-    mock_hemispheres_multiscale.metadata.datasets[0].path = "0"
+    mock_hemispheres_multiscale.metadata.datasets[0].path = "s0"
     mocker.patch(
         "brainglobe_atlasapi.core.nz.from_ngff_zarr",
         return_value=mock_hemispheres_multiscale,
@@ -432,7 +423,16 @@ def test_get_structures_at_hierarchy_level_none(atlas):
     result = atlas.get_structures_at_hierarchy_level(
         "root", None, as_acronym=True
     )
-    assert result == ["root", "grey", "CH"]
+    assert result == [
+        "root",
+        "grey",
+        "CH",
+        "CTX",
+        "CTXpl",
+        "Isocortex",
+        "FRP",
+        "FRP1",
+    ]
 
 
 def test_get_structures_at_hierarchy_level_invalid_structure(atlas):
@@ -464,3 +464,112 @@ def test_get_structures_at_hierarchy_level_leaf_node(atlas):
     # CH is the deepest node in the test atlas
     result = atlas.get_structures_at_hierarchy_level("CH", 0)
     assert result == [997]  # root ID
+
+
+@pytest.fixture(scope="module")
+def atlas_with_masks(tmp_path_factory, mask_structures, tetrahedron_mesh_file):
+    """Create a minimal 3-structure atlas with annotations.ome.zarr via wrapup.
+
+    Structure tree: root (999) → region_a (1) → leaf_b (2)
+    Post-order mapping: leaf_b→0, region_a→1, root→2
+
+    Annotation (15x15x15):
+      - [0,0,0] = 1  (region_a)
+      - [0,0,1] = 2  (leaf_b)
+      - rest   = 999 (root)
+    """
+    working_dir = tmp_path_factory.mktemp("atlas_masks")
+    shape = (15, 15, 15)
+    reference = np.full(shape, 200, dtype=np.uint16)
+    annotation = np.full(shape, 999, dtype=np.uint32)
+    annotation[0, 0, 0] = 1
+    annotation[0, 0, 1] = 2
+
+    meshes = {
+        999: tetrahedron_mesh_file,
+        1: tetrahedron_mesh_file,
+        2: tetrahedron_mesh_file,
+    }
+
+    wrapup_atlas_from_data(
+        atlas_name="mask_test",
+        atlas_minor_version="0",
+        citation="unpublished",
+        atlas_link="https://example.com",
+        species="Mus musculus",
+        resolution=(25, 25, 25),
+        orientation="asr",
+        root_id=999,
+        reference_stack=reference,
+        annotation_stack=annotation,
+        structures_list=mask_structures,
+        meshes_dict=meshes,
+        working_dir=working_dir,
+    )
+
+    manifests = list(
+        (working_dir / "brainglobe-atlasapi" / "atlases").glob(
+            "**/manifest.json"
+        )
+    )
+    assert len(manifests) == 1
+    return core.Atlas(manifests[0])
+
+
+def test_get_structure_mask_returns_binary_uint8(atlas_with_masks):
+    """get_structure_mask returns a uint8 array with values 0 or 1."""
+    mask = atlas_with_masks.get_structure_mask("leaf_b")
+    assert mask.dtype == np.uint8
+    assert set(np.unique(mask)).issubset({0, 1})
+
+
+def test_get_structure_mask_leaf_correct_voxels(atlas_with_masks):
+    """Leaf mask has exactly the voxels assigned to that structure."""
+    mask = atlas_with_masks.get_structure_mask("leaf_b")
+    assert mask[0, 0, 1] == 1
+    assert mask.sum() == 1
+
+
+def test_get_structure_mask_parent_includes_children(atlas_with_masks):
+    """Parent mask includes its own voxels plus all descendant voxels."""
+    mask = atlas_with_masks.get_structure_mask("region_a")
+    assert mask[0, 0, 0] == 1
+    assert mask[0, 0, 1] == 1
+    assert mask.sum() == 2
+
+
+def test_get_structure_mask_raises_for_unknown_structure(atlas_with_masks):
+    """get_structure_mask raises KeyError for an unknown structure."""
+    with pytest.raises(KeyError):
+        atlas_with_masks.get_structure_mask("nonexistent_region")
+
+
+def test_get_structure_mask_downloads_once_and_caches(atlas, monkeypatch):
+    """A mask is downloaded from S3 once and reused from the local cache."""
+    structure_id = 8
+    index = atlas._annotation_mapping[structure_id]
+    multiscale = nz.from_ngff_zarr(atlas._annotation_masks_path)
+    dataset_path = multiscale.metadata.datasets[
+        atlas._annotation_masks_pyramid_level
+    ].path
+    chunk_dir = atlas._annotation_masks_path / dataset_path / "c" / str(index)
+
+    # Start from a clean slate so the first call genuinely downloads.
+    if chunk_dir.exists():
+        shutil.rmtree(chunk_dir)
+
+    try:
+        # First call downloads the mask from S3.
+        mask = atlas.get_structure_mask(structure_id)
+        assert chunk_dir.exists()
+        assert mask.sum() > 0
+
+        # Second call must reuse the cache and not hit S3 again.
+        mock_get = MagicMock()
+        monkeypatch.setattr(atlas.fs, "get", mock_get)
+        atlas.get_structure_mask(structure_id)
+        mock_get.assert_not_called()
+    finally:
+        # Remove the on-demand chunk we materialised; it re-downloads lazily.
+        if chunk_dir.exists():
+            shutil.rmtree(chunk_dir)

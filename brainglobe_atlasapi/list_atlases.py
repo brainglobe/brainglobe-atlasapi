@@ -57,7 +57,7 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
 
     Returns
     -------
-    str
+    Optional[str]
         Version of atlas.
     """
     brainglobe_dir = config.get_brainglobe_dir()
@@ -74,7 +74,7 @@ def get_local_atlas_version(atlas_name: str) -> Optional[str]:
             p.name for p in atlas_dir.iterdir() if p.is_dir()
         ]
         latest_version = utils.get_latest_version(available_versions)
-        return latest_version
+        return folder_version_to_dotted(latest_version)
     except (IndexError, FileNotFoundError, ValueError):
         print(f"No atlas found with the name: {atlas_name}")
         return None
@@ -133,13 +133,12 @@ def get_atlases_lastversions() -> Dict[str, Dict[str, Any]]:
         if name in available_atlases.keys():
             local_version = get_local_atlas_version(name)
             latest = str(available_atlases[name])
-            local_version_dotted = folder_version_to_dotted(local_version)
             atlases[name] = dict(
                 downloaded=True,
                 local=name,
-                version=local_version_dotted,
+                version=local_version,
                 latest_version=latest,
-                updated=local_version_dotted == latest,
+                updated=local_version == latest,
             )
     return atlases
 

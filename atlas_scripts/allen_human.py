@@ -10,7 +10,6 @@ import pandas as pd
 import pooch
 import treelib
 import urllib3
-from allensdk.core.structure_tree import StructureTree
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 
@@ -32,6 +31,17 @@ CITATION = "Ding et al 2016, https://doi.org/10.1002/cne.24080"
 ORIENTATION = "rpi"
 
 ### Settings
+
+
+def hex_to_rgb(hex_color):
+    """Convert a hex colour string (e.g. "#FF0000") to an RGB triplet."""
+    hex_color = hex_color.lstrip("#")
+    return [int(hex_color[i : i + 2], 16) for i in range(0, 6, 2)]
+
+
+def path_to_list(path):
+    """Convert a "/"-separated structure id path to a list of ints."""
+    return [int(stid) for stid in path.split("/") if stid != ""]
 
 
 def prune_tree(tree):
@@ -211,10 +221,10 @@ def create_atlas(working_dir):
                 "name": region["name"],
                 "acronym": acronym,
                 "id": region["id"],
-                "rgb_triplet": StructureTree.hex_to_rgb(
+                "rgb_triplet": hex_to_rgb(
                     region["color_hex_triplet"]
                 ),
-                "structure_id_path": StructureTree.path_to_list(
+                "structure_id_path": path_to_list(
                     region["structure_id_path"]
                 ),
             }

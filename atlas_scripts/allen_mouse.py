@@ -30,7 +30,9 @@ SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org"
 ORIENTATION = "asr"
 ROOT_ID = 997
-RESOLUTION = 10
+# Ordered from highest to lowest resolution. The atlas is packaged once, as a
+# single multiscale pyramid; meshes are built only at RESOLUTIONS[0].
+RESOLUTIONS = (10, 25, 50, 100)
 DEFAULT_WORKDIR.mkdir(exist_ok=True)
 BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
 
@@ -41,8 +43,8 @@ ALLEN_BASE_URL = (
     "https://download.alleninstitute.org/informatics-archive/"
     "current-release/mouse_ccf"
 )
-ALLEN_TEMPLATE_URL = (
-    f"{ALLEN_BASE_URL}/average_template/average_template_{RESOLUTION}.nrrd"
+ALLEN_TEMPLATE_URL_TEMPLATE = (
+    f"{ALLEN_BASE_URL}/average_template/average_template_{{resolution}}.nrrd"
 )
 ALLEN_ANNOTATION_10_URL = (
     f"{ALLEN_BASE_URL}/annotation/ccf_2022/annotation_10.nrrd"
@@ -54,7 +56,6 @@ ALLEN_2017_MESH_URL_TEMPLATE = (
     f"{ALLEN_BASE_URL}/annotation/ccf_2017/"
     "structure_meshes/{structure_id}.obj"
 )
-print(ALLEN_TEMPLATE_URL)
 
 
 def download_resources() -> None:
@@ -69,11 +70,18 @@ def download_resources() -> None:
     if not ontology_path.exists():
         retrieve_over_http(ALLEN_ONTOLOGIES_URL, ontology_path)
 
-    template_path = download_dir_path / f"average_template_{RESOLUTION}.nrrd"
-    if not template_path.exists():
-        retrieve_over_http(ALLEN_TEMPLATE_URL, template_path)
+    for resolution in RESOLUTIONS:
+        template_path = (
+            download_dir_path / f"average_template_{resolution}.nrrd"
+        )
+        if not template_path.exists():
+            retrieve_over_http(
+                ALLEN_TEMPLATE_URL_TEMPLATE.format(resolution=resolution),
+                template_path,
+            )
 
-    # Allen CCF provides 10µm labels; for 25µm we downsample from 10µm.
+    # Allen CCF only publishes 10µm labels for the 2022 annotation, so the
+    # coarser levels are downsampled from it.
 
     annotation_path = download_dir_path / "annotation_10.nrrd"
     if not annotation_path.exists():
@@ -106,29 +114,48 @@ def retrieve_reference_and_annotation():
     download_dir_path = BG_ROOT_DIR / "downloading_path"
     download_dir_path.mkdir(exist_ok=True, parents=True)
 
-    template_path = download_dir_path / f"average_template_{RESOLUTION}.nrrd"
-    if not template_path.exists():
-        retrieve_over_http(ALLEN_TEMPLATE_URL, template_path)
-    reference, _ = nrrd.read(template_path)
-    annotation_url = ALLEN_ANNOTATION_10_URL
     annotation_path = download_dir_path / "annotation_10.nrrd"
     if not annotation_path.exists():
-        retrieve_over_http(annotation_url, annotation_path)
-    annotation, _ = nrrd.read(annotation_path)
-    if RESOLUTION == 25:
-        annotation = downsample_alternating(annotation, [3, 2])
-    elif RESOLUTION in (50, 100):
-        step = RESOLUTION // 10
-        annotation = annotation[::step, ::step, ::step]
+        retrieve_over_http(ALLEN_ANNOTATION_10_URL, annotation_path)
+    annotation_10, _ = nrrd.read(annotation_path)
 
-    # Allen 2017 meshes are in microns (10µm physical space).
-    # To convert them to voxel coordinates of this annotation,
-    # divide by the physical spacing per voxel, which equals
-    # RESOLUTION for all supported values (10, 25, 50, 100).
-    voxel_spacing = float(RESOLUTION)
+    references = []
+    annotations = []
+    for resolution in RESOLUTIONS:
+        template_path = (
+            download_dir_path / f"average_template_{resolution}.nrrd"
+        )
+        if not template_path.exists():
+            retrieve_over_http(
+                ALLEN_TEMPLATE_URL_TEMPLATE.format(resolution=resolution),
+                template_path,
+            )
+        reference, _ = nrrd.read(template_path)
 
-    annotation = annotation.astype(np.int64, copy=False)
-    return reference, annotation, voxel_spacing
+        # Allen only publishes a 10µm 2022 annotation. The strides below
+        # reproduce the shapes of Allen's own templates exactly.
+        if resolution == 10:
+            annotation = annotation_10
+        elif resolution == 25:
+            annotation = downsample_alternating(annotation_10, [3, 2])
+        else:
+            step = resolution // 10
+            annotation = annotation_10[::step, ::step, ::step]
+
+        assert annotation.shape == reference.shape, (
+            f"Annotation shape {annotation.shape} does not match the "
+            f"{resolution}µm template shape {reference.shape}."
+        )
+
+        references.append(reference)
+        annotations.append(annotation.astype(np.int64, copy=False))
+
+    # Allen 2017 meshes are in microns. Meshes are built once, from the
+    # highest-resolution annotation, so convert them into its voxel
+    # coordinates; wrapup scales them back up via scale_meshes.
+    voxel_spacing = float(RESOLUTIONS[0])
+
+    return references, annotations, voxel_spacing
 
 
 def retrieve_hemisphere_map():
@@ -227,10 +254,10 @@ def retrieve_or_construct_meshes(
 
     meshes_dict = {}
     unchanged_ids.add(ROOT_ID)
-    # The 545 mesh on the allen server is empty... but this only exists in 10um
-    # by removing it we regenerate it
-    if RESOLUTION == 10:
-        unchanged_ids.remove(545)
+    # The 545 mesh on the allen server is empty, so regenerate it from the
+    # annotation. Meshes are always built at RESOLUTIONS[0], where 545 is
+    # present.
+    unchanged_ids.discard(545)
     # Fetch 2017 meshes for structures that are unchanged in 2022.
     for s in structures:
         sid = int(s["id"])
@@ -259,7 +286,7 @@ def retrieve_or_construct_meshes(
         closing_n_iters=10,
         decimate_fraction=0.2,
         smooth=False,
-        num_threads=1,
+        num_threads=-1,
         skip_structure_ids=unchanged_ids,
     )
     meshes_dict.update(generated_meshes_dict)
@@ -281,8 +308,9 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
+    # Meshes are built once, from the highest-resolution annotation.
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
-        annotated_volume, structures, voxel_spacing
+        annotated_volume[0], structures, voxel_spacing
     )
 
     output_filename = wrapup_atlas_from_data(
@@ -291,7 +319,7 @@ if __name__ == "__main__":
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(RESOLUTION,) * 3,
+        resolution=[(resolution,) * 3 for resolution in RESOLUTIONS],
         orientation=ORIENTATION,
         root_id=ROOT_ID,
         reference_stack=reference_volume,

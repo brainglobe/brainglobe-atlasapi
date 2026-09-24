@@ -73,6 +73,7 @@ atlasgen = [
     "numba",
     "ome-zarr<0.17.0",
     "PyMCubes",
+    "pynrrd",
     "SimpleITK",
     "vedo",
     "xmltodict",

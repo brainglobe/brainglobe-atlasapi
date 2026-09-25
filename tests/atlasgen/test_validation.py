@@ -13,6 +13,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     catch_missing_mesh_files,
     catch_missing_structures,
     get_all_validation_functions,
+    validate_acronym_whitespace,
     validate_additional_references,
     validate_annotation_symmetry,
     validate_atlas_files,
@@ -551,3 +552,52 @@ def test_validate_unique_acronyms_fail(mocker, atlas):
     error_message = str(exc_info.value)
     assert "brain" in error_message
     assert "Brain Duplicate" in error_message
+
+
+def test_validate_acronym_whitespace_pass(mocker, atlas):
+    """Check that an atlas with tidy acronyms passes validation.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    """
+    tidy_structures = {
+        1: {"acronym": "root", "name": "Root"},
+        2: {"acronym": "brain", "name": "Brain"},
+        3: {"acronym": "cortex", "name": "Cortex"},
+    }
+    mocker.patch.object(atlas, "structures", tidy_structures)
+
+    assert validate_acronym_whitespace(atlas)
+
+
+def test_validate_acronym_whitespace_fail(mocker, atlas):
+    """Check that acronyms padded with whitespace fail validation.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
+    """
+    structures_with_whitespace = {
+        1: {"acronym": "root", "name": "Root"},
+        2: {"acronym": "brain ", "name": "Brain Trailing"},  # Trailing space!
+        3: {"acronym": "\tcortex", "name": "Cortex Leading"},  # Leading tab!
+    }
+    mocker.patch.object(atlas, "structures", structures_with_whitespace)
+
+    with pytest.raises(AssertionError) as exc_info:
+        validate_acronym_whitespace(atlas)
+
+    # The whitespace is only visible in the error message if the acronym
+    # is repr'd, so check for the quoted forms
+    error_message = str(exc_info.value)
+    assert "'brain '" in error_message
+    assert "Brain Trailing" in error_message
+    assert "'\\tcortex'" in error_message
+    assert "Cortex Leading" in error_message

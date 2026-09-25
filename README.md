@@ -21,6 +21,7 @@ The BrainGlobe Atlas API (`brainglobe-atlasapi`) provides a common interface for
 A number of atlases are in development; those available currently are shown in the table below. The table is synced from the BrainGlobe [documentation repository](https://github.com/brainglobe/brainglobe.github.io)—to update it locally after changes there, run `python tools/update_atlas_table.py`.
 
 <!-- BEGIN_ATLAS_TABLE -->
+
 | Atlas Name | Resolution | Ages | Reference Images | Name in API & More Info |
 | --- |  --- | --- | --- | --- |
 | [Allen Mouse Brain Atlas](https://doi.org/10.1016/j.cell.2020.04.007) | 10, 25, 50, and 100 micron | P56 | STPT  | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-adult-mouse-brain-atlas) |

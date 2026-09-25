@@ -432,6 +432,7 @@ class AtlasPackagingData:
         self.resolution = _standardize_resolution(self.resolution)
         self.reference_stack = _load_stack(self.reference_stack)
         self.annotation_stack = _load_stack(self.annotation_stack)
+        _check_annotation_dtype(self.annotation_stack)
 
         shape = self.reference_stack[0].shape
         volume_shape = tuple(
@@ -530,6 +531,51 @@ def _load_stack(
         "Invalid stack format. Each item in the list must be a "
         "file path or a numpy array."
     )
+
+
+def _check_annotation_dtype(stacks: List[npt.NDArray]) -> None:
+    """Check that every annotation scale holds valid uint32 labels.
+
+    Annotations are written, and looked up during mask generation, as
+    `descriptors.ANNOTATION_DTYPE`. A stack that cannot be converted without
+    loss (a float stack, or an integer stack with values outside the uint32
+    range) otherwise fails much later with a cryptic numba typing error, or
+    is silently wrapped around.
+
+    Parameters
+    ----------
+    stacks : List[np.ndarray]
+        The loaded annotation stack, one array per scale level.
+
+    Raises
+    ------
+    ValueError
+        If any scale level cannot be cast to `descriptors.ANNOTATION_DTYPE`
+        without loss.
+    """
+    limits = np.iinfo(descriptors.ANNOTATION_DTYPE)
+
+    for stack in stacks:
+        if np.can_cast(
+            stack.dtype, descriptors.ANNOTATION_DTYPE, casting="safe"
+        ):
+            continue
+
+        values_fit = np.issubdtype(stack.dtype, np.integer) and (
+            stack.size == 0
+            or (stack.min() >= limits.min and stack.max() <= limits.max)
+        )
+        if values_fit:
+            continue
+
+        raise ValueError(
+            f"Annotation stack has dtype {stack.dtype}. BrainGlobe "
+            f"annotations must be integer labels between {limits.min} and "
+            f"{limits.max}, so they can be stored as "
+            f"{np.dtype(descriptors.ANNOTATION_DTYPE).name}. Cast them "
+            "explicitly, e.g. annotation = annotation.astype(np.uint32), "
+            "before calling wrapup_atlas_from_data."
+        )
 
 
 def _reorient_stacks(

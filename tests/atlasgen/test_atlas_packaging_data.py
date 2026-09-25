@@ -19,6 +19,7 @@ from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
     TemplateInfo,
     TerminologyInfo,
     _auto_generate_hemispheres,
+    _check_annotation_dtype,
     _load_stack,
     _reorient_stacks,
     _standardize_resolution,
@@ -171,6 +172,51 @@ def test_reorient_stacks_reorders_axes():
         descriptors.ATLAS_ORIENTATION, arr, copy=True
     )
     assert np.array_equal(result[0], expected)
+
+
+# --- _check_annotation_dtype ---
+
+
+def test_check_annotation_dtype_allows_safe_cast():
+    """Test `_check_annotation_dtype` accepts a dtype that fits in uint32."""
+    _check_annotation_dtype([np.zeros((2, 2, 2), dtype=np.uint16)])
+
+
+def test_check_annotation_dtype_allows_in_range_integers():
+    """Test `_check_annotation_dtype` accepts int64 labels within range."""
+    _check_annotation_dtype([np.arange(8, dtype=np.int64).reshape((2, 2, 2))])
+
+
+@pytest.mark.parametrize(
+    "annotation",
+    [
+        pytest.param(np.zeros((2, 2, 2), dtype=np.float64), id="float"),
+        pytest.param(np.full((2, 2, 2), -1, dtype=np.int64), id="negative"),
+        pytest.param(
+            np.full((2, 2, 2), 2**32, dtype=np.int64), id="above uint32 max"
+        ),
+    ],
+)
+def test_check_annotation_dtype_invalid(annotation):
+    """Test `_check_annotation_dtype` rejects labels that do not fit uint32.
+
+    Parameters
+    ----------
+    annotation : np.ndarray
+        An annotation stack that cannot be stored as uint32 without loss.
+    """
+    with pytest.raises(ValueError, match="uint32"):
+        _check_annotation_dtype([annotation])
+
+
+def test_check_annotation_dtype_checks_every_scale():
+    """Test `_check_annotation_dtype` checks all scales, not just the first."""
+    stacks = [
+        np.zeros((4, 4, 4), dtype=np.uint32),
+        np.zeros((2, 2, 2), dtype=np.float64),
+    ]
+    with pytest.raises(ValueError, match="uint32"):
+        _check_annotation_dtype(stacks)
 
 
 # --- ComponentInfo ---
@@ -884,6 +930,28 @@ def test_atlas_packaging_data_additional_references_processed(
     assert isinstance(ref_stack, list)
     assert ref_stack[0].shape == (4, 4, 4)
     assert mock_check.call_count == 5
+
+
+def test_atlas_packaging_data_rejects_float_annotation(
+    mocker, atlas_packaging_kwargs
+):
+    """Test AtlasPackagingData rejects a float annotation stack up front.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas_packaging_kwargs : dict
+        Minimal valid kwargs for AtlasPackagingData.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
+    )
+    atlas_packaging_kwargs["annotation_stack"] = np.zeros(
+        (4, 4, 4), dtype=np.float64
+    )
+    with pytest.raises(ValueError, match="uint32"):
+        AtlasPackagingData(**atlas_packaging_kwargs)
 
 
 def test_atlas_packaging_data_multiscale_resolution(

@@ -19,7 +19,7 @@ from brainglobe_atlasapi.list_atlases import (
 from brainglobe_atlasapi.update_atlases import update_atlas
 
 
-def validate_atlas_files(atlas: BrainGlobeAtlas):
+def validate_atlas_files(atlas: BrainGlobeAtlas) -> bool:
     """
     Check if essential files exist in the atlas folder.
 
@@ -90,7 +90,9 @@ def validate_atlas_files(atlas: BrainGlobeAtlas):
     return True
 
 
-def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
+def _assert_close(
+    mesh_coord, annotation_coord, pixel_size, diff_tolerance=10
+) -> bool:
     """
     Check if mesh and annotation coordinates are sufficiently close.
 
@@ -130,7 +132,7 @@ def _assert_close(mesh_coord, annotation_coord, pixel_size, diff_tolerance=10):
     return True
 
 
-def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
+def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas) -> bool:
     """Check if the mesh and the image extents are similar.
 
     Validates that the spatial extents of the `root` mesh align with the
@@ -193,7 +195,7 @@ def validate_mesh_matches_image_extents(atlas: BrainGlobeAtlas):
     return True
 
 
-def open_for_visual_check(atlas: BrainGlobeAtlas):
+def open_for_visual_check(atlas: BrainGlobeAtlas) -> bool:
     """Open the atlas for visual inspection (not implemented).
 
     This function is a placeholder for future visual validation routines.
@@ -212,7 +214,7 @@ def open_for_visual_check(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_checksum(atlas: BrainGlobeAtlas):
+def validate_checksum(atlas: BrainGlobeAtlas) -> bool:
     """Validate the atlas checksum (not implemented).
 
     This function is a placeholder for future checksum validation routines.
@@ -231,7 +233,7 @@ def validate_checksum(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_image_dimensions(atlas: BrainGlobeAtlas):
+def validate_image_dimensions(atlas: BrainGlobeAtlas) -> bool:
     """Check that annotation and template images have identical dimensions.
 
     Parameters
@@ -257,7 +259,7 @@ def validate_image_dimensions(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_additional_references(atlas: BrainGlobeAtlas):
+def validate_additional_references(atlas: BrainGlobeAtlas) -> bool:
     """Check that additional references have expected properties.
 
     Verifies that all additional reference images:
@@ -297,7 +299,42 @@ def validate_additional_references(atlas: BrainGlobeAtlas):
     return True
 
 
-def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
+def _get_structure_and_mesh_ids(
+    atlas: BrainGlobeAtlas,
+) -> tuple[list[int], list[int]]:
+    """Get structure IDs from the atlas and mesh IDs from the meshes folder.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        The BrainGlobeAtlas object to inspect.
+
+    Returns
+    -------
+    tuple of (list of int, list of int)
+        The structure IDs from `atlas.structures` and the mesh IDs found
+        in the atlas's `meshes` directory.
+    """
+    ids_from_bg_atlas_api = list(atlas.structures.keys())
+
+    atlas_path = atlas.root_dir
+    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
+
+    mesh_path = (
+        Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
+    )
+
+    # Mesh files are named as <structure_id>
+    ids_from_mesh_files = [
+        int(f.stem)
+        for f in mesh_path.iterdir()
+        if (f.name != "info" and f.suffix != ".index")
+    ]
+
+    return ids_from_bg_atlas_api, ids_from_mesh_files
+
+
+def catch_missing_mesh_files(atlas: BrainGlobeAtlas) -> bool:
     """Check if all structures in the atlas have a corresponding mesh file.
 
     Parameters
@@ -317,21 +354,9 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
         If any structure ID found in `atlas.structures` does not have a
         matching mesh file in the atlas's `meshes` directory.
     """
-    ids_from_bg_atlas_api = list(atlas.structures.keys())
-
-    atlas_path = atlas.root_dir
-    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
-
-    mesh_path = (
-        Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
+    ids_from_bg_atlas_api, ids_from_mesh_files = _get_structure_and_mesh_ids(
+        atlas
     )
-
-    # Mesh files are named as <structure_id>
-    ids_from_mesh_files = [
-        int(f.stem)
-        for f in mesh_path.iterdir()
-        if (f.name != "info" and f.suffix != ".index")
-    ]
 
     in_bg_not_mesh = []
     for mesh_id in ids_from_bg_atlas_api:
@@ -346,7 +371,7 @@ def catch_missing_mesh_files(atlas: BrainGlobeAtlas):
     return True
 
 
-def catch_missing_structures(atlas: BrainGlobeAtlas):
+def catch_missing_structures(atlas: BrainGlobeAtlas) -> bool:
     """Check if all mesh files in the atlas folder are listed as a structure.
 
     Parameters
@@ -366,20 +391,9 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
         If any .obj file found in the atlas's 'meshes' directory does not
         have a corresponding structure ID in `atlas.structures`.
     """
-    ids_from_bg_atlas_api = list(atlas.structures.keys())
-
-    atlas_path = atlas.root_dir
-    meshes_location = atlas.metadata["annotation_set"]["location"].lstrip("/")
-
-    mesh_path = (
-        Path(atlas_path) / meshes_location / descriptors.V3_MESHES_DIRECTORY
+    ids_from_bg_atlas_api, ids_from_mesh_files = _get_structure_and_mesh_ids(
+        atlas
     )
-
-    ids_from_mesh_files = [
-        int(f.stem)
-        for f in mesh_path.iterdir()
-        if (f.name != "info" and f.suffix != ".index")
-    ]
 
     in_mesh_not_bg = []
     for id in ids_from_mesh_files:
@@ -394,7 +408,7 @@ def catch_missing_structures(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_template_image_pixels(atlas: BrainGlobeAtlas):
+def validate_template_image_pixels(atlas: BrainGlobeAtlas) -> bool:
     """Validate that the template image was correctly rescaled.
 
     This check aims to catch issues where a float64 template image (e.g., from
@@ -426,7 +440,7 @@ def validate_template_image_pixels(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
+def validate_annotation_symmetry(atlas: BrainGlobeAtlas) -> bool:
     """Validate that equivalent regions in left and right hemispheres have the
     same annotation value.
 
@@ -466,7 +480,7 @@ def validate_annotation_symmetry(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_unique_acronyms(atlas: BrainGlobeAtlas):
+def validate_unique_acronyms(atlas: BrainGlobeAtlas) -> bool:
     """Validate that all structure acronyms in the atlas are unique.
 
     Duplicate acronyms are incompatible with the current implementation
@@ -505,7 +519,7 @@ def validate_unique_acronyms(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_atlas_name(atlas: BrainGlobeAtlas):
+def validate_atlas_name(atlas: BrainGlobeAtlas) -> bool:
     """Validate the naming convention of the atlas.
 
     Checks if the atlas name adheres to specific rules:
@@ -549,7 +563,7 @@ def validate_atlas_name(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_atlas_name_listed(atlas: BrainGlobeAtlas):
+def validate_atlas_name_listed(atlas: BrainGlobeAtlas) -> bool:
     """Validate that the atlas name is listed in atlas_name.py.
 
     Parameters
@@ -574,7 +588,7 @@ def validate_atlas_name_listed(atlas: BrainGlobeAtlas):
     return True
 
 
-def validate_metadata(atlas: BrainGlobeAtlas):
+def validate_metadata(atlas: BrainGlobeAtlas) -> bool:
     """Validate the atlas metadata.
 
     Checks that the metadata of the given atlas has the correct format.
@@ -693,22 +707,28 @@ def validate_atlas(atlas_name, version, validation_functions):
         `error_message` is None if the check passes.
     """
     print(atlas_name, version)
+    # Triggers download so the atlas appears in get_atlases_lastversions()
     BrainGlobeAtlas(atlas_name)
     updated = get_atlases_lastversions()[atlas_name]["updated"]
     if not updated:
         update_atlas(atlas_name)
 
+    atlas = BrainGlobeAtlas(atlas_name)
     validation_results = {atlas_name: []}
 
-    for i, validation_function in enumerate(validation_functions):
+    for validation_function in validation_functions:
         try:
-            validation_function(BrainGlobeAtlas(atlas_name))
+            validation_function(atlas)
             validation_results[atlas_name].append(
                 (validation_function.__name__, None, str("Pass"))
             )
         except AssertionError as error:
             validation_results[atlas_name].append(
                 (validation_function.__name__, str(error), str("Fail"))
+            )
+        except Exception as error:
+            validation_results[atlas_name].append(
+                (validation_function.__name__, str(error), str("Error"))
             )
 
     return validation_results

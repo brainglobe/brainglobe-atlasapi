@@ -780,6 +780,7 @@ def _finalize_atlas_at_resolution(
         shape=shape,
         additional_references=additional_references,
         atlas_packager=packaging_data.atlas_packager,
+        license=packaging_data.license,
         coordinate_space=packaging_data.coordinate_space_info,
         terminology=packaging_data.terminology_info,
         annotation_set=packaging_data.annotation_info,
@@ -851,6 +852,7 @@ def wrapup_atlas_from_data(
     overwrite=False,
     cleanup_files=None,
     compress=None,
+    license: Dict[str, str | None] | None = None,
 ) -> Path:
     """
     Finalise an atlas with truly consistent format from all the data.
@@ -924,6 +926,11 @@ def wrapup_atlas_from_data(
     compress : deprecated, optional
         (Default value = None).
         Deprecated and has no effect.
+    license : Dict[str, str | None] or None, optional
+        License metadata in the form ``{"license": license_short_name,
+        "link_to_license": url_or_none}``. ``link_to_license`` may be
+        ``None`` for an explicitly unlicensed atlas. The entire field defaults
+        to ``None`` when license metadata is not provided.
 
     Returns
     -------
@@ -1066,6 +1073,7 @@ def wrapup_atlas_from_data(
         structures_list=structures_list,
         meshes_dict=meshes_dict,
         atlas_packager=atlas_packager,
+        license=license,
         hemispheres_stack=hemispheres_stack,
         additional_references=additional_template_list,
         additional_metadata=additional_metadata,

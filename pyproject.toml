@@ -22,7 +22,7 @@ dependencies = [
     "aiobotocore >= 3.6.0",
     "brainglobe-space >= 1.0.0",
     "click",
-    "DracoPy",
+    "DracoPy != 2.1.0",
     "fsspec",
     "meshio",
     "ngff-zarr>=0.37.0",

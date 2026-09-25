@@ -221,12 +221,8 @@ def create_atlas(working_dir):
                 "name": region["name"],
                 "acronym": acronym,
                 "id": region["id"],
-                "rgb_triplet": hex_to_rgb(
-                    region["color_hex_triplet"]
-                ),
-                "structure_id_path": path_to_list(
-                    region["structure_id_path"]
-                ),
+                "rgb_triplet": hex_to_rgb(region["color_hex_triplet"]),
+                "structure_id_path": path_to_list(region["structure_id_path"]),
             }
         )
     ROOT_ID = regions_list[0]["id"]

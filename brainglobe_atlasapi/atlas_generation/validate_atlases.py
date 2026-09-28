@@ -91,7 +91,7 @@ def validate_atlas_files(atlas: BrainGlobeAtlas) -> bool:
 
 
 def _assert_close(
-    mesh_coord, annotation_coord, pixel_size, diff_tolerance=10
+    mesh_coord: float, annotation_coord: float, pixel_size: float, diff_tolerance: int = 10
 ) -> bool:
     """
     Check if mesh and annotation coordinates are sufficiently close.
@@ -708,7 +708,7 @@ def validate_atlas(atlas_name, version, validation_functions):
     """
     print(atlas_name, version)
     # Triggers download so the atlas appears in get_atlases_lastversions()
-    BrainGlobeAtlas(atlas_name)
+    atlas = BrainGlobeAtlas(atlas_name)
     updated = get_atlases_lastversions()[atlas_name]["updated"]
     if not updated:
         update_atlas(atlas_name)
@@ -720,15 +720,15 @@ def validate_atlas(atlas_name, version, validation_functions):
         try:
             validation_function(atlas)
             validation_results[atlas_name].append(
-                (validation_function.__name__, None, str("Pass"))
+                (validation_function.__name__, None, "Pass")
             )
         except AssertionError as error:
             validation_results[atlas_name].append(
-                (validation_function.__name__, str(error), str("Fail"))
+                (validation_function.__name__, str(error), "Fail")
             )
         except Exception as error:
             validation_results[atlas_name].append(
-                (validation_function.__name__, str(error), str("Error"))
+                (validation_function.__name__, str(error), "Error")
             )
 
     return validation_results

@@ -22,7 +22,7 @@ from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.utils import retrieve_over_http
 
 # The minor version of the atlas in brainglobe_atlasapi (1.<minor>)
-__version__ = 3
+__version__ = 1
 
 ATLAS_NAME = "allen_mouse"
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
@@ -286,7 +286,7 @@ def retrieve_or_construct_meshes(
         closing_n_iters=10,
         decimate_fraction=0.2,
         smooth=False,
-        num_threads=-1,
+        num_threads=4,
         skip_structure_ids=unchanged_ids,
     )
     meshes_dict.update(generated_meshes_dict)

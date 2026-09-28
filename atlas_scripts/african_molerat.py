@@ -1,6 +1,6 @@
 """Package the BrainGlobe atlas for the African Molerat."""
 
-__version__ = "2"
+__version__ = "1"
 
 import time
 from pathlib import Path
@@ -66,7 +66,7 @@ def create_atlas(working_dir, resolution):
 
     annotations_file = materials_directory / "annotation_with_PAG.tif"
 
-    additional_references = {
+    additional_reference_paths = {
         "vascular": materials_directory
         / "african_mole-rat_vascular_template.tif",
         "vascular_AP-smoothed": materials_directory
@@ -119,6 +119,10 @@ def create_atlas(working_dir, resolution):
 
     # rescale reference volume into int16 range
     reference_volume = load_any(reference_file).astype(np.uint16)
+
+    additional_references = {}
+    for additional_key, additional_path in additional_reference_paths.items():
+        additional_references[additional_key] = load_any(additional_path)
 
     # generate binary mask for mesh creation
     labels = np.unique(annotated_volume).astype(np.int_)

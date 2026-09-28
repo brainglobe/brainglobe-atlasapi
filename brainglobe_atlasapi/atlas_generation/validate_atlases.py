@@ -91,7 +91,10 @@ def validate_atlas_files(atlas: BrainGlobeAtlas) -> bool:
 
 
 def _assert_close(
-    mesh_coord: float, annotation_coord: float, pixel_size: float, diff_tolerance: int = 10
+    mesh_coord: float,
+    annotation_coord: float,
+    pixel_size: float,
+    diff_tolerance: int = 10,
 ) -> bool:
     """
     Check if mesh and annotation coordinates are sufficiently close.

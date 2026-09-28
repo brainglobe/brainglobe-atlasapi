@@ -1,6 +1,6 @@
 """Package the BrainGlobe atlas for the African Molerat."""
 
-__version__ = "1"
+__version__ = "2"
 
 import time
 from pathlib import Path
@@ -44,7 +44,7 @@ def create_atlas(working_dir, resolution):
     SPECIES = "Fukomys anselli"
     ATLAS_LINK = "https://www.malkemper-lab.com/"
     CITATION = "unpublished"
-    ATLAS_FILE_URL = "https://gin.g-node.org/BrainGlobe/molerat_materials/raw/master/mole-rat_atlas_20251023.zip"
+    ATLAS_FILE_URL = "https://gin.g-node.org/BrainGlobe/molerat_materials/raw/master/mole-rat_atlas_20261025.zip"
     ORIENTATION = "asr"
     ROOT_ID = 999
     ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
@@ -64,9 +64,18 @@ def create_atlas(working_dir, resolution):
         materials_directory / "Reference_mole-rat_brain_fullmap.tif"
     )
 
-    annotations_file = (
-        materials_directory / "anotation_latest_cleaned_fullmap.tif"
-    )
+    annotations_file = materials_directory / "annotation_with_PAG.tif"
+
+    additional_references = {
+        "vascular": materials_directory
+        / "african_mole-rat_vascular_template.tif",
+        "vascular_AP-smoothed": materials_directory
+        / "african_mole-rat_vascular_template_APsmoothed.tif",
+        "vascular_DV-smoothed": materials_directory
+        / "african_mole-rat_vascular_template_DVsmoothed.tif",
+        "vascular_ML-smoothed": materials_directory
+        / "african_mole-rat_vascular_template_MLsmoothed.tif",
+    }
 
     print("Reading structures files")
     df = pd.read_excel(hierarchy_path, engine="openpyxl")
@@ -186,6 +195,7 @@ def create_atlas(working_dir, resolution):
         compress=True,
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
+        additional_references=additional_references,
     )
 
     return output_filename

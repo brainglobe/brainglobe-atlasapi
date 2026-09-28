@@ -41,7 +41,7 @@ TIMEPOINTS = ["3", "5", "7", "9", "12", "14", "21"]
 
 # LABELS_FNAME = "Developmental_labels_lookup.txt"
 
-DOWNLOAD_ROOT = "https://lambada.icm-institute.org/datalayer/"
+DOWNLOAD_ROOT = "https://lambada.icm-institute.org/datalayer"
 
 REFERENCE_SUFFIXES = {
     "3": "16/LAMBADA_25um_reference_P3_v1.0.nii.gz",

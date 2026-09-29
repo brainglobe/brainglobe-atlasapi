@@ -8,7 +8,7 @@ containing the MBAT_WHS_SD_rat_atlas data. Uses the original Waxholm Space
 (WHS) SD rat atlas files.
 """
 
-__version__ = "2"
+__version__ = "3"
 
 import json
 from pathlib import Path

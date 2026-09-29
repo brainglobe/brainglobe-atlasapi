@@ -13,8 +13,8 @@ from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas, config
 from brainglobe_atlasapi.update_atlases import update_atlas
 
 
-@pytest.fixture(autouse=True)
-def mock_brainglobe_user_folders(monkeypatch):
+@pytest.fixture(autouse=True, scope="session")
+def mock_brainglobe_user_folders():
     """Mock BrainGlobe user folders.
 
     Ensure user config and data is mocked during all local testing to avoid
@@ -25,11 +25,19 @@ def mock_brainglobe_user_folders(monkeypatch):
     directory. It is not sufficient to mock the home path in the tests, as this
     will leave later imports in other modules unaffected.
 
+    Session-scoped so that it is set up before session-scoped fixtures that
+    download atlases (e.g. `tests/atlasgen/conftest.py`); a function-scoped
+    mock would run too late and those would use the real home directory.
+
     Note
     ----
     GitHub Actions workflow will test with default user folders.
     """
-    if not os.getenv("GITHUB_ACTIONS"):
+    if os.getenv("GITHUB_ACTIONS"):
+        yield
+        return
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
         home_path = Path.home()  # actual home path
         mock_home_path = home_path / ".brainglobe-tests"
         if not mock_home_path.exists():
@@ -57,6 +65,7 @@ def mock_brainglobe_user_folders(monkeypatch):
             }
         }
         monkeypatch.setattr(config, "TEMPLATE_CONF_DICT", mock_default_dirs)
+        yield
 
 
 @pytest.fixture()

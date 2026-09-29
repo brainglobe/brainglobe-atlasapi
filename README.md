@@ -41,6 +41,7 @@ A number of atlases are in development; those available currently are shown in t
 | [Kim Lab Developmental CCF v1.0](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20, 31.5, 34, 37.5, 40, and 50 micron | E11.5, E13.5, E15.5, E18.5, P04, P14, P56 | LSFM and MRI (adc, dwi, fa, T2) | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kim-lab-developmental-ccf-v1-0) |
 | [Kim Lab Developmental CCF v001](https://data.mendeley.com/datasets/2svx788ddf/1) | 10 micron | P56  | STPT, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2) | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kim-lab-developmental-ccf-v001-p56) |
 | [Blind Mexican Cavefish Brain Atlas](https://doi.org/10.7554/eLife.80777) | 2 micron | 6 dpf | IHC | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#blind-mexican-cavefish-brain-atlas) |
+| [Danionella cerebrum Brain Atlas](https://doi.org/10.64898/2026.03.09.710483) | 2.5 micron | Adult | Two-photon fluorescence, confocal reflectance | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#danionella-cerebrum-brain-atlas) |
 | [BlueBrain Barrel Cortex Atlas](https://doi.org/10.1162/imag_a_00209) | 10 and 25 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#bluebrain-barrel-cortex-atlas) |
 | [UNAM Axolotl Brain Atlas](https://doi.org/10.1038/s41598-021-89357-3) | 40 micron | ~ 3 months post hatching | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#unam-axolotl-brain-atlas) |
 | [Prairie Vole Brain Atlas](https://doi.org/10.7554/eLife.87029.3.sa0) | 25 micron | Unknown | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#prairie-vole-brain-atlas) |
@@ -60,7 +61,9 @@ A number of atlases are in development; those available currently are shown in t
 | [Allen CCFv2 Mouse Brain Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-mouse-brain-atlas) |
 | [Allen CCFv2 Mouse Fiber Tracts Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-mouse-fiber-tracts-atlas) |
 | [Allen CCFv2 Developmental Mouse Brain Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-developmental-mouse-brain-atlas) |
-
+| [Duke Mouse Brain Atlas](https://doi.org/10.1126/sciadv.adq8089) | 15, 25, 50, 75, 100, and 150 micron | P90 ± 2 days | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#duke-mouse-brain-atlas) |
+| [Hoops Tawny Dragon Brain Atlas](https://doi.org/10.1007/s00429-021-02282-z) | 20 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#hoops-tawny-dragon-brain-atlas) |
+| [Duke Developmental Rat Brain Atlas](https://doi.org/10.1016/j.neuroimage.2013.01.017) | 25 micron | P0, P2, P4, P8, P12, P18, P24, P40 and P80 | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#duke-developmental-rat-brain-atlas) |
 <!-- END_ATLAS_TABLE -->
 
 **Acronyms:**
@@ -123,9 +126,9 @@ atlas = BrainGlobeAtlas("allen_mouse_25um")
 The various files associated with the atlas can then be accessed as attributes of the class:
 
 ```python
-# reference image
-reference_image = atlas.reference
-print(reference_image.shape)
+# template image
+template_image = atlas.template
+print(template_image.shape)
 # (528, 320, 456)
 
 # annotation image
@@ -156,7 +159,7 @@ atlas.lookup_df.head(8)
 # 7       FRP1         68          Frontal pole, layer 1
 ```
 
-Each brain region can also be access by the acronym, e.g. for primary visual cortex (VISp):
+Each brain region can also be accessed by the acronym, e.g. for primary visual cortex (VISp):
 
 ```python
 from pprint import pprint

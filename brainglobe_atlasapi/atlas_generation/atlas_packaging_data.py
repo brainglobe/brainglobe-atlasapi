@@ -476,6 +476,9 @@ class AtlasPackagingData:
         else:
             self.symmetric = False
             self.hemispheres_stack = _load_stack(self.hemispheres_stack)
+            self.hemispheres_stack = _reorient_stacks(
+                self.hemispheres_stack, self.space_convention
+            )
 
         self.structures_list = filter_structures_not_present_in_annotation(
             self.structures_list, self.annotation_stack[0]

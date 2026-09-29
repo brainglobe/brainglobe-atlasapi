@@ -199,30 +199,6 @@ def check_s3_status(timeout=5, raise_error=True):
     return False
 
 
-def check_gin_status(timeout=5, raise_error=True):
-    """Check that the GIN server is up.
-
-    timeout : int
-        timeout to wait for [in seconds] (Default value = 5).
-    raise_error : bool
-        if false, warning but no error.
-    """
-    url = "https://gin.g-node.org/"
-
-    try:
-        _ = requests.get(url, timeout=timeout)
-
-        return True
-    except (requests.ConnectionError, requests.exceptions.Timeout) as e:
-        error_message = "GIN server is down."
-        if not raise_error:
-            print(error_message)
-        else:
-            raise ConnectionError(error_message) from e
-
-    return False
-
-
 def retrieve_over_http(
     url,
     output_file_path,

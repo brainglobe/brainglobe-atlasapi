@@ -23,6 +23,7 @@ from brainglobe_atlasapi.descriptors import (
     V3_TEMPLATE_NAME,
     remote_url_s3,
 )
+from brainglobe_atlasapi.list_atlases import get_all_atlases_lastversions
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
     check_internet_connection,
@@ -185,7 +186,8 @@ class BrainGlobeAtlas(core.Atlas):
     def remote_version(self) -> Optional[tuple[int, ...]]:
         """Reads remote version from s3 bucket.
 
-        Largest numerical version assumed to be latest.
+        Unless a version was requested, the latest version is the one listed
+        in the remote last_versions.conf.
         If we are offline or using a custom atlas, return None.
         """
         if self._remote_version is not None:
@@ -204,13 +206,16 @@ class BrainGlobeAtlas(core.Atlas):
             )
 
         if self._requested_version is None:
-            versions_path = self.fs.ls(bucket_path)
-            available_versions: List[str] = [
-                path_str.split("/")[-1] for path_str in versions_path
-            ]
-            latest_version = get_latest_version(available_versions)
+            last_versions = get_all_atlases_lastversions()
+            if self.atlas_name not in last_versions:
+                if self.local_full_name is not None:
+                    return None
+                raise FileNotFoundError(
+                    f"{self.atlas_name} has no released version available. "
+                    "Specify a version explicitly to download it."
+                )
             self._remote_version = _version_tuple_from_str(
-                latest_version.replace("_", ".")
+                str(last_versions[self.atlas_name]).replace("_", ".")
             )
         else:
             requested_path = f"{bucket_path}/{self._requested_version}"

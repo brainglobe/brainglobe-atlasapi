@@ -5,13 +5,15 @@ based on data published by de Launoit et al. It downloads the necessary
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
-
+import ssl
+import certifi
 import json
 from pathlib import Path
 
 import numpy as np
 import pooch
 from brainglobe_utils.IO.image import load_any
+import urllib3
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -39,7 +41,38 @@ DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 TIMEPOINTS = ["3", "5", "7", "9", "12", "14", "21"]
 
-# LABELS_FNAME = "Developmental_labels_lookup.txt"
+GLOBAL_SIGN_INTERMEDIATE_CERT = """
+-----BEGIN CERTIFICATE-----
+MIIEsDCCA5igAwIBAgIQd70OB0LV2enQSdd00CpvmjANBgkqhkiG9w0BAQsFADBM
+MSAwHgYDVQQLExdHbG9iYWxTaWduIFJvb3QgQ0EgLSBSMzETMBEGA1UEChMKR2xv
+YmFsU2lnbjETMBEGA1UEAxMKR2xvYmFsU2lnbjAeFw0yMDA3MjgwMDAwMDBaFw0y
+OTAzMTgwMDAwMDBaMFMxCzAJBgNVBAYTAkJFMRkwFwYDVQQKExBHbG9iYWxTaWdu
+IG52LXNhMSkwJwYDVQQDEyBHbG9iYWxTaWduIEdDQyBSMyBEViBUTFMgQ0EgMjAy
+MDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKxnlJV/de+OpwyvCXAJ
+IcxPCqkFPh1lttW2oljS3oUqPKq8qX6m7K0OVKaKG3GXi4CJ4fHVUgZYE6HRdjqj
+hhnuHY6EBCBegcUFgPG0scB12Wi8BHm9zKjWxo3Y2bwhO8Fvr8R42pW0eINc6OTb
+QXC0VWFCMVzpcqgz6X49KMZowAMFV6XqtItcG0cMS//9dOJs4oBlpuqX9INxMTGp
+6EASAF9cnlAGy/RXkVS9nOLCCa7pCYV+WgDKLTF+OK2Vxw3RUJ/p8009lQeUARv2
+UCcNNPCifYX1xIspvarkdjzLwzOdLahDdQbJON58zN4V+lMj0msg+c0KnywPIRp3
+BMkCAwEAAaOCAYUwggGBMA4GA1UdDwEB/wQEAwIBhjAdBgNVHSUEFjAUBggrBgEF
+BQcDAQYIKwYBBQUHAwIwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQUDZjA
+c3+rvb3ZR0tJrQpKDKw+x3wwHwYDVR0jBBgwFoAUj/BLf6guRSSuTVD6Y5qL3uLd
+G7wwewYIKwYBBQUHAQEEbzBtMC4GCCsGAQUFBzABhiJodHRwOi8vb2NzcDIuZ2xv
+YmFsc2lnbi5jb20vcm9vdHIzMDsGCCsGAQUFBzAChi9odHRwOi8vc2VjdXJlLmds
+b2JhbHNpZ24uY29tL2NhY2VydC9yb290LXIzLmNydDA2BgNVHR8ELzAtMCugKaAn
+hiVodHRwOi8vY3JsLmdsb2JhbHNpZ24uY29tL3Jvb3QtcjMuY3JsMEcGA1UdIARA
+MD4wPAYEVR0gADA0MDIGCCsGAQUFBwIBFiZodHRwczovL3d3dy5nbG9iYWxzaWdu
+LmNvbS9yZXBvc2l0b3J5LzANBgkqhkiG9w0BAQsFAAOCAQEAy8j/c550ea86oCkf
+r2W+ptTCYe6iVzvo7H0V1vUEADJOWelTv07Obf+YkEatdN1Jg09ctgSNv2h+LMTk
+KRZdAXmsE3N5ve+z1Oa9kuiu7284LjeS09zHJQB4DJJJkvtIbjL/ylMK1fbMHhAW
+i0O194TWvH3XWZGXZ6ByxTUIv1+kAIql/Mt29PmKraTT5jrzcVzQ5A9jw16yysuR
+XRrLODlkS1hyBjsfyTNZrmL1h117IFgntBA5SQNVl9ckedq5r4RSAU85jV8XK5UL
+REjRZt2I6M9Po9QL7guFLu4sPFJpwR1sPJvubS2THeo7SxYoNDtdyBHs7euaGcMa
+D/fayQ==
+-----END CERTIFICATE-----
+"""
+
+REGISTRY_PATH = Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt")
 
 DOWNLOAD_ROOT = "https://lambada.icm-institute.org/datalayer"
 
@@ -74,6 +107,60 @@ ANNOTATION_FNAMES = {
 LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
 LABELS_FNAME = "1.json"
 
+def make_ssl_context():
+    """Create an SSL context with the global sign intermediate certificate.
+
+    Returns
+    -------
+    ssl.SSLContext
+        An SSL context with the global sign intermediate certificate.
+    """
+    context = ssl.create_default_context(cafile=certifi.where())
+    context.load_verify_locations(cadata=GLOBAL_SIGN_INTERMEDIATE_CERT)
+    return context
+
+class LAMBADADownloader:
+    """Pooch downloader using an in-memory SSL context."""
+
+    def __init__(self, progressbar=False, chunk_size=1024):
+        self.progressbar = progressbar
+        self.chunk_size = chunk_size
+
+    def __call__(self, url, output_file, pooch, check_only=False):
+
+        context = make_ssl_context()
+
+        http = urllib3.PoolManager(
+            ssl_context=context
+        )
+
+        response = http.request(
+            "GET",
+            url,
+            preload_content=False,
+        )
+
+        if response.status >= 400:
+            response.release_conn()
+            raise RuntimeError(
+                f"Failed to download {url}: HTTP {response.status}"
+            )
+
+        if check_only:
+            response.release_conn()
+            return True
+
+        try:
+            with open(output_file, "wb") as output:
+                while True:
+                    chunk = response.read(self.chunk_size)
+
+                    if not chunk:
+                        break
+
+                    output.write(chunk)
+        finally:
+            response.release_conn()
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -114,15 +201,14 @@ def pooch_init(download_dir_path: Path) -> pooch.Pooch:
         + list(ANNOTATION_SUFFIXES.values())
         + [LABELS_FNAME]
     )
-    empty_registry = {key: None for key in keys}
 
     p = pooch.create(
         path=download_dir_path,
-        base_url=DOWNLOAD_ROOT,
-        registry=empty_registry,
+        base_url="",
+        registry=None,
     )
 
-    # p.load_registry(Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt"))
+    p.load_registry(REGISTRY_PATH)
     return p
 
 
@@ -156,6 +242,8 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAMES[age]
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAMES[age]
 
+    downloader = LAMBADADownloader()
+    
     needs_download = (not reference_path.exists()) or (
         not annotation_path.exists()
     )
@@ -163,13 +251,15 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
         utils.check_internet_connection()
 
     fetched_reference = pooch_.fetch(
-        REFERENCE_SUFFIXES[age],
+        REFERENCE_FNAMES[age],
         progressbar=True,
+        downloader=downloader,
     )
 
     fetched_annotation = pooch_.fetch(
-        ANNOTATION_SUFFIXES[age],
+        ANNOTATION_FNAMES[age],
         progressbar=True,
+        downloader=downloader,
     )
 
     reference_volume = load_any(fetched_reference, as_numpy=True)
@@ -217,13 +307,14 @@ def retrieve_ontology():
     if needs_download:
         utils.check_internet_connection()
 
-    pooch.retrieve(
+    path = pooch.retrieve(
         url=LABELS_URL,
         known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
         path=DOWNLOAD_DIR_PATH,
         fname=LABELS_FNAME,
         progressbar=True,
     )
+    
 
     structures = []
     # Open labels file to get structure information
@@ -267,9 +358,9 @@ def retrieve_hemisphere_map(annotation_volume: np.ndarray, age: str):
         A numpy array representing the hemisphere map, or None if the atlas
         is symmetrical.
     """
-    # Atlas is in PRI orientation, slice from middle
+    # Atlas is in LPI orientation, slice on 0 axis
     hemispheres_map = np.full(annotation_volume.shape, 2, dtype=int)
-    hemispheres_map[:, hemispheres_map.shape[1] // 2 :, :] = 1
+    hemispheres_map[hemispheres_map.shape[0] // 2 :, : , : ] = 1
 
     return hemispheres_map
 
@@ -300,7 +391,8 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
     )
 
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
-
+    print(structures_with_mesh)
+    quit()
     return meshes_dict, structures_with_mesh
 
 
@@ -324,7 +416,6 @@ if __name__ == "__main__":
         atlas_name = f"{ATLAS_NAME}_P{age}"
         print("\nPackaging atlas for:", atlas_name)
         reference_volume, annotated_volume = fetch_animal(odin, age)
-        continue
         hemispheres_stack = retrieve_hemisphere_map(annotated_volume, age)
         meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
             annotated_volume, structures
@@ -350,8 +441,3 @@ if __name__ == "__main__":
             scale_meshes=True,
             atlas_packager=ATLAS_PACKAGER,
         )
-    pooch.make_registry(
-        directory=DOWNLOAD_DIR_PATH,
-        output=DOWNLOAD_DIR_PATH / "hashes" / "registry.txt",
-        recursive=True,
-    )

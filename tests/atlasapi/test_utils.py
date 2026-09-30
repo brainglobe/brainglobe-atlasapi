@@ -455,3 +455,19 @@ def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
     assert not mock_cache_path.exists()
     utils.conf_from_url(conf_url, cache_path=mock_cache_path)
     assert mock_cache_path.parent.exists()
+
+
+def test_load_structures_from_csv_parent_dtype(atlas):
+    """Test that the parent_identifier column in the structure dataframe
+    has the correct dtype.
+    """
+    structures_path = (
+        atlas.root_dir
+        / atlas.metadata["terminology"]["location"][1:]
+        / descriptors.V3_TERMINOLOGY_NAME
+    )
+    structures_list = utils.load_structures_from_csv(structures_path)
+
+    assert len(structures_list) > 0
+    assert structures_list[1]["parent_structure_id"] is not None
+    assert isinstance(structures_list[1]["parent_structure_id"], int)

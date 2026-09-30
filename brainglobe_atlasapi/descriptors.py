@@ -26,12 +26,16 @@ METADATA_TEMPLATE = {
     "atlas_link": "http://www.example.com",
     "species": "Gen species",
     "symmetric": False,
+    "hemispheres_available": True,
     "resolution": [1.0, 1.0, 1.0],
     "orientation": "asr",
     "shape": [100, 50, 100],
     "version": "0.0",
     "additional_references": [],
 }
+
+# Keys from METADATA_TEMPLATE that may be absent in older atlas metadata:
+OPTIONAL_METADATA_KEYS = {"hemispheres_available"}
 
 
 # Template for a structure dictionary:

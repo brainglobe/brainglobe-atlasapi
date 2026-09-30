@@ -11,7 +11,11 @@ import numpy as np
 from brainglobe_atlasapi import BrainGlobeAtlas, descriptors
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.config import get_brainglobe_dir
-from brainglobe_atlasapi.descriptors import METADATA_TEMPLATE, REFERENCE_DTYPE
+from brainglobe_atlasapi.descriptors import (
+    METADATA_TEMPLATE,
+    OPTIONAL_METADATA_KEYS,
+    REFERENCE_DTYPE,
+)
 from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
     get_atlases_lastversions,
@@ -580,7 +584,8 @@ def validate_metadata(atlas: BrainGlobeAtlas):
     Checks that the metadata of the given atlas has the correct format.
     Specifically, it ensures that all required keys from `METADATA_TEMPLATE`
     are present and that the types of the values match the types specified
-    in `METADATA_TEMPLATE`.
+    in `METADATA_TEMPLATE`. The ``hemispheres_available`` key is optional for
+    compatibility with manifests created before that field was introduced.
 
     Parameters
     ----------
@@ -599,6 +604,8 @@ def validate_metadata(atlas: BrainGlobeAtlas):
         a metadata value does not match the expected type.
     """
     for key, value in METADATA_TEMPLATE.items():
+        if key in OPTIONAL_METADATA_KEYS and key not in atlas.metadata:
+            continue
         assert key in atlas.metadata, f"Missing key: {key}"
         assert isinstance(atlas.metadata[key], type(value)), (
             f"{key} should be of type {type(value).__name__}, "

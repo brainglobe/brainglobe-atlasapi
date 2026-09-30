@@ -59,6 +59,7 @@ def metadata_input_template():
         "atlas_link": "https://zenodo.org/records/4595016",
         "species": "Ambystoma mexicanum",
         "symmetric": False,
+        "hemispheres_available": True,
         "resolution": [40, 40, 40],  # Keep as list/tuple input type
         # orientation is be "asr", wrapup.py will pass "asr" after reorienting
         "orientation": "asr",
@@ -93,6 +94,7 @@ def test_generate_metadata_dict(metadata_input_template):
         "atlas_link": "atlas_link",
         "species": "species",
         "symmetric": "symmetric",
+        "hemispheres_available": "hemispheres_available",
         "resolution": "resolution",
         "orientation": "orientation",
         "version": "version",
@@ -187,6 +189,16 @@ def test_generate_metadata_dict(metadata_input_template):
             {"symmetric": False},
             None,
             id="symmetric=bool (False)",
+        ),
+        pytest.param(
+            {"hemispheres_available": "True"},
+            AssertionError,
+            id="hemispheres_available=string (error)",
+        ),
+        pytest.param(
+            {"hemispheres_available": False},
+            None,
+            id="hemispheres_available=bool (False)",
         ),
         pytest.param(
             {"resolution": (40, 40)},

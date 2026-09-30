@@ -41,6 +41,7 @@ def generate_metadata_dict(
     terminology: TerminologyInfo,
     annotation_set: AnnotationInfo,
     template: TemplateInfo,
+    hemispheres_available: bool = True,
 ):
     """
     Generate a dictionary containing metadata for a BrainGlobe atlas.
@@ -79,7 +80,10 @@ def generate_metadata_dict(
         Metadata for the annotation set.
     template : TemplateInfo
         Metadata for the template.
-
+    hemispheres_available : bool, optional
+        True if hemisphere information is available for the atlas, False if it
+        is unknown or the imaged object does not have distinct hemispheres.
+        Defaults to True.
 
     Returns
     -------
@@ -106,6 +110,7 @@ def generate_metadata_dict(
 
     # Enforce correct format for symmetric, resolution and shape:
     assert isinstance(symmetric, bool)
+    assert isinstance(hemispheres_available, bool)
     assert len(resolution) == 3
     assert len(shape) == 3
 
@@ -125,6 +130,7 @@ def generate_metadata_dict(
         atlas_link=atlas_link,
         species=species,
         symmetric=symmetric,
+        hemispheres_available=hemispheres_available,
         resolution=resolution,
         orientation=orientation,
         version=version,

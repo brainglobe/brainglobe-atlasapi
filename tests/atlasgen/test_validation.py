@@ -571,6 +571,22 @@ def test_validate_nested_metadata_structure_passes(atlas):
             r"annotation_set is missing key: terminology",
             id="missing nested sub-dict in annotation_set",
         ),
+        pytest.param(
+            lambda metadata: metadata["annotation_set"]["template"].update(
+                {"version": "9.9"}
+            ),
+            r"annotation_set\.template \(.*'version': '9\.9'.*\) "
+            r"does not match template \(",
+            id="annotation_set template version mismatch",
+        ),
+        pytest.param(
+            lambda metadata: metadata["annotation_set"]["terminology"].update(
+                {"name": "different-terminology"}
+            ),
+            r"annotation_set\.terminology \(.*'name': "
+            r"'different-terminology'.*\) does not match terminology \(",
+            id="annotation_set terminology name mismatch",
+        ),
     ],
 )
 def test_validate_nested_metadata_structure_negative(

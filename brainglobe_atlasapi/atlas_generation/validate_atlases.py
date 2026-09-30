@@ -688,6 +688,10 @@ def validate_nested_metadata_structure(atlas: BrainGlobeAtlas) -> bool:
     sub-dicts of the same shape, and that `coordinate_space` additionally
     contains a `template` sub-dict of the same shape.
 
+    Also checks that the `template` and `terminology` sub-dicts of
+    `annotation_set` are identical to the top-level `template` and
+    `terminology` entries.
+
     Parameters
     ----------
     atlas : BrainGlobeAtlas
@@ -697,13 +701,16 @@ def validate_nested_metadata_structure(atlas: BrainGlobeAtlas) -> bool:
     -------
     bool
         True if the nested metadata structure adheres to the expected
-        shape.
+        shape and `annotation_set` is consistent with the top-level
+        `template` and `terminology`.
 
     Raises
     ------
     AssertionError
         If a required component is missing from the metadata, is not a
-        dict, or is missing a required string key.
+        dict, is missing a required string key, or if the `template` or
+        `terminology` sub-dict of `annotation_set` differs from the
+        corresponding top-level entry.
     """
     assert isinstance(atlas.metadata, dict), (
         "atlas.metadata should be a dict, but got "
@@ -733,6 +740,14 @@ def validate_nested_metadata_structure(atlas: BrainGlobeAtlas) -> bool:
         "coordinate_space",
         nested_keys=("template",),
     )
+
+    for key in ("template", "terminology"):
+        nested_component = atlas.metadata["annotation_set"][key]
+        top_level_component = atlas.metadata[key]
+        assert nested_component == top_level_component, (
+            f"annotation_set.{key} ({nested_component}) does not match "
+            f"{key} ({top_level_component})."
+        )
 
     return True
 

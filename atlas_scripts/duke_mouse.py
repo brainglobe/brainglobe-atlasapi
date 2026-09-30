@@ -202,7 +202,7 @@ def retrieve_structure_information(annotation):
     ancestor_source_ids.remove(ROOT_ID)
     parent_rows = lookup[
         lookup["source_id"].isin(ancestor_source_ids)
-        & ~lookup["name"].str.endswith(("_left", "_right"))
+        & ~lookup["name"].str.endswith(("_left", "_right"), na=False)
     ].sort_values("level")
 
     source_to_bg_id = {ROOT_ID: ROOT_ID}

@@ -213,6 +213,8 @@ AtlasName: TypeAlias = Literal[
     "kocher_bumblebee_2.542um",
     "mpin_zfish_1um",
     "nadkarni_mri_mouselemur_91um",
+    "nmt_arm_asym_macaque_250um",
+    "nmt_arm_sym_macaque_250um",
     "osten_mouse_100um",
     "osten_mouse_10um",
     "osten_mouse_25um",
@@ -225,6 +227,8 @@ AtlasName: TypeAlias = Literal[
     "sju_cavefish_2um",
     "swc_female_rat_50um",
     "unam_axolotl_40um",
+    "vfb_jrc2018u_neuropils_fly_0.519um",
     "whs_sd_rat_39um",
     "whs_sd_swc_female_rat_39um",
+    "hoops_tawny_dragon_20um",
 ]

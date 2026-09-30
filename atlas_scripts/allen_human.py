@@ -1,6 +1,6 @@
 """Module to package the Allen Human Reference Atlas."""
 
-__version__ = "0"
+__version__ = "1"
 
 import json
 import time
@@ -10,7 +10,6 @@ import pandas as pd
 import pooch
 import treelib
 import urllib3
-from allensdk.core.structure_tree import StructureTree
 from brainglobe_utils.IO.image import load_nii
 from rich.progress import track
 
@@ -34,14 +33,23 @@ ORIENTATION = "rpi"
 ### Settings
 
 
+def hex_to_rgb(hex_color):
+    """Convert a hex colour string (e.g. "#FF0000") to an RGB triplet."""
+    hex_color = hex_color.lstrip("#")
+    return [int(hex_color[i : i + 2], 16) for i in range(0, 6, 2)]
+
+
+def path_to_list(path):
+    """Convert a "/"-separated structure id path to a list of ints."""
+    return [int(stid) for stid in path.split("/") if stid != ""]
+
+
 def prune_tree(tree):
     """
     Prunes the input tree based on the 'has_label' attribute of its nodes.
 
-    Nodes are removed if:
-    - They have a label, and all their children are removed
-    (meaning only the labeled parent is kept).
-    - They do not have a label, and none of their descendants have a label.
+    A node is removed only when neither it nor any of its descendants has a
+    label in the annotation volume.
 
     Parameters
     ----------
@@ -56,32 +64,19 @@ def prune_tree(tree):
         The pruned tree.
     """
     nodes = tree.nodes.copy()
-    for key, node in nodes.items():
-        if node.tag == "root":
+    for node in nodes.values():
+        if node.identifier == tree.root:
             continue
-        if node.data.has_label:
-            try:
-                children = tree.children(node.identifier)
-            except treelib.exceptions.NodeIDAbsentError:
-                continue
 
-            if children:
-                for child in children:
-                    try:
-                        tree.remove_node(child.identifier)
-                    except treelib.exceptions.NodeIDAbsentError:
-                        pass
-        else:
-            # Remove if none of the children has mesh
-            try:
-                subtree = tree.subtree(node.identifier)
-            except treelib.exceptions.NodeIDAbsentError:
-                continue
-            else:
-                if not np.any(
-                    [c.data.has_label for _, c in subtree.nodes.items()]
-                ):
-                    tree.remove_node(node.identifier)
+        try:
+            subtree = tree.subtree(node.identifier)
+        except treelib.exceptions.NodeIDAbsentError:
+            continue
+
+        if not any(
+            descendant.data.has_label for descendant in subtree.nodes.values()
+        ):
+            tree.remove_node(node.identifier)
     return tree
 
 
@@ -107,7 +102,6 @@ def download_atlas_files(download_dir_path, atlas_file_url, template_file_url):
     utils.check_internet_connection()
 
     data_fld = download_dir_path
-    # data_fld.mkdir(exist_ok=True)
 
     # downloading and un-compressing full annotation file
 
@@ -187,9 +181,13 @@ def create_atlas(working_dir):
     annotation = load_nii(annotations_image)  # shape (394, 466, 378)
     anatomy = load_nii(anatomy_image)  # shape (394, 466, 378)
 
-    annotation = annotation.get_fdata()
+    annotation = np.asanyarray(annotation.dataobj).astype(
+        np.uint32, copy=False
+    )
     anatomy = anatomy.get_fdata()
-
+    anatomy = (anatomy - np.min(anatomy)) / np.max(anatomy)
+    anatomy = anatomy * np.iinfo(np.uint16).max
+    anatomy = anatomy.astype(np.uint16)
     # ------------------------ #
     #   STRUCTURES HIERARCHY   #
     # ------------------------ #
@@ -206,7 +204,7 @@ def create_atlas(working_dir):
     http = urllib3.PoolManager()
     r = http.request("GET", query_url)
     data = json.loads(r.data.decode("utf-8"))["msg"]
-    structures = pd.read_json(json.dumps(data))
+    structures = pd.DataFrame(data)
 
     # Create empty list and collect all regions
     # traversing the regions hierarchy:
@@ -223,12 +221,8 @@ def create_atlas(working_dir):
                 "name": region["name"],
                 "acronym": acronym,
                 "id": region["id"],
-                "rgb_triplet": StructureTree.hex_to_rgb(
-                    region["color_hex_triplet"]
-                ),
-                "structure_id_path": StructureTree.path_to_list(
-                    region["structure_id_path"]
-                ),
+                "rgb_triplet": hex_to_rgb(region["color_hex_triplet"]),
+                "structure_id_path": path_to_list(region["structure_id_path"]),
             }
         )
     ROOT_ID = regions_list[0]["id"]
@@ -257,8 +251,6 @@ def create_atlas(working_dir):
 
         node.data = Region(is_label)
 
-    # tree.show(data_property='has_label')
-
     # Remove nodes for which no mesh can be created
     tree = prune_tree(tree)
     print(
@@ -280,11 +272,9 @@ def create_atlas(working_dir):
         total=tree.size(),
         description="Creating meshes",
     ):
-
-        if node.tag == "root":
-            annotated_volume[annotated_volume > 0] = node.identifier
-        else:
-            annotated_volume = annotated_volume
+        # _create_region_mesh builds the root mask from all IDs in the tree.
+        # Do not collapse the annotation to the root ID here: this same array
+        # is packaged below and must retain its regional labels.
 
         create_region_mesh(
             (
@@ -306,27 +296,32 @@ def create_atlas(working_dir):
         " minutes",
     )
 
+    # Retain every structure in the annotation-backed hierarchy, regardless
+    # of whether mesh extraction succeeded. Missing meshes are reported by
+    # atlas validation and must not remove structures from the terminology.
+    structures_to_keep = [
+        structure
+        for structure in regions_list
+        if structure["id"] in tree.nodes
+    ]
+
     # Create meshes dict
     meshes_dict = dict()
-    structures_with_mesh = []
-    for s in regions_list:
+    for structure in structures_to_keep:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{structure['id']}.obj"
         if not mesh_path.exists():
-            # print(f"No mesh file exists for: {s['name']}")
             continue
         else:
             # Check that the mesh actually exists (i.e. not empty)
             if mesh_path.stat().st_size < 512:
-                # print(f"obj file for {s['name']} is too small.")
                 continue
 
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
+        meshes_dict[structure["id"]] = mesh_path
 
     print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
+        f"Retaining {len(structures_to_keep)} structures, "
+        f"{len(meshes_dict)} of which have meshes"
     )
 
     # ----------- #
@@ -346,13 +341,14 @@ def create_atlas(working_dir):
         root_id=ROOT_ID,
         reference_stack=anatomy,
         annotation_stack=annotated_volume,
-        structures_list=structures_with_mesh,
+        structures_list=structures_to_keep,
         meshes_dict=meshes_dict,
         working_dir=working_dir,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,
         scale_meshes=True,
+        overwrite=True,
     )
 
     return output_filename

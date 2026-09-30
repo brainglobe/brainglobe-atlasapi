@@ -1,100 +1,53 @@
-name: tests
-
-on:
-  push:
-    branches:
-      - "main"
-    tags:
-      - "v**"
-  pull_request:
-  schedule:
-  # Runs at 6:10am UTC on Monday
-    - cron: '10 6 * * 1'
-  workflow_dispatch:
-
+name: Allen 3.1 clean atlas audit
 jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
-      - uses: neuroinformatics-unit/actions/lint@34bedfdfd70c6010be02182c9ca37fae8a1fd99d # v3.0.0
-
+    - uses: neuroinformatics-unit/actions/lint@34bedfdfd70c6010be02182c9ca37fae8a1fd99d
   manifest:
     runs-on: ubuntu-latest
     steps:
-      - uses: neuroinformatics-unit/actions/check_manifest@34bedfdfd70c6010be02182c9ca37fae8a1fd99d # v3.0.0
-
+    - uses: neuroinformatics-unit/actions/check_manifest@34bedfdfd70c6010be02182c9ca37fae8a1fd99d
   get-week-number:
     runs-on: ubuntu-latest
     outputs:
-        WEEK_NUMBER: ${{ steps.get-week-number.outputs.WEEK_NUMBER }}
+      WEEK_NUMBER: ${{ steps.get-week-number.outputs.WEEK_NUMBER }}
     steps:
     - name: Get week number
       id: get-week-number
       run: echo "WEEK_NUMBER=$(date -u '+%V')" >> "$GITHUB_OUTPUT"
-
   test:
-    needs: [linting, manifest, get-week-number]
+    needs:
+    - linting
+    - manifest
+    - get-week-number
     name: ${{ matrix.os }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Run all supported Python versions on linux
-        os: [ubuntu-latest]
-        python-version: ["3.12", "3.13", "3.14"]
+        os:
+        - ubuntu-latest
+        python-version:
+        - '3.12'
+        - '3.13'
+        - '3.14'
         include:
-          - os: macos-latest
-            python-version: "3.14"
-          - os: windows-latest
-            python-version: "3.14"
-
+        - os: macos-latest
+          python-version: '3.14'
+        - os: windows-latest
+          python-version: '3.14'
     steps:
-      - name: Cache atlases
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: | # ensure we don't cache any interrupted atlas download and extraction, if e.g. we cancel the workflow manually
-            ~/.brainglobe
-            !~/.brainglobe/atlas.tar.gz
-          key: brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
-          restore-keys: |
-              brainglobe-${{ runner.os }}-${{ needs.get-week-number.outputs.WEEK_NUMBER }}
-              brainglobe-${{ runner.os }}-
-              brainglobe
-
-      - name: Run tests
-        uses: neuroinformatics-unit/actions/test-uv@34bedfdfd70c6010be02182c9ca37fae8a1fd99d # v3.0.0
-        with:
-          python-version: "${{ matrix.python-version }}"
-          secret-codecov-token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Notify slack on scheduled failure
-        if: failure() && github.event_name == 'schedule'
-        uses: ravsamhq/notify-slack-action@be814b201e233b2dc673608aa46e5447c8ab13f2 # v2.5.0
-        with:
-          status: ${{ job.status }} # required
-          notify_when: 'failure'
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFYBOT_WEBHOOK_URL }} # required
-
-
-  build_sdist_wheels:
-    name: Build source distribution and wheel
-    needs: [test]
-    if: github.event_name == 'push' && github.ref_type == 'tag'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: neuroinformatics-unit/actions/build_sdist_wheels@34bedfdfd70c6010be02182c9ca37fae8a1fd99d # v3.0.0
-
-  upload_all:
-    name: Publish build distributions
-    needs: [build_sdist_wheels]
-    if: github.event_name == 'push' && github.ref_type == 'tag'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/download-artifact@v4
+    - name: 'Audit: start with empty atlas storage'
+      shell: python {0}
+      run: "from pathlib import Path\nimport shutil\nfor name in (\".brainglobe\", \".brainglobe-tests\"):\n    root = Path.home() / name\n    if root.exists():\n        shutil.rmtree(root)\n    assert not root.exists(), root\n    print(f\"EMPTY_ATLAS_STORAGE {root}\", flush=True)\n"
+    - name: Run tests
+      uses: neuroinformatics-unit/actions/test-uv@34bedfdfd70c6010be02182c9ca37fae8a1fd99d
       with:
-        name: artifact
-        path: dist
-    - uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.TWINE_API_KEY }}
+        python-version: ${{ matrix.python-version }}
+        secret-codecov-token: ${{ secrets.CODECOV_TOKEN }}
+    - name: 'Audit: verify downloaded Allen atlas is 3.1'
+      if: always()
+      shell: python {0}
+      run: "from pathlib import Path\nimport json\nimport re\nfound = []\nfor name in (\".brainglobe\", \".brainglobe-tests\"):\n    for manifest in (Path.home() / name).rglob(\"manifest.json\"):\n        atlas_name = manifest.parent.parent.name\n        if re.fullmatch(r\"allen_mouse_\\d+um\", atlas_name):\n            record = {\"atlas\": atlas_name, \"version\": manifest.parent.name.replace(\"_\", \".\"), \"manifest\": str(manifest)}\n            print(\"ALLEN_ATLAS_AUDIT \" + json.dumps(record), flush=True)\n            found.append(record)\nassert all(item[\"version\"] == \"3.1\" for item in found), found\nif not found:\n    print(\"ALLEN_ATLAS_AUDIT no Allen manifest found; this job does not establish Allen coverage\", flush=True)\n"
+'on':
+  workflow_dispatch: null

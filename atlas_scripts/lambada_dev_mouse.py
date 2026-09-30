@@ -326,8 +326,8 @@ def retrieve_ontology():
             id = structure["id"]
             name = structure["name"]
             acronym = structure["acronym"]
-            structure_id_path = (
-                list(map(int, structure["structure_id_path"].strip("/").split("/")))
+            structure_id_path = list(
+                map(int, structure["structure_id_path"].strip("/").split("/"))
             )
             rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
 

@@ -391,8 +391,6 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
     )
 
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
-    print(structures_with_mesh)
-    quit()
     return meshes_dict, structures_with_mesh
 
 

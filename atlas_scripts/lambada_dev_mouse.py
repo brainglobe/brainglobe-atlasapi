@@ -5,15 +5,16 @@ based on data published by de Launoit et al. It downloads the necessary
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
-import ssl
-import certifi
+
 import json
+import ssl
 from pathlib import Path
 
+import certifi
 import numpy as np
 import pooch
-from brainglobe_utils.IO.image import load_any
 import urllib3
+from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -107,6 +108,7 @@ ANNOTATION_FNAMES = {
 LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
 LABELS_FNAME = "1.json"
 
+
 def make_ssl_context():
     """Create an SSL context with the global sign intermediate certificate.
 
@@ -119,6 +121,7 @@ def make_ssl_context():
     context.load_verify_locations(cadata=GLOBAL_SIGN_INTERMEDIATE_CERT)
     return context
 
+
 class LAMBADADownloader:
     """Pooch downloader using an in-memory SSL context."""
 
@@ -130,9 +133,7 @@ class LAMBADADownloader:
 
         context = make_ssl_context()
 
-        http = urllib3.PoolManager(
-            ssl_context=context
-        )
+        http = urllib3.PoolManager(ssl_context=context)
 
         response = http.request(
             "GET",
@@ -161,6 +162,7 @@ class LAMBADADownloader:
                     output.write(chunk)
         finally:
             response.release_conn()
+
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -243,7 +245,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAMES[age]
 
     downloader = LAMBADADownloader()
-    
+
     needs_download = (not reference_path.exists()) or (
         not annotation_path.exists()
     )
@@ -314,7 +316,6 @@ def retrieve_ontology():
         fname=LABELS_FNAME,
         progressbar=True,
     )
-    
 
     structures = []
     # Open labels file to get structure information
@@ -360,7 +361,7 @@ def retrieve_hemisphere_map(annotation_volume: np.ndarray, age: str):
     """
     # Atlas is in LPI orientation, slice on 0 axis
     hemispheres_map = np.full(annotation_volume.shape, 2, dtype=int)
-    hemispheres_map[hemispheres_map.shape[0] // 2 :, : , : ] = 1
+    hemispheres_map[hemispheres_map.shape[0] // 2 :, :, :] = 1
 
     return hemispheres_map
 

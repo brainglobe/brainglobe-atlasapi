@@ -118,48 +118,6 @@ def format_component_stub(
     return stub
 
 
-def format_template_stub(template_name: str, version: str) -> str:
-    """
-    Format the template stub for a given template name and version.
-
-    Parameters
-    ----------
-    template_name : str
-        The name of the template (e.g., allen-adult-mouse-stpt-template).
-    version : str
-        The version of the template.
-
-    Returns
-    -------
-    str
-        The formatted template stub.
-    """
-    return format_component_stub(
-        template_name, version, V3_TEMPLATE_ROOTDIR, V3_TEMPLATE_NAME
-    )
-
-
-def format_annotation_stub(annotation_name: str, version: str) -> str:
-    """
-    Format the annotation stub for a given annotation name and version.
-
-    Parameters
-    ----------
-    annotation_name : str
-        The name of the annotation (e.g., allen-adult-mouse-annotation).
-    version : str
-        The version of the annotation.
-
-    Returns
-    -------
-    str
-        The formatted annotation stub.
-    """
-    return format_component_stub(
-        annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_ANNOTATION_NAME
-    )
-
-
 def format_hemispheres_stub(annotation_name: str, version: str) -> str:
     """
     Format the hemispheres stub for a given hemispheres name and version.
@@ -178,27 +136,6 @@ def format_hemispheres_stub(annotation_name: str, version: str) -> str:
     """
     return format_component_stub(
         annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_HEMISPHERES_NAME
-    )
-
-
-def format_terminology_stub(terminology_name: str, version: str) -> str:
-    """
-    Format the terminology stub for a given terminology name and version.
-
-    Parameters
-    ----------
-    terminology_name : str
-        The name of the terminology (e.g., allen-adult-mouse-terminology).
-    version : str
-        The version of the terminology.
-
-    Returns
-    -------
-    str
-        The formatted terminology stub.
-    """
-    return format_component_stub(
-        terminology_name, version, V3_TERMINOLOGY_ROOTDIR, V3_TERMINOLOGY_NAME
     )
 
 

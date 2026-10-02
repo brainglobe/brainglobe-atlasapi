@@ -148,7 +148,7 @@ def retrieve_reference_and_annotation():
         )
 
         references.append(reference)
-        annotations.append(annotation.astype(np.int32, copy=False))
+        annotations.append(annotation.astype(np.uint32, copy=False))
 
     # Allen 2017 meshes are in microns. Meshes are built once, from the
     # highest-resolution annotation, so convert them into its voxel

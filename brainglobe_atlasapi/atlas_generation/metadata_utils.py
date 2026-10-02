@@ -6,7 +6,7 @@ README files associated with atlases packaged within the BrainGlobe ecosystem.
 import json
 import re
 from datetime import datetime
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import requests
 from requests.exceptions import InvalidURL, MissingSchema
@@ -41,6 +41,7 @@ def generate_metadata_dict(
     terminology: TerminologyInfo,
     annotation_set: AnnotationInfo,
     template: TemplateInfo,
+    license: Dict[str, str | None] | None = None,
 ):
     """
     Generate a dictionary containing metadata for a BrainGlobe atlas.
@@ -79,6 +80,11 @@ def generate_metadata_dict(
         Metadata for the annotation set.
     template : TemplateInfo
         Metadata for the template.
+    license : Dict[str, str | None] or None, optional
+        License metadata with ``license`` and ``link_to_license`` fields. The
+        ``link_to_license`` value may be ``None`` for an explicitly unlicensed
+        atlas. The entire field may also be ``None`` when license metadata is
+        not provided.
 
 
     Returns
@@ -114,6 +120,31 @@ def generate_metadata_dict(
 
     assert isinstance(additional_references, list)
 
+    if license is not None:
+        if not isinstance(license, dict):
+            raise TypeError("license must be a dictionary or None")
+
+        required_license_fields = {"license", "link_to_license"}
+        missing_fields = required_license_fields - license.keys()
+        if missing_fields:
+            raise ValueError(
+                "license is missing required fields: "
+                f"{', '.join(sorted(missing_fields))}"
+            )
+
+        unexpected_fields = license.keys() - required_license_fields
+        if unexpected_fields:
+            raise ValueError(
+                "license contains unexpected fields: "
+                f"{', '.join(sorted(unexpected_fields))}"
+            )
+
+        if not isinstance(license["license"], str):
+            raise TypeError("license must be a string")
+
+        if not isinstance(license["link_to_license"], (str, type(None))):
+            raise TypeError("link_to_license must be a string or None")
+
     additional_references_metadata = [
         ref_info.metadata for ref_info in additional_references
     ]
@@ -131,6 +162,7 @@ def generate_metadata_dict(
         shape=shape,
         additional_references=additional_references_metadata,
         atlas_packager=atlas_packager,
+        license=license,
         coordinate_space=coordinate_space.metadata,
         terminology=terminology.metadata,
         annotation_set=annotation_set.metadata,

@@ -11,7 +11,7 @@ from cloudvolume.datasource.precomputed.mesh.multilod import (
     MultiLevelPrecomputedMeshManifest,
 )
 from rich.progress import track
-from scipy.ndimage import binary_closing, binary_fill_holes
+from scipy.ndimage import binary_closing, binary_fill_holes, find_objects
 
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
@@ -61,6 +61,7 @@ def extract_mesh_from_mask(
     decimate_fraction: float = 0.6,  # keep 60% of original fertices
     use_marching_cubes=False,
     extract_largest=False,
+    origin=None,
 ):
     """
     Return a vedo mesh actor with just the outer surface of a
@@ -91,6 +92,10 @@ def extract_mesh_from_mask(
     extract_largest: bool
         If True only the largest region are extracted. It can cause issues for
         bilateral regions as only one will remain
+    origin: sequence of int or None
+        Voxel index of `volume[0, 0, 0]` within a larger volume, so a cropped
+        mask yields the same vertex coordinates as the uncropped one.
+        Ignored when `use_marching_cubes` is True.
 
     """
     # check savepath argument
@@ -123,7 +128,7 @@ def extract_mesh_from_mask(
 
     if not use_marching_cubes:
         # Use faster algorithm
-        volume = Volume(volume)
+        volume = Volume(volume, origin=origin)
         mesh = volume.isosurface(value=threshold).cap()
     else:
         print(
@@ -167,6 +172,7 @@ def _create_region_mesh(
     decimate_fraction: float,
     smooth: bool,
     verbosity: int = 0,
+    bbox: tuple[slice, ...] | None = None,
 ) -> None:
     """
     Create and save an `.obj` mesh for a region and its descendants.
@@ -208,6 +214,10 @@ def _create_region_mesh(
         Whether to smooth the extracted mesh.
     verbosity : int, optional
         Verbosity level used for debug output.
+    bbox : tuple of slice, optional
+        Region of `annotated_volume` containing the region's labels, padded
+        so morphological closing can't reach its edge. Only this crop is read
+        and meshed; the output is the same as meshing the full volume.
 
     Raises
     ------
@@ -254,6 +264,10 @@ def _create_region_mesh(
         return
     else:
         # Create mask and extract mesh
+        origin = None
+        if bbox is not None:
+            annotated_volume = annotated_volume[bbox]
+            origin = [s.start for s in bbox]
         mask = create_masked_array(annotated_volume, ids)
 
         if np.sum(mask) == 0:
@@ -265,6 +279,7 @@ def _create_region_mesh(
                     obj_filepath=savepath,
                     smooth=smooth,
                     decimate_fraction=decimate_fraction,
+                    origin=origin,
                 )
             else:
                 extract_mesh_from_mask(
@@ -273,7 +288,38 @@ def _create_region_mesh(
                     smooth=smooth,
                     closing_n_iters=closing_n_iters,
                     decimate_fraction=decimate_fraction,
+                    origin=origin,
                 )
+
+
+def _label_bounding_boxes(volume, labels, slab_depth=64):
+    """
+    Return per-label inclusive (lo, hi) voxel bounds, each (len(labels), ndim).
+
+    `labels` must be sorted. Labels absent from `volume` keep lo > hi, and
+    voxel values not in `labels` are ignored. The volume is scanned in slabs
+    along axis 0 to avoid a full-size index array.
+    """
+    lo = np.full((len(labels), volume.ndim), np.iinfo(np.int64).max)
+    hi = np.full((len(labels), volume.ndim), -1)
+    for z0 in range(0, volume.shape[0], slab_depth):
+        slab = volume[z0 : z0 + slab_depth]
+        # 1-based label index per voxel, 0 for values not in labels
+        idx = np.minimum(np.searchsorted(labels, slab), len(labels) - 1)
+        found = labels[idx] == slab
+        idx += 1
+        idx[~found] = 0
+        objects = find_objects(idx, max_label=len(labels))
+        for i, sl in enumerate(objects):
+            if sl is None:
+                continue
+            start = [s.start for s in sl]
+            stop = [s.stop - 1 for s in sl]
+            start[0] += z0
+            stop[0] += z0
+            lo[i] = np.minimum(lo[i], start)
+            hi[i] = np.maximum(hi[i], stop)
+    return lo, hi
 
 
 def create_region_mesh(args):
@@ -355,6 +401,29 @@ def construct_meshes_from_annotation(
     for key, node in tree.nodes.items():
         node.data = Region(key in labels)
 
+    # Mesh each region from its padded bounding box instead of the full
+    # volume. Padding by closing_n_iters + 1 keeps hole filling and closing
+    # identical to running them on the full volume.
+    label_lo, label_hi = _label_bounding_boxes(volume, labels)
+    label_index = {int(label): i for i, label in enumerate(labels)}
+    pad = (closing_n_iters or 0) + 1
+    volume_shape = volume.shape
+
+    def region_bbox(node):
+        idx = [
+            label_index[i]
+            for i in tree.subtree(node.identifier).nodes
+            if i in label_index
+        ]
+        if not idx:
+            return None
+        lo = label_lo[idx].min(axis=0) - pad
+        hi = label_hi[idx].max(axis=0) + pad + 1
+        return tuple(
+            slice(max(int(a), 0), min(int(b), size))
+            for a, b, size in zip(lo, hi, volume_shape)
+        )
+
     volume_size = volume.size
     if parallel:
         compressor = zarr.codecs.BloscCodec(
@@ -398,6 +467,7 @@ def construct_meshes_from_annotation(
             decimate_fraction,
             smooth,
             verbosity,
+            region_bbox(node),
         )
         for node in preorder_depth_first_search(tree)
         if node.identifier not in skip_structure_ids

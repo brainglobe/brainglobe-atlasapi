@@ -850,7 +850,7 @@ def wrapup_atlas_from_data(
         | None
     ) = None,
     additional_metadata: dict | None = None,
-    overwrite=False,
+    overwrite=True,
     cleanup_files=None,
     compress=None,
 ) -> Path:

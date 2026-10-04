@@ -103,7 +103,15 @@ def generate_metadata_dict(
             raise InvalidURL(
                 "Ensure that the URL is valid and formatted correctly."
             )
-
+        except requests.exceptions.SSLError:
+            print("Warning: SSL certificate verification failed."
+                  "Attempting to access the URL without verification.")
+            try:
+                requests.head(atlas_link, verify=False, allow_redirects=True)
+            except requests.exceptions.ConnectionError:
+                raise InvalidURL(
+                    "Ensure that the URL is valid and formatted correctly."
+                )
     # Enforce correct format for symmetric, resolution and shape:
     assert isinstance(symmetric, bool)
     assert len(resolution) == 3

@@ -104,8 +104,10 @@ def generate_metadata_dict(
                 "Ensure that the URL is valid and formatted correctly."
             )
         except requests.exceptions.SSLError:
-            print("Warning: SSL certificate verification failed."
-                  "Attempting to access the URL without verification.")
+            print(
+                "Warning: SSL certificate verification failed."
+                "Attempting to access the URL without verification."
+            )
             try:
                 requests.head(atlas_link, verify=False, allow_redirects=True)
             except requests.exceptions.ConnectionError:

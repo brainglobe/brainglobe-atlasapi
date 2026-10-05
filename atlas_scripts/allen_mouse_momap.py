@@ -9,7 +9,7 @@ this script only downloads, unzips and hands them to
 import json
 import zipfile
 
-import requests
+import pooch
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
@@ -58,13 +58,11 @@ RESOLUTION = 10
 # Credit for those responsible for converting the atlas to BrainGlobe format
 ATLAS_PACKAGER = "Antonio Falasconi and Harsh Kanodia"
 
-# Zenodo record holding the single source archive
-ZENODO_ID = 21104472
 ZENODO_FILENAME = "files_momap.zip"
-CHUNK_SIZE = 1 << 20  # 1 MiB
-
-# BrainGlobe's own threshold below which a mesh file is considered unusable
-MIN_MESH_FILE_SIZE = 100
+ZENODO_FILE_URL = f"{ATLAS_LINK}/files/{ZENODO_FILENAME}?download=1"
+ZENODO_FILE_HASH = (
+    "56ad8aeb5259bb78299dfd856b792e5d7874b798c7c93b27d455766ed3c8a8b3"
+)
 
 BG_ROOT_DIR = DEFAULT_WORKDIR / ATLAS_NAME
 DOWNLOAD_DIR = BG_ROOT_DIR / "downloads"
@@ -82,42 +80,14 @@ def download_resources():
     """
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-    response = requests.get(
-        f"https://zenodo.org/api/records/{ZENODO_ID}", timeout=60
-    )
-    response.raise_for_status()
-    files = {
-        entry["key"]: entry["links"]["self"]
-        for entry in response.json().get("files", [])
-    }
-    if ZENODO_FILENAME not in files:
-        available = ", ".join(sorted(files)) or "(none)"
-        raise RuntimeError(
-            f"'{ZENODO_FILENAME}' is not on Zenodo record {ZENODO_ID}. "
-            f"Available file(s): {available}"
-        )
-
     archive = DOWNLOAD_DIR / ZENODO_FILENAME
-    print(f"Downloading {archive.name} ...")
-    with requests.get(files[ZENODO_FILENAME], stream=True, timeout=60) as resp:
-        resp.raise_for_status()
-        total = int(resp.headers.get("content-length", 0))
-        done = 0
-        with open(archive, "wb") as out:
-            for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
-                if not chunk:
-                    continue
-                out.write(chunk)
-                done += len(chunk)
-                if total:
-                    print(
-                        f"\r  {100.0 * done / total:5.1f}% "
-                        f" ({done}/{total} bytes)",
-                        end="",
-                        flush=True,
-                    )
-        if total:
-            print()
+    pooch.retrieve(
+        url=ZENODO_FILE_URL,
+        known_hash=ZENODO_FILE_HASH,
+        fname=ZENODO_FILENAME,
+        path=DOWNLOAD_DIR,
+        progressbar=True,
+    )
 
     print(f"Unzipping {archive.name} ...")
     with zipfile.ZipFile(archive) as zf:
@@ -131,13 +101,6 @@ def download_resources():
         zf.extractall(dest)
 
     archive.unlink()
-
-    if not SOURCE_DIR.is_dir():
-        extracted = ", ".join(sorted(tops)) or "(nothing)"
-        raise FileNotFoundError(
-            f"Expected the atlas inputs at {SOURCE_DIR} after unzipping "
-            f"{ZENODO_FILENAME}, but the archive contained: {extracted}"
-        )
 
 
 def retrieve_reference_and_annotation():
@@ -183,23 +146,9 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    structures_path = SOURCE_DIR / "structures_list.json"
-    if not structures_path.is_file():
-        raise FileNotFoundError(
-            f"Structures file not found: {structures_path}. "
-            "Run download_resources() first."
-        )
-    try:
-        structures = json.loads(structures_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(
-            f"Could not read structures JSON at {structures_path}"
-        ) from error
-    if not isinstance(structures, list) or not structures:
-        raise ValueError(
-            f"Structures JSON must contain a non-empty list: {structures_path}"
-        )
-    return structures
+    return json.loads(
+        (SOURCE_DIR / "structures_list.json").read_text(encoding="utf-8")
+    )
 
 
 def retrieve_or_construct_meshes(structures):
@@ -207,9 +156,7 @@ def retrieve_or_construct_meshes(structures):
     Return a dictionary mapping structure IDs to paths of mesh files.
 
     The archive ships one ``<structure_id>.obj`` per structure, so no mesh is
-    constructed here. Missing or unusably small meshes are an error: an
-    incomplete mesh dictionary would otherwise be packaged into a silently
-    incomplete atlas.
+    constructed here.
 
     Parameters
     ----------
@@ -223,25 +170,10 @@ def retrieve_or_construct_meshes(structures):
         corresponding mesh files.
     """
     meshes_dir = SOURCE_DIR / "meshes"
-    meshes_dict = {}
-    missing = []
-    for structure in structures:
-        mesh_path = meshes_dir / f"{structure['id']}.obj"
-        if (
-            mesh_path.is_file()
-            and mesh_path.stat().st_size >= MIN_MESH_FILE_SIZE
-        ):
-            meshes_dict[structure["id"]] = mesh_path
-        else:
-            missing.append(structure["id"])
-
-    if missing:
-        raise FileNotFoundError(
-            f"{len(missing)} of {len(structures)} structures have no usable "
-            f"mesh in {meshes_dir}: {missing}"
-        )
-
-    return meshes_dict
+    return {
+        structure["id"]: meshes_dir / f"{structure['id']}.obj"
+        for structure in structures
+    }
 
 
 def retrieve_additional_references():

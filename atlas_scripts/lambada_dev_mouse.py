@@ -8,11 +8,15 @@ and then wraps it up into the BrainGlobe atlas format.
 
 import json
 import ssl
+import json
+import ssl
 from pathlib import Path
 
 import certifi
+import certifi
 import numpy as np
 import pooch
+import urllib3
 import urllib3
 from brainglobe_utils.IO.image import load_any
 
@@ -29,7 +33,7 @@ ATLAS_NAME = "lambada_dev_mouse"
 CITATION = "https://doi.org/10.1016/j.cell.2026.03.013"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://lambada.icm-institute.org/"
-ORIENTATION = "asr"
+ORIENTATION = "lpi"
 
 ROOT_ID = 999
 RESOLUTION = 25
@@ -74,7 +78,40 @@ D/fayQ==
 """
 
 REGISTRY_PATH = Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt")
+GLOBAL_SIGN_INTERMEDIATE_CERT = """
+-----BEGIN CERTIFICATE-----
+MIIEsDCCA5igAwIBAgIQd70OB0LV2enQSdd00CpvmjANBgkqhkiG9w0BAQsFADBM
+MSAwHgYDVQQLExdHbG9iYWxTaWduIFJvb3QgQ0EgLSBSMzETMBEGA1UEChMKR2xv
+YmFsU2lnbjETMBEGA1UEAxMKR2xvYmFsU2lnbjAeFw0yMDA3MjgwMDAwMDBaFw0y
+OTAzMTgwMDAwMDBaMFMxCzAJBgNVBAYTAkJFMRkwFwYDVQQKExBHbG9iYWxTaWdu
+IG52LXNhMSkwJwYDVQQDEyBHbG9iYWxTaWduIEdDQyBSMyBEViBUTFMgQ0EgMjAy
+MDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKxnlJV/de+OpwyvCXAJ
+IcxPCqkFPh1lttW2oljS3oUqPKq8qX6m7K0OVKaKG3GXi4CJ4fHVUgZYE6HRdjqj
+hhnuHY6EBCBegcUFgPG0scB12Wi8BHm9zKjWxo3Y2bwhO8Fvr8R42pW0eINc6OTb
+QXC0VWFCMVzpcqgz6X49KMZowAMFV6XqtItcG0cMS//9dOJs4oBlpuqX9INxMTGp
+6EASAF9cnlAGy/RXkVS9nOLCCa7pCYV+WgDKLTF+OK2Vxw3RUJ/p8009lQeUARv2
+UCcNNPCifYX1xIspvarkdjzLwzOdLahDdQbJON58zN4V+lMj0msg+c0KnywPIRp3
+BMkCAwEAAaOCAYUwggGBMA4GA1UdDwEB/wQEAwIBhjAdBgNVHSUEFjAUBggrBgEF
+BQcDAQYIKwYBBQUHAwIwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQUDZjA
+c3+rvb3ZR0tJrQpKDKw+x3wwHwYDVR0jBBgwFoAUj/BLf6guRSSuTVD6Y5qL3uLd
+G7wwewYIKwYBBQUHAQEEbzBtMC4GCCsGAQUFBzABhiJodHRwOi8vb2NzcDIuZ2xv
+YmFsc2lnbi5jb20vcm9vdHIzMDsGCCsGAQUFBzAChi9odHRwOi8vc2VjdXJlLmds
+b2JhbHNpZ24uY29tL2NhY2VydC9yb290LXIzLmNydDA2BgNVHR8ELzAtMCugKaAn
+hiVodHRwOi8vY3JsLmdsb2JhbHNpZ24uY29tL3Jvb3QtcjMuY3JsMEcGA1UdIARA
+MD4wPAYEVR0gADA0MDIGCCsGAQUFBwIBFiZodHRwczovL3d3dy5nbG9iYWxzaWdu
+LmNvbS9yZXBvc2l0b3J5LzANBgkqhkiG9w0BAQsFAAOCAQEAy8j/c550ea86oCkf
+r2W+ptTCYe6iVzvo7H0V1vUEADJOWelTv07Obf+YkEatdN1Jg09ctgSNv2h+LMTk
+KRZdAXmsE3N5ve+z1Oa9kuiu7284LjeS09zHJQB4DJJJkvtIbjL/ylMK1fbMHhAW
+i0O194TWvH3XWZGXZ6ByxTUIv1+kAIql/Mt29PmKraTT5jrzcVzQ5A9jw16yysuR
+XRrLODlkS1hyBjsfyTNZrmL1h117IFgntBA5SQNVl9ckedq5r4RSAU85jV8XK5UL
+REjRZt2I6M9Po9QL7guFLu4sPFJpwR1sPJvubS2THeo7SxYoNDtdyBHs7euaGcMa
+D/fayQ==
+-----END CERTIFICATE-----
+"""
 
+REGISTRY_PATH = Path(__file__).parent / "hashes" / (ATLAS_NAME + ".txt")
+
+DOWNLOAD_ROOT = "https://lambada.icm-institute.org/datalayer"
 DOWNLOAD_ROOT = "https://lambada.icm-institute.org/datalayer"
 
 REFERENCE_SUFFIXES = {
@@ -183,6 +220,92 @@ def hex_to_rgb(hex):
         rgb.append(decimal)
 
     return rgb
+REFERENCE_FNAMES = {
+    age: f"LAMBADA_25um_reference_P{age}_v1.0.nii.gz" for age in TIMEPOINTS
+}
+
+ANNOTATION_FNAMES = {
+    age: f"LAMBADA_25um_annotation_P{age}_v1.0.nii.gz" for age in TIMEPOINTS
+}
+
+LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
+LABELS_FNAME = "1.json"
+
+
+def make_ssl_context():
+    """Create an SSL context with the global sign intermediate certificate.
+
+    Returns
+    -------
+    ssl.SSLContext
+        An SSL context with the global sign intermediate certificate.
+    """
+    context = ssl.create_default_context(cafile=certifi.where())
+    context.load_verify_locations(cadata=GLOBAL_SIGN_INTERMEDIATE_CERT)
+    return context
+
+
+class LAMBADADownloader:
+    """Pooch downloader using an in-memory SSL context."""
+
+    def __init__(self, progressbar=False, chunk_size=1024):
+        self.progressbar = progressbar
+        self.chunk_size = chunk_size
+
+    def __call__(self, url, output_file, pooch, check_only=False):
+
+        context = make_ssl_context()
+
+        http = urllib3.PoolManager(ssl_context=context)
+
+        response = http.request(
+            "GET",
+            url,
+            preload_content=False,
+        )
+
+        if response.status >= 400:
+            response.release_conn()
+            raise RuntimeError(
+                f"Failed to download {url}: HTTP {response.status}"
+            )
+
+        if check_only:
+            response.release_conn()
+            return True
+
+        try:
+            with open(output_file, "wb") as output:
+                while True:
+                    chunk = response.read(self.chunk_size)
+
+                    if not chunk:
+                        break
+
+                    output.write(chunk)
+        finally:
+            response.release_conn()
+
+
+def hex_to_rgb(hex):
+    """Convert a hexadecimal color string to an RGB triplet.
+
+    Parameters
+    ----------
+    hex : str
+        The hexadecimal color string (e.g., "RRGGBB").
+
+    Returns
+    -------
+    list
+        A list of three integers representing the RGB color (0-255).
+    """
+    rgb = []
+    for i in (0, 2, 4):
+        decimal = int(hex[i : i + 2], 16)
+        rgb.append(decimal)
+
+    return rgb
 
 
 def pooch_init(download_dir_path: Path) -> pooch.Pooch:
@@ -202,14 +325,20 @@ def pooch_init(download_dir_path: Path) -> pooch.Pooch:
         list(REFERENCE_SUFFIXES.values())
         + list(ANNOTATION_SUFFIXES.values())
         + [LABELS_FNAME]
+        list(REFERENCE_SUFFIXES.values())
+        + list(ANNOTATION_SUFFIXES.values())
+        + [LABELS_FNAME]
     )
 
     p = pooch.create(
         path=download_dir_path,
         base_url="",
         registry=None,
+        base_url="",
+        registry=None,
     )
 
+    p.load_registry(REGISTRY_PATH)
     p.load_registry(REGISTRY_PATH)
     return p
 
@@ -246,6 +375,8 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
 
     downloader = LAMBADADownloader()
 
+    downloader = LAMBADADownloader()
+
     needs_download = (not reference_path.exists()) or (
         not annotation_path.exists()
     )
@@ -256,11 +387,13 @@ def fetch_animal(pooch_: pooch.Pooch, age: str):
         REFERENCE_FNAMES[age],
         progressbar=True,
         downloader=downloader,
+        downloader=downloader,
     )
 
     fetched_annotation = pooch_.fetch(
         ANNOTATION_FNAMES[age],
         progressbar=True,
+        downloader=downloader,
         downloader=downloader,
     )
 
@@ -281,6 +414,17 @@ def retrieve_ontology():
     structure and contains its ID, name, acronym, hierarchical path,
     and RGB triplet.
 
+    The expected format for each dictionary is:
+
+    .. code-block:: python
+
+        {
+            "id": int,
+            "name": str,
+            "acronym": str,
+            "structure_id_path": list[int],
+            "rgb_triplet": list[int, int, int],
+        }
     The expected format for each dictionary is:
 
     .. code-block:: python
@@ -318,8 +462,28 @@ def retrieve_ontology():
     )
 
     structures = []
+
+    path = pooch.retrieve(
+        url=LABELS_URL,
+        known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
+        path=DOWNLOAD_DIR_PATH,
+        fname=LABELS_FNAME,
+        progressbar=True,
+    )
+
+    structures = []
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
+
+        labels_data = json.load(f)
+        for structure in labels_data["msg"]:
+            id = structure["id"]
+            name = structure["name"]
+            acronym = structure["acronym"]
+            structure_id_path = list(
+                map(int, structure["structure_id_path"].strip("/").split("/"))
+            )
+            rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
 
         labels_data = json.load(f)
         for structure in labels_data["msg"]:
@@ -335,6 +499,9 @@ def retrieve_ontology():
                 {
                     "id": id,
                     "name": name,
+                    "acronym": acronym,
+                    "structure_id_path": structure_id_path,
+                    "rgb_triplet": rgb_triplet,
                     "acronym": acronym,
                     "structure_id_path": structure_id_path,
                     "rgb_triplet": rgb_triplet,

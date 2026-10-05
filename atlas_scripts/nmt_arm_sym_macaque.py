@@ -39,8 +39,7 @@ RESOLUTION = 250  # microns
 ATLAS_PACKAGER = "Amirreza Bahramani"
 
 NMT_SYM_URL = (
-    "https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/"
-    "NMT_v2.1_sym.tgz"
+    "https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/NMT_v2.1_sym.tgz"
 )
 NMT_SYM_HASH = (
     "sha256:35c8770f050403a8e77416521116131fddeead82c732f929fd70e1b0f0ddb51c"

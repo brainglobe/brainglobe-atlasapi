@@ -2,6 +2,7 @@
 
 import re
 from pathlib import Path
+from typing import Any
 
 import meshio as mio
 import nibabel as nib
@@ -274,7 +275,7 @@ def retrieve_structure_information(nmt_dir: Path) -> list[dict]:
         parsed_by_id = {}
 
         for level in range(1, 7):
-            structure = {
+            structure: dict[str, Any] = {
                 "id": source_to_canonical[int(row[f"Level_{level}_index"])],
                 "name": HEMISPHERE_PREFIX_RE.sub(
                     "", str(row[f"Level_{level}"]).strip()
@@ -360,7 +361,7 @@ def collect_source_meshes(
     structure_ids: set[int],
 ) -> dict[int, dict]:
     """Collect CHARM/SARM GIFTI mesh paths by merged ARM structure ID."""
-    mesh_sources = {}
+    mesh_sources: dict[int, dict] = {}
     atlas_dirs = {
         "CHARM": surfaces_dir / "atlases" / "CHARM",
         "SARM": surfaces_dir / "atlases" / "SARM",
@@ -373,7 +374,9 @@ def collect_source_meshes(
             for mesh_path in sorted(
                 level_dir.glob(f"{source_atlas}_{level}.*.k*.gii")
             ):
-                _, _, _, region_id = ARM_MESH_RE.match(mesh_path.name).groups()
+                mesh_match = ARM_MESH_RE.match(mesh_path.name)
+                assert mesh_match is not None, mesh_path.name
+                _, _, _, region_id = mesh_match.groups()
                 canonical_id = source_to_canonical[int(region_id)]
 
                 if canonical_id not in structure_ids:
@@ -399,7 +402,7 @@ def retrieve_or_construct_meshes(
     structures: list[dict],
     working_dir: Path,
     annotation_volume: np.ndarray,
-) -> dict[int, Path]:
+) -> dict[int | str, str | Path]:
     """Construct parent meshes and convert the supplied ARM GIFTI meshes."""
     full_head_dir = nmt_dir / "NMT_v2.1_asym_fh"
     reference_path = full_head_dir / NMT_REFERENCE_FILENAME
@@ -416,7 +419,7 @@ def retrieve_or_construct_meshes(
     reference_img = nib.load(str(reference_path))
     ras_mm_to_voxel = np.linalg.inv(reference_img.affine)
     structure_ids = {int(structure["id"]) for structure in structures}
-    meshes_dict = {}
+    meshes_dict: dict[int | str, str | Path] = {}
 
     print("Creating ARM root, cortex, and subcortex parent meshes")
 

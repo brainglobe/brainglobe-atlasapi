@@ -4,7 +4,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import List, get_args
+from typing import get_args
 
 import numpy as np
 

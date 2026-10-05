@@ -106,9 +106,11 @@ def generate_metadata_dict(
         except requests.exceptions.SSLError as error:
             if "[SSL: CERTIFICATE_VERIFY_FAILED]" not in str(error):
                 raise
-            print("Warning: SSL certificate verification failed. This may"
-                  " be due to an incorrectly configured SSL certificate"
-                  " in the atlas link server.")
+            print(
+                "Warning: SSL certificate verification failed. This may"
+                " be due to an incorrectly configured SSL certificate"
+                " in the atlas link server."
+            )
     # Enforce correct format for symmetric, resolution and shape:
     assert isinstance(symmetric, bool)
     assert len(resolution) == 3

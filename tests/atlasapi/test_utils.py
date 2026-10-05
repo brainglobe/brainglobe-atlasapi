@@ -5,6 +5,7 @@ import sys
 from typing import Callable
 from unittest import mock
 
+import numpy as np
 import pytest
 import requests
 import rich.panel
@@ -455,3 +456,25 @@ def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
     assert not mock_cache_path.exists()
     utils.conf_from_url(conf_url, cache_path=mock_cache_path)
     assert mock_cache_path.parent.exists()
+
+
+def test_load_structures_from_csv_parent_dtype(tmp_path):
+    """Test that the parent_identifier column in the structure dataframe
+    has the correct dtype.
+    """
+    high_value = np.iinfo(np.uint16).max + 10
+    minimal_structures_csv = tmp_path / "minimal_structures.csv"
+    with open(minimal_structures_csv, "w") as f:
+        f.write(
+            "identifier,parent_identifier,annotation_value,name,abbreviation,color_hex_triplet,root_identifier_path\n"
+            "997,,997,root,root,#FFFFFF,[997]\n"
+            f'{high_value},997,1,region_a,region_a,#6496C8,"[997,1]"\n'
+            f'50,{high_value},2,leaf_b,leaf_b,#C86432,"[997,1,2]"'
+        )
+
+    structures_list = utils.load_structures_from_csv(minimal_structures_csv)
+
+    assert len(structures_list) > 0
+    assert structures_list[2]["parent_structure_id"] is not None
+    assert isinstance(structures_list[2]["parent_structure_id"], int)
+    assert structures_list[2]["parent_structure_id"] == high_value

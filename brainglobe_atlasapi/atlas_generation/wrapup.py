@@ -835,6 +835,8 @@ def _finalize_atlas_at_resolution(
             validation_results[func.__name__] = "Pass"
         except AssertionError as e:
             validation_results[func.__name__] = f"Fail: {str(e)}"
+        except Exception as e:
+            validation_results[func.__name__] = f"Error: {str(e)}"
 
     report_validation_results(validation_results)
 

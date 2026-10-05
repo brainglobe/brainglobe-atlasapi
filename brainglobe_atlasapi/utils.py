@@ -475,7 +475,7 @@ def load_structures_from_csv(structures_path):
     """
     structures_df = pd.read_csv(
         structures_path,
-        dtype={"parent_identifier": pd.UInt16Dtype()},
+        dtype={"parent_identifier": pd.UInt32Dtype()},
         converters={
             "root_identifier_path": lambda x: np.fromstring(
                 x.strip("[]"), sep=",", dtype=np.uint32

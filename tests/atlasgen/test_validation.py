@@ -394,6 +394,29 @@ def test_asymmetrical_annotation_fails(mocker, atlas):
         validate_annotation_symmetry(atlas)
 
 
+@pytest.mark.parametrize("width", ["odd", "even"])
+def test_odd_and_even_pass_atlas_symmetry(mocker, atlas, width):
+    """Ensure odd- and even-width atlases pass symmetry validation."""
+    # create a mirror image atlas of ascending and descending values
+    hemisphere = np.zeros((50, 50, 50))
+    hemisphere[:, :, :] = np.arange(50)
+    annotation = np.concatenate(
+        (hemisphere, hemisphere[:, :, ::-1]),
+        axis=2,
+    )
+
+    if width == "odd":
+        annotation = np.insert(annotation, 50, 0, axis=2)
+
+    mocker.patch(
+        "brainglobe_atlasapi.BrainGlobeAtlas.annotation",
+        new_callable=mocker.PropertyMock,
+        return_value=annotation,
+    )
+
+    validate_annotation_symmetry(atlas)
+
+
 @pytest.mark.parametrize(
     "atlas_name, should_pass, error_message",
     [

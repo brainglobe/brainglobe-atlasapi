@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 
+import dask.array as da
 import numpy as np
 import pytest
 import tifffile
@@ -10,9 +11,11 @@ import zarr
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.atlas_generation.stacks import (
+    BG_OME_ZARR_4D_AXES,
     BG_OME_ZARR_AXES,
     _save_as_ome_zarr,
     save_annotation,
+    save_annotation_masks,
     save_hemispheres,
     save_reference,
     save_template,
@@ -99,6 +102,7 @@ def test_write_multiscale_ome_zarr_creates_zarr(
         images=[image_uint16],
         output_path=output_path,
         transformations=transformations,
+        axes=BG_OME_ZARR_AXES,
     )
     assert output_path.exists()
     root = zarr.open_group(str(output_path), mode="r")
@@ -116,6 +120,7 @@ def test_write_multiscale_ome_zarr_default_axes(
         images=[image_uint16],
         output_path=output_path,
         transformations=transformations,
+        axes=BG_OME_ZARR_AXES,
     )
 
     out_zarr = zarr.open(str(output_path), mode="r")
@@ -261,3 +266,55 @@ def test_save_hemispheres_uses_hemispheres_dtype(
     )
     for arr_key in root:
         assert root[arr_key].dtype == descriptors.HEMISPHERES_DTYPE
+
+
+# --- BG_OME_ZARR_4D_AXES and save_annotation_masks ---
+
+
+def test_bg_ome_zarr_4d_axes_structure():
+    """BG_OME_ZARR_4D_AXES has 4 axes: annotation index + 3 spatial."""
+    assert len(BG_OME_ZARR_4D_AXES) == 4
+    assert BG_OME_ZARR_4D_AXES[0]["name"] == "c"
+    assert BG_OME_ZARR_4D_AXES[0]["type"] == "channel"
+    for axis in BG_OME_ZARR_4D_AXES[1:]:
+        assert axis["type"] == "space"
+        assert axis["unit"] == "millimeter"
+
+
+def test_save_annotation_masks_creates_zarr(tmp_path):
+    """save_annotation_masks writes an OME-Zarr directory."""
+    arr = da.zeros((3, 5, 5, 5), chunks=(1, 5, 5, 5), dtype="uint8")
+    transformations = [
+        [{"type": "scale", "scale": [1.0, 0.025, 0.025, 0.025]}]
+    ]
+    save_annotation_masks([arr], tmp_path, transformations)
+    assert (tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME).exists()
+
+
+def test_save_annotation_masks_chunk_shape(tmp_path):
+    """save_annotation_masks writes (1, 256, 256, 256) chunks."""
+    arr = da.zeros((3, 5, 5, 5), chunks=(1, 5, 5, 5), dtype="uint8")
+    transformations = [
+        [{"type": "scale", "scale": [1.0, 0.025, 0.025, 0.025]}]
+    ]
+    save_annotation_masks([arr], tmp_path, transformations)
+    root = zarr.open_group(
+        str(tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME), mode="r"
+    )
+    s0 = root["s0"]
+    assert s0.chunks == (1, 256, 256, 256)
+
+
+def test_save_annotation_masks_uses_4d_axes(tmp_path):
+    """save_annotation_masks writes OME metadata with BG_OME_ZARR_4D_AXES."""
+    arr = da.zeros((3, 5, 5, 5), chunks=(1, 5, 5, 5), dtype="uint8")
+    transformations = [
+        [{"type": "scale", "scale": [1.0, 0.025, 0.025, 0.025]}]
+    ]
+    save_annotation_masks([arr], tmp_path, transformations)
+    out_zarr = zarr.open(
+        str(tmp_path / descriptors.V3_ANNOTATION_MASKS_NAME), mode="r"
+    )
+    ome_metadata = out_zarr.attrs["ome"]
+    axes = ome_metadata["multiscales"][0]["axes"]
+    assert axes == BG_OME_ZARR_4D_AXES

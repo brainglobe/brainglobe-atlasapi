@@ -93,3 +93,28 @@ def preorder_depth_first_search(tree: Tree) -> Generator[Node, None, None]:
         # Push all children onto the stack in reverse order
         for child in reversed(tree.children(current_node.identifier)):
             stack.append(child)
+
+
+def preorder_breadth_first_search(tree: Tree) -> Generator[Node, None, None]:
+    """Yield nodes in a pre-order breadth first traversal of the tree."""
+    root_node = tree.nodes[tree.root]
+
+    queue = deque([root_node])
+
+    while len(queue) > 0:
+        current_node = queue.popleft()
+        yield current_node
+
+        for child in tree.children(current_node.identifier):
+            queue.append(child)
+
+
+def postorder_depth_first_search(tree: Tree) -> Generator[Node, None, None]:
+    """Yield nodes in post-order depth first traversal (leaves first)."""
+
+    def _postorder(node_id):
+        for child in tree.children(node_id):
+            yield from _postorder(child.identifier)
+        yield tree.get_node(node_id)
+
+    yield from _postorder(tree.root)

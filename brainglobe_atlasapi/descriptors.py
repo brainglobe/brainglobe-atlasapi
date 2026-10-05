@@ -6,8 +6,7 @@ from typing import List, Tuple, TypeAlias
 import numpy as np
 import numpy.typing as npt
 
-# Base url of the gin repository:
-remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
+# Base URL for the BrainGlobe atlas S3 bucket:
 remote_url_s3 = "s3://brainglobe/atlas/{}"
 remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
 
@@ -60,15 +59,18 @@ V3_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
 V3_TEMPLATE_ROOTDIR = "templates"
 V3_TERMINOLOGY_ROOTDIR = "terminologies"
 V3_TERMINOLOGY_NAME = "terminology.csv"
-V3_MESHES_DIRECTORY = "annotation.precomputed"
-V3_TEMPLATE_NAME = "anatomical_template.ome.zarr"
-V3_ANNOTATION_NAME = "annotation.ome.zarr"
+V3_MESHES_DIRECTORY = "annotations.precomputed/mesh"
+V3_TEMPLATE_NAME = "template.ome.zarr"
+V3_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
+V3_ANNOTATION_MASKS_NAME = "annotations.ome.zarr"
+V3_ANNOTATION_MAP_NAME = "annotation_values"
 V3_HEMISPHERES_NAME = "hemispheres.ome.zarr"
 
 # Types for the atlas stacks:
 REFERENCE_DTYPE = np.uint16
 ANNOTATION_DTYPE = np.uint32
 HEMISPHERES_DTYPE = np.uint8
+ANNOTATION_MASKS_DTYPE = np.uint8
 
 # Standard orientation origin: Anterior, Superior, Right
 # (using brainglobe-space definition)
@@ -116,48 +118,6 @@ def format_component_stub(
     return stub
 
 
-def format_template_stub(template_name: str, version: str) -> str:
-    """
-    Format the template stub for a given template name and version.
-
-    Parameters
-    ----------
-    template_name : str
-        The name of the template (e.g., allen-adult-mouse-stpt-template).
-    version : str
-        The version of the template.
-
-    Returns
-    -------
-    str
-        The formatted template stub.
-    """
-    return format_component_stub(
-        template_name, version, V3_TEMPLATE_ROOTDIR, V3_TEMPLATE_NAME
-    )
-
-
-def format_annotation_stub(annotation_name: str, version: str) -> str:
-    """
-    Format the annotation stub for a given annotation name and version.
-
-    Parameters
-    ----------
-    annotation_name : str
-        The name of the annotation (e.g., allen-adult-mouse-annotation).
-    version : str
-        The version of the annotation.
-
-    Returns
-    -------
-    str
-        The formatted annotation stub.
-    """
-    return format_component_stub(
-        annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_ANNOTATION_NAME
-    )
-
-
 def format_hemispheres_stub(annotation_name: str, version: str) -> str:
     """
     Format the hemispheres stub for a given hemispheres name and version.
@@ -176,27 +136,6 @@ def format_hemispheres_stub(annotation_name: str, version: str) -> str:
     """
     return format_component_stub(
         annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_HEMISPHERES_NAME
-    )
-
-
-def format_terminology_stub(terminology_name: str, version: str) -> str:
-    """
-    Format the terminology stub for a given terminology name and version.
-
-    Parameters
-    ----------
-    terminology_name : str
-        The name of the terminology (e.g., allen-adult-mouse-terminology).
-    version : str
-        The version of the terminology.
-
-    Returns
-    -------
-    str
-        The formatted terminology stub.
-    """
-    return format_component_stub(
-        terminology_name, version, V3_TERMINOLOGY_ROOTDIR, V3_TERMINOLOGY_NAME
     )
 
 

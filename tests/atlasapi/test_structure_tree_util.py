@@ -2,6 +2,7 @@
 
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
+    postorder_depth_first_search,
     preorder_depth_first_search,
 )
 
@@ -74,3 +75,25 @@ def test_preorder_dfs():
     ]
 
     assert preorder == expected_preorder
+
+
+def test_postorder_dfs():
+    """Post-order visits every child before its parent."""
+    tree = mock_tree()
+    postorder = [
+        node.identifier for node in postorder_depth_first_search(tree)
+    ]
+    # Leaves first: CH (567), IB (1129), BS (343), grey (8), VS (73),
+    # root (997)
+    expected = [567, 1129, 343, 8, 73, 997]
+    assert postorder == expected
+
+
+def test_postorder_dfs_parent_always_after_children():
+    """For every node, all descendants appear before it in post-order."""
+    tree = mock_tree()
+    order = [node.identifier for node in postorder_depth_first_search(tree)]
+    for node_id in order:
+        idx = order.index(node_id)
+        for child in tree.children(node_id):
+            assert order.index(child.identifier) < idx

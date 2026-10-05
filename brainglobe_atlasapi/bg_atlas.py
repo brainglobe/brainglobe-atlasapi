@@ -1,11 +1,24 @@
 """Defines the BrainGlobe Atlas API V3 classes and functions."""
 
+from __future__ import annotations
+
 import re
 from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import (
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    overload,
+)
 
+import dask.array as da
+import numpy as np
+import numpy.typing as npt
 import s3fs
 from fsspec.callbacks import TqdmCallback
 from rich import print as rprint
@@ -14,6 +27,8 @@ from rich.console import Console
 from brainglobe_atlasapi import config, core
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
+    V3_ANNOTATION_MAP_NAME,
+    V3_ANNOTATION_MASKS_NAME,
     V3_ANNOTATION_NAME,
     V3_ATLAS_ROOTDIR,
     V3_HEMISPHERES_NAME,
@@ -21,6 +36,7 @@ from brainglobe_atlasapi.descriptors import (
     V3_TEMPLATE_NAME,
     remote_url_s3,
 )
+from brainglobe_atlasapi.list_atlases import get_all_atlases_lastversions
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
     check_internet_connection,
@@ -38,7 +54,10 @@ def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return "_".join(str(num) for num in version_tuple)
 
 
-class BrainGlobeAtlas(core.Atlas):
+class BrainGlobeAtlas(
+    core.Atlas[core.AtlasArray],
+    Generic[core.AtlasArray],
+):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
 
@@ -57,7 +76,46 @@ class BrainGlobeAtlas(core.Atlas):
     fn_update : Callable
         Handler function to update during download. Takes completed and total
         bytes.
+    dask : bool
+        If True, atlas array properties return dask arrays instead of loading
+        them into memory as numpy arrays.
     """
+
+    @overload
+    def __init__(
+        self: BrainGlobeAtlas[npt.NDArray[np.integer]],
+        atlas_name: AtlasName,
+        version: Optional[str] = None,
+        brainglobe_dir: Optional[Union[str, Path]] = None,
+        check_latest: bool = True,
+        config_dir: Optional[Union[str, Path]] = None,
+        fn_update: Optional[Callable] = None,
+        dask: Literal[False] = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: BrainGlobeAtlas[da.Array],
+        atlas_name: AtlasName,
+        version: Optional[str] = None,
+        brainglobe_dir: Optional[Union[str, Path]] = None,
+        check_latest: bool = True,
+        config_dir: Optional[Union[str, Path]] = None,
+        fn_update: Optional[Callable] = None,
+        dask: Literal[True] = True,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: BrainGlobeAtlas[core.AtlasArray],
+        atlas_name: AtlasName,
+        version: Optional[str] = None,
+        brainglobe_dir: Optional[Union[str, Path]] = None,
+        check_latest: bool = True,
+        config_dir: Optional[Union[str, Path]] = None,
+        fn_update: Optional[Callable] = None,
+        dask: bool = False,
+    ) -> None: ...
 
     def __init__(
         self,
@@ -67,6 +125,7 @@ class BrainGlobeAtlas(core.Atlas):
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
+        dask: bool = False,
     ):
         self._remote_version = None
         self._local_full_name = None
@@ -111,7 +170,7 @@ class BrainGlobeAtlas(core.Atlas):
                     "download."
                 )
 
-        super().__init__(self.brainglobe_dir / self.local_full_name)
+        super().__init__(self.brainglobe_dir / self.local_full_name, dask=dask)
 
         if check_latest:
             self.check_latest_version()
@@ -183,8 +242,9 @@ class BrainGlobeAtlas(core.Atlas):
     def remote_version(self) -> Optional[tuple[int, ...]]:
         """Reads remote version from s3 bucket.
 
-        Largest numerical version assumed to be latest.
-        If we are offline, return None.
+        Unless a version was requested, the latest version is the one listed
+        in the remote last_versions.conf.
+        If we are offline or using a custom atlas, return None.
         """
         if self._remote_version is not None:
             return self._remote_version
@@ -195,18 +255,23 @@ class BrainGlobeAtlas(core.Atlas):
         bucket_path = remote_url_s3.format(f"atlases/{self.atlas_name}")
 
         if self.fs.exists(bucket_path) is False:
+            if self.local_full_name is not None:
+                return None
             raise FileNotFoundError(
                 f"{self.atlas_name} is not a valid atlas name!"
             )
 
         if self._requested_version is None:
-            versions_path = self.fs.ls(bucket_path)
-            available_versions: List[str] = [
-                path_str.split("/")[-1] for path_str in versions_path
-            ]
-            latest_version = get_latest_version(available_versions)
+            last_versions = get_all_atlases_lastversions()
+            if self.atlas_name not in last_versions:
+                if self.local_full_name is not None:
+                    return None
+                raise FileNotFoundError(
+                    f"{self.atlas_name} has no released version available. "
+                    "Specify a version explicitly to download it."
+                )
             self._remote_version = _version_tuple_from_str(
-                latest_version.replace("_", ".")
+                str(last_versions[self.atlas_name]).replace("_", ".")
             )
         else:
             requested_path = f"{bucket_path}/{self._requested_version}"
@@ -308,7 +373,41 @@ class BrainGlobeAtlas(core.Atlas):
                     callback=TqdmCallback(),
                 )
                 mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
-                mesh_path.mkdir(exist_ok=True)
+                mesh_path.mkdir(parents=True, exist_ok=True)
+
+                # Download 4D masks metadata (JSON only; chunk data is lazy)
+                try:
+                    masks_metadata_glob = (
+                        annotation_location
+                        + f"/{V3_ANNOTATION_MASKS_NAME}/**/*.json"
+                    )
+                    remote_masks_metadata = remote_url_s3.format(
+                        masks_metadata_glob
+                    )
+                    self.fs.get(
+                        remote_masks_metadata,
+                        str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
+                        callback=TqdmCallback(),
+                    )
+                    masks_annotation_values_path = (
+                        annotation_location + f"/{V3_ANNOTATION_MASKS_NAME}"
+                        f"/{V3_ANNOTATION_MAP_NAME}"
+                    )
+                    remote_masks_annotation_values_path = remote_url_s3.format(
+                        masks_annotation_values_path
+                    )
+                    self.fs.get(
+                        remote_masks_annotation_values_path,
+                        str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
+                        callback=TqdmCallback(),
+                        recursive=True,
+                    )
+                except FileNotFoundError as e:
+                    raise FileNotFoundError(
+                        f"Annotation masks metadata not found for atlas "
+                        f"{self.atlas_name} "
+                        f"v{remote_version_str.replace('_', '.')}."
+                    ) from e
 
                 if not self.metadata["symmetric"]:
                     root_hemisphere_path = (
@@ -321,6 +420,7 @@ class BrainGlobeAtlas(core.Atlas):
                     self.fs.get(
                         remote_root_hemisphere_path,
                         local_annotation_path / V3_HEMISPHERES_NAME,
+                        callback=TqdmCallback(),
                     )
 
             # Download template metadata files

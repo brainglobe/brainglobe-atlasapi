@@ -915,7 +915,3 @@ if __name__ == "__main__":
         scale_meshes=True,
         overwrite=True,
     )
-
-
-
-

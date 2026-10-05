@@ -742,8 +742,6 @@ if __name__ == "__main__":
     # list to store the validation functions
     all_validation_functions = get_all_validation_functions()
 
-    valid_atlases: List[str] = []
-    invalid_atlases: List[str] = []
     validation_results = {}
 
     for atlas_name, version in get_all_atlases_lastversions().items():

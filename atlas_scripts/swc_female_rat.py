@@ -75,7 +75,7 @@ def download_atlas_files(
     download_dir_path: Path,
     atlas_file_url: str,
     filename: str,
-    known_hash: str = None,
+    known_hash: str | None = None,
 ):
     """Download atlas files."""
     utils.check_internet_connection()

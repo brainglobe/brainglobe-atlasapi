@@ -33,7 +33,7 @@ ATLAS_FILE_URL = "https://cdn.vev.design/private/30dLuULhwBhk45Fm8dHoSpD6uG12/35
 ORIENTATION = "sla"
 ROOT_ID = 999
 ATLAS_PACKAGER = "Robert Kozol, kozolrobert@gmail.com"
-ADDITIONAL_METADATA = {}
+ADDITIONAL_METADATA: dict = {}
 RESOLUTION = 2, 2, 2
 
 

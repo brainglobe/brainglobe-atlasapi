@@ -125,3 +125,5 @@ convention = "numpy"
 [tool.codespell]
 skip = '.git'
 check-hidden = true
+# Brain region acronyms, author names, URL fragments and short variable names
+ignore-words-list = "alls,anc,ect,fo,lod,ment,nd,onl,ot,portugues,struc,te"

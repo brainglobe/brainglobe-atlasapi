@@ -43,7 +43,10 @@ BG_OME_ZARR_AXES = [
     },
 ]
 
-BG_OME_ZARR_4D_AXES = [{"name": "c", "type": "channel"}, *BG_OME_ZARR_AXES]
+BG_OME_ZARR_4D_AXES: List[Dict] = [
+    {"name": "c", "type": "channel"},
+    *BG_OME_ZARR_AXES,
+]
 
 
 def write_stack(stack, filename):

@@ -430,7 +430,7 @@ def test_odd_and_even_pass_atlas_symmetry(mocker, atlas, width):
             "contains_inv@lid_character_1um",
             False,
             "contains invalid characters.",
-            id="invalid charachter (@)",
+            id="invalid character (@)",
         ),
         pytest.param(
             "10um_atlas_name_does_not_end_with_resolution",

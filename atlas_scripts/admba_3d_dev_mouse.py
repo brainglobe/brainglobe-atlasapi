@@ -11,7 +11,7 @@ import json
 import time
 from os import listdir, path
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -318,7 +318,8 @@ class AtlasConfig:
 
 
 def create_atlas(
-    working_dir: Path = Path.home(), atlas_config: "AtlasConfig" = None
+    working_dir: Path = Path.home(),
+    atlas_config: Optional["AtlasConfig"] = None,
 ):
     """
     Package a 3D mouse brain atlas for a specific developmental stage
@@ -350,6 +351,7 @@ def create_atlas(
         If the atlas_config is invalid (e.g., orientation or resolution
         length is not 3, or atlas_file_url is missing).
     """
+    assert atlas_config is not None, "atlas_config must be provided"
     assert len(atlas_config.orientation) == 3, (
         f"Orientation is not 3 characters, Got {atlas_config.orientation}"
     )
@@ -369,7 +371,7 @@ def create_atlas(
     download_dir_path.mkdir(exist_ok=True)
     if path.isdir(atlas_config.atlas_file_url):
         print("Setting atlas to directory: ", atlas_config.atlas_file_url)
-        atlas_files_dir = atlas_config.atlas_file_url
+        atlas_files_dir = Path(atlas_config.atlas_file_url)
     else:
         # Download atlas files from link provided
         print("Downloading atlas from link: ", atlas_config.atlas_file_url)

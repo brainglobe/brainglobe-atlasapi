@@ -243,7 +243,7 @@ def test_conf_from_url_no_connection_no_cache(temp_path, mocker):
         pytest.param(
             "BrainGlobe",
             "Brainglobe",
-            id="decapitalisation of everything but first charachter",
+            id="decapitalisation of everything but first character",
         ),
         pytest.param(
             "___Brain_globe___",

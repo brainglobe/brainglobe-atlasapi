@@ -3,7 +3,16 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    cast,
+)
 
 import brainglobe_space as bgs
 import dask.array as da
@@ -225,7 +234,7 @@ def _save_precomputed_directory(
         mesh_dest_dir,
         packaging_data.space_convention,
         scale_meshes,
-        packaging_data.resolution,
+        cast(ResolutionList, packaging_data.resolution),
         resolution_mapping,
     )
 
@@ -239,7 +248,8 @@ def _write_precomputed_annotations(
     output_dir: Path,
 ):
     cloudpath = f"file://{output_dir.resolve()}"
-    annotations = packaging_data.annotation_stack[0]
+    annotation_stack = cast(List[npt.NDArray], packaging_data.annotation_stack)
+    annotations = annotation_stack[0]
     resolution_nm = np.array(packaging_data.resolution[0]) * 1000
 
     # All values in XYZ
@@ -356,12 +366,13 @@ def _save_template_data(
     transformations: List[List[dict]],
 ) -> nz.Multiscales:
     template_info = packaging_data.template_info
+    reference_stack = cast(List[npt.NDArray], packaging_data.reference_stack)
     if not (template_info.use_existing or template_info.update_existing):
         dest_dir = packaging_data.working_dir / template_info.metadata[
             "location"
         ].lstrip("/")
         _save_if_not_exists(
-            packaging_data.reference_stack,
+            reference_stack,
             dest_dir,
             template_info.metadata["name"],
             transformations,
@@ -371,6 +382,7 @@ def _save_template_data(
             packaging_data.working_dir / template_info.stub
         )
     elif template_info.update_existing:
+        assert template_info.existing_stub is not None
         local_existing_path = (
             packaging_data.working_dir / template_info.existing_stub
         )
@@ -379,7 +391,7 @@ def _save_template_data(
         _insert_into_multiscale(
             multiscale,
             transformations=transformations,
-            new_data=packaging_data.reference_stack,
+            new_data=reference_stack,
             working_dir=local_target_path,
         )
         template_multiscale = nz.from_ngff_zarr(local_target_path)
@@ -398,6 +410,10 @@ def _save_annotation_data(
     resolution_mapping: Optional[List[int]],
 ) -> Tuple[nz.Multiscales, nz.Multiscales]:
     annotation_info = packaging_data.annotation_info
+    annotation_stack = cast(List[npt.NDArray], packaging_data.annotation_stack)
+    hemispheres_stack = cast(
+        List[npt.NDArray], packaging_data.hemispheres_stack
+    )
 
     if not (annotation_info.use_existing or annotation_info.update_existing):
         dest_dir = packaging_data.working_dir / annotation_info.metadata[
@@ -405,7 +421,7 @@ def _save_annotation_data(
         ].lstrip("/")
 
         _save_if_not_exists(
-            packaging_data.annotation_stack,
+            annotation_stack,
             dest_dir,
             annotation_info.metadata["name"],
             transformations,
@@ -419,7 +435,7 @@ def _save_annotation_data(
 
         if not dest_dir_hemi.exists():
             save_hemispheres(
-                packaging_data.hemispheres_stack,
+                hemispheres_stack,
                 dest_dir,
                 transformations,
             )
@@ -433,6 +449,8 @@ def _save_annotation_data(
         )
         hemispheres_multiscale = nz.from_ngff_zarr(dest_dir_hemi)
     elif annotation_info.update_existing:
+        assert annotation_info.existing_stub is not None
+        assert annotation_info.existing_version is not None
         local_existing_path = (
             packaging_data.working_dir / annotation_info.existing_stub
         )
@@ -441,7 +459,7 @@ def _save_annotation_data(
         _insert_into_multiscale(
             annotation_multiscale,
             transformations=transformations,
-            new_data=packaging_data.annotation_stack,
+            new_data=annotation_stack,
             working_dir=local_target_path,
         )
 
@@ -462,7 +480,7 @@ def _save_annotation_data(
         _insert_into_multiscale(
             hemispheres_multiscale,
             transformations=transformations,
-            new_data=packaging_data.hemispheres_stack,
+            new_data=hemispheres_stack,
             working_dir=local_target_hemispheres,
         )
 
@@ -592,7 +610,9 @@ def _save_4d_annotation_data(
                 mapping,
                 scratch_dir / f"scale_{i}.zarr",
             )
-            for i, ann_scale in enumerate(packaging_data.annotation_stack)
+            for i, ann_scale in enumerate(
+                cast(List[npt.NDArray], packaging_data.annotation_stack)
+            )
         ]
         save_annotation_masks(masks_per_scale, dest_dir, transformations_4d)
 
@@ -619,6 +639,7 @@ def _insert_into_4d_masks(
     scales, merges all scale levels, and writes to the new versioned directory.
     """
     annotation_info = packaging_data.annotation_info
+    assert annotation_info.existing_stub is not None
     existing_masks_path = (
         packaging_data.working_dir
         / Path(annotation_info.existing_stub).parent
@@ -663,7 +684,10 @@ def _insert_into_4d_masks(
     scratch_dir.mkdir(parents=True, exist_ok=True)
     try:
         for i, (res, annotation_scale) in enumerate(
-            zip(new_resolutions, packaging_data.annotation_stack)
+            zip(
+                new_resolutions,
+                cast(List[npt.NDArray], packaging_data.annotation_stack),
+            )
         ):
             resolution_to_data[res] = _compute_4d_masks_for_scale(
                 annotation_scale,
@@ -704,7 +728,8 @@ def _save_additional_references(
     transformations: List[List[dict]],
 ) -> None:
     for ref_tuple in packaging_data.additional_references:
-        ref_info, additional_template = ref_tuple
+        ref_info, additional_template_data = ref_tuple
+        additional_template = cast(List[npt.NDArray], additional_template_data)
 
         if not ref_info.use_existing and not ref_info.update_existing:
             dest_dir = packaging_data.working_dir / ref_info.metadata[
@@ -718,6 +743,7 @@ def _save_additional_references(
                 save_template,
             )
         elif ref_info.update_existing:
+            assert ref_info.existing_stub is not None
             local_existing_path = (
                 packaging_data.working_dir / ref_info.existing_stub
             )
@@ -831,10 +857,10 @@ def wrapup_atlas_from_data(
     working_dir: str | Path,
     atlas_packager=None,
     hemispheres_stack=None,
-    template_info: Dict[str, str | bool] | None = None,
-    annotation_info: Dict[str, str | bool] | None = None,
-    terminology_info: Dict[str, str | bool] | None = None,
-    coordinate_space_info: Dict[str, str | bool] | None = None,
+    template_info: Dict[str, Any] | None = None,
+    annotation_info: Dict[str, Any] | None = None,
+    terminology_info: Dict[str, Any] | None = None,
+    coordinate_space_info: Dict[str, Any] | None = None,
     scale_meshes=False,
     resolution_mapping=None,
     additional_references: (
@@ -1001,32 +1027,32 @@ def wrapup_atlas_from_data(
                 if not ref_metadata.endswith("-template"):
                     ref_metadata = f"{atlas_name}-{ref_metadata}-template"
 
-                ref_dict = {
+                ref_dict: Dict[str, Any] = {
                     "name": ref_metadata,
                     "version": atlas_version,
                 }
             else:
                 ref_dict = ref_metadata
 
-            component_info = TemplateInfo(**ref_dict)
-            additional_template_list.append((component_info, ref_tuple[1]))
+            ref_info = TemplateInfo(**ref_dict)
+            additional_template_list.append((ref_info, ref_tuple[1]))
 
-    template_info = TemplateInfo(**template_info)
-    terminology_info = TerminologyInfo(**terminology_info)
-    annotation_info = AnnotationInfo(
-        template=template_info, terminology=terminology_info, **annotation_info
+    template = TemplateInfo(**template_info)
+    terminology = TerminologyInfo(**terminology_info)
+    annotation = AnnotationInfo(
+        template=template, terminology=terminology, **annotation_info
     )
-    coordinate_space_info = CoordinateSpaceInfo(
-        template=template_info, **coordinate_space_info
+    coordinate_space = CoordinateSpaceInfo(
+        template=template, **coordinate_space_info
     )
 
     additional_metadata = additional_metadata or {}
 
     for component_info in [
-        template_info,
-        annotation_info,
-        terminology_info,
-        coordinate_space_info,
+        template,
+        annotation,
+        terminology,
+        coordinate_space,
         *[ref_info for ref_info, _ in additional_template_list],
     ]:
         component_dir = (
@@ -1059,10 +1085,10 @@ def wrapup_atlas_from_data(
         reference_stack=reference_stack,
         annotation_stack=annotation_stack,
         working_dir=working_dir,
-        template_info=template_info,
-        annotation_info=annotation_info,
-        terminology_info=terminology_info,
-        coordinate_space_info=coordinate_space_info,
+        template_info=template,
+        annotation_info=annotation,
+        terminology_info=terminology,
+        coordinate_space_info=coordinate_space,
         structures_list=structures_list,
         meshes_dict=meshes_dict,
         atlas_packager=atlas_packager,
@@ -1071,8 +1097,9 @@ def wrapup_atlas_from_data(
         additional_metadata=additional_metadata,
     )
 
+    resolutions = cast(ResolutionList, packaging_data.resolution)
     transformations = _transformations_from_scales(
-        [[res / 1000 for res in t] for t in packaging_data.resolution]
+        [[res / 1000 for res in t] for t in resolutions]
     )
 
     template_multiscale = _save_template_data(
@@ -1082,29 +1109,31 @@ def wrapup_atlas_from_data(
 
     shapes = {}
 
-    for resolution in packaging_data.resolution:
+    for scale_resolution in resolutions:
         # Find the closest matching resolution in the template multiscale
         template_resolutions = [
             tuple(im.scale.values()) for im in template_multiscale.images
         ]
         closest_template_idx = np.argmin(
             [
-                np.linalg.norm(np.array(res) * 1000 - np.array(resolution))
+                np.linalg.norm(
+                    np.array(res) * 1000 - np.array(scale_resolution)
+                )
                 for res in template_resolutions
             ]
         )
         closest_template_shape = template_multiscale.images[
             closest_template_idx
         ].data.shape
-        shapes[resolution] = closest_template_shape
+        shapes[scale_resolution] = closest_template_shape
 
     _save_additional_references(
         packaging_data,
         transformations,
     )
 
-    if not terminology_info.use_existing:
-        terminology_dir = working_dir / terminology_info.stub
+    if not terminology.use_existing:
+        terminology_dir = working_dir / terminology.stub
 
         terminology_dir.parent.mkdir(parents=True, exist_ok=True)
         _save_terminology_csv(
@@ -1112,12 +1141,12 @@ def wrapup_atlas_from_data(
             terminology_dir,
         )
 
-    if not coordinate_space_info.use_existing:
-        coordinate_space_path = working_dir / coordinate_space_info.stub
+    if not coordinate_space.use_existing:
+        coordinate_space_path = working_dir / coordinate_space.stub
 
         coordinate_space_path.parent.mkdir(parents=True, exist_ok=True)
         _save_coordinate_space_manifest(
-            coordinate_space_info.metadata, coordinate_space_path
+            coordinate_space.metadata, coordinate_space_path
         )
 
     _save_annotation_data(
@@ -1132,10 +1161,10 @@ def wrapup_atlas_from_data(
         transformations,
     )
 
-    for resolution in packaging_data.resolution:
-        shape = shapes[resolution]
+    for scale_resolution in resolutions:
+        shape = shapes[scale_resolution]
         _finalize_atlas_at_resolution(
-            resolution=resolution,
+            resolution=scale_resolution,
             shape=shape,
             packaging_data=packaging_data,
             overwrite=overwrite,

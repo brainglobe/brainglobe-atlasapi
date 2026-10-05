@@ -424,7 +424,7 @@ class Atlas:
             If outside atlas (structure gives key error),
             return "Outside atlas"
         hierarchy_lev : int or None
-            If specified, return parent node at thi hierarchy level.
+            If specified, return parent node at this hierarchy level.
 
         Returns
         -------

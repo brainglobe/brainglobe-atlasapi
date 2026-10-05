@@ -27,7 +27,7 @@ CITATION = "unpublished"
 SPECIES = "Drosophila melanogaster"
 
 # The URL for the data files
-ATLAS_LINK = None
+ATLAS_LINK = ""
 
 __version__ = 0
 

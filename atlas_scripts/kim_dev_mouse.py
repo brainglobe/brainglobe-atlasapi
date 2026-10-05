@@ -30,7 +30,7 @@ ATLAS_NAME = "kim_dev_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://kimlab.io/brain-map/DevCCF/"
 CITATION = "Kronman, F.N., Liwang, J.K., Betty, R. et al. 2024, https://doi.org/10.1038/s41467-024-53254-w"
-ORIENTATION = ["left", "superior", "posterior"]
+ORIENTATION = "lsp"
 ROOT_ID = 15564
 VERSION = 3
 PACKAGER = "Carlo Castoldi <castoldi[at]ipmc.cnrs.fr>"
@@ -40,7 +40,7 @@ TIMEPOINTS = ("E11.5", "E13.5", "E15.5", "E18.5", "P04", "P14", "P56")
 MODALITIES = (
     "LSFM",  # Light Sheet Fluorescence Microscopy
     "MRI-adc",  # MRI Apparent Diffusion Coefficient
-    "MRI-dwi",  # MRI Difusion Weighted Imaging
+    "MRI-dwi",  # MRI Diffusion Weighted Imaging
     "MRI-fa",  # MRI Fractional Anisotropy
     "MRI-MTR",  # MRI Magnetization Transfer Ratio
     "MRI-T2",  # MRI T2-weighted
@@ -107,7 +107,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     assert age in TIMEPOINTS, f"Unknown age timepoint: '{age}'"
     archive = age + ".zip"
     if modality == "LSFM":
-        resolution_um = 20
+        resolution_um: float = 20
     elif modality in MODALITIES:
         match age:
             case "E11.5":
@@ -348,7 +348,7 @@ modalities_help = """the reference image acquisition modality.
     Options are:
         - LSFM,         Light Sheet Fluorescence Microscopy
         - MRI-adc       MRI Apparent Diffusion Coefficient
-        - MRI-dwi       MRI Difusion Weighted Imaging
+        - MRI-dwi       MRI Diffusion Weighted Imaging
         - MRI-fa        MRI Fractional Anisotropy
         - MRI-MTR       MRI Magnetization Transfer Ratio
         - MRI-T2        MRI T2-weighted
@@ -365,7 +365,7 @@ cached_meshes_help = (
     Options are:
         - LSFM,         Light Sheet Fluorescence Microscopy
         - MRI-adc       MRI Apparent Diffusion Coefficient
-        - MRI-dwi       MRI Difusion Weighted Imaging
+        - MRI-dwi       MRI Diffusion Weighted Imaging
         - MRI-fa        MRI Fractional Anisotropy
         - MRI-MTR       MRI Magnetization Transfer Ratio
         - MRI-T2        MRI T2-weighted

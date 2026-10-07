@@ -466,7 +466,10 @@ def test_write_mesh_info(tmp_path):
     assert info["vertex_quantization_bits"] == 16
 
 
-def test_construct_meshes_cropped_matches_full_volume(structures, tmp_path):
+@pytest.mark.parametrize("closing_n_iters", [2, 10])
+def test_construct_meshes_cropped_matches_full_volume(
+    structures, tmp_path, closing_n_iters
+):
     """Bounding-box cropping must give byte-identical meshes."""
     annotations = np.pad(
         np.load(
@@ -478,7 +481,7 @@ def test_construct_meshes_cropped_matches_full_volume(structures, tmp_path):
         tmp_path,
         annotations,
         structures,
-        closing_n_iters=10,
+        closing_n_iters=closing_n_iters,
         decimate_fraction=0.2,
         parallel=False,
     )
@@ -486,7 +489,7 @@ def test_construct_meshes_cropped_matches_full_volume(structures, tmp_path):
     full_dir = tmp_path / "full"
     full_dir.mkdir()
     tree = get_structures_tree(structures)
-    labels = np.unique(annotations).astype(np.int32)
+    labels = np.unique(annotations)
     for node in tree.all_nodes():
         create_region_mesh(
             (
@@ -496,7 +499,7 @@ def test_construct_meshes_cropped_matches_full_volume(structures, tmp_path):
                 labels,
                 annotations,
                 tree.root,
-                10,
+                closing_n_iters,
                 0.2,
                 False,
             )

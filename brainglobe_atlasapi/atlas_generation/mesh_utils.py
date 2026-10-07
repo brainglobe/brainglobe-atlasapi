@@ -410,6 +410,10 @@ def construct_meshes_from_annotation(
     volume_shape = volume.shape
 
     def region_bbox(node):
+        # Root is closed with extract_mesh_from_mask's default iterations,
+        # not closing_n_iters, and spans almost the whole volume anyway.
+        if node.identifier == tree.root:
+            return None
         idx = [
             label_index[i]
             for i in tree.subtree(node.identifier).nodes

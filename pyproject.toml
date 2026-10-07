@@ -60,7 +60,6 @@ dev = [
     "ruff",
     "setuptools_scm",
 ]
-allenmouse = ["allensdk"]
 allenmouse_barrels = [
     "allensdk",
     "voxcell"]
@@ -75,6 +74,7 @@ atlasgen = [
     "numba",
     "ome-zarr<0.17.0",
     "PyMCubes",
+    "pynrrd",
     "SimpleITK",
     "vedo",
     "xmltodict",

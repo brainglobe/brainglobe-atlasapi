@@ -464,3 +464,46 @@ def test_write_mesh_info(tmp_path):
     assert (tmp_path / "info").exists()
     assert info["@type"] == "neuroglancer_multilod_draco"
     assert info["vertex_quantization_bits"] == 16
+
+
+def test_construct_meshes_cropped_matches_full_volume(structures, tmp_path):
+    """Bounding-box cropping must give byte-identical meshes."""
+    annotations = np.pad(
+        np.load(
+            Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
+        ),
+        ((3, 30), (25, 2), (0, 15)),
+    )
+    construct_meshes_from_annotation(
+        tmp_path,
+        annotations,
+        structures,
+        closing_n_iters=10,
+        decimate_fraction=0.2,
+        parallel=False,
+    )
+
+    full_dir = tmp_path / "full"
+    full_dir.mkdir()
+    tree = get_structures_tree(structures)
+    labels = np.unique(annotations).astype(np.int32)
+    for node in tree.all_nodes():
+        create_region_mesh(
+            (
+                full_dir,
+                node,
+                tree,
+                labels,
+                annotations,
+                tree.root,
+                10,
+                0.2,
+                False,
+            )
+        )
+
+    for struct in structures:
+        name = f"{struct['id']}.obj"
+        assert (tmp_path / "meshes" / name).read_bytes() == (
+            full_dir / name
+        ).read_bytes()

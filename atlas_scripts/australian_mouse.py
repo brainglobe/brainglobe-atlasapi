@@ -8,6 +8,7 @@ __version__ = "1"
 import os
 import tarfile
 import time
+from ast import literal_eval
 from pathlib import Path
 
 import numpy as np
@@ -628,9 +629,13 @@ def retrieve_reference_and_annotation():
             # Assuming annotated_volume is a numpy array
         new_label_data = label_data.copy()
         new_label_data["id"] = new_label_data["id"].map(id_mapping)
-        new_label_data["structure_id_path"] = new_label_data["id"].apply(
-            lambda new_id: [ROOT_ID, REGION_IDS[region], new_id]
+        structure_paths = new_label_data["structure_id_path"].apply(
+            literal_eval
         )
+        new_label_data["structure_id_path"] = [
+            [id_mapping.get(node, node) for node in path]
+            for path in structure_paths
+        ]
         output_path = (
             DOWNLOAD_DIR_PATH
             / TEMPLATE_STRING.format(region, "-nii")
@@ -915,7 +920,3 @@ if __name__ == "__main__":
         scale_meshes=True,
         overwrite=True,
     )
-
-
-
-

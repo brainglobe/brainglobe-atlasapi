@@ -10,6 +10,7 @@ import zarr
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
+    _smooth_constrained,
     construct_meshes_from_annotation,
     create_region_mesh,
     extract_mesh_from_mask,
@@ -329,8 +330,47 @@ def test_extract_mesh_from_mask_marching_cubes(mcubes_smooth, mesh_from_mask):
     mesh = extract_mesh_from_mask(**mesh_from_mask)
     assert mesh.contains([50, 50, 50]) is True
     assert mesh.contains([2, 2, 2]) is False
-    # Positive volume means faces are wound with outward-facing normals
-    assert mesh.volume() > 0
+    # Positive signed volume means faces are wound with outward-facing normals
+    pts, faces = mesh.vertices, np.asarray(mesh.cells)
+    a, b, c = pts[faces[:, 0]], pts[faces[:, 1]], pts[faces[:, 2]]
+    assert np.einsum("ij,ij->i", a, np.cross(b, c)).sum() > 0
+
+
+def test_extract_mesh_from_mask_mcubes_smooth_small_region(mesh_from_mask):
+    """Test smoothing doesn't remove regions only a few voxels wide.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
+    volume = np.zeros((41, 41, 41), dtype=np.uint8)
+    volume[18:23, 18:23, 18:23] = 1
+    mesh_from_mask.update(
+        {
+            "volume": volume,
+            "use_marching_cubes": True,
+            "mcubes_smooth": True,
+            "closing_n_iters": None,
+        }
+    )
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+    assert mesh.npoints > 0
+    assert mesh.contains([20, 20, 20]) is True
+
+
+def test_smooth_constrained_keeps_inside_outside(mesh_from_mask):
+    """Test constrained smoothing keeps every voxel on its side of the mask.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
+    mask = mesh_from_mask["volume"].astype(bool)
+    smoothed = _smooth_constrained(mask)
+    assert (smoothed[mask] >= 0).all()
+    assert (smoothed[~mask] <= 0).all()
 
 
 def test_extract_mesh_from_mask_marching_cubes_empty(mesh_from_mask):

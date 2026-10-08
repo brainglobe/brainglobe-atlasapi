@@ -314,9 +314,7 @@ def test_extract_mesh_from_mask_ValueError(mesh_from_mask):
 
 
 @pytest.mark.parametrize("mcubes_smooth", [False, True])
-def test_extract_mesh_from_mask_marching_cubes(
-    mcubes_smooth, mesh_from_mask, capsys
-):
+def test_extract_mesh_from_mask_marching_cubes(mcubes_smooth, mesh_from_mask):
     """Test `mesh_from_mask` using marching cubes with/without `mcubes_smooth`.
 
     Parameters
@@ -325,16 +323,33 @@ def test_extract_mesh_from_mask_marching_cubes(
         Whether to apply smoothing with marching cubes.
     mesh_from_mask : dict
         Fixture containing volume and default parameters for `mesh_from_mask`.
-    capsys : pytest.CaptureFixture
-        Fixture to capture stdout and stderr.
     """
     mesh_from_mask.update({"use_marching_cubes": True})
     mesh_from_mask.update({"mcubes_smooth": mcubes_smooth})
-    extract_mesh_from_mask(**mesh_from_mask)
-    captured = capsys.readouterr()
-    assert captured.out.startswith(
-        "The marching cubes algorithm might be rotated "
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+    assert mesh.contains([50, 50, 50]) is True
+    assert mesh.contains([2, 2, 2]) is False
+    # Positive volume means faces are wound with outward-facing normals
+    assert mesh.volume() > 0
+
+
+def test_extract_mesh_from_mask_marching_cubes_empty(mesh_from_mask):
+    """Test marching cubes returns an empty mesh for an empty mask.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
+    mesh_from_mask.update(
+        {
+            "volume": np.zeros((10, 10, 10), dtype=np.uint8),
+            "use_marching_cubes": True,
+            "closing_n_iters": None,
+        }
     )
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+    assert mesh.npoints == 0
 
 
 @pytest.mark.parametrize("extract_largest", [False, True])

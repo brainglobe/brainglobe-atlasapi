@@ -11,7 +11,13 @@ from cloudvolume.datasource.precomputed.mesh.multilod import (
     MultiLevelPrecomputedMeshManifest,
 )
 from rich.progress import track
-from scipy.ndimage import binary_closing, binary_fill_holes, find_objects
+from scipy.ndimage import (
+    binary_closing,
+    binary_fill_holes,
+    find_objects,
+    gaussian_filter,
+)
+from skimage.measure import marching_cubes
 
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
@@ -24,14 +30,6 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
         + '   please install with "pip install vedo -U"'
-    )
-
-try:
-    import mcubes
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "Mesh generation with these utils requires PyMCubes\n"
-        + '   please install with "pip install PyMCubes -U"'
     )
 
 import multiprocessing as mp
@@ -78,10 +76,12 @@ def extract_mesh_from_mask(
     smooth: bool
         if True the surface mesh is smoothed
     use_marching_cubes: bool:
-        if true PyMCubes is used to extract the volume's surface
-        it's slower and less accurate than vedo though.
+        if True scikit-image's marching cubes is used to extract the
+        volume's surface instead of vedo. The mesh is not capped where the
+        mask touches the volume border.
     mcubes_smooth: bool,
-        if True mcubes.smooth is used before applying marching cubes
+        if True the volume is Gaussian-smoothed before applying marching
+        cubes. Only used when `use_marching_cubes` is True.
     closing_n_iters: int
         number of iterations of closing morphological operation.
         set to None to avoid applying morphological operations
@@ -131,19 +131,22 @@ def extract_mesh_from_mask(
         volume = Volume(volume, origin=origin)
         mesh = volume.isosurface(value=threshold).cap()
     else:
-        print(
-            "The marching cubes algorithm might be rotated "
-            "compared to your volume data"
-        )
-        # Apply marching cubes and save to .obj
         if mcubes_smooth:
-            smooth_array = mcubes.smooth(volume)
-            vertices, triangles = mcubes.marching_cubes(smooth_array, 0)
-        else:
-            vertices, triangles = mcubes.marching_cubes(volume, 0.5)
+            volume = gaussian_filter(volume.astype(float), sigma=3)
 
-        #  create mesh
-        mesh = Mesh((vertices, triangles))
+        # Avoid creating meshes from empty, or full volumes
+        if volume.min() < threshold < volume.max():
+            vertices, faces, _, _ = marching_cubes(
+                volume, threshold, method="lorensen"
+            )
+            # skimage winds inward; flip to outward
+            faces = faces[:, ::-1]
+        else:
+            # Return empty mesh if the volume is empty or full
+            vertices = np.empty((0, 3))
+            faces = np.empty((0, 3), dtype=np.int64)
+
+        mesh = Mesh((vertices, faces))
 
     # Cleanup and save
     if extract_largest:

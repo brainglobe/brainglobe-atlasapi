@@ -8,26 +8,24 @@ __version__ = "1"
 import os
 import tarfile
 import time
+from ast import literal_eval
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import requests
 import SimpleITK as sitk
-from rich.progress import track
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
-    Region,
-    create_region_mesh,
+    construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 # Copy-paste this script into a new file and fill in the functions to package
 # your own atlas.
 
 ### Metadata ###
-__version__ = 0
+__version__ = 1
 ATLAS_NAME = "australian_mouse"
 CITATION = "Janke et al. 2015, https://doi.org/10.1016/j.ymeth.2015.01.005"
 SPECIES = "Mus musculus"
@@ -486,7 +484,7 @@ def download_resources():
                 if chunk:
                     f.write(chunk)
         with tarfile.open(destination_path, "r:gz") as tar:
-            tar.extractall(path=DOWNLOAD_DIR_PATH)
+            tar.extractall(path=DOWNLOAD_DIR_PATH, filter="data")
     for region, url in ANNOTATION_URLS.items():
         destination_path = DOWNLOAD_DIR_PATH / f"{region}.nii.tar.gz"
         if not os.path.isfile(destination_path):
@@ -497,7 +495,7 @@ def download_resources():
                         f.write(chunk)
         # Untar the file
         with tarfile.open(destination_path, "r:gz") as tar:
-            tar.extractall(path=DOWNLOAD_DIR_PATH)
+            tar.extractall(path=DOWNLOAD_DIR_PATH, filter="data")
     return None
 
 
@@ -520,8 +518,11 @@ def preprocess_annotations():
             total_label = pd.concat(label_list)
             label = pd.read_csv(label_path, sep="\t")
             # correct misformatting
-            label["# Hippocampus labels"][
-                label["# Hippocampus labels"] == "012 CA2 Py                  "
+            label.loc[
+                label["# Hippocampus labels"].eq(
+                    "012 CA2 Py                  "
+                ),
+                "# Hippocampus labels",
             ] = "012 CA2-Py                  "
             label = label["# Hippocampus labels"].str.split(" ", expand=True)
             label = label.iloc[3:, :2].reset_index(drop=True)
@@ -592,7 +593,7 @@ def retrieve_reference_and_annotation():
     ### This part is complex as the atlas segmentations are
     ### Distributed through multiple files which we combine.
     original_origin = np.array([5.07600021, 9.81449986, -3.72600007])
-    annotation = np.zeros((499, 1311, 679))
+    annotation = np.zeros((499, 1311, 679), dtype=np.uint32)
     new_vals = 1
     for region in REGION_IDS.keys():
 
@@ -610,17 +611,28 @@ def retrieve_reference_and_annotation():
 
         label_data = pd.read_csv(label_path)
         img = sitk.ReadImage(filename)
-        arr = sitk.GetArrayFromImage(img)
+        src = sitk.GetArrayFromImage(img)
+        # Remap into a separate, wider array: the source volume is uint8
+        # (new ids exceed 255), and remapping in place would let already
+        # renumbered voxels be matched again by later source ids.
+        arr = np.zeros(src.shape, dtype=np.uint32)
         id_mapping = {}
         # This has to be done because the ids in the labelfile are in
         # correct order, but are not aligned with the volume
         for i, idval in enumerate(label_data["id"]):
-            arr[arr == (i + 1)] = new_vals
+            arr[src == (i + 1)] = new_vals
             id_mapping[idval] = new_vals
             new_vals += 1
             # Assuming annotated_volume is a numpy array
         new_label_data = label_data.copy()
         new_label_data["id"] = new_label_data["id"].map(id_mapping)
+        structure_paths = new_label_data["structure_id_path"].apply(
+            literal_eval
+        )
+        new_label_data["structure_id_path"] = [
+            [id_mapping.get(node, node) for node in path]
+            for path in structure_paths
+        ]
         output_path = (
             DOWNLOAD_DIR_PATH
             / TEMPLATE_STRING.format(region, "-nii")
@@ -786,10 +798,9 @@ def retrieve_structure_information():
 
 
 def retrieve_or_construct_meshes(annotated_volume, structures):
-    """Retrieve or construct mesh files for each atlas structure.
+    """Construct mesh files for each atlas structure.
 
-    Checks for existing mesh files; if not found, constructs meshes
-    from the `annotated_volume` for each structure listed in `structures`.
+    Uses the shared mesh constructor to mesh cropped regions in parallel.
     Filters out structures for which mesh creation fails or results in empty
     files.
 
@@ -806,45 +817,16 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         A dictionary where keys are structure IDs and values are paths
         to the corresponding mesh files.
     """
-    meshes_dir_path = DOWNLOAD_DIR_PATH / "meshes"
-    meshes_dir_path.mkdir(exist_ok=True)
-
-    tree = get_structures_tree(structures)
-
-    labels = np.unique(annotated_volume).astype(np.int32)
-    for key, node in tree.nodes.items():
-        if key in labels:
-            is_label = True
-        else:
-            is_label = False
-
-        node.data = Region(is_label)
-
-    # Mesh creation
-    closing_n_iters = 2  # not used for this atlas
-    decimate_fraction = 0  # not used for this atlas
-
-    smooth = False
+    DOWNLOAD_DIR_PATH.mkdir(parents=True, exist_ok=True)
     start = time.time()
-
-    for node in track(
-        tree.nodes.values(),
-        total=tree.size(),
-        description="Creating meshes",
-    ):
-        create_region_mesh(
-            (
-                meshes_dir_path,
-                node,
-                tree,
-                labels,
-                annotated_volume,
-                ROOT_ID,
-                closing_n_iters,
-                decimate_fraction,
-                smooth,
-            )
-        )
+    meshes_dict = construct_meshes_from_annotation(
+        DOWNLOAD_DIR_PATH,
+        annotated_volume,
+        structures,
+        closing_n_iters=2,
+        decimate_fraction=0,
+        smooth=False,
+    )
 
     print(
         "Finished mesh extraction in: ",
@@ -852,28 +834,6 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         " minutes",
     )
 
-    # Create meshes dict
-    meshes_dict = dict()
-    structures_with_mesh = []
-    for s in structures:
-        # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
-        if not mesh_path.exists():
-            print(f"No mesh file exists for: {s}, ignoring it")
-            continue
-        else:
-            # Check that the mesh actually exists (i.e. not empty)
-            if mesh_path.stat().st_size < 512:
-                print(f"obj file for {s} is too small, ignoring it.")
-                continue
-
-        structures_with_mesh.append(s)
-        meshes_dict[s["id"]] = mesh_path
-
-    print(
-        f"In the end, {len(structures_with_mesh)} "
-        "structures with mesh are kept"
-    )
     return meshes_dict
 
 
@@ -902,7 +862,6 @@ if __name__ == "__main__":
         meshes_dict=meshes_dict,
         working_dir=BG_ROOT_DIR,
         hemispheres_stack=None,
-        cleanup_files=False,
-        compress=True,
         scale_meshes=True,
+        overwrite=True,
     )

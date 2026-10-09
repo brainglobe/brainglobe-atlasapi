@@ -871,7 +871,7 @@ def wrapup_atlas_from_data(
         | None
     ) = None,
     additional_metadata: dict | None = None,
-    overwrite=False,
+    overwrite=True,
     cleanup_files=None,
     compress=None,
 ) -> Path:
@@ -938,7 +938,7 @@ def wrapup_atlas_from_data(
         (Default value = empty dict).
         Additional metadata to write to manifest.json
     overwrite : bool, optional
-        (Default value = False).
+        (Default value = True).
         If True, will overwrite existing atlas directory.
         If False and atlas directory exists, raises FileExistsError.
     cleanup_files : deprecated, optional

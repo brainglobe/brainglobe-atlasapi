@@ -11,7 +11,15 @@ from cloudvolume.datasource.precomputed.mesh.multilod import (
     MultiLevelPrecomputedMeshManifest,
 )
 from rich.progress import track
-from scipy.ndimage import binary_closing, binary_fill_holes
+from scipy import sparse
+from scipy.ndimage import (
+    binary_closing,
+    binary_fill_holes,
+    distance_transform_edt,
+    find_objects,
+    gaussian_filter,
+)
+from skimage.measure import marching_cubes
 
 from brainglobe_atlasapi.structure_tree_util import (
     get_structures_tree,
@@ -24,14 +32,6 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "Mesh generation with these utils requires vedo\n"
         + '   please install with "pip install vedo -U"'
-    )
-
-try:
-    import mcubes
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "Mesh generation with these utils requires PyMCubes\n"
-        + '   please install with "pip install PyMCubes -U"'
     )
 
 import multiprocessing as mp
@@ -51,6 +51,76 @@ from brainglobe_atlasapi.atlas_generation.volume_utils import (
 # ----------------- #
 
 
+def _smooth_constrained(mask, band_radius=4, max_iters=500, rel_tol=1e-6):
+    """Smooth the 0.5 level-set of a 3D binary mask.
+
+    Implements "Surface Extraction from Binary Volumes with Higher-Order
+    Smoothness", Victor Lempitsky, CVPR 2010. Adapted from PyMCubes'
+    `smooth_constrained` (BSD-3-Clause, Copyright (c) 2012-2015 P. M.
+    Neila), with the matrix assembly vectorised.
+
+    Returns a float array whose 0 level-set is the smoothed surface. The
+    surface is constrained to stay within half a voxel of the mask boundary.
+    """
+    mask = mask > 0
+    dist = np.where(
+        mask,
+        distance_transform_edt(mask) - 0.5,
+        0.5 - distance_transform_edt(~mask),
+    )
+    band = np.abs(dist) <= band_radius
+
+    # Second differences along each axis over band voxels; neighbours outside
+    # the band are treated as equal to the voxel itself.
+    n = np.count_nonzero(band)
+    idx = np.pad(np.full(band.shape, -1), 1, constant_values=-1)
+    idx[1:-1, 1:-1, 1:-1][band] = np.arange(n)
+    coords = np.argwhere(band) + 1
+    rows, cols, vals = [], [], []
+    for axis in range(3):
+        row = axis * n + np.arange(n)
+        diag = np.full(n, -2.0)
+        for step in (-1, 1):
+            neighbour_coords = coords.copy()
+            neighbour_coords[:, axis] += step
+            neighbour = idx[tuple(neighbour_coords.T)]
+            inside = neighbour >= 0
+            rows.append(row[inside])
+            cols.append(neighbour[inside])
+            vals.append(np.ones(inside.sum()))
+            diag += ~inside
+        rows.append(row)
+        cols.append(np.arange(n))
+        vals.append(diag)
+    q = sparse.csr_matrix(
+        (np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))),
+        shape=(3 * n, n),
+    )
+    q = (q.T @ q).tocsr()
+
+    # Weighted Jacobi iterations, clipped so voxels keep their inside/outside
+    # sign, stopping when energy improves by less than rel_tol per iteration
+    x = dist[band]
+    upper = np.where(x < 0, x, np.inf)
+    lower = np.where(x > 0, x, -np.inf)
+    upper[np.abs(upper) < 1] = 0
+    lower[np.abs(lower) < 1] = 0
+    inv_diag = 1.0 / q.diagonal()
+    off_diag = q - sparse.diags(q.diagonal())
+    tol = 1 - (1 - rel_tol) ** 10
+    energy = x @ (q @ x) / 2
+    for i in range(max_iters):
+        x = 0.5 * (-inv_diag * (off_diag @ x)) + 0.5 * x
+        x = np.clip(x, lower, upper)
+        if (i + 1) % 10 == 0:
+            energy, previous_energy = x @ (q @ x) / 2, energy
+            if (previous_energy - energy) / previous_energy < tol:
+                break
+
+    dist[band] = x
+    return dist
+
+
 def extract_mesh_from_mask(
     volume,
     obj_filepath=None,
@@ -61,6 +131,7 @@ def extract_mesh_from_mask(
     decimate_fraction: float = 0.6,  # keep 60% of original fertices
     use_marching_cubes=False,
     extract_largest=False,
+    origin=None,
 ):
     """
     Return a vedo mesh actor with just the outer surface of a
@@ -73,14 +144,19 @@ def extract_mesh_from_mask(
         path to where the .obj mesh file will be saved
     volume: 3d np.ndarray
     threshold: float
-        min value to threshold the volume for isosurface extraction
+        min value to threshold the volume for isosurface extraction.
+        Ignored when `mcubes_smooth` is True.
     smooth: bool
         if True the surface mesh is smoothed
     use_marching_cubes: bool:
-        if true PyMCubes is used to extract the volume's surface
-        it's slower and less accurate than vedo though.
+        if True scikit-image's marching cubes is used to extract the
+        volume's surface instead of vedo. The mesh is not capped where the
+        mask touches the volume border.
     mcubes_smooth: bool,
-        if True mcubes.smooth is used before applying marching cubes
+        if True the mask's surface is smoothed before applying marching
+        cubes, with constrained smoothing (Lempitsky, 2010), or a Gaussian
+        filter for volumes larger than 500**3 voxels. Only used when
+        `use_marching_cubes` is True.
     closing_n_iters: int
         number of iterations of closing morphological operation.
         set to None to avoid applying morphological operations
@@ -91,6 +167,10 @@ def extract_mesh_from_mask(
     extract_largest: bool
         If True only the largest region are extracted. It can cause issues for
         bilateral regions as only one will remain
+    origin: sequence of int or None
+        Voxel index of `volume[0, 0, 0]` within a larger volume, so a cropped
+        mask yields the same vertex coordinates as the uncropped one.
+        Ignored when `use_marching_cubes` is True.
 
     """
     # check savepath argument
@@ -123,22 +203,31 @@ def extract_mesh_from_mask(
 
     if not use_marching_cubes:
         # Use faster algorithm
-        volume = Volume(volume)
+        volume = Volume(volume, origin=origin)
         mesh = volume.isosurface(value=threshold).cap()
     else:
-        print(
-            "The marching cubes algorithm might be rotated "
-            "compared to your volume data"
-        )
-        # Apply marching cubes and save to .obj
+        # Smoothed volumes have their surface at the 0 level-set,
+        # matching PyMCubes' `smooth`
         if mcubes_smooth:
-            smooth_array = mcubes.smooth(volume)
-            vertices, triangles = mcubes.marching_cubes(smooth_array, 0)
-        else:
-            vertices, triangles = mcubes.marching_cubes(volume, 0.5)
+            threshold = 0
+            if volume.size > 500**3:
+                volume = gaussian_filter(volume.astype(float) - 0.5, sigma=3)
+            else:
+                volume = _smooth_constrained(volume)
 
-        #  create mesh
-        mesh = Mesh((vertices, triangles))
+        # Avoid creating meshes from empty, or full volumes
+        if volume.min() < threshold < volume.max():
+            vertices, faces, _, _ = marching_cubes(
+                volume, threshold, method="lorensen"
+            )
+            # skimage winds inward; flip to outward
+            faces = faces[:, ::-1]
+        else:
+            # Return empty mesh if the volume is empty or full
+            vertices = np.empty((0, 3))
+            faces = np.empty((0, 3), dtype=np.int64)
+
+        mesh = Mesh((vertices, faces))
 
     # Cleanup and save
     if extract_largest:
@@ -167,6 +256,7 @@ def _create_region_mesh(
     decimate_fraction: float,
     smooth: bool,
     verbosity: int = 0,
+    bbox: tuple[slice, ...] | None = None,
 ) -> None:
     """
     Create and save an `.obj` mesh for a region and its descendants.
@@ -208,6 +298,10 @@ def _create_region_mesh(
         Whether to smooth the extracted mesh.
     verbosity : int, optional
         Verbosity level used for debug output.
+    bbox : tuple of slice, optional
+        Region of `annotated_volume` containing the region's labels, padded
+        so morphological closing can't reach its edge. Only this crop is read
+        and meshed; the output is the same as meshing the full volume.
 
     Raises
     ------
@@ -254,6 +348,10 @@ def _create_region_mesh(
         return
     else:
         # Create mask and extract mesh
+        origin = None
+        if bbox is not None:
+            annotated_volume = annotated_volume[bbox]
+            origin = [s.start for s in bbox]
         mask = create_masked_array(annotated_volume, ids)
 
         if np.sum(mask) == 0:
@@ -265,6 +363,7 @@ def _create_region_mesh(
                     obj_filepath=savepath,
                     smooth=smooth,
                     decimate_fraction=decimate_fraction,
+                    origin=origin,
                 )
             else:
                 extract_mesh_from_mask(
@@ -273,7 +372,38 @@ def _create_region_mesh(
                     smooth=smooth,
                     closing_n_iters=closing_n_iters,
                     decimate_fraction=decimate_fraction,
+                    origin=origin,
                 )
+
+
+def _label_bounding_boxes(volume, labels, slab_depth=64):
+    """
+    Return per-label inclusive (lo, hi) voxel bounds, each (len(labels), ndim).
+
+    `labels` must be sorted. Labels absent from `volume` keep lo > hi, and
+    voxel values not in `labels` are ignored. The volume is scanned in slabs
+    along axis 0 to avoid a full-size index array.
+    """
+    lo = np.full((len(labels), volume.ndim), np.iinfo(np.int64).max)
+    hi = np.full((len(labels), volume.ndim), -1)
+    for z0 in range(0, volume.shape[0], slab_depth):
+        slab = volume[z0 : z0 + slab_depth]
+        # 1-based label index per voxel, 0 for values not in labels
+        idx = np.minimum(np.searchsorted(labels, slab), len(labels) - 1)
+        found = labels[idx] == slab
+        idx += 1
+        idx[~found] = 0
+        objects = find_objects(idx, max_label=len(labels))
+        for i, sl in enumerate(objects):
+            if sl is None:
+                continue
+            start = [s.start for s in sl]
+            stop = [s.stop - 1 for s in sl]
+            start[0] += z0
+            stop[0] += z0
+            lo[i] = np.minimum(lo[i], start)
+            hi[i] = np.maximum(hi[i], stop)
+    return lo, hi
 
 
 def create_region_mesh(args):
@@ -347,13 +477,36 @@ def construct_meshes_from_annotation(
     meshes_dir_path.mkdir(exist_ok=True)
 
     tree = get_structures_tree(structures_list)
-    labels = np.unique(volume).astype(np.int32)
+    labels = np.unique(volume).astype(np.uint32)
 
     # Only used for parallel processing
     ann_path = save_path / "temp_annotations.zarr"
 
     for key, node in tree.nodes.items():
         node.data = Region(key in labels)
+
+    # Mesh each region from its padded bounding box instead of the full
+    # volume. Padding by closing_n_iters + 1 keeps hole filling and closing
+    # identical to running them on the full volume.
+    label_lo, label_hi = _label_bounding_boxes(volume, labels)
+    label_index = {int(label): i for i, label in enumerate(labels)}
+    pad = (closing_n_iters or 0) + 1
+    volume_shape = volume.shape
+
+    def region_bbox(node):
+        idx = [
+            label_index[i]
+            for i in tree.subtree(node.identifier).nodes
+            if i in label_index
+        ]
+        if not idx:
+            return None
+        lo = label_lo[idx].min(axis=0) - pad
+        hi = label_hi[idx].max(axis=0) + pad + 1
+        return tuple(
+            slice(max(int(a), 0), min(int(b), size))
+            for a, b, size in zip(lo, hi, volume_shape)
+        )
 
     volume_size = volume.size
     if parallel:
@@ -398,6 +551,7 @@ def construct_meshes_from_annotation(
             decimate_fraction,
             smooth,
             verbosity,
+            region_bbox(node),
         )
         for node in preorder_depth_first_search(tree)
         if node.identifier not in skip_structure_ids

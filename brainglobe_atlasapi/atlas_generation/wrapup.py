@@ -37,6 +37,7 @@ from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
     TerminologyInfo,
 )
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    _label_bounding_boxes,
     write_mesh,
     write_mesh_info,
 )
@@ -550,9 +551,14 @@ def _compute_4d_masks_for_scale(
         shape=(n_structures, z, y, x),
         chunks=(1, 128, 128, 128),
         dtype=descriptors.ANNOTATION_MASKS_DTYPE,
+        fill_value=0,
     )
 
-    flat_vol = annotation_scale.ravel()
+    # Each mask is only computed and written inside the bounding box of its
+    # structure's voxels; chunks outside it keep the zero fill value.
+    labels = np.array(sorted(mapping))
+    label_lo, label_hi = _label_bounding_boxes(annotation_scale, labels)
+    label_index = {int(label): i for i, label in enumerate(labels)}
 
     for annotation_id, index in tqdm(
         mapping.items(), desc="Processing annotations"
@@ -562,14 +568,29 @@ def _compute_4d_masks_for_scale(
         ids = np.asarray(list(stree.nodes.keys()))
         mapped_ids = np.array([mapping[id_] for id_ in ids])
 
+        present = [
+            label_index[id_]
+            for id_ in ids
+            if label_hi[label_index[id_], 0] >= 0
+        ]
+        if not present:
+            continue
+        bbox = tuple(
+            slice(int(a), int(b) + 1)
+            for a, b in zip(
+                label_lo[present].min(axis=0), label_hi[present].max(axis=0)
+            )
+        )
+        crop = annotation_scale[bbox]
+
         lut = np.zeros(int(mapped_ids.max()) + 1, dtype=np.uint8)
         lut[mapped_ids] = 1
 
-        mask = np.empty(annotation_scale.size, dtype=np.uint8)
+        mask = np.empty(crop.size, dtype=np.uint8)
 
-        create_masked_array_numba(flat_vol, lut, mask, typed_dict)
+        create_masked_array_numba(crop.ravel(), lut, mask, typed_dict)
 
-        masks[index, ...] = mask.reshape(annotation_scale.shape)
+        masks[(index, *bbox)] = mask.reshape(crop.shape)
 
     return da.from_zarr(scratch_path)
 

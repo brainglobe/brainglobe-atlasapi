@@ -201,9 +201,9 @@ def retrieve_structure_information():
         }
 
     # Amend some duplicate names and aconyms in the provided data
-    structures_by_id[75][
-        "name"
-    ] = "Dorsal Nucleus of the Inferior Reticular Formation"
+    structures_by_id[75]["name"] = (
+        "Dorsal Nucleus of the Inferior Reticular Formation"
+    )
     structures_by_id[75]["acronym"] = "DIRtF"
 
     structures_by_id[215]["acronym"] = "DLT"

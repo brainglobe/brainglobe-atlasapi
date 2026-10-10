@@ -30,7 +30,7 @@ ATLAS_NAME = "kim_dev_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://kimlab.io/brain-map/DevCCF/"
 CITATION = "Kronman, F.N., Liwang, J.K., Betty, R. et al. 2024, https://doi.org/10.1038/s41467-024-53254-w"
-ORIENTATION = ["left", "superior", "posterior"]
+ORIENTATION = "lsp"
 ROOT_ID = 15564
 VERSION = 3
 PACKAGER = "Carlo Castoldi <castoldi[at]ipmc.cnrs.fr>"
@@ -40,7 +40,7 @@ TIMEPOINTS = ("E11.5", "E13.5", "E15.5", "E18.5", "P04", "P14", "P56")
 MODALITIES = (
     "LSFM",  # Light Sheet Fluorescence Microscopy
     "MRI-adc",  # MRI Apparent Diffusion Coefficient
-    "MRI-dwi",  # MRI Difusion Weighted Imaging
+    "MRI-dwi",  # MRI Diffusion Weighted Imaging
     "MRI-fa",  # MRI Fractional Anisotropy
     "MRI-MTR",  # MRI Magnetization Transfer Ratio
     "MRI-T2",  # MRI T2-weighted
@@ -107,7 +107,7 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
     assert age in TIMEPOINTS, f"Unknown age timepoint: '{age}'"
     archive = age + ".zip"
     if modality == "LSFM":
-        resolution_um = 20
+        resolution_um: float = 20
     elif modality in MODALITIES:
         match age:
             case "E11.5":
@@ -122,9 +122,11 @@ def fetch_animal(pooch_: pooch.Pooch, age: str, modality: str):
                 resolution_um = 50
     else:
         raise RuntimeError(f"Unknown reference image modality: {modality}")
+
+    age_hyphen = age.replace(".", "-")
     members = [
-        f"{age}/{age.replace('.','-')}_DevCCF_Annotations_{resolution_um}um.nii.gz",
-        f"{age}/{age.replace('.','-')}_{modality}_{resolution_um}um.nii.gz",
+        f"{age}/{age_hyphen}_DevCCF_Annotations_{resolution_um}um.nii.gz",
+        f"{age}/{age_hyphen}_{modality}_{resolution_um}um.nii.gz",
     ]
     fetched_paths = pooch_.fetch(
         archive,
@@ -290,7 +292,7 @@ def create_mesh_dict(structures, meshes_dir_path):
     structures_with_mesh = []
     for s in structures:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it")
             continue
@@ -346,7 +348,7 @@ modalities_help = """the reference image acquisition modality.
     Options are:
         - LSFM,         Light Sheet Fluorescence Microscopy
         - MRI-adc       MRI Apparent Diffusion Coefficient
-        - MRI-dwi       MRI Difusion Weighted Imaging
+        - MRI-dwi       MRI Diffusion Weighted Imaging
         - MRI-fa        MRI Fractional Anisotropy
         - MRI-MTR       MRI Magnetization Transfer Ratio
         - MRI-T2        MRI T2-weighted
@@ -363,7 +365,7 @@ cached_meshes_help = (
     Options are:
         - LSFM,         Light Sheet Fluorescence Microscopy
         - MRI-adc       MRI Apparent Diffusion Coefficient
-        - MRI-dwi       MRI Difusion Weighted Imaging
+        - MRI-dwi       MRI Diffusion Weighted Imaging
         - MRI-fa        MRI Fractional Anisotropy
         - MRI-MTR       MRI Magnetization Transfer Ratio
         - MRI-T2        MRI T2-weighted
@@ -472,7 +474,8 @@ if __name__ == "__main__":
             and (
                 cache_dir := bg_root_dir
                 / f"{ATLAS_NAME}_{age.replace('.', '-')}"
-                f"_{cached_modality}".lower() / "meshes"
+                f"_{cached_modality}".lower()
+                / "meshes"
             ).exists()
         ):
             meshes_dir_path = cache_dir

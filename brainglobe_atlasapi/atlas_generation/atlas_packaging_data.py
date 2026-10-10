@@ -65,6 +65,7 @@ def check_requested_component(
 
     fs = s3fs.S3FileSystem(anon=True)
 
+    assert stub is not None
     component_stub = "/".join(stub.split("/")[:-1])
 
     remote_path = descriptors.remote_url_s3.format(component_stub)
@@ -149,10 +150,10 @@ class ComponentInfo:
     use_existing: bool = False
     update_existing: bool = False
     existing_version: Optional[str] = None
-    root_dir: Optional[str] = None
-    file_name: Optional[str] = None
+    root_dir: str = ""
+    file_name: str = ""
     existing_stub: Optional[str] = None
-    stub: Optional[str] = None
+    stub: str = ""
     metadata: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -175,7 +176,7 @@ class ComponentInfo:
                 self.file_name,
             )
 
-        if self.stub is None:
+        if not self.stub:
             self.stub = descriptors.format_component_stub(
                 self.name,
                 self.version,

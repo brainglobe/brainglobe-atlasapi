@@ -6,7 +6,7 @@ README files associated with atlases packaged within the BrainGlobe ecosystem.
 import json
 import re
 from datetime import datetime
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import requests
 from requests.exceptions import InvalidURL, MissingSchema
@@ -36,7 +36,7 @@ def generate_metadata_dict(
     version: str,
     shape: Tuple[int, int, int],
     additional_references: List[TemplateInfo],
-    atlas_packager: str,
+    atlas_packager: Optional[str],
     coordinate_space: CoordinateSpaceInfo,
     terminology: TerminologyInfo,
     annotation_set: AnnotationInfo,
@@ -116,8 +116,12 @@ def generate_metadata_dict(
     assert len(resolution) == 3
     assert len(shape) == 3
 
-    resolution = tuple([float(v) for v in resolution])
-    shape = tuple(int(v) for v in shape)
+    resolution = (
+        float(resolution[0]),
+        float(resolution[1]),
+        float(resolution[2]),
+    )
+    shape = (int(shape[0]), int(shape[1]), int(shape[2]))
 
     assert isinstance(additional_references, list)
 

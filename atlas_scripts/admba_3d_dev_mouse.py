@@ -11,7 +11,7 @@ import json
 import time
 from os import listdir, path
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -275,7 +275,7 @@ def create_mesh_dict(structures, meshes_dir_path):
     structures_with_mesh = []
     for s in structures:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it")
             continue
@@ -318,7 +318,8 @@ class AtlasConfig:
 
 
 def create_atlas(
-    working_dir: Path = Path.home(), atlas_config: "AtlasConfig" = None
+    working_dir: Path = Path.home(),
+    atlas_config: Optional["AtlasConfig"] = None,
 ):
     """
     Package a 3D mouse brain atlas for a specific developmental stage
@@ -350,15 +351,16 @@ def create_atlas(
         If the atlas_config is invalid (e.g., orientation or resolution
         length is not 3, or atlas_file_url is missing).
     """
-    assert (
-        len(atlas_config.orientation) == 3
-    ), f"Orientation is not 3 characters, Got {atlas_config.orientation}"
-    assert (
-        len(atlas_config.resolution) == 3
-    ), f"Resolution is not correct, Got {atlas_config.resolution}"
-    assert (
-        atlas_config.atlas_file_url
-    ), f"No download link provided for atlas in {atlas_config.atlas_file_url}"
+    assert atlas_config is not None, "atlas_config must be provided"
+    assert len(atlas_config.orientation) == 3, (
+        f"Orientation is not 3 characters, Got {atlas_config.orientation}"
+    )
+    assert len(atlas_config.resolution) == 3, (
+        f"Resolution is not correct, Got {atlas_config.resolution}"
+    )
+    assert atlas_config.atlas_file_url, (
+        f"No download link provided for atlas in {atlas_config.atlas_file_url}"
+    )
     if isinstance(working_dir, str):
         working_dir = Path(working_dir)
     # Generated atlas path:
@@ -369,7 +371,7 @@ def create_atlas(
     download_dir_path.mkdir(exist_ok=True)
     if path.isdir(atlas_config.atlas_file_url):
         print("Setting atlas to directory: ", atlas_config.atlas_file_url)
-        atlas_files_dir = atlas_config.atlas_file_url
+        atlas_files_dir = Path(atlas_config.atlas_file_url)
     else:
         # Download atlas files from link provided
         print("Downloading atlas from link: ", atlas_config.atlas_file_url)
@@ -381,16 +383,19 @@ def create_atlas(
         )
         ## Load files
 
-    structures_file = atlas_files_dir / (
-        [f for f in listdir(atlas_files_dir) if "region_ids_ADMBA" in f][0]
+    structures_file = (
+        atlas_files_dir
+        / ([f for f in listdir(atlas_files_dir) if "region_ids_ADMBA" in f][0])
     )
 
-    reference_file = atlas_files_dir / (
-        [f for f in listdir(atlas_files_dir) if "atlasVolume.mhd" in f][0]
+    reference_file = (
+        atlas_files_dir
+        / ([f for f in listdir(atlas_files_dir) if "atlasVolume.mhd" in f][0])
     )
 
-    annotations_file = atlas_files_dir / (
-        [f for f in listdir(atlas_files_dir) if "annotation.mhd" in f][0]
+    annotations_file = (
+        atlas_files_dir
+        / ([f for f in listdir(atlas_files_dir) if "annotation.mhd" in f][0])
     )
     # segments_file = atlas_files_dir / "Segments.csv"
 

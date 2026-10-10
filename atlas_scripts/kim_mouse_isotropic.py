@@ -171,7 +171,7 @@ def retrieve_or_construct_meshes(
     download_dir: Path,
     annotation: np.ndarray,
     structures: List[Dict[str, Any]],
-) -> Dict[int, str]:
+) -> Dict[int | str, str | Path]:
     """Retrieve or construct meshes for atlas structures.
 
     Parameters
@@ -185,7 +185,7 @@ def retrieve_or_construct_meshes(
 
     Returns
     -------
-    Dict[int, str]
+    Dict[int | str, str | Path]
         Mapping from structure ID to mesh file path.
     """
     meshes_dir = download_dir
@@ -216,7 +216,7 @@ def get_path_to_root_id(
     List[int]
         A list of structure IDs starting from the root ID to `current_id`.
     """
-    path_to_root = []
+    path_to_root: List[int] = []
     while True:
         current_row = id_to_row.get(current_id)
         if current_row is None:

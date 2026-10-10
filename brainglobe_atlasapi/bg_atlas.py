@@ -226,7 +226,7 @@ class BrainGlobeAtlas(
         return self._local_full_name
 
     @property
-    def local_version(self) -> Optional[Tuple[int, ...]]:
+    def local_version(self) -> Tuple[int, ...]:
         """If atlas is local, return actual version of the downloaded files."""
         if self._local_version is not None:
             return self._local_version

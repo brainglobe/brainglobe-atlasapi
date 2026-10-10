@@ -43,7 +43,10 @@ BG_OME_ZARR_AXES = [
     },
 ]
 
-BG_OME_ZARR_4D_AXES = [{"name": "c", "type": "channel"}, *BG_OME_ZARR_AXES]
+BG_OME_ZARR_4D_AXES: List[Dict] = [
+    {"name": "c", "type": "channel"},
+    *BG_OME_ZARR_AXES,
+]
 
 
 def write_stack(stack, filename):
@@ -126,9 +129,9 @@ def _save_as_ome_zarr(
 ) -> None:
     stack = [s.astype(dtype) for s in stack]
 
-    assert len(transformations) == len(
-        stack
-    ), "Number of transformation sets must match number of scales in stack."
+    assert len(transformations) == len(stack), (
+        "Number of transformation sets must match number of scales in stack."
+    )
     write_multiscale_ome_zarr(
         images=stack,
         output_path=output_path,

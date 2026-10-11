@@ -21,7 +21,6 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 __version__ = 0
 
@@ -397,7 +396,6 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
-
 
     odin = pooch_init(DOWNLOAD_DIR_PATH)
     structures = retrieve_ontology()

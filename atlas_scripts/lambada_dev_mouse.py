@@ -309,7 +309,7 @@ def retrieve_ontology():
     if needs_download:
         utils.check_internet_connection()
 
-    path = pooch.retrieve(
+    pooch.retrieve(
         url=LABELS_URL,
         known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
         path=DOWNLOAD_DIR_PATH,
@@ -398,16 +398,6 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Fail when any timepoints already exist to avoid overwriting
-    for age in TIMEPOINTS:
-        atlas_prefix = atlas_name_from_repr(
-            ATLAS_NAME + f"_P{age}", RESOLUTION
-        )
-        existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
-        if existing:
-            raise FileExistsError(
-                f"{atlas_prefix} output already exists in {BG_ROOT_DIR}. "
-            )
 
     odin = pooch_init(DOWNLOAD_DIR_PATH)
     structures = retrieve_ontology()

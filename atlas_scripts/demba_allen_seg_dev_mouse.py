@@ -17,6 +17,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 VERSION = 0
 NAME = "demba_allen_seg_dev_mouse"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "https://doi.org/10.1101/2024.06.14.598876"
 ATLAS_LINK = "https://doi.org/10.25493/V3AH-HK7"
 SPECIES = "Mus musculus"
@@ -51,7 +52,6 @@ def download_resources(download_dir_path, atlas_file_url, atlas_name):
     download_name = atlas_name
     destination_path = download_dir_path / download_name
     for url in atlas_file_url:
-
         pooch.retrieve(
             url=url,
             known_hash=None,
@@ -131,7 +131,6 @@ def retrieve_reference_and_annotation(
     zoom_factors = tuple(volume_resolution / resolution for _ in range(3))
     reference = zoom(reference, zoom_factors, order=1)
     if annotation.shape != reference.shape:
-
         zoom_factors = tuple(
             ref_dim / ann_dim
             for ref_dim, ann_dim in zip(reference.shape, annotation.shape)
@@ -201,7 +200,7 @@ def retrieve_structure_information(download_path):
     return structs_with_mesh
 
 
-age_specific_root_dir = None
+age_specific_root_dir: Path | None = None
 
 if __name__ == "__main__":
     bg_root_dir = Path.home() / "brainglobe_workingdir" / NAME
@@ -212,7 +211,7 @@ if __name__ == "__main__":
         atlas_file_url=data_file_url,
     )
     for age in range(4, 57):
-        if age != 4:
+        if age_specific_root_dir is not None:
             shutil.rmtree(age_specific_root_dir)
         age_specific_root_dir = bg_root_dir / f"P{age}"
         age_specific_root_dir.mkdir(exist_ok=True)
@@ -244,6 +243,7 @@ if __name__ == "__main__":
                 {k: s[k] for k in TEMPLATE_KEYS if k in s} for s in structures
             ]
             output_filename = wrapup_atlas_from_data(
+                atlas_packager=ATLAS_PACKAGER,
                 atlas_name=current_name,
                 atlas_minor_version=VERSION,
                 citation=CITATION,

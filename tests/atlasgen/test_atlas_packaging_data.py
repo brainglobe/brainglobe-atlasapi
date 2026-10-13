@@ -23,6 +23,7 @@ from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
     _reorient_stacks,
     _standardize_resolution,
     check_requested_component,
+    sanitise_volumetric_data,
 )
 
 # --- _standardize_resolution ---
@@ -667,12 +668,139 @@ def test_check_requested_component_update_existing_raises_if_not_found(
         check_requested_component(component, tmp_path)
 
 
+# --- sanitise_volumetric_data ---
+
+
+@pytest.fixture
+def raw_volumes():
+    """Provide minimal raw volumetric inputs for sanitise_volumetric_data.
+
+    Returns
+    -------
+    dict
+        Keyword arguments for sanitise_volumetric_data.
+    """
+    return {
+        "resolution": (25, 25, 25),
+        "orientation": "asr",
+        "reference_stack": np.zeros((4, 4, 4), dtype=np.uint16),
+        "annotation_stack": np.zeros((4, 4, 4), dtype=np.uint32),
+    }
+
+
+def test_sanitise_resolution_standardized(raw_volumes):
+    """Test a single resolution tuple is wrapped in a list.
+
+    Parameters
+    ----------
+    raw_volumes : dict
+        Minimal raw kwargs for sanitise_volumetric_data.
+    """
+    volumes = sanitise_volumetric_data(**raw_volumes)
+    assert volumes.resolution == [(25, 25, 25)]
+
+
+def test_sanitise_multiscale_resolution(raw_volumes):
+    """Test a list of resolutions (multiscale) is kept as is.
+
+    Parameters
+    ----------
+    raw_volumes : dict
+        Minimal raw kwargs for sanitise_volumetric_data.
+    """
+    raw_volumes["resolution"] = [(25, 25, 25), (50, 50, 50)]
+    volumes = sanitise_volumetric_data(**raw_volumes)
+    assert volumes.resolution == [(25, 25, 25), (50, 50, 50)]
+
+
+def test_sanitise_stacks_are_lists(raw_volumes):
+    """Test single arrays are wrapped in lists.
+
+    Parameters
+    ----------
+    raw_volumes : dict
+        Minimal raw kwargs for sanitise_volumetric_data.
+    """
+    volumes = sanitise_volumetric_data(**raw_volumes)
+    assert isinstance(volumes.reference_stack, list)
+    assert len(volumes.reference_stack) == 1
+    assert isinstance(volumes.annotation_stack, list)
+    assert len(volumes.annotation_stack) == 1
+
+
+def test_sanitise_reorients_stacks(raw_volumes):
+    """Test stacks are reoriented to the BrainGlobe orientation.
+
+    Parameters
+    ----------
+    raw_volumes : dict
+        Minimal raw kwargs for sanitise_volumetric_data.
+    """
+    raw_volumes["orientation"] = "sal"
+    raw_volumes["reference_stack"] = np.zeros((2, 3, 4), dtype=np.uint16)
+    raw_volumes["annotation_stack"] = np.zeros((2, 3, 4), dtype=np.uint32)
+    volumes = sanitise_volumetric_data(**raw_volumes)
+    assert volumes.reference_stack[0].shape == (3, 2, 4)
+    assert volumes.annotation_stack[0].shape == (3, 2, 4)
+    assert volumes.space_convention.origin_string == "sal"
+
+
+def test_sanitise_symmetric_auto_hemispheres(raw_volumes):
+    """Test hemispheres are auto-generated when none are provided.
+
+    Parameters
+    ----------
+    raw_volumes : dict
+        Minimal raw kwargs for sanitise_volumetric_data.
+    """
+    volumes = sanitise_volumetric_data(**raw_volumes)
+    assert volumes.symmetric is True
+    assert isinstance(volumes.hemispheres_stack, list)
+    assert volumes.hemispheres_stack[0].shape == (4, 4, 4)
+
+
+def test_sanitise_asymmetric_uses_provided_hemispheres(raw_volumes):
+    """Test the provided hemispheres stack is used when given.
+
+    Parameters
+    ----------
+    raw_volumes : dict
+        Minimal raw kwargs for sanitise_volumetric_data.
+    """
+    hemispheres = np.zeros((4, 4, 4), dtype=np.uint8)
+    raw_volumes["hemispheres_stack"] = hemispheres
+    volumes = sanitise_volumetric_data(**raw_volumes)
+    assert volumes.symmetric is False
+    assert isinstance(volumes.hemispheres_stack, list)
+    assert np.array_equal(volumes.hemispheres_stack[0], hemispheres)
+
+
+def test_sanitise_additional_references(raw_volumes):
+    """Test additional reference stacks are loaded into lists.
+
+    Parameters
+    ----------
+    raw_volumes : dict
+        Minimal raw kwargs for sanitise_volumetric_data.
+    """
+    extra_ref = TemplateInfo(name="extra-template", version="1.0")
+    extra_stack = np.zeros((4, 4, 4), dtype=np.uint16)
+    raw_volumes["additional_references"] = [(extra_ref, extra_stack)]
+    volumes = sanitise_volumetric_data(**raw_volumes)
+    assert len(volumes.additional_references) == 1
+    ref_info, ref_stack = volumes.additional_references[0]
+    assert ref_info is extra_ref
+    assert isinstance(ref_stack, list)
+    assert ref_stack[0].shape == (4, 4, 4)
+
+
 # --- AtlasPackagingData ---
 
 
 @pytest.fixture
 def atlas_packaging_kwargs(
     tmp_path,
+    raw_volumes,
     template_info,
     annotation_info,
     terminology_info,
@@ -688,6 +816,8 @@ def atlas_packaging_kwargs(
     ----------
     tmp_path : Path
         Temporary directory path provided by pytest.
+    raw_volumes : dict
+        Minimal raw kwargs for sanitise_volumetric_data.
     template_info : TemplateInfo
         A TemplateInfo instance.
     annotation_info : AnnotationInfo
@@ -702,18 +832,22 @@ def atlas_packaging_kwargs(
     dict
         A dictionary of keyword arguments for AtlasPackagingData.
     """
+    volumes = sanitise_volumetric_data(**raw_volumes)
     return {
         "atlas_name": "test_mouse",
         "atlas_version": "1.0",
         "citation": "unpublished",
         "atlas_link": "https://example.com",
         "species": "Mouse (Mus musculus)",
-        "resolution": (25, 25, 25),
+        "resolution": volumes.resolution,
         "orientation": "asr",
         "root_id": 0,
         "working_dir": tmp_path,
-        "reference_stack": np.zeros((4, 4, 4), dtype=np.uint16),
-        "annotation_stack": np.zeros((4, 4, 4), dtype=np.uint32),
+        "reference_stack": volumes.reference_stack,
+        "annotation_stack": volumes.annotation_stack,
+        "hemispheres_stack": volumes.hemispheres_stack,
+        "symmetric": volumes.symmetric,
+        "space_convention": volumes.space_convention,
         "structures_list": [
             {
                 "id": 0,
@@ -728,6 +862,7 @@ def atlas_packaging_kwargs(
         "annotation_info": annotation_info,
         "terminology_info": terminology_info,
         "coordinate_space_info": coordinate_space_info,
+        "atlas_packager": "Test Packager",
     }
 
 
@@ -750,10 +885,10 @@ def test_atlas_packaging_data_version_underscore(
     assert data.atlas_version_underscore == "1_0"
 
 
-def test_atlas_packaging_data_resolution_standardized(
+def test_atlas_packaging_data_stores_sanitised_volumes(
     mocker, atlas_packaging_kwargs
 ):
-    """Test AtlasPackagingData standardizes resolution to a list of tuples.
+    """Test AtlasPackagingData stores the sanitised volumes unchanged.
 
     Parameters
     ----------
@@ -766,73 +901,10 @@ def test_atlas_packaging_data_resolution_standardized(
         "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
     )
     data = AtlasPackagingData(**atlas_packaging_kwargs)
-    assert isinstance(data.resolution, list)
+    assert data.reference_stack is atlas_packaging_kwargs["reference_stack"]
+    assert data.annotation_stack is atlas_packaging_kwargs["annotation_stack"]
     assert data.resolution == [(25, 25, 25)]
-
-
-def test_atlas_packaging_data_stacks_are_lists(mocker, atlas_packaging_kwargs):
-    """Test AtlasPackagingData wraps stacks in lists after loading.
-
-    Parameters
-    ----------
-    mocker : pytest_mock.MockerFixture
-        Mocker fixture for patching.
-    atlas_packaging_kwargs : dict
-        Minimal valid kwargs for AtlasPackagingData.
-    """
-    mocker.patch(
-        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
-    )
-    data = AtlasPackagingData(**atlas_packaging_kwargs)
-    assert isinstance(data.reference_stack, list)
-    assert len(data.reference_stack) == 1
-    assert isinstance(data.annotation_stack, list)
-    assert len(data.annotation_stack) == 1
-
-
-def test_atlas_packaging_data_symmetric_auto_hemispheres(
-    mocker, atlas_packaging_kwargs
-):
-    """Test AtlasPackagingData auto-generates hemispheres when
-    hemispheres_stack is None.
-
-    Parameters
-    ----------
-    mocker : pytest_mock.MockerFixture
-        Mocker fixture for patching.
-    atlas_packaging_kwargs : dict
-        Minimal valid kwargs for AtlasPackagingData.
-    """
-    mocker.patch(
-        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
-    )
-    data = AtlasPackagingData(**atlas_packaging_kwargs)
     assert data.symmetric is True
-    assert isinstance(data.hemispheres_stack, list)
-    assert data.hemispheres_stack[0].shape == (4, 4, 4)
-
-
-def test_atlas_packaging_data_asymmetric_uses_provided_hemispheres(
-    mocker, atlas_packaging_kwargs
-):
-    """Test AtlasPackagingData uses the provided hemispheres stack when given.
-
-    Parameters
-    ----------
-    mocker : pytest_mock.MockerFixture
-        Mocker fixture for patching.
-    atlas_packaging_kwargs : dict
-        Minimal valid kwargs for AtlasPackagingData.
-    """
-    mocker.patch(
-        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
-    )
-    hemispheres = np.zeros((4, 4, 4), dtype=np.uint8)
-    atlas_packaging_kwargs["hemispheres_stack"] = hemispheres
-    data = AtlasPackagingData(**atlas_packaging_kwargs)
-    assert data.symmetric is False
-    assert isinstance(data.hemispheres_stack, list)
-    assert np.array_equal(data.hemispheres_stack[0], hemispheres)
 
 
 def test_atlas_packaging_data_calls_check_requested_component(
@@ -855,13 +927,11 @@ def test_atlas_packaging_data_calls_check_requested_component(
     assert mock_check.call_count == 4
 
 
-def test_atlas_packaging_data_additional_references_processed(
+def test_atlas_packaging_data_checks_additional_references(
     mocker, atlas_packaging_kwargs
 ):
-    """Test AtlasPackagingData processes additional_references correctly.
-
-    Each additional reference stack is loaded and reoriented, and
-    check_requested_component is called once more per additional reference.
+    """Test check_requested_component is called once more per additional
+    reference.
 
     Parameters
     ----------
@@ -874,34 +944,8 @@ def test_atlas_packaging_data_additional_references_processed(
         "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
     )
     extra_ref = TemplateInfo(name="extra-template", version="1.0")
-    extra_stack = np.zeros((4, 4, 4), dtype=np.uint16)
     atlas_packaging_kwargs["additional_references"] = [
-        (extra_ref, extra_stack)
+        (extra_ref, [np.zeros((4, 4, 4), dtype=np.uint16)])
     ]
-    data = AtlasPackagingData(**atlas_packaging_kwargs)
-    assert len(data.additional_references) == 1
-    _, ref_stack = data.additional_references[0]
-    assert isinstance(ref_stack, list)
-    assert ref_stack[0].shape == (4, 4, 4)
+    AtlasPackagingData(**atlas_packaging_kwargs)
     assert mock_check.call_count == 5
-
-
-def test_atlas_packaging_data_multiscale_resolution(
-    mocker, atlas_packaging_kwargs
-):
-    """Test AtlasPackagingData handles a list of resolutions (multiscale).
-
-    Parameters
-    ----------
-    mocker : pytest_mock.MockerFixture
-        Mocker fixture for patching.
-    atlas_packaging_kwargs : dict
-        Minimal valid kwargs for AtlasPackagingData.
-    """
-    mocker.patch(
-        "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
-    )
-    atlas_packaging_kwargs["resolution"] = [(25, 25, 25), (50, 50, 50)]
-    data = AtlasPackagingData(**atlas_packaging_kwargs)
-    assert isinstance(data.resolution, list)
-    assert data.resolution == [(25, 25, 25), (50, 50, 50)]

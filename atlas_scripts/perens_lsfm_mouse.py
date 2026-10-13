@@ -23,6 +23,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 ATLAS_NAME = "perens_lsfm_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://github.com/Gubra-ApS/LSFM-mouse-brain-atlas"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "Perens et al. 2021, https://doi.org/10.1007/s12021-020-09490-8"
 ORIENTATION = "ial"
 ROOT_ID = 997
@@ -306,7 +307,7 @@ def create_atlas(working_dir, resolution):
     structures_with_mesh = []
     for s in structures:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it")
             continue
@@ -331,6 +332,7 @@ def create_atlas(working_dir, resolution):
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

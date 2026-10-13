@@ -18,7 +18,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
-# The Perens atlas re-uses information from the Allen atlas, so it's useful to
+# The Perens atlas reuses information from the Allen atlas, so it's useful to
 # have an instance of the Allen atlas around
 allen_atlas = BrainGlobeAtlas("allen_mouse_25um")
 
@@ -73,6 +73,7 @@ __version__ = 0
 ATLAS_NAME = "perens_multimodal_lsfm"
 
 # DOI of the most relevant citable document
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "Perens et al. 2023, https://doi.org/10.1007/s12021-023-09623-9"
 
 # The scientific name of the species, ie; Rattus norvegicus
@@ -281,7 +282,7 @@ def retrieve_or_construct_meshes():
     structures_with_mesh = []
     for s in structures:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it")
             continue
@@ -313,6 +314,7 @@ if __name__ == "__main__":
     meshes_dict = retrieve_or_construct_meshes()
     print("wrapping up atlas")
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

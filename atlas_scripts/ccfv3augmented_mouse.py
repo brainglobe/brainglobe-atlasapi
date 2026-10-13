@@ -304,7 +304,7 @@ if __name__ == "__main__":
             compress=True,
             scale_meshes=True,
             additional_references=additional_references,
-            additional_metadata={"atlas_packager": ATLAS_PACKAGER},
+            atlas_packager=ATLAS_PACKAGER,
         )
         # its important we clear the mesh folder between loops in
         # case one resolution creates more regions than the other

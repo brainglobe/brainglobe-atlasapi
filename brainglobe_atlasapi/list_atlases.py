@@ -33,7 +33,7 @@ def get_downloaded_atlases() -> List[str]:
         brainglobe_dir / "brainglobe-atlasapi" / descriptors.V3_ATLAS_ROOTDIR
     )
 
-    downloaded_atlases = []
+    downloaded_atlases: list[str] = []
 
     if not atlases_dir.exists():
         return downloaded_atlases
@@ -197,16 +197,16 @@ def show_atlases(show_local_path: bool = False, table_width: int = 88) -> None:
 
     # Add downloaded atlases (sorted) to the table first
     for atlas_name in sorted(downloaded_atlases.keys()):
-        atlas = downloaded_atlases[atlas_name]
+        atlas_info = downloaded_atlases[atlas_name]
         table = add_atlas_to_row(
-            atlas_name, atlas, table, show_local_path=show_local_path
+            atlas_name, atlas_info, table, show_local_path=show_local_path
         )
 
     # Then add non-download atlases (sorted) to the table
     for atlas_name in sorted(non_downloaded_atlases.keys()):
-        atlas = non_downloaded_atlases[atlas_name]
+        atlas_info = non_downloaded_atlases[atlas_name]
         table = add_atlas_to_row(
-            atlas_name, atlas, table, show_local_path=show_local_path
+            atlas_name, atlas_info, table, show_local_path=show_local_path
         )
 
     # Print the resulting table

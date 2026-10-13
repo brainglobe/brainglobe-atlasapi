@@ -6,7 +6,7 @@ import numpy as np
 from scipy.ndimage import generic_filter
 
 
-def split_label_text(name: str, acronym_length=1) -> str:
+def split_label_text(name: str, acronym_length=1) -> tuple[str, str]:
     """Split label text into name + acronym.
 
     If the label text ends with ')', extract the acronym inside parentheses.
@@ -27,7 +27,7 @@ def split_label_text(name: str, acronym_length=1) -> str:
     return name, acronym
 
 
-def read_itk_labels(path: Path, acronym_length=1) -> dict:
+def read_itk_labels(path: Path, acronym_length=1) -> list[dict]:
     """Turn ITK label data from a file into a list of dictionaries."""
     labels = []
     with open(path) as labels_file:

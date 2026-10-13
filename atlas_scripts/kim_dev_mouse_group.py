@@ -25,6 +25,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 ATLAS_GROUP_NAME = "kim_dev_mouse"  # multiple versions of the same atlas
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://data.mendeley.com/datasets/2svx788ddf/1"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = (
     "Kim, Yongsoo (2022), “KimLabDevCCFv001”, Mendeley Data, "
     "V1, doi: 10.17632/2svx788ddf.1"
@@ -266,7 +267,7 @@ def create_atlas(
     structures_with_mesh = []
     for s in structures:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it")
             continue
@@ -291,6 +292,7 @@ def create_atlas(
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=atlas_name,
         atlas_minor_version=__version__,
         citation=CITATION,

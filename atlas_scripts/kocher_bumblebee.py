@@ -377,15 +377,15 @@ def retrieve_reference_and_annotation(
     return reference, annotation
 
 
-def retrieve_hemisphere_map() -> None:
+def retrieve_hemisphere_map() -> np.ndarray | None:
     """Retrieve a hemisphere map for the atlas.
 
     The bumblebee atlas is symmetrical, so no hemisphere map is needed.
 
     Returns
     -------
-    None
-        No hemisphere map for this symmetrical atlas.
+    np.ndarray | None
+        None, as there is no hemisphere map for this symmetrical atlas.
     """
     return None
 
@@ -533,7 +533,7 @@ def _process_mesh(mesh: Mesh) -> Mesh:
 
 def extract_meshes_from_vtk(
     annotations_path: Path, working_dir: Path
-) -> dict[str, str]:
+) -> dict[int | str, str | Path]:
     """Extract individual meshes from the VTK file for each labeled region.
 
     Parameters
@@ -548,7 +548,7 @@ def extract_meshes_from_vtk(
     dict[str, str]
         Dictionary mapping region IDs to mesh file paths
     """
-    mesh_dict = {}
+    mesh_dict: dict[int | str, str | Path] = {}
     mesh_save_folder = working_dir / "meshes"
     mesh_save_folder.mkdir(parents=True, exist_ok=True)
 
@@ -624,7 +624,7 @@ def extract_meshes_from_vtk(
 
 def retrieve_or_construct_meshes(
     annotations_path: Path, working_dir: Path
-) -> dict[str, str]:
+) -> dict[int | str, str | Path]:
     """Return a mapping of region IDs to mesh file paths.
 
     Some atlases are packaged with mesh files; in these cases, use those files.

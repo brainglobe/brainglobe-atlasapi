@@ -31,6 +31,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 ATLAS_NAME = "osten_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://doi.org/10.1016/j.celrep.2014.12.014"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "Kim et al. 2015, https://doi.org/10.1016/j.celrep.2014.12.014"
 ORIENTATION = "asr"
 ROOT_ID = 997
@@ -210,6 +211,7 @@ def create_atlas(working_dir, resolution):
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

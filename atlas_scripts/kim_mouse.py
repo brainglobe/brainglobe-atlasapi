@@ -32,6 +32,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 ATLAS_NAME = "kim_mouse"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://kimlab.io/brain-map/atlas/"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "Chon et al. 2019, https://doi.org/10.1038/s41467-019-13057-w"
 ORIENTATION = "asr"
 ROOT_ID = 997
@@ -206,6 +207,7 @@ def create_atlas(working_dir, resolution):
     # Wrap up, compress, and remove file:
     print("Finalising atlas")
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

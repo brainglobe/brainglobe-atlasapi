@@ -11,7 +11,7 @@ import json
 import time
 from os import listdir, path
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -319,7 +319,7 @@ class AtlasConfig:
 
 def create_atlas(
     working_dir: Path = Path.home(),
-    atlas_config: Optional["AtlasConfig"] = None,
+    atlas_config: "AtlasConfig | None" = None,
 ):
     """
     Package a 3D mouse brain atlas for a specific developmental stage

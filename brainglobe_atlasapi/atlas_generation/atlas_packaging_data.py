@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, NamedTuple, Required, TypedDict
 
 import brainglobe_space as bgs
 import numpy as np
@@ -63,9 +63,13 @@ def check_requested_component(
     else:
         return
 
+    if stub is None:
+        raise ValueError(
+            f"No stub available for requested component {component_info.name}."
+        )
+
     fs = s3fs.S3FileSystem(anon=True)
 
-    assert stub is not None
     component_stub = "/".join(stub.split("/")[:-1])
 
     remote_path = descriptors.remote_url_s3.format(component_stub)
@@ -103,7 +107,25 @@ def check_requested_component(
         )
 
 
-@dataclass
+class ComponentInfoDict(TypedDict, total=False):
+    """
+    Keyword arguments accepted by ComponentInfo and its subclasses.
+
+    Used to type the user-facing component dictionaries passed to
+    wrapup_atlas_from_data (e.g. template_info, annotation_info).
+    """
+
+    name: Required[str]
+    version: Required[str]
+    use_existing: bool
+    update_existing: bool
+    existing_version: str
+    root_dir: str
+    file_name: str
+    stub: str
+
+
+@dataclass(kw_only=True)
 class ComponentInfo:
     """
     Container for information about a component of a BrainGlobe atlas
@@ -149,11 +171,11 @@ class ComponentInfo:
     version: str
     use_existing: bool = False
     update_existing: bool = False
-    existing_version: Optional[str] = None
-    root_dir: str = ""
-    file_name: str = ""
-    existing_stub: Optional[str] = None
-    stub: str = ""
+    existing_version: str | None = None
+    root_dir: str
+    file_name: str
+    existing_stub: str | None = None
+    stub: str | None = None
     metadata: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -176,7 +198,7 @@ class ComponentInfo:
                 self.file_name,
             )
 
-        if not self.stub:
+        if self.stub is None:
             self.stub = descriptors.format_component_stub(
                 self.name,
                 self.version,
@@ -340,7 +362,116 @@ class CoordinateSpaceInfo(ComponentInfo):
         )
 
 
-@dataclass
+class SanitisedVolumes(NamedTuple):
+    """Volumetric atlas data normalised for AtlasPackagingData.
+
+    Attributes
+    ----------
+    resolution : ResolutionList
+        One resolution tuple per scale, highest resolution first.
+    space_convention : bgs.AnatomicalSpace
+        Anatomical space of the original data.
+    reference_stack : list[npt.NDArray]
+        Reference stack per scale, reoriented to the BrainGlobe orientation.
+    annotation_stack : list[npt.NDArray]
+        Annotation stack per scale, reoriented to the BrainGlobe orientation.
+    hemispheres_stack : list[npt.NDArray]
+        Hemispheres stack per scale, either provided and reoriented or
+        auto-generated for symmetric atlases.
+    symmetric : bool
+        Whether the atlas is symmetric (no hemispheres stack was provided).
+    additional_references : list[tuple[TemplateInfo, list[npt.NDArray]]]
+        Additional templates, each loaded and reoriented.
+    """
+
+    resolution: ResolutionList
+    space_convention: bgs.AnatomicalSpace
+    reference_stack: list[npt.NDArray]
+    annotation_stack: list[npt.NDArray]
+    hemispheres_stack: list[npt.NDArray]
+    symmetric: bool
+    additional_references: list[tuple[TemplateInfo, list[npt.NDArray]]]
+
+
+def sanitise_volumetric_data(
+    resolution: Resolution | ResolutionList,
+    orientation: str,
+    reference_stack: ValidComponentData,
+    annotation_stack: ValidComponentData,
+    hemispheres_stack: ValidComponentData | None = None,
+    additional_references: (
+        list[tuple[TemplateInfo, ValidComponentData]] | None
+    ) = None,
+) -> SanitisedVolumes:
+    """
+    Load and reorient all volumetric atlas data.
+
+    Stacks given as file paths are read with tifffile, single arrays are
+    wrapped in a list, and every stack is reoriented from ``orientation``
+    to the BrainGlobe orientation. If no hemispheres stack is provided, the
+    atlas is treated as symmetric and one is generated.
+
+    Parameters
+    ----------
+    resolution : Resolution | ResolutionList
+        Resolution on three axes, or a list of such tuples for multi-scale.
+    orientation : str
+        Orientation of the original atlas data.
+    reference_stack : ValidComponentData
+        Reference stack, as a path, array, or list of these per scale.
+    annotation_stack : ValidComponentData
+        Annotation stack, as a path, array, or list of these per scale.
+    hemispheres_stack : ValidComponentData | None, optional
+        Hemispheres stack. If None, the atlas is assumed symmetric.
+    additional_references : list[tuple[TemplateInfo, ValidComponentData]] | None, optional
+        Additional templates and their stacks.
+
+    Returns
+    -------
+    SanitisedVolumes
+        The normalised volumetric data.
+    """  # noqa: E501
+    resolution_list = _standardize_resolution(resolution)
+    references = _load_stack(reference_stack)
+    annotations = _load_stack(annotation_stack)
+
+    shape = references[0].shape
+    volume_shape = tuple(res * s for res, s in zip(resolution_list[0], shape))
+    space_convention = bgs.AnatomicalSpace(orientation, shape=volume_shape)
+
+    references = _reorient_stacks(references, space_convention)
+    annotations = _reorient_stacks(annotations, space_convention)
+
+    sanitised_references = [
+        (
+            ref_info,
+            _reorient_stacks(_load_stack(ref_stack), space_convention),
+        )
+        for ref_info, ref_stack in additional_references or []
+    ]
+
+    symmetric = hemispheres_stack is None
+    if hemispheres_stack is None:
+        hemispheres = _auto_generate_hemispheres(
+            shapes=[stack.shape for stack in annotations],
+        )
+    else:
+        hemispheres = _reorient_stacks(
+            _load_stack(hemispheres_stack), space_convention
+        )
+
+    return SanitisedVolumes(
+        resolution=resolution_list,
+        space_convention=space_convention,
+        reference_stack=references,
+        annotation_stack=annotations,
+        hemispheres_stack=hemispheres,
+        symmetric=symmetric,
+        additional_references=sanitised_references,
+    )
+
+
+@dataclass(kw_only=True)
 class AtlasPackagingData:
     """Container for all data required to package a BrainGlobe atlas.
 
@@ -348,50 +479,60 @@ class AtlasPackagingData:
     pipeline. It collects all atlas data in one place to avoid threading
     individual arguments through many function signatures.
 
+    Volumetric data must already be normalised, see
+    `sanitise_volumetric_data`.
+
     Attributes
     ----------
     atlas_name : str
         Atlas name in the form author_species.
-    atlas_minor_version : int or str
-        Minor version number for this particular atlas.
+    atlas_version : str
+        Full version of the atlas.
     citation : str
         Citation for the atlas, if unpublished specify "unpublished".
     atlas_link : str
         Valid URL for the atlas.
     species : str
         Species name formatted as "CommonName (Genus species)".
-    resolution : Resolution | ResolutionList
-        Resolution on three axes, or a list of such tuples for multi-scale.
-    orientation : str
-        Orientation of the original atlas (tuple describing origin for
-        BGSpace).
+    resolution : ResolutionList
+        One resolution tuple per scale, highest resolution first.
     root_id : int
         Id of the root element of the atlas.
-    reference_stack : ValidComponentData
-        Reference stack for the atlas. If str or Path, will be read with
-        tifffile. If list, should be ordered from highest to lowest
-        resolution.
-    annotation_stack : ValidComponentData
-        Annotation stack for the atlas. If str or Path, will be read with
-        tifffile. If list, should be ordered from highest to lowest
-        resolution.
-    structures_list : List[Dict]
+    working_dir : Path
+        Directory in which the atlas is generated.
+    reference_stack : list[npt.NDArray]
+        Reference stack per scale, in the BrainGlobe orientation.
+    annotation_stack : list[npt.NDArray]
+        Annotation stack per scale, in the BrainGlobe orientation.
+    hemispheres_stack : list[npt.NDArray]
+        Hemispheres stack per scale, in the BrainGlobe orientation.
+    symmetric : bool
+        Whether the atlas is symmetric across the midline.
+    space_convention : bgs.AnatomicalSpace
+        Anatomical space of the original data.
+    structures_list : list[dict]
         List of valid dictionaries for structures.
-    meshes_dict : Dict[int | str, str | Path]
+    meshes_dict : dict[int | str, str | Path]
         Dict of meshio-compatible mesh file paths in the form
         {struct_id: meshpath}.
-    atlas_packager : str, optional
+    template_info : TemplateInfo
+        Template component information.
+    annotation_info : AnnotationInfo
+        Annotation component information.
+    terminology_info : TerminologyInfo
+        Terminology component information.
+    coordinate_space_info : CoordinateSpaceInfo
+        Coordinate space component information.
+    atlas_packager : str
         Credit for those responsible for converting the atlas into the
         BrainGlobe format.
-    hemispheres_stack : ValidComponentData, optional
-        Hemisphere stack for the atlas. If None, atlas is assumed symmetric.
-    additional_references : List[Tuple[TemplateInfo, ValidComponentData]], optional
-        List of tuples containing metadata and arrays for secondary
-        templates.
-    additional_metadata : Dict, optional
+    orientation : str, optional
+        Orientation of the original atlas (tuple describing origin for
+        BGSpace).
+    additional_references : list[tuple[TemplateInfo, list[npt.NDArray]]], optional
+        Additional templates, each in the BrainGlobe orientation.
+    additional_metadata : dict, optional
         Additional metadata to write to metadata.json.
-    symmetric : bool, optional
-        Whether the atlas is symmetric across the midline.
     """  # noqa: E501
 
     atlas_name: str
@@ -399,72 +540,34 @@ class AtlasPackagingData:
     citation: str
     atlas_link: str
     species: str
-    resolution: Resolution | ResolutionList
+    resolution: ResolutionList
     root_id: int
     working_dir: Path
-    reference_stack: ValidComponentData
-    annotation_stack: ValidComponentData
-    structures_list: List[Dict]
-    meshes_dict: Dict[int | str, str | Path]
+    reference_stack: list[npt.NDArray]
+    annotation_stack: list[npt.NDArray]
+    hemispheres_stack: list[npt.NDArray]
+    symmetric: bool
+    space_convention: bgs.AnatomicalSpace
+    structures_list: list[dict]
+    meshes_dict: dict[int | str, str | Path]
     template_info: TemplateInfo
     annotation_info: AnnotationInfo
     terminology_info: TerminologyInfo
     coordinate_space_info: CoordinateSpaceInfo
+    atlas_packager: str
     orientation: str = descriptors.ATLAS_ORIENTATION
-    space_convention: bgs.AnatomicalSpace | None = None
-    atlas_version_underscore: Optional[str] = None
-    atlas_packager: str | None = None
-    hemispheres_stack: ValidComponentData = None
-    additional_references: List[
-        Tuple[
-            TemplateInfo,
-            ValidComponentData,
-        ],
-    ] = field(default_factory=list)
-    additional_metadata: Dict = field(default_factory=dict)
+    additional_references: list[tuple[TemplateInfo, list[npt.NDArray]]] = (
+        field(default_factory=list)
+    )
+    additional_metadata: dict = field(default_factory=dict)
+    atlas_version_underscore: str = field(init=False)
 
     def __post_init__(self):
         """
-        Post-initialization processing to standardize data formats and
-        check consistency.
+        Post-initialization processing to filter structures and check
+        requested components.
         """
         self.atlas_version_underscore = self.atlas_version.replace(".", "_")
-
-        self.resolution = _standardize_resolution(self.resolution)
-        self.reference_stack = _load_stack(self.reference_stack)
-        self.annotation_stack = _load_stack(self.annotation_stack)
-
-        shape = self.reference_stack[0].shape
-        volume_shape = tuple(
-            res * s for res, s in zip(self.resolution[0], shape)
-        )
-        self.space_convention = bgs.AnatomicalSpace(
-            self.orientation, shape=volume_shape
-        )
-
-        self.reference_stack = _reorient_stacks(
-            self.reference_stack, self.space_convention
-        )
-        self.annotation_stack = _reorient_stacks(
-            self.annotation_stack, self.space_convention
-        )
-
-        for i, stack_tuple in enumerate(self.additional_references):
-            ref_stack = _load_stack(stack_tuple[1])
-            ref_stack = _reorient_stacks(ref_stack, self.space_convention)
-            self.additional_references[i] = (stack_tuple[0], ref_stack)
-
-        self.symmetric = self.hemispheres_stack is None
-
-        if not self.symmetric:
-            self.hemispheres_stack = _load_stack(self.hemispheres_stack)
-            self.hemispheres_stack = _reorient_stacks(
-                self.hemispheres_stack, self.space_convention
-            )
-        else:
-            self.hemispheres_stack = _auto_generate_hemispheres(
-                shapes=[stack.shape for stack in self.annotation_stack],
-            )
 
         self.structures_list = filter_structures_not_present_in_annotation(
             self.structures_list, self.annotation_stack[0]
@@ -495,8 +598,8 @@ def _standardize_resolution(
 
 
 def _auto_generate_hemispheres(
-    shapes: List[tuple],
-) -> List[npt.NDArray]:
+    shapes: list[tuple],
+) -> list[npt.NDArray]:
     hemispheres_stack = [np.full(shape, 2, dtype=np.uint8) for shape in shapes]
     slices = ([slice(None) for _ in range(3)],) * len(shapes)
     for stack, slice_set in zip(hemispheres_stack, slices):

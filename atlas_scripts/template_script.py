@@ -27,6 +27,7 @@ __version__ = 0
 ATLAS_NAME = "example_mouse"
 
 # DOI of the most relevant citable document
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = None
 
 # The scientific name of the species, ie; Rattus norvegicus
@@ -179,6 +180,7 @@ if __name__ == "__main__":
     meshes_dict = retrieve_or_construct_meshes()
 
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

@@ -37,6 +37,7 @@ __version__ = 1
 ATLAS_NAME = "nadkarni_mri_mouselemur"
 
 # DOI of the most relevant citable document
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "https://doi.org/10.1016/j.dib.2018.10.067"
 
 # The scientific name of the species, ie; Rattus norvegicus
@@ -291,6 +292,7 @@ if __name__ == "__main__":
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes(structures)
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

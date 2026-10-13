@@ -28,6 +28,7 @@ from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 ### Metadata ###
 __version__ = 0
 ATLAS_NAME = "australian_mouse"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "Janke et al. 2015, https://doi.org/10.1016/j.ymeth.2015.01.005"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "https://imaging.org.au/AMBMC/"
@@ -884,6 +885,7 @@ if __name__ == "__main__":
     structures = retrieve_structure_information()
     meshes_dict = retrieve_or_construct_meshes(annotated_volume, structures)
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

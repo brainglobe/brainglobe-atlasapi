@@ -2,7 +2,6 @@
 
 import json
 import shutil
-from typing import List, Optional
 
 import DracoPy
 import meshio
@@ -607,7 +606,7 @@ def construct_meshes_from_annotation(
 def write_mesh_info(
     mesh_dir: Path,
     vertex_quantization_bits: int = 16,
-    transform: Optional[List[int]] = None,
+    transform: list[int] | None = None,
     lod_scale_multiplier: float = 1.0,
 ) -> dict:
     """

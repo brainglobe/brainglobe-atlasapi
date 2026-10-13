@@ -17,6 +17,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 VERSION = 0
 NAME = "demba_allen_seg_dev_mouse"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "https://doi.org/10.1101/2024.06.14.598876"
 ATLAS_LINK = "https://doi.org/10.25493/V3AH-HK7"
 SPECIES = "Mus musculus"
@@ -242,6 +243,7 @@ if __name__ == "__main__":
                 {k: s[k] for k in TEMPLATE_KEYS if k in s} for s in structures
             ]
             output_filename = wrapup_atlas_from_data(
+                atlas_packager=ATLAS_PACKAGER,
                 atlas_name=current_name,
                 atlas_minor_version=VERSION,
                 citation=CITATION,

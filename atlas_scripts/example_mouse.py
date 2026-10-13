@@ -7,6 +7,9 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
 
+from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
+    ComponentInfoDict,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
@@ -15,6 +18,7 @@ from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 # for a starting point to package your own atlas.
 __version__ = 0  # This will make the example mouse version 1.0
 ATLAS_NAME = "example_mouse"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 SPECIES = "Mus musculus"  # The scientific name of the species,
 ATLAS_LINK = "http://www.brain-map.org"  # The URL for the data files
@@ -180,13 +184,13 @@ hemispheres_stack = retrieve_hemisphere_map()
 structures = retrieve_structure_information()
 meshes_dict = retrieve_or_construct_meshes()
 
-template_info = {
+template_info: ComponentInfoDict = {
     "name": "allen-adult-mouse-stpt-template",
     "version": "2015",
     "use_existing": True,
 }
 
-coordinate_space_info = {
+coordinate_space_info: ComponentInfoDict = {
     "name": "allen-adult-mouse-ccf-space",
     "version": "2015",
     "use_existing": True,
@@ -194,6 +198,7 @@ coordinate_space_info = {
 
 if __name__ == "__main__":
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

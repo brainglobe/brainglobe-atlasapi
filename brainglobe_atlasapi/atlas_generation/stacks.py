@@ -43,7 +43,7 @@ BG_OME_ZARR_AXES = [
     },
 ]
 
-BG_OME_ZARR_4D_AXES: List[Dict] = [
+BG_OME_ZARR_4D_AXES: list[dict] = [
     {"name": "c", "type": "channel"},
     *BG_OME_ZARR_AXES,
 ]

@@ -6,7 +6,7 @@ README files associated with atlases packaged within the BrainGlobe ecosystem.
 import json
 import re
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import requests
 from requests.exceptions import InvalidURL, MissingSchema
@@ -36,7 +36,7 @@ def generate_metadata_dict(
     version: str,
     shape: Tuple[int, int, int],
     additional_references: List[TemplateInfo],
-    atlas_packager: Optional[str],
+    atlas_packager: str,
     coordinate_space: CoordinateSpaceInfo,
     terminology: TerminologyInfo,
     annotation_set: AnnotationInfo,

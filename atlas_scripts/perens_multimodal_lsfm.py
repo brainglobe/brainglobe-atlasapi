@@ -73,6 +73,7 @@ __version__ = 0
 ATLAS_NAME = "perens_multimodal_lsfm"
 
 # DOI of the most relevant citable document
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "Perens et al. 2023, https://doi.org/10.1007/s12021-023-09623-9"
 
 # The scientific name of the species, ie; Rattus norvegicus
@@ -313,6 +314,7 @@ if __name__ == "__main__":
     meshes_dict = retrieve_or_construct_meshes()
     print("wrapping up atlas")
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

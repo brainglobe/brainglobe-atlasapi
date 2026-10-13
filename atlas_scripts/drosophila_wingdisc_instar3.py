@@ -21,6 +21,7 @@ from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 ATLAS_NAME = "drosophila_wingdisc_instar3"
 
 # DOI of the most relevant citable document
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "unpublished"
 
 # The scientific name of the species, ie; Rattus norvegicus
@@ -227,6 +228,7 @@ if __name__ == "__main__":
     )
 
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

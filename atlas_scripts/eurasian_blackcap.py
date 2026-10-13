@@ -163,7 +163,8 @@ def create_atlas(working_dir, resolution):
 
     start = time.time()
 
-    meshes_dir_path = Path.home() / "blackcap-meshes"
+    meshes_dir_path = working_dir / "blackcap-meshes"
+    meshes_dir_path.mkdir(parents=True, exist_ok=True)
     meshes_dict = construct_meshes_from_annotation(
         meshes_dir_path,
         annotated_volume,
@@ -195,8 +196,6 @@ def create_atlas(working_dir, resolution):
         scale_meshes=True,
         working_dir=working_dir,
         hemispheres_stack=None,
-        cleanup_files=False,
-        compress=True,
         atlas_packager=ATLAS_PACKAGER,
         additional_metadata=ADDITIONAL_METADATA,
     )

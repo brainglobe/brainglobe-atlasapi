@@ -402,7 +402,7 @@ if __name__ == "__main__":
     odin = pooch_init(DOWNLOAD_DIR_PATH)
     structures = retrieve_ontology()
     for age in TIMEPOINTS:
-        atlas_name = f"{ATLAS_NAME}_P{age}"
+        atlas_name = f"{ATLAS_NAME}_p{age}"
         print("\nPackaging atlas for:", atlas_name)
         reference_volume, annotated_volume = fetch_animal(odin, age)
         hemispheres_stack = retrieve_hemisphere_map(annotated_volume, age)
@@ -411,7 +411,7 @@ if __name__ == "__main__":
         )
 
         output_filename = wrapup_atlas_from_data(
-            atlas_name=f"{ATLAS_NAME}_p{age}",
+            atlas_name=atlas_name,
             atlas_minor_version=__version__,
             citation=CITATION,
             atlas_link=ATLAS_LINK,
@@ -429,4 +429,5 @@ if __name__ == "__main__":
             compress=True,
             scale_meshes=True,
             atlas_packager=ATLAS_PACKAGER,
+            overwrite=True, 
         )

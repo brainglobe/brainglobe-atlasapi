@@ -427,5 +427,5 @@ if __name__ == "__main__":
             compress=True,
             scale_meshes=True,
             atlas_packager=ATLAS_PACKAGER,
-            overwrite=True, 
+            overwrite=True,
         )

@@ -251,7 +251,6 @@ def _create_region_mesh(
     tree: Tree,
     labels: list[int],
     annotated_volume: np.ndarray | str | Path,
-    ROOT_ID: int,
     closing_n_iters: int,
     decimate_fraction: float,
     smooth: bool,
@@ -283,8 +282,6 @@ def _create_region_mesh(
     annotated_volume : numpy.ndarray or str or Path
         Annotation volume as a 3D array, or a path to a zarr store containing
         the annotations.
-    ROOT_ID : int
-        Identifier of the root structure.
     closing_n_iters : int
         Number of morphological closing iterations to apply for all
         regions during mesh extraction.
@@ -519,8 +516,6 @@ def construct_meshes_from_annotation(
         ann_store.close()
         volume = ann_path
 
-    root_id = tree.root
-
     # Normalise skip set so filtering is a simple membership check
     if skip_structure_ids is None:
         skip_structure_ids = set()
@@ -537,7 +532,6 @@ def construct_meshes_from_annotation(
             tree,
             labels,
             volume,
-            root_id,
             closing_n_iters,
             decimate_fraction,
             smooth,

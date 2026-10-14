@@ -269,10 +269,6 @@ def _create_region_mesh(
     `annotated_volume` may be provided as an in-memory NumPy array or as a
     path to a zarr store, which will be opened in read mode.
 
-    For the root region (`node.identifier == ROOT_ID`), mesh extraction skips
-    the `closing_n_iters` argument. For all other regions, that parameter is
-    passed through to `extract_mesh_from_mask`.
-
     Parameters
     ----------
     meshes_dir_path : Path
@@ -290,7 +286,7 @@ def _create_region_mesh(
     ROOT_ID : int
         Identifier of the root structure.
     closing_n_iters : int
-        Number of morphological closing iterations to apply for non-root
+        Number of morphological closing iterations to apply for all
         regions during mesh extraction.
     decimate_fraction : float
         Fraction used to decimate the extracted mesh.
@@ -357,23 +353,14 @@ def _create_region_mesh(
         if np.sum(mask) == 0:
             print(f"Empty mask for {node.tag}")
         else:
-            if node.identifier == ROOT_ID:
-                extract_mesh_from_mask(
-                    mask,
-                    obj_filepath=savepath,
-                    smooth=smooth,
-                    decimate_fraction=decimate_fraction,
-                    origin=origin,
-                )
-            else:
-                extract_mesh_from_mask(
-                    mask,
-                    obj_filepath=savepath,
-                    smooth=smooth,
-                    closing_n_iters=closing_n_iters,
-                    decimate_fraction=decimate_fraction,
-                    origin=origin,
-                )
+            extract_mesh_from_mask(
+                mask,
+                obj_filepath=savepath,
+                smooth=smooth,
+                closing_n_iters=closing_n_iters,
+                decimate_fraction=decimate_fraction,
+                origin=origin,
+            )
 
 
 def _label_bounding_boxes(volume, labels, slab_depth=64):

@@ -21,6 +21,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     construct_meshes_from_annotation,
 )
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 __version__ = 0
 
@@ -378,13 +379,10 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
-    ids = np.unique(annotated_volume)
-    structures_with_mesh = [s for s in structures if s["id"] in ids]
-    
     meshes_dict = construct_meshes_from_annotation(
         save_path=DOWNLOAD_DIR_PATH,
         volume=annotated_volume,
-        structures_list=structures_with_mesh,
+        structures_list=structures,
         closing_n_iters=2,
         decimate_fraction=0.2,
         smooth=False,
@@ -393,11 +391,13 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         num_threads=-1,
     )
 
+    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
     return meshes_dict, structures_with_mesh
 
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
+
 
     odin = pooch_init(DOWNLOAD_DIR_PATH)
     structures = retrieve_ontology()
@@ -429,5 +429,5 @@ if __name__ == "__main__":
             compress=True,
             scale_meshes=True,
             atlas_packager=ATLAS_PACKAGER,
-            overwrite=True,
+            overwrite=True, 
         )

@@ -378,10 +378,13 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         A dictionary where keys are structure IDs and values are paths to the
         corresponding mesh files.
     """
+    ids = np.unique(annotated_volume)
+    structures_with_mesh = [s for s in structures if s["id"] in ids]
+    
     meshes_dict = construct_meshes_from_annotation(
         save_path=DOWNLOAD_DIR_PATH,
         volume=annotated_volume,
-        structures_list=structures,
+        structures_list=structures_with_mesh,
         closing_n_iters=2,
         decimate_fraction=0.2,
         smooth=False,
@@ -390,7 +393,6 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
         num_threads=-1,
     )
 
-    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
     return meshes_dict, structures_with_mesh
 
 

@@ -196,10 +196,13 @@ def extract_mesh_from_mask(
 
     # Apply morphological transformations
     if closing_n_iters is not None:
+        pad = (closing_n_iters or 0) + 1
+        volume = np.pad(volume, pad_width=pad)
         volume = binary_fill_holes(volume).astype(np.uint8)
         volume = binary_closing(volume, iterations=closing_n_iters).astype(
             np.uint8
         )
+        volume = volume[pad:-pad, pad:-pad, pad:-pad]
 
     if not use_marching_cubes:
         # Use faster algorithm

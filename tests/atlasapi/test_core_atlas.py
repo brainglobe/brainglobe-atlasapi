@@ -35,6 +35,18 @@ def test_initialization(atlas):
     assert atlas.shape == (132, 80, 114)
     assert atlas.resolution == (100.0, 100.0, 100.0)
     assert atlas.shape_um == (13200.0, 8000.0, 11400.0)
+    assert atlas.license is None
+
+
+def test_license_metadata(atlas):
+    """Atlas license metadata is available as a property."""
+    license_metadata = {
+        "license": "CC-BY-4.0",
+        "link_to_license": "https://creativecommons.org/licenses/by/4.0/",
+    }
+    atlas.metadata["license"] = license_metadata
+
+    assert atlas.license == license_metadata
 
 
 def test_additional_ref_dict(atlas):

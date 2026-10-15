@@ -477,7 +477,6 @@ def construct_meshes_from_annotation(
     # identical to running them on the full volume.
     label_lo, label_hi = _label_bounding_boxes(volume, labels)
     label_index = {int(label): i for i, label in enumerate(labels)}
-    pad = (closing_n_iters or 0) + 1
     volume_shape = volume.shape
 
     def region_bbox(node):
@@ -492,8 +491,8 @@ def construct_meshes_from_annotation(
         ]
         if not idx:
             return None
-        lo = label_lo[idx].min(axis=0) - pad
-        hi = label_hi[idx].max(axis=0) + pad + 1
+        lo = label_lo[idx].min(axis=0)
+        hi = label_hi[idx].max(axis=0) + 1
         return tuple(
             slice(max(int(a), 0), min(int(b), size))
             for a, b, size in zip(lo, hi, volume_shape)

@@ -51,6 +51,15 @@ REGION_IDS = {
     "hippocampus": 1004,
     "diencephalon": 1005,
 }
+# Acronyms which occur in more than one region file. These are prefixed
+# with the region they belong to so that acronyms are unique in the atlas.
+REGION_PREFIXES = {
+    "basalganglia": "BG",
+    "cerebellum": "CB",
+    "cortex": "CTX",
+    "diencephalon": "DI",
+}
+DUPLICATED_ACRONYMS = ["ST", "cc/ec", "f", "mfb", "mlf", "opt", "scp"]
 acronym_dict = {
     "diencephalon": {
         "DI-mfb": "Diencephalon: Medial forebrain bundle",
@@ -556,6 +565,13 @@ def preprocess_annotations():
         label["acronym"] = label["acronym"].str.strip()
         # correct typo
         label.loc[label["acronym"] == "Zl", "acronym"] = "ZI"
+        # make acronyms shared between regions unique
+        if region in REGION_PREFIXES:
+            is_duplicated = label["acronym"].isin(DUPLICATED_ACRONYMS)
+            label.loc[is_duplicated, "acronym"] = (
+                f"{REGION_PREFIXES[region]}-"
+                + label.loc[is_duplicated, "acronym"]
+            )
         label["name"] = label["acronym"].map(acronym_dict[region])
         label.loc[label["name"].isna(), "name"] = label.loc[
             label["name"].isna(), "acronym"

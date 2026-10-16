@@ -1,13 +1,25 @@
 """Defines the BrainGlobe Atlas API V3 classes and functions."""
 
+from __future__ import annotations
+
 import re
 from collections.abc import Callable
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import (
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    overload,
+)
 from urllib.parse import urlparse
 
+import dask.array as da
 import numpy as np
+import numpy.typing as npt
 import s3fs
 import zarr
 from fsspec.callbacks import TqdmCallback
@@ -25,6 +37,7 @@ from brainglobe_atlasapi.descriptors import (
     V3_MESHES_DIRECTORY,
     V3_TEMPLATE_NAME,
 )
+from brainglobe_atlasapi.list_atlases import get_all_atlases_lastversions
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
     check_internet_connection,
@@ -358,7 +371,10 @@ def _component(manifest: dict, key: str) -> dict:
     return manifest[key]
 
 
-class BrainGlobeAtlas(core.Atlas):
+class BrainGlobeAtlas(
+    core.Atlas[core.AtlasArray],
+    Generic[core.AtlasArray],
+):
     """Add remote atlas fetching and version comparison functionalities
     to the core Atlas class.
 
@@ -377,6 +393,9 @@ class BrainGlobeAtlas(core.Atlas):
     fn_update : Callable
         Handler function to update during download. Takes completed and total
         bytes.
+    dask : bool
+        If True, atlas array properties return dask arrays instead of loading
+        them into memory as numpy arrays.
     resolution : float (optional)
         Requested isotropic resolution in micrometres. Required for
         atlases that declare more than one scale; defaulted to the sole
@@ -401,6 +420,48 @@ class BrainGlobeAtlas(core.Atlas):
     _remote_version_str: Optional[str] = None
     _local_version_str: Optional[str] = None
 
+    @overload
+    def __init__(
+        self: BrainGlobeAtlas[npt.NDArray[np.integer]],
+        atlas_name: AtlasName,
+        version: Optional[str] = None,
+        brainglobe_dir: Optional[Union[str, Path]] = None,
+        check_latest: bool = True,
+        config_dir: Optional[Union[str, Path]] = None,
+        fn_update: Optional[Callable] = None,
+        dask: Literal[False] = False,
+        resolution: Optional[float] = None,
+        remote_root: Optional[str] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: BrainGlobeAtlas[da.Array],
+        atlas_name: AtlasName,
+        version: Optional[str] = None,
+        brainglobe_dir: Optional[Union[str, Path]] = None,
+        check_latest: bool = True,
+        config_dir: Optional[Union[str, Path]] = None,
+        fn_update: Optional[Callable] = None,
+        dask: Literal[True] = True,
+        resolution: Optional[float] = None,
+        remote_root: Optional[str] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: BrainGlobeAtlas[core.AtlasArray],
+        atlas_name: AtlasName,
+        version: Optional[str] = None,
+        brainglobe_dir: Optional[Union[str, Path]] = None,
+        check_latest: bool = True,
+        config_dir: Optional[Union[str, Path]] = None,
+        fn_update: Optional[Callable] = None,
+        dask: bool = False,
+        resolution: Optional[float] = None,
+        remote_root: Optional[str] = None,
+    ) -> None: ...
+
     def __init__(
         self,
         atlas_name: AtlasName,
@@ -409,6 +470,7 @@ class BrainGlobeAtlas(core.Atlas):
         check_latest: bool = True,
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
+        dask: bool = False,
         resolution: Optional[float] = None,
         remote_root: Optional[str] = None,
     ):
@@ -509,6 +571,7 @@ class BrainGlobeAtlas(core.Atlas):
             manifest_path,
             metadata=metadata,
             remote_root=self._remote_root,
+            dask=dask,
         )
 
         if check_latest:
@@ -582,7 +645,8 @@ class BrainGlobeAtlas(core.Atlas):
     def remote_version(self) -> Optional[tuple[int, ...]]:
         """Reads remote version from s3 bucket.
 
-        Largest numerical version assumed to be latest.
+        Unless a version was requested, the latest version is the one listed
+        in the remote last_versions.conf.
         If we are offline or using a custom atlas, return None.
         """
         if self._remote_version is not None:
@@ -605,21 +669,40 @@ class BrainGlobeAtlas(core.Atlas):
             )
 
         if self._requested_version is None:
-            versions_path = self.fs.ls(bucket_path)
-            if not versions_path:
-                # Listing a nonexistent S3 prefix returns [] rather than
-                # raising. This happens when resolution was skipped (atlas
-                # found in the local cache) and the assumed root turns out
-                # not to host this atlas name.
-                raise FileNotFoundError(
-                    f"{self.atlas_name} is not a valid atlas name!"
+            # last_versions.conf only lists atlases on the BrainGlobe bucket;
+            # other roots take their newest version folder.
+            if self._remote_root == descriptors.DEFAULT_REMOTE_ROOT:
+                last_versions = get_all_atlases_lastversions()
+                if self.atlas_name not in last_versions:
+                    if self.local_full_name is not None:
+                        return None
+                    raise FileNotFoundError(
+                        f"{self.atlas_name} has no released version "
+                        "available. Specify a version explicitly to "
+                        "download it."
+                    )
+                self._remote_version_str = str(
+                    last_versions[self.atlas_name]
+                ).replace(".", "_")
+                self._remote_version = _version_tuple_from_str(
+                    self._remote_version_str
                 )
-            available_versions: List[str] = [
-                path_str.split("/")[-1] for path_str in versions_path
-            ]
-            latest_version = get_latest_version(available_versions)
-            self._remote_version_str = latest_version
-            self._remote_version = _version_tuple_from_str(latest_version)
+            else:
+                versions_path = self.fs.ls(bucket_path)
+                if not versions_path:
+                    # Listing a nonexistent S3 prefix returns [] rather than
+                    # raising. This happens when resolution was skipped (atlas
+                    # found in the local cache) and the assumed root turns out
+                    # not to host this atlas name.
+                    raise FileNotFoundError(
+                        f"{self.atlas_name} is not a valid atlas name!"
+                    )
+                available_versions: List[str] = [
+                    path_str.split("/")[-1] for path_str in versions_path
+                ]
+                latest_version = get_latest_version(available_versions)
+                self._remote_version_str = latest_version
+                self._remote_version = _version_tuple_from_str(latest_version)
         else:
             requested_path = f"{bucket_path}/{self._requested_version}"
             if not self.fs.exists(requested_path):

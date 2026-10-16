@@ -551,7 +551,6 @@ def test_construct_meshes_cropped_matches_full_volume(
                 tree,
                 labels,
                 annotations,
-                tree.root,
                 closing_n_iters,
                 0.2,
                 False,

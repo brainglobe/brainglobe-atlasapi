@@ -67,7 +67,6 @@ def region_mesh_args(structures, tmp_path, request):
         Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
     )
     labels = np.unique(smoothed_annotations).astype(np.int_)
-    root_id = 999
     closing_n_iters = 10
     decimate_fraction = 0.6
     smooth = True
@@ -78,11 +77,10 @@ def region_mesh_args(structures, tmp_path, request):
         tree,  # 2
         labels,  # 3
         smoothed_annotations,  # 4
-        root_id,  # 5
-        closing_n_iters,  # 6
-        decimate_fraction,  # 7
-        smooth,  # 8
-        verbosity,  # 9
+        closing_n_iters,  # 5
+        decimate_fraction,  # 6
+        smooth,  # 7
+        verbosity,  # 8
     )
 
 
@@ -553,7 +551,6 @@ def test_construct_meshes_cropped_matches_full_volume(
                 tree,
                 labels,
                 annotations,
-                tree.root,
                 closing_n_iters,
                 0.2,
                 False,

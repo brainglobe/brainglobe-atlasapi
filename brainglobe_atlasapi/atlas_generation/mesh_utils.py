@@ -128,7 +128,7 @@ def extract_mesh_from_mask(
     smooth: bool = False,
     mcubes_smooth=False,
     closing_n_iters=8,
-    decimate_fraction: float = 0.6,  # keep 60% of original fertices
+    decimate_fraction: float = 0.6,  # keep 60% of original vertices
     use_marching_cubes=False,
     extract_largest=False,
     origin=None,

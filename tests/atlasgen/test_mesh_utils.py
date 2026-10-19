@@ -453,10 +453,7 @@ def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
     volume = np.full((100, 100, 100), zeros_ones, dtype=int)
     mesh_from_mask.update({"volume": volume})
     mesh = extract_mesh_from_mask(**mesh_from_mask)
-    if zeros_ones == 0:
-        assert np.isclose(mesh.area(), 0)
-    else:
-        assert mesh.area() > 0
+    assert np.isclose(mesh.area(), 0)
 
 
 @pytest.mark.parametrize(

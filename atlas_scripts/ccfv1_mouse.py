@@ -33,7 +33,9 @@ ATLAS_PACKAGER = "Jung Woo Kim"
 SKIP_DOWNLOADS_IF_PRESENT = True
 
 REFERENCE_URL = "https://rgw.cscs.ch/ebrains:deepslice/ccfv1/template_25.nii"
-ANNOTATION_URL = "https://rgw.cscs.ch/ebrains:deepslice/ccfv1/annotation_25.nii"
+ANNOTATION_URL = (
+    "https://rgw.cscs.ch/ebrains:deepslice/ccfv1/annotation_25.nii"
+)
 LABELS_URL = "https://rgw.cscs.ch/ebrains:deepslice/ccfv1/brainstructures.csv"
 
 REFERENCE_FNAME = "template_25.nii"

@@ -27,7 +27,7 @@ CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
 ATLAS_LINK = r"https://data-proxy.ebrains.eu/deepslice?prefix=ccfv1%2F"
 ORIENTATION = "rpi"
-ROOT_ID = 0
+ROOT_ID = 999
 RESOLUTION = 25
 ATLAS_PACKAGER = "Jung Woo Kim"
 
@@ -177,6 +177,7 @@ def retrieve_structure_information():
     df["name"] = df["name"].str.strip()
     df["rgb_triplet"] = df[["red", "green", "blue"]].values.tolist()
     df["structure_id_path"] = None
+    df.at[0, "id"] = ROOT_ID
 
     ancestry = []
     # Loop through structures to ensure all have structure_id_path

@@ -196,7 +196,9 @@ def remote_root_to_https(remote_root: str) -> str:
     return f"https://{bucket}.s3.amazonaws.com/{prefix}"
 
 
-def check_s3_status(timeout=5, raise_error=True, remote_root=None):
+def check_s3_status(
+    timeout=5, raise_error=True, remote_root=descriptors.DEFAULT_REMOTE_ROOT
+):
     """
     Check that the remote S3 bucket is accessible.
 
@@ -207,8 +209,6 @@ def check_s3_status(timeout=5, raise_error=True, remote_root=None):
     remote_root : str
         Remote root to check. Defaults to the BrainGlobe bucket.
     """
-    if remote_root is None:
-        remote_root = descriptors.DEFAULT_REMOTE_ROOT
     url = remote_root_to_https(remote_root)
 
     try:
@@ -540,12 +540,6 @@ def load_structures_from_csv(structures_path):
         na_values=["", "NaN", "NULL", "nan", "N/A", "na", "null"],
     )
 
-    if "root_identifier_path" not in structures_df.columns:
-        raise KeyError(
-            f"{structures_path} has no 'root_identifier_path' column; "
-            "it is required to build the structure hierarchy."
-        )
-
     id_to_value = {
         identifier: int(value)
         for identifier, value in zip(
@@ -563,6 +557,7 @@ def load_structures_from_csv(structures_path):
             ) from e
 
     structures_df["id"] = structures_df["annotation_value"].astype(int)
+    structures_df["annotation_value"] = structures_df["id"]
     structures_df["structure_id_path"] = structures_df[
         "root_identifier_path"
     ].apply(lambda path: [to_annotation_value(i) for i in path])
@@ -585,12 +580,7 @@ def load_structures_from_csv(structures_path):
         "rgb_triplet",
         "structure_id_path",
     ]
-    structures_list = structures_df[kept_columns].to_dict(orient="records")
-
-    for structure in structures_list:
-        structure["annotation_value"] = int(structure["annotation_value"])
-
-    return structures_list
+    return structures_df[kept_columns].to_dict(orient="records")
 
 
 def read_tiff(path: Union[str, Path]) -> np.ndarray:

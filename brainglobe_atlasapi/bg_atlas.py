@@ -495,19 +495,15 @@ class BrainGlobeAtlas(
         # Read BrainGlobe configuration file:
         conf = config.read_config(config_dir)
 
-        if remote_root is not None:
-            # Caller-supplied remote takes full priority: it is the only
-            # root searched below, with no fallback to the configured
-            # defaults.
-            self._root_key = urlparse(remote_root).netloc
-            self._remote_root = remote_root
-        else:
-            # Assume the historical default root so an atlas that is
-            # already cached locally (or was written directly to disk, as
-            # atlas generation/validation does) is found without any
-            # network call.
-            self._root_key = descriptors.DEFAULT_ROOT_KEY
-            self._remote_root = descriptors.DEFAULT_REMOTE_ROOT
+        # A caller-supplied root is the only one searched. Otherwise assume
+        # the default root, so a locally cached atlas loads without any
+        # network call.
+        self._remote_root = remote_root or descriptors.DEFAULT_REMOTE_ROOT
+        self._root_key = (
+            urlparse(remote_root).netloc
+            if remote_root
+            else descriptors.DEFAULT_ROOT_KEY
+        )
 
         # Use either input locations or locations from the config file,
         # and create directory if it does not exist:
@@ -539,15 +535,9 @@ class BrainGlobeAtlas(
                     # update_atlas) depend on that.
                     raise FileNotFoundError(str(error)) from error
 
-                if root_key != self._root_key:
-                    self._root_key, self._remote_root = (
-                        root_key,
-                        resolved_root,
-                    )
-                    self.brainglobe_dir = (
-                        self.brainglobe_dir.parent / self._root_key
-                    )
-                    self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
+                self._root_key, self._remote_root = root_key, resolved_root
+                self.brainglobe_dir = self.brainglobe_dir.parent / root_key
+                self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
@@ -941,12 +931,12 @@ class BrainGlobeAtlas(
 
         # Resolve the local folder name before comparing.
         local_version = self.local_version
-        local = self._local_version_str
-        if local is None:
-            local = _version_str_from_tuple(local_version)
-        online = self._remote_version_str
-        if online is None:
-            online = _version_str_from_tuple(remote_version)
+        local = self._local_version_str or _version_str_from_tuple(
+            local_version
+        )
+        online = self._remote_version_str or _version_str_from_tuple(
+            remote_version
+        )
 
         if local != online:
             if print_warning:

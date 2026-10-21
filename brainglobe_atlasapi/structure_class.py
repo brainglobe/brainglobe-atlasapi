@@ -139,9 +139,8 @@ def _encode_draco(points: np.ndarray, faces: np.ndarray) -> bytes:
     triangles = np.ascontiguousarray(faces, dtype=np.uint32)
 
     bbox_min = vertices.min(axis=0)
-    qrange = float((vertices.max(axis=0) - bbox_min).max())
-    if qrange <= 0.0:  # degenerate (single point / planar in all axes)
-        qrange = 1.0
+    # `or 1.0`: degenerate mesh (single point / planar in all axes)
+    qrange = float((vertices.max(axis=0) - bbox_min).max()) or 1.0
 
     return DracoPy.encode(
         vertices,

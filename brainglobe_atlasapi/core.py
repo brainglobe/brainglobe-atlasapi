@@ -50,19 +50,12 @@ AtlasArray = TypeVar(
 )
 
 
-def _transform_field(transform, name):
-    """Read a field from a transform that may be an object or a dict."""
-    if isinstance(transform, dict):
-        return transform.get(name)
-    return getattr(transform, name, None)
-
-
 def _scale_from_transforms(transforms):
     """Return the scale factors from a coordinate transformation list.
 
     OME-Zarr 0.5 stores a flat ``[{scale}, {translation}]`` list, while 0.6
     wraps them as ``[{"type": "sequence", "transformations": [...]}]``. Both
-    shapes are accepted, as are raw dictionaries read from ``zarr.json``.
+    shapes are accepted, as raw dictionaries read from ``zarr.json``.
 
     Parameters
     ----------
@@ -80,11 +73,11 @@ def _scale_from_transforms(transforms):
         If no scale transformation is present.
     """
     for transform in transforms:
-        scale = _transform_field(transform, "scale")
+        scale = transform.get("scale")
         if scale is not None:
             return scale
-        for inner in _transform_field(transform, "transformations") or ():
-            scale = _transform_field(inner, "scale")
+        for inner in transform.get("transformations", ()):
+            scale = inner.get("scale")
             if scale is not None:
                 return scale
 
@@ -145,7 +138,7 @@ class Atlas(Generic[AtlasArray]):
         Path to folder containing data info.
     metadata : dict or None
         Pre-built metadata dict; read from `path` when omitted.
-    remote_root : str or None
+    remote_root : str
         Remote root to fetch data from; defaults to the BrainGlobe bucket.
     dask : bool
         If True, atlas array properties return dask arrays instead of loading
@@ -161,7 +154,7 @@ class Atlas(Generic[AtlasArray]):
         path: Union[str, Path],
         dask: Literal[False] = False,
         metadata: Optional[dict] = None,
-        remote_root: Optional[str] = None,
+        remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
     ) -> None: ...
 
     @overload
@@ -170,7 +163,7 @@ class Atlas(Generic[AtlasArray]):
         path: Union[str, Path],
         dask: Literal[True] = True,
         metadata: Optional[dict] = None,
-        remote_root: Optional[str] = None,
+        remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
     ) -> None: ...
 
     @overload
@@ -179,7 +172,7 @@ class Atlas(Generic[AtlasArray]):
         path: Union[str, Path],
         dask: bool = False,
         metadata: Optional[dict] = None,
-        remote_root: Optional[str] = None,
+        remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
     ) -> None: ...
 
     def __init__(
@@ -187,17 +180,13 @@ class Atlas(Generic[AtlasArray]):
         path: Union[str, Path],
         dask: bool = False,
         metadata: Optional[dict] = None,
-        remote_root: Optional[str] = None,
+        remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
     ):
         self.dask = dask
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
         self.fs = s3fs.S3FileSystem(anon=True)
-        self._remote_root = (
-            remote_root
-            if remote_root is not None
-            else descriptors.DEFAULT_REMOTE_ROOT
-        )
+        self._remote_root = remote_root
 
         atlas_path = Path(path)
         self.root_dir = atlas_path.parents[3]
@@ -920,7 +909,7 @@ class AdditionalRefDict(UserDict):
         references_list: List[Dict[str, str]],
         data_path,
         resolution: Tuple[float, float, float],
-        remote_root=None,
+        remote_root=descriptors.DEFAULT_REMOTE_ROOT,
         *args,
         **kwargs,
     ):
@@ -928,11 +917,7 @@ class AdditionalRefDict(UserDict):
         self.references_names = [ref["name"] for ref in references_list]
         self.references_dict = {ref["name"]: ref for ref in references_list}
         self.resolution = resolution
-        self.remote_root = (
-            remote_root
-            if remote_root is not None
-            else descriptors.DEFAULT_REMOTE_ROOT
-        )
+        self.remote_root = remote_root
 
         super().__init__(*args, **kwargs)
 

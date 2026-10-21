@@ -16,8 +16,6 @@ ATLAS_ASSETS_ROOT_KEY = "allen-atlas-assets"
 
 # Retained for backwards compatibility with existing imports:
 remote_url_s3 = DEFAULT_REMOTE_ROOT + "/{}"
-# Base URL for the BrainGlobe atlas S3 bucket:
-remote_url_s3 = "s3://brainglobe/atlas/{}"
 remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
 
 # Major version of atlases used by current brainglobe-atlasapi release:

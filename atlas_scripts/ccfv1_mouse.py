@@ -177,19 +177,22 @@ def retrieve_structure_information():
     df["name"] = df["name"].str.strip()
     df["rgb_triplet"] = df[["red", "green", "blue"]].values.tolist()
     df["structure_id_path"] = None
-    
+
     # Make "Brain" structure a child of root
     df.at[0, "ParentStruct"] = "root"
-    
+
     root_row = pd.DataFrame(
-        [{"id": ROOT_ID,
-         "name": "root",
-         "acronym": "root",
-         "structure_id_path": [ROOT_ID],
-         "rgb_triplet": [255, 255, 255],}]
+        [
+            {
+                "id": ROOT_ID,
+                "name": "root",
+                "acronym": "root",
+                "structure_id_path": [ROOT_ID],
+                "rgb_triplet": [255, 255, 255],
+            }
+        ]
     )
     df = pd.concat([df, root_row], axis=0, ignore_index=True)
-    
 
     ancestry = []
     # Loop through structures to ensure all have structure_id_path

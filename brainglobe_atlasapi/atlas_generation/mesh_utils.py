@@ -485,8 +485,8 @@ def construct_meshes_from_annotation(
         ]
         if not idx:
             return None
-        lo = label_lo[idx].min(axis=0)
-        hi = label_hi[idx].max(axis=0) + 1
+        lo = label_lo[idx].min(axis=0) - 1
+        hi = label_hi[idx].max(axis=0) + 2
         return tuple(
             slice(max(int(a), 0), min(int(b), size))
             for a, b, size in zip(lo, hi, volume_shape)

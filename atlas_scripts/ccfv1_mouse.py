@@ -170,7 +170,7 @@ def retrieve_structure_information():
         columns={
             "StructureName": "name",
             "Abbreviation": "acronym",
-            "StructureId": "id",
+            "informaticsId": "id",
         },
         inplace=True,
     )
@@ -213,16 +213,16 @@ def retrieve_structure_information():
             "red",
             "green",
             "blue",
-            "informaticsId",
+            "StructureId",
             "ParentStruct",
         ],
         inplace=True,
     )
     df.at[0, "name"] = "root"
     df.at[0, "acronym"] = "root"
+    df.at[0, "rgb_triplet"] = [255, 255, 255]
 
     structures = df.to_dict("records")
-    print(structures)
 
     return structures
 

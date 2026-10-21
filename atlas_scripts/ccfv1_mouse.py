@@ -8,8 +8,8 @@ and then wraps it up into the BrainGlobe atlas format.
 
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_any
 
@@ -165,14 +165,19 @@ def retrieve_structure_information():
         atlas structure.
     """
     df = pd.read_csv(DOWNLOAD_DIR_PATH / LABELS_FNAME)
-    
-    df.rename(columns={"StructureName": "name", 
-                       "Abbreviation": "acronym",
-                       "StructureId": "id"}, inplace=True)
+
+    df.rename(
+        columns={
+            "StructureName": "name",
+            "Abbreviation": "acronym",
+            "StructureId": "id",
+        },
+        inplace=True,
+    )
     df["name"] = df["name"].str.strip()
     df["rgb_triplet"] = df[["red", "green", "blue"]].values.tolist()
     df["structure_id_path"] = None
-    
+
     ancestry = []
     # Loop through structures to ensure all have structure_id_path
     for _, row in df.iterrows():
@@ -181,17 +186,16 @@ def retrieve_structure_information():
         ancestry.append(
             (
                 row["id"],
-                df.loc[df["acronym"] == row["ParentStruct"], "id"].item()
+                df.loc[df["acronym"] == row["ParentStruct"], "id"].item(),
             )
         )
-    
+
     # Code to try and recursively find full hierarchy
     parents = set()
     children = {}
     for child, parent in ancestry:
         parents.add(parent)
         children[child] = parent
-        
 
     # Recursively determine parents until child has no parent
     def ancestors(parent):
@@ -202,7 +206,7 @@ def retrieve_structure_information():
     # For each structure find all its ancestors, and remove parent key
     for index, row in df.iterrows():
         df.at[index, "structure_id_path"] = ancestors(row["id"])
-    
+
     df.drop(
         columns=[
             "red",
@@ -215,10 +219,10 @@ def retrieve_structure_information():
     )
     df.at[0, "name"] = "root"
     df.at[0, "acronym"] = "root"
-    
+
     structures = df.to_dict("records")
     print(structures)
-    
+
     return structures
 
 

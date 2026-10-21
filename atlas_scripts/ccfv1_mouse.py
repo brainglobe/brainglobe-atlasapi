@@ -9,8 +9,9 @@ and then wraps it up into the BrainGlobe atlas format.
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 import pooch
-import SimpleITK as sitk
+from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
@@ -25,8 +26,8 @@ ATLAS_NAME = "ccfv1_mouse"
 CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
 ATLAS_LINK = r"https://data-proxy.ebrains.eu/deepslice?prefix=ccfv1%2F"
-ORIENTATION = "rsa"
-ROOT_ID = 997
+ORIENTATION = "rpi"
+ROOT_ID = 0
 RESOLUTION = 25
 ATLAS_PACKAGER = "Jung Woo Kim"
 
@@ -44,27 +45,6 @@ LABELS_FNAME = "brainstructures.csv"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
-
-
-def hex_to_rgb(hex):
-    """Convert a hexadecimal color string to an RGB triplet.
-
-    Parameters
-    ----------
-    hex : str
-        The hexadecimal color string (e.g., "RRGGBB").
-
-    Returns
-    -------
-    list
-        A list of three integers representing the RGB color (0-255).
-    """
-    rgb = []
-    for i in (0, 2, 4):
-        decimal = int(hex[i : i + 2], 16)
-        rgb.append(decimal)
-
-    return rgb
 
 
 def download_resources():
@@ -92,27 +72,25 @@ def download_resources():
     if should_fetch(reference_path):
         pooch.retrieve(
             url=REFERENCE_URL,
-            known_hash="8b19e3435198a9811c53631b9e4a50ccd6a84ef5f10b4e526c5ec7749ae41484",
+            known_hash="76b036657134a1351a452903644a902d9aac98ec01a5eced5b622de0917ca2e5",
             path=DOWNLOAD_DIR_PATH,
             fname=REFERENCE_FNAME,
             progressbar=True,
-            processor=pooch.Unzip(extract_dir=""),
         )
 
     if should_fetch(annotation_path):
         pooch.retrieve(
             url=ANNOTATION_URL,
-            known_hash="af89f9639a77801fbddfdb75a927dc0de4488ec82290d561eda99a50a1832321",
+            known_hash="0827c3bf2e65603acb35e513c5b5c6cc35e6ca7b53e5b3947434866e45421aed",
             path=DOWNLOAD_DIR_PATH,
             fname=ANNOTATION_FNAME,
             progressbar=True,
-            processor=pooch.Unzip(extract_dir=""),
         )
 
     if should_fetch(labels_path):
         pooch.retrieve(
             url=LABELS_URL,
-            known_hash="9dd4264ff54c44be7fd019fac1d5780c679eeb83b0efd0ba4cc3ac67beed6825",
+            known_hash="eeacc44153660b46b9e8a606ca6abc094e5b1b37608416e6f850850043761ec7",
             path=DOWNLOAD_DIR_PATH,
             fname=LABELS_FNAME,
             progressbar=True,
@@ -130,29 +108,34 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference_path = DOWNLOAD_DIR_PATH / "atlasVolume/atlasVolume.mhd"
-    ref_image = sitk.ReadImage(reference_path)
-    reference = sitk.GetArrayFromImage(ref_image)
-    annotation_path = DOWNLOAD_DIR_PATH / "annotation.mhd"
-    ann_image = sitk.ReadImage(annotation_path)
-    annotation = sitk.GetArrayFromImage(ann_image)
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+
+    reference = np.asarray(load_any(reference_path), dtype=np.float64)
+    reference -= np.min(reference)
+    reference = reference / np.max(reference)
+    reference = reference * 65535
+    reference = reference.astype(np.uint16)
+    annotation = load_any(annotation_path)
+
     return reference, annotation
 
 
-def retrieve_hemisphere_map():
+def retrieve_hemisphere_map(annotation_volume):
     """
     Retrieve a hemisphere map for the atlas.
 
     Use a hemisphere map if the atlas is asymmetrical. This map is an array
-    with the same shape as the template, where 0 marks the left hemisphere
-    and 1 marks the right.
+    with the same shape as the template, where 1 marks the left hemisphere
+    and 2 marks the right.
 
     Returns
     -------
-    None
-        None as the atlas is symmetrical.
+    hemispheres_stack: numpy.ndarray
+        A 3D array with the same shape as annotation, all values are 1 (L).
     """
-    return None
+    hemispheres_stack = np.where(annotation_volume > 0, 1, 0).astype(np.uint8)
+    return hemispheres_stack
 
 
 def retrieve_structure_information():
@@ -182,39 +165,60 @@ def retrieve_structure_information():
         atlas structure.
     """
     df = pd.read_csv(DOWNLOAD_DIR_PATH / LABELS_FNAME)
+    
+    df.rename(columns={"StructureName": "name", 
+                       "Abbreviation": "acronym",
+                       "StructureId": "id"}, inplace=True)
+    df["name"] = df["name"].str.strip()
+    df["rgb_triplet"] = df[["red", "green", "blue"]].values.tolist()
+    df["structure_id_path"] = None
+    
+    ancestry = []
+    # Loop through structures to ensure all have structure_id_path
+    for _, row in df.iterrows():
+        if row["acronym"] == "Brain":
+            continue
+        ancestry.append(
+            (
+                row["id"],
+                df.loc[df["acronym"] == row["ParentStruct"], "id"].item()
+            )
+        )
+    
+    # Code to try and recursively find full hierarchy
+    parents = set()
+    children = {}
+    for child, parent in ancestry:
+        parents.add(parent)
+        children[child] = parent
+        
+
+    # Recursively determine parents until child has no parent
+    def ancestors(parent):
+        return (ancestors(children[parent]) if parent in children else []) + [
+            parent
+        ]
+
+    # For each structure find all its ancestors, and remove parent key
+    for index, row in df.iterrows():
+        df.at[index, "structure_id_path"] = ancestors(row["id"])
+    
     df.drop(
         columns=[
-            "atlas_id",
-            "st_level",
-            "ontology_id",
-            "hemisphere_id",
-            "weight",
-            "parent_structure_id",
-            "depth",
-            "graph_id",
-            "graph_order",
-            "neuro_name_structure_id",
-            "neuro_name_structure_id_path",
-            "failed",
-            "sphinx_id",
-            "structure_name_facet",
-            "failed_facet",
+            "red",
+            "green",
+            "blue",
+            "informaticsId",
+            "ParentStruct",
         ],
         inplace=True,
     )
-    df.rename(columns={"color_hex_triplet": "rgb_triplet"}, inplace=True)
-    df["rgb_triplet"] = df["rgb_triplet"].apply(lambda x: hex_to_rgb(x))
-    df["structure_id_path"] = (
-        df["structure_id_path"]
-        .str.split("/")
-        .map(lambda path: [int(id) for id in path if id])
-    )
-
-    # Remove Fiber Tracts from structures hierarchy
-    # (Used in ccfv2_fiber_mouse instead)
-    df = df[df["id"] != 1009]
-
+    df.at[0, "name"] = "root"
+    df.at[0, "acronym"] = "root"
+    
     structures = df.to_dict("records")
+    print(structures)
+    
     return structures
 
 
@@ -249,66 +253,24 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
 
 def retrieve_additional_references():
-    """
-    Return a dictionary of additional reference images.
-
-    This function should be edited only if the atlas includes additional
-    reference images. The dictionary should map the name of each additional
-    reference image to its corresponding image stack data.
-
-    Returns
-    -------
-    dict
-        A dictionary mapping reference image names to their image stack data.
-    """
-    averaged_reference_path = DOWNLOAD_DIR_PATH / AVERAGED_REFERENCE_FNAME
-
-    needs_download = not averaged_reference_path.exists()
-    if needs_download:
-        utils.check_internet_connection()
-
-    def should_fetch(path: Path) -> bool:
-        if not path.exists():
-            return True
-        return not SKIP_DOWNLOADS_IF_PRESENT
-
-    if should_fetch(averaged_reference_path):
-        pooch.retrieve(
-            url=AVERAGED_REFERENCE_URL,
-            known_hash="f3476045fef475ce6c03dea20b38ec6afbb85d9110a6b468ac8259be4f8842ce",
-            path=DOWNLOAD_DIR_PATH,
-            fname=AVERAGED_REFERENCE_FNAME,
-            progressbar=True,
-            processor=pooch.Unzip(extract_dir=""),
-        )
-    averaged_reference_path = (
-        DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
-    )
-    ave_ref_image = sitk.ReadImage(averaged_reference_path)
-    averaged_reference = sitk.GetArrayFromImage(ave_ref_image)
-    additional_references = {"Averaged reference": averaged_reference}
-    return additional_references
+    pass
 
 
 if __name__ == "__main__":
-    if RESOLUTION is None:
-        raise ValueError("RESOLUTION must be set before running this script.")
-
-    bg_root_dir = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
-    bg_root_dir.mkdir(parents=True, exist_ok=True)
+    BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
     # Fail early if any version of this atlas already exists
     atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
-    existing = list(bg_root_dir.glob(f"{atlas_prefix}_v*"))
+    existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
 
     if existing:
         raise FileExistsError(
-            f"Atlas output already exists in {bg_root_dir}. "
+            f"Atlas output already exists in {BG_ROOT_DIR}. "
         )
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
     additional_references = retrieve_additional_references()
-    hemispheres_stack = retrieve_hemisphere_map()
+    hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
     structures = retrieve_structure_information()
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
@@ -327,7 +289,7 @@ if __name__ == "__main__":
         annotation_stack=annotated_volume,
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
-        working_dir=bg_root_dir,
+        working_dir=BG_ROOT_DIR,
         hemispheres_stack=None,
         cleanup_files=False,
         compress=True,

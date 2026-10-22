@@ -358,11 +358,8 @@ def retrieve_hemisphere_map(annotation_volume: np.ndarray, age: str):
         A numpy array representing the hemisphere map, or None if the atlas
         is symmetrical.
     """
-    # Atlas is in LPI orientation, slice on 0 axis
-    hemispheres_map = np.full(annotation_volume.shape, 2, dtype=int)
-    hemispheres_map[hemispheres_map.shape[0] // 2 :, :, :] = 1
 
-    return hemispheres_map
+    return None
 
 
 def retrieve_or_construct_meshes(annotated_volume, structures):

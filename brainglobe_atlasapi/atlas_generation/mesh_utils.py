@@ -128,7 +128,7 @@ def extract_mesh_from_mask(
     smooth: bool = False,
     mcubes_smooth=False,
     closing_n_iters=8,
-    decimate_fraction: float = 0.6,  # keep 60% of original fertices
+    decimate_fraction: float = 0.6,  # keep 60% of original vertices
     use_marching_cubes=False,
     extract_largest=False,
     origin=None,
@@ -196,10 +196,13 @@ def extract_mesh_from_mask(
 
     # Apply morphological transformations
     if closing_n_iters is not None:
+        pad = (closing_n_iters or 0) + 1
+        volume = np.pad(volume, pad_width=pad)
         volume = binary_fill_holes(volume).astype(np.uint8)
         volume = binary_closing(volume, iterations=closing_n_iters).astype(
             np.uint8
         )
+        volume = volume[pad:-pad, pad:-pad, pad:-pad]
 
     if not use_marching_cubes:
         # Use faster algorithm
@@ -251,7 +254,6 @@ def _create_region_mesh(
     tree: Tree,
     labels: list[int],
     annotated_volume: np.ndarray | str | Path,
-    ROOT_ID: int,
     closing_n_iters: int,
     decimate_fraction: float,
     smooth: bool,
@@ -269,10 +271,6 @@ def _create_region_mesh(
     `annotated_volume` may be provided as an in-memory NumPy array or as a
     path to a zarr store, which will be opened in read mode.
 
-    For the root region (`node.identifier == ROOT_ID`), mesh extraction skips
-    the `closing_n_iters` argument. For all other regions, that parameter is
-    passed through to `extract_mesh_from_mask`.
-
     Parameters
     ----------
     meshes_dir_path : Path
@@ -287,10 +285,8 @@ def _create_region_mesh(
     annotated_volume : numpy.ndarray or str or Path
         Annotation volume as a 3D array, or a path to a zarr store containing
         the annotations.
-    ROOT_ID : int
-        Identifier of the root structure.
     closing_n_iters : int
-        Number of morphological closing iterations to apply for non-root
+        Number of morphological closing iterations to apply for all
         regions during mesh extraction.
     decimate_fraction : float
         Fraction used to decimate the extracted mesh.
@@ -357,23 +353,14 @@ def _create_region_mesh(
         if np.sum(mask) == 0:
             print(f"Empty mask for {node.tag}")
         else:
-            if node.identifier == ROOT_ID:
-                extract_mesh_from_mask(
-                    mask,
-                    obj_filepath=savepath,
-                    smooth=smooth,
-                    decimate_fraction=decimate_fraction,
-                    origin=origin,
-                )
-            else:
-                extract_mesh_from_mask(
-                    mask,
-                    obj_filepath=savepath,
-                    smooth=smooth,
-                    closing_n_iters=closing_n_iters,
-                    decimate_fraction=decimate_fraction,
-                    origin=origin,
-                )
+            extract_mesh_from_mask(
+                mask,
+                obj_filepath=savepath,
+                smooth=smooth,
+                closing_n_iters=closing_n_iters,
+                decimate_fraction=decimate_fraction,
+                origin=origin,
+            )
 
 
 def _label_bounding_boxes(volume, labels, slab_depth=64):
@@ -485,19 +472,12 @@ def construct_meshes_from_annotation(
     for key, node in tree.nodes.items():
         node.data = Region(key in labels)
 
-    # Mesh each region from its padded bounding box instead of the full
-    # volume. Padding by closing_n_iters + 1 keeps hole filling and closing
-    # identical to running them on the full volume.
+    # Mesh each region from its bounding box instead of the full volume.
     label_lo, label_hi = _label_bounding_boxes(volume, labels)
     label_index = {int(label): i for i, label in enumerate(labels)}
-    pad = (closing_n_iters or 0) + 1
     volume_shape = volume.shape
 
     def region_bbox(node):
-        # Root is closed with extract_mesh_from_mask's default iterations,
-        # not closing_n_iters, and spans almost the whole volume anyway.
-        if node.identifier == tree.root:
-            return None
         idx = [
             label_index[i]
             for i in tree.subtree(node.identifier).nodes
@@ -505,8 +485,8 @@ def construct_meshes_from_annotation(
         ]
         if not idx:
             return None
-        lo = label_lo[idx].min(axis=0) - pad
-        hi = label_hi[idx].max(axis=0) + pad + 1
+        lo = label_lo[idx].min(axis=0) - 1
+        hi = label_hi[idx].max(axis=0) + 2
         return tuple(
             slice(max(int(a), 0), min(int(b), size))
             for a, b, size in zip(lo, hi, volume_shape)
@@ -532,8 +512,6 @@ def construct_meshes_from_annotation(
         ann_store.close()
         volume = ann_path
 
-    root_id = tree.root
-
     # Normalise skip set so filtering is a simple membership check
     if skip_structure_ids is None:
         skip_structure_ids = set()
@@ -550,7 +528,6 @@ def construct_meshes_from_annotation(
             tree,
             labels,
             volume,
-            root_id,
             closing_n_iters,
             decimate_fraction,
             smooth,

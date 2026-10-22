@@ -2,7 +2,6 @@
 
 import json
 import shutil
-from typing import List
 
 import DracoPy
 import meshio
@@ -567,7 +566,7 @@ def construct_meshes_from_annotation(
     meshes_dict = {}
     structures_with_mesh = []
     for s in structures_list:
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it")
             continue
@@ -588,7 +587,7 @@ def construct_meshes_from_annotation(
 def write_mesh_info(
     mesh_dir: Path,
     vertex_quantization_bits: int = 16,
-    transform: List[int] = None,
+    transform: list[int] | None = None,
     lod_scale_multiplier: float = 1.0,
 ) -> dict:
     """
@@ -626,7 +625,7 @@ def write_mesh_info(
 def write_mesh(
     mesh: meshio.Mesh,
     mesh_dir: Path,
-    segment_id: int,
+    segment_id: int | str,
     vertex_quantization_bits: int = 16,
     compression_level: int = 0,
 ):

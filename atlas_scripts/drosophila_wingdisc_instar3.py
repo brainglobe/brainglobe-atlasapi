@@ -21,13 +21,14 @@ from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 ATLAS_NAME = "drosophila_wingdisc_instar3"
 
 # DOI of the most relevant citable document
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "unpublished"
 
 # The scientific name of the species, ie; Rattus norvegicus
 SPECIES = "Drosophila melanogaster"
 
 # The URL for the data files
-ATLAS_LINK = None
+ATLAS_LINK = ""
 
 __version__ = 0
 
@@ -75,17 +76,17 @@ def retrieve_reference_and_annotation(resources_path: Path):
     annotation_volume_path = Path(
         resources_path / "version_1_annotation.nii.gz"
     )
-    assert (
-        annotation_volume_path.exists()
-    ), f"Annotation volume path {annotation_volume_path} does not exist."
+    assert annotation_volume_path.exists(), (
+        f"Annotation volume path {annotation_volume_path} does not exist."
+    )
 
     reference_volume_path = Path(
         resources_path
         / "template_wingdisc-CSLM-brightness-corrected-trimean.nii.gz"
     )
-    assert (
-        reference_volume_path.exists()
-    ), f"Reference volume path {reference_volume_path} does not exist."
+    assert reference_volume_path.exists(), (
+        f"Reference volume path {reference_volume_path} does not exist."
+    )
 
     annotation = load_nii(annotation_volume_path, as_array=True)
     reference = load_nii(reference_volume_path, as_array=True)
@@ -227,6 +228,7 @@ if __name__ == "__main__":
     )
 
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

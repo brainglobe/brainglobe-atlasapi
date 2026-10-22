@@ -231,9 +231,9 @@ def create_atlas(working_dir):
     assert len(RESOLUTION) == 3, "Resolution is not correct, Got " + str(
         RESOLUTION
     )
-    assert (
-        REFERENCE_URL
-    ), "No download link provided for atlas in REFERENCE_URL"
+    assert REFERENCE_URL, (
+        "No download link provided for atlas in REFERENCE_URL"
+    )
 
     # Generated atlas path:
     working_dir.mkdir(exist_ok=True, parents=True)

@@ -103,6 +103,7 @@ def create_atlas(working_dir):
         "https://www.mouseimaging.ca/technologies/mouse_atlas/"
         "C57Bl6j_mouse_atlas"
     )
+    ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
     CITATION = (
         "A.E. Dorr et al. 2008, https://doi.org/10.1016/"
         "j.neuroimage.2008.03.037"
@@ -333,6 +334,7 @@ def create_atlas(working_dir):
 
     # Package all the provided data and parameters into an atlas format
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

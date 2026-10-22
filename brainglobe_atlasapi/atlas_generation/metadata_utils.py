@@ -116,8 +116,12 @@ def generate_metadata_dict(
     assert len(resolution) == 3
     assert len(shape) == 3
 
-    resolution = tuple([float(v) for v in resolution])
-    shape = tuple(int(v) for v in shape)
+    resolution = (
+        float(resolution[0]),
+        float(resolution[1]),
+        float(resolution[2]),
+    )
+    shape = (int(shape[0]), int(shape[1]), int(shape[2]))
 
     assert isinstance(additional_references, list)
 

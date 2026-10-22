@@ -31,7 +31,7 @@ ATLAS_FILE_URL = "http://www.azba.wayne.edu/2021-08-22_AZBA.tar.gz"
 ORIENTATION = "las"
 ROOT_ID = 9999
 ATLAS_PACKAGER = "Kailyn Fields, kailyn.fields@wayne.edu"
-ADDITIONAL_METADATA = {}
+ADDITIONAL_METADATA: dict = {}
 RESOLUTION = 4
 
 

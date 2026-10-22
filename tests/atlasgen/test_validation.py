@@ -1,11 +1,10 @@
 """Test atlas validation functions."""
 
-import os
+import copy
 import re
 
 import numpy as np
 import pytest
-import tifffile
 
 from brainglobe_atlasapi import BrainGlobeAtlas
 from brainglobe_atlasapi.atlas_generation.validate_atlases import (
@@ -24,7 +23,6 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_template_image_pixels,
     validate_unique_acronyms,
 )
-from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
 
 
@@ -42,49 +40,37 @@ def atlas():
 
 
 @pytest.fixture
-def atlas_with_bad_reference_file():
-    """Provide an invalid version of the Allen Mouse atlas for testing.
-    The atlas will have a misnamed template file that won't be found by
-    the API. Restore the original file name after tests complete.
+def atlas_with_missing_template(atlas):
+    """Provide an atlas whose manifest requests a template absent on disk.
 
-    Yields
-    ------
+    The template location is changed in the top-level `template` entry,
+    `annotation_set.template` and `coordinate_space.template`, so the
+    metadata stays internally consistent while pointing at a directory that
+    does not exist. Only the in-memory metadata is changed; nothing on disk
+    is modified.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        A valid BrainGlobeAtlas instance.
+
+    Returns
+    -------
     BrainGlobeAtlas
-        An invalid BrainGlobeAtlas instance for testing.
+        The atlas with its template location pointing at a missing directory.
     """
-    good_name = get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference.tiff"
-    bad_name = (
-        get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference_bad.tiff"
+    atlas.metadata = copy.deepcopy(atlas.metadata)
+    template_name = atlas.metadata["template"]["name"]
+    missing_location = atlas.metadata["template"]["location"].replace(
+        template_name, f"{template_name}-missing"
     )
-    os.rename(good_name, bad_name)
-    yield BrainGlobeAtlas("allen_mouse_100um")
-    os.rename(bad_name, good_name)
-
-
-@pytest.fixture
-def atlas_with_bad_reference_tiff_content():
-    """Provide an invalid version of the Allen Mouse atlas for testing.
-    The atlas will have a misnamed template file that won't be found
-    by the API. Restore the original file after tests complete.
-
-    Yields
-    ------
-    BrainGlobeAtlas
-        An invalid BrainGlobeAtlas instance for testing.
-    """
-    BrainGlobeAtlas("allen_mouse_100um")  # ensure atlas is locally downloaded
-    actual_name = (
-        get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference.tiff"
-    )
-    backup_name = (
-        get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference_backup.tiff"
-    )
-    os.rename(actual_name, backup_name)
-    too_small_reference = np.ones((3, 3, 3), dtype=np.uint16)
-    tifffile.imwrite(actual_name, too_small_reference)
-    yield BrainGlobeAtlas("allen_mouse_100um")
-    os.remove(actual_name)
-    os.rename(backup_name, actual_name)
+    for template in (
+        atlas.metadata["template"],
+        atlas.metadata["annotation_set"]["template"],
+        atlas.metadata["coordinate_space"]["template"],
+    ):
+        template["location"] = missing_location
+    return atlas
 
 
 @pytest.fixture
@@ -106,64 +92,33 @@ def atlas_with_missing_structure():
 
 
 @pytest.fixture
-def atlas_with_valid_additional_reference():
-    """Provide a testing-only version of the Allen Mouse atlas with
-    a valid additional reference.
+def atlas_with_reference_matching_additional_reference(atlas):
+    """Provide an atlas whose additional reference duplicates its template.
 
-    The instance of the atlas returned has an additional reference
-    consisting of an array of 1s, of the correct size.
-    Remove the additional reference file after tests complete.
+    The additional reference entry requests the main template's location,
+    so it loads the same data as the main template. Only the in-memory
+    atlas is changed; nothing on disk is modified.
 
-    Yields
-    ------
-    BrainGlobeAtlas
-        A BrainGlobeAtlas instance with a valid additional reference.
-    """
-    allen_100 = BrainGlobeAtlas(
-        "allen_mouse_100um"
-    )  # ensure atlas is locally downloaded
-    additional_reference_name = (
-        get_brainglobe_dir()
-        / "allen_mouse_100um_v1.2/mock_additional_reference.tiff"
-    )
-    additional_reference = np.ones(allen_100.reference.shape, dtype=np.uint16)
-    allen_100.additional_references = AdditionalRefDict(
-        ["mock_additional_reference"],
-        data_path=get_brainglobe_dir() / "allen_mouse_100um_v1.2",
-    )
-    tifffile.imwrite(additional_reference_name, additional_reference)
-    yield allen_100
-    os.remove(additional_reference_name)
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        A valid BrainGlobeAtlas instance.
 
-
-@pytest.fixture
-def atlas_with_reference_matching_additional_reference():
-    """Provide an invalid version of the Allen Mouse atlas for testing.
-
-    The atlas has an additional reference containing the same data as the main
-    reference image. Remove the additional reference file after tests complete.
-
-    Yields
-    ------
+    Returns
+    -------
     BrainGlobeAtlas
         An invalid BrainGlobeAtlas instance with a duplicate additional
         reference.
     """
-    allen_100 = BrainGlobeAtlas(
-        "allen_mouse_100um"
-    )  # ensure atlas is locally downloaded
-    additional_reference_name = (
-        get_brainglobe_dir()
-        / "allen_mouse_100um_v1.2/mock_additional_reference.tiff"
+    main_template = atlas.metadata["annotation_set"]["template"]
+    atlas.additional_references = AdditionalRefDict(
+        references_list=[
+            {**main_template, "name": "duplicate-of-main-template"}
+        ],
+        data_path=atlas.root_dir,
+        resolution=atlas.resolution,
     )
-    additional_reference = allen_100.reference
-    allen_100.additional_references = AdditionalRefDict(
-        ["mock_additional_reference"],
-        data_path=get_brainglobe_dir() / "allen_mouse_100um_v1.2",
-    )
-    tifffile.imwrite(additional_reference_name, additional_reference)
-    yield allen_100
-    os.remove(additional_reference_name)
+    return atlas
 
 
 @pytest.mark.xfail(
@@ -208,21 +163,17 @@ def test_validate_mesh_matches_image_extents_negative(mocker, atlas):
         validate_mesh_matches_image_extents(atlas)
 
 
-@pytest.mark.xfail(
-    reason="This test is currently failing as the validation functions "
-    "have not been updated to work with the new atlas structure."
-)
-def test_invalid_atlas_path(atlas_with_bad_reference_file):
+def test_invalid_atlas_path(atlas_with_missing_template):
     """Verify `validate_atlas_files` raises an error for a missing
-    reference file.
+    template file.
 
     Parameters
     ----------
-    atlas_with_bad_reference_file : BrainGlobeAtlas
-        An atlas instance with a bad reference file path.
+    atlas_with_missing_template : BrainGlobeAtlas
+        An atlas instance whose template location does not exist on disk.
     """
     with pytest.raises(AssertionError, match="Expected file not found"):
-        validate_atlas_files(atlas_with_bad_reference_file)
+        validate_atlas_files(atlas_with_missing_template)
 
 
 def test_validate_atlas_name_not_listed():
@@ -298,32 +249,30 @@ def test_catch_missing_structures(atlas_with_missing_structure):
         catch_missing_structures(atlas_with_missing_structure)
 
 
-@pytest.mark.xfail(
-    reason="This test is currently failing as the validation functions "
-    "have not been updated to work with the new atlas structure."
-)
-def test_atlas_image_dimensions_match_negative(
-    atlas_with_bad_reference_tiff_content,
-):
-    """Check that an atlas with different annotation and reference
+def test_atlas_image_dimensions_match_negative(mocker, atlas):
+    """Check that an atlas with different annotation and template
     dimensions is flagged by the validation.
 
     Parameters
     ----------
-    atlas_with_bad_reference_tiff_content : BrainGlobeAtlas
-        An atlas instance with mismatched image dimensions.
+    mocker : pytest_mock.MockerFixture
+        Mocker fixture for patching.
+    atlas : BrainGlobeAtlas
+        A BrainGlobeAtlas instance.
     """
+    too_small_template = np.ones((3, 3, 3), dtype=np.uint16)
+    mocker.patch(
+        "brainglobe_atlasapi.BrainGlobeAtlas.template",
+        new_callable=mocker.PropertyMock,
+        return_value=too_small_template,
+    )
     with pytest.raises(
         AssertionError,
-        match=r"Annotation and reference image have different dimensions.*",
+        match=r"Annotation and template image have different dimensions.*",
     ):
-        validate_image_dimensions(atlas_with_bad_reference_tiff_content)
+        validate_image_dimensions(atlas)
 
 
-@pytest.mark.xfail(
-    reason="This test is currently failing as the validation functions "
-    "have not been updated to work with the new atlas structure."
-)
 def test_atlas_additional_reference_same(
     atlas_with_reference_matching_additional_reference,
 ):

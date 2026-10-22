@@ -269,10 +269,6 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
     return meshes_dict, structures_with_mesh
 
 
-def retrieve_additional_references():
-    pass
-
-
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -286,7 +282,6 @@ if __name__ == "__main__":
         )
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
-    additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
     structures = retrieve_structure_information()
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
@@ -307,10 +302,10 @@ if __name__ == "__main__":
         structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=BG_ROOT_DIR,
-        hemispheres_stack=None,
+        hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
-        additional_references=additional_references,
+        additional_references=None,
         atlas_packager=ATLAS_PACKAGER,
         scale_meshes=True,
     )

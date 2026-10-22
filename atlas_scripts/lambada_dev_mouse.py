@@ -358,7 +358,6 @@ def retrieve_hemisphere_map(annotation_volume: np.ndarray, age: str):
         A numpy array representing the hemisphere map, or None if the atlas
         is symmetrical.
     """
-
     return None
 
 

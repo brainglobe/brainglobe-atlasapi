@@ -3,16 +3,21 @@
 from pathlib import Path
 from unittest.mock import patch
 
+import meshio as mio
 import numpy as np
 import pytest
 import zarr
 
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     Region,
+    _smooth_constrained,
     construct_meshes_from_annotation,
     create_region_mesh,
     extract_mesh_from_mask,
+    write_mesh,
+    write_mesh_info,
 )
+from brainglobe_atlasapi.structure_class import Structure
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -62,7 +67,6 @@ def region_mesh_args(structures, tmp_path, request):
         Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
     )
     labels = np.unique(smoothed_annotations).astype(np.int_)
-    root_id = 999
     closing_n_iters = 10
     decimate_fraction = 0.6
     smooth = True
@@ -73,12 +77,30 @@ def region_mesh_args(structures, tmp_path, request):
         tree,  # 2
         labels,  # 3
         smoothed_annotations,  # 4
-        root_id,  # 5
-        closing_n_iters,  # 6
-        decimate_fraction,  # 7
-        smooth,  # 8
-        verbosity,  # 9
+        closing_n_iters,  # 5
+        decimate_fraction,  # 6
+        smooth,  # 7
+        verbosity,  # 8
     )
+
+
+@pytest.fixture
+def stored_mesh():
+    """Build a mesh in the stored (nm, XYZ) convention `write_mesh` expects.
+
+    Returns
+    -------
+    meshio.Mesh
+        Mesh whose points are in nanometres and XYZ axis order, mirroring
+        what `wrapup._save_meshes` produces before calling `write_mesh`.
+    """
+    rng = np.random.default_rng(0)
+    points_nm_xyz = rng.uniform(0.0, 5000.0, size=(20, 3)).astype(np.float32)
+    faces = np.array(
+        [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [0, 4, 8], [1, 5, 9]],
+        dtype=np.uint32,
+    )
+    return mio.Mesh(points=points_nm_xyz, cells=[("triangle", faces)])
 
 
 @pytest.mark.parametrize(
@@ -291,9 +313,7 @@ def test_extract_mesh_from_mask_ValueError(mesh_from_mask):
 
 
 @pytest.mark.parametrize("mcubes_smooth", [False, True])
-def test_extract_mesh_from_mask_marching_cubes(
-    mcubes_smooth, mesh_from_mask, capsys
-):
+def test_extract_mesh_from_mask_marching_cubes(mcubes_smooth, mesh_from_mask):
     """Test `mesh_from_mask` using marching cubes with/without `mcubes_smooth`.
 
     Parameters
@@ -302,16 +322,72 @@ def test_extract_mesh_from_mask_marching_cubes(
         Whether to apply smoothing with marching cubes.
     mesh_from_mask : dict
         Fixture containing volume and default parameters for `mesh_from_mask`.
-    capsys : pytest.CaptureFixture
-        Fixture to capture stdout and stderr.
     """
     mesh_from_mask.update({"use_marching_cubes": True})
     mesh_from_mask.update({"mcubes_smooth": mcubes_smooth})
-    extract_mesh_from_mask(**mesh_from_mask)
-    captured = capsys.readouterr()
-    assert captured.out.startswith(
-        "The marching cubes algorithm might be rotated "
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+    assert mesh.contains([50, 50, 50]) is True
+    assert mesh.contains([2, 2, 2]) is False
+    # Positive signed volume means faces are wound with outward-facing normals
+    pts, faces = mesh.vertices, np.asarray(mesh.cells)
+    a, b, c = pts[faces[:, 0]], pts[faces[:, 1]], pts[faces[:, 2]]
+    assert np.einsum("ij,ij->i", a, np.cross(b, c)).sum() > 0
+
+
+def test_extract_mesh_from_mask_mcubes_smooth_small_region(mesh_from_mask):
+    """Test smoothing doesn't remove regions only a few voxels wide.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
+    volume = np.zeros((41, 41, 41), dtype=np.uint8)
+    volume[18:23, 18:23, 18:23] = 1
+    mesh_from_mask.update(
+        {
+            "volume": volume,
+            "use_marching_cubes": True,
+            "mcubes_smooth": True,
+            "closing_n_iters": None,
+        }
     )
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+    assert mesh.npoints > 0
+    assert mesh.contains([20, 20, 20]) is True
+
+
+def test_smooth_constrained_keeps_inside_outside(mesh_from_mask):
+    """Test constrained smoothing keeps every voxel on its side of the mask.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
+    mask = mesh_from_mask["volume"].astype(bool)
+    smoothed = _smooth_constrained(mask)
+    assert (smoothed[mask] >= 0).all()
+    assert (smoothed[~mask] <= 0).all()
+
+
+def test_extract_mesh_from_mask_marching_cubes_empty(mesh_from_mask):
+    """Test marching cubes returns an empty mesh for an empty mask.
+
+    Parameters
+    ----------
+    mesh_from_mask : dict
+        Fixture containing volume and default parameters for `mesh_from_mask`.
+    """
+    mesh_from_mask.update(
+        {
+            "volume": np.zeros((10, 10, 10), dtype=np.uint8),
+            "use_marching_cubes": True,
+            "closing_n_iters": None,
+        }
+    )
+    mesh = extract_mesh_from_mask(**mesh_from_mask)
+    assert mesh.npoints == 0
 
 
 @pytest.mark.parametrize("extract_largest", [False, True])
@@ -377,10 +453,7 @@ def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
     volume = np.full((100, 100, 100), zeros_ones, dtype=int)
     mesh_from_mask.update({"volume": volume})
     mesh = extract_mesh_from_mask(**mesh_from_mask)
-    if zeros_ones == 0:
-        assert np.isclose(mesh.area(), 0)
-    else:
-        assert mesh.area() > 0
+    assert np.isclose(mesh.area(), 0)
 
 
 @pytest.mark.parametrize(
@@ -405,3 +478,84 @@ def test_construct_meshes_from_annotation(structures, tmp_path, parallel):
     for struct in structures:
         mesh_path = meshes_dir_path / "meshes" / f"{struct['id']}.obj"
         assert mesh_path.exists()
+
+
+def test_write_mesh_creates_expected_files(tmp_path, stored_mesh):
+    """`write_mesh` writes the fragment and its index for the segment id."""
+    write_mesh(stored_mesh, tmp_path, segment_id=42)
+
+    assert (tmp_path / "42").exists()
+    assert (tmp_path / "42.index").exists()
+
+
+def test_write_read_roundtrip(tmp_path, stored_mesh):
+    """`read_mesh` recovers `write_mesh` geometry within quantization error.
+
+    `write_mesh` stores points as-is (nm, XYZ); `read_mesh` converts back to
+    um and ZYX. The recovered mesh must therefore equal the stored points
+    scaled by 1/1000 with axes swapped, and the faces column-swapped, both
+    within Draco's 16-bit quantization tolerance.
+    """
+    write_mesh(stored_mesh, tmp_path, segment_id=7)
+
+    result = Structure._read_mesh(tmp_path / "7")
+
+    expected_points = stored_mesh.points[:, [2, 1, 0]] / 1000.0
+    np.testing.assert_allclose(result.points, expected_points, atol=1e-3)
+
+    expected_faces = stored_mesh.cells[0].data[:, [2, 1, 0]]
+    np.testing.assert_array_equal(result.cells[0].data, expected_faces)
+
+
+def test_write_mesh_info(tmp_path):
+    """`write_mesh_info` writes a valid multilod-draco `info` metadata file."""
+    info = write_mesh_info(tmp_path)
+
+    assert (tmp_path / "info").exists()
+    assert info["@type"] == "neuroglancer_multilod_draco"
+    assert info["vertex_quantization_bits"] == 16
+
+
+@pytest.mark.parametrize("closing_n_iters", [2, 10])
+def test_construct_meshes_cropped_matches_full_volume(
+    structures, tmp_path, closing_n_iters
+):
+    """Bounding-box cropping must give byte-identical meshes."""
+    annotations = np.pad(
+        np.load(
+            Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
+        ),
+        ((3, 30), (25, 2), (0, 15)),
+    )
+    construct_meshes_from_annotation(
+        tmp_path,
+        annotations,
+        structures,
+        closing_n_iters=closing_n_iters,
+        decimate_fraction=0.2,
+        parallel=False,
+    )
+
+    full_dir = tmp_path / "full"
+    full_dir.mkdir()
+    tree = get_structures_tree(structures)
+    labels = np.unique(annotations)
+    for node in tree.all_nodes():
+        create_region_mesh(
+            (
+                full_dir,
+                node,
+                tree,
+                labels,
+                annotations,
+                closing_n_iters,
+                0.2,
+                False,
+            )
+        )
+
+    for struct in structures:
+        name = f"{struct['id']}.obj"
+        assert (tmp_path / "meshes" / name).read_bytes() == (
+            full_dir / name
+        ).read_bytes()

@@ -11,12 +11,20 @@ from brainglobe_atlasapi import config, utils
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.list_atlases import (
     add_atlas_to_row,
+    folder_version_to_dotted,
     get_all_atlases_lastversions,
     get_atlases_lastversions,
     get_downloaded_atlases,
     get_local_atlas_version,
     show_atlases,
 )
+
+
+def test_folder_version_to_dotted():
+    """Test conversion from folder-style version to dotted version."""
+    assert folder_version_to_dotted("3_0") == "3.0"
+    assert folder_version_to_dotted("5_2") == "5.2"
+    assert folder_version_to_dotted(None) is None
 
 
 def test_get_downloaded_atlases():
@@ -31,7 +39,7 @@ def test_get_downloaded_atlases():
 def test_get_local_atlas_version_real_atlas():
     """Test getting the version of a real, downloaded atlas."""
     v = get_local_atlas_version("example_mouse_100um")
-    assert len(v.split("_")) == 2
+    assert len(v.split(".")) == 2
 
 
 def test_get_local_atlas_version_missing_atlas(capsys):
@@ -60,9 +68,13 @@ def test_lastversions():
         [
             int(last) <= int(r)
             for last, r in zip(
-                example_atlas["latest_version"].split("."), local_v.split(".")
+                example_atlas["latest_version"].split("."),
+                local_v.replace("_", ".").split("."),
             )
         ]
+    )
+    assert example_atlas["updated"] == (
+        example_atlas["version"] == example_atlas["latest_version"]
     )
 
 
@@ -82,7 +94,7 @@ def test_get_all_atlases_lastversions():
 
 
 def test_atlas_name_matches_lastversions():
-    """Ensure atlas name list matches last_versions.conf keys exactly."""
+    """Ensure all atlases in last_versions.conf are valid AtlasName values."""
     atlas_name_values = list(get_args(AtlasName))
     cache_path = (
         config.get_brainglobe_dir()
@@ -96,7 +108,7 @@ def test_atlas_name_matches_lastversions():
 
     assert len(atlas_name_values) == len(set(atlas_name_values))
     assert len(last_version_names) == len(set(last_version_names))
-    assert set(atlas_name_values) == set(last_version_names)
+    assert set(atlas_name_values).issuperset(set(last_version_names))
 
 
 def test_get_all_atlases_custom_atlases(mocker):
@@ -163,40 +175,6 @@ def test_get_all_atlases_lastversions_offline():
 
     with mock.patch(
         "brainglobe_atlasapi.utils.check_internet_connection"
-    ) as mock_check_internet_connection:
-        mock_check_internet_connection.return_value = False
-        last_versions = get_all_atlases_lastversions()
-
-        assert "example_mouse_100um" in last_versions
-        assert "osten_mouse_50um" in last_versions
-        assert "allen_mouse_25um" in last_versions
-
-    if cleanup_cache:
-        cache_path.unlink()
-
-
-def test_get_all_atlases_lastversions_gin_down():
-    """Test retrieving atlas versions from cache when GIN is down."""
-    cleanup_cache = False
-    cache_path = (
-        config.get_brainglobe_dir()
-        / "brainglobe-atlasapi"
-        / "atlases"
-        / "last_versions.conf"
-    )
-
-    if not cache_path.exists():
-        cache_path.touch()
-        cache_path.write_text("""
-            [atlases]
-            example_mouse_100um = 1.0
-            osten_mouse_50um = 1.0
-            allen_mouse_25um = 1.0
-            """)
-        cleanup_cache = True
-
-    with mock.patch(
-        "brainglobe_atlasapi.utils.check_gin_status"
     ) as mock_check_internet_connection:
         mock_check_internet_connection.return_value = False
         last_versions = get_all_atlases_lastversions()

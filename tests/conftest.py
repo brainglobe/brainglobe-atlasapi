@@ -5,14 +5,16 @@ import shutil
 import tempfile
 from pathlib import Path
 
+import meshio
+import numpy as np
 import pytest
 
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas, config
 from brainglobe_atlasapi.update_atlases import update_atlas
 
 
-@pytest.fixture(autouse=True)
-def mock_brainglobe_user_folders(monkeypatch):
+@pytest.fixture(autouse=True, scope="session")
+def mock_brainglobe_user_folders():
     """Mock BrainGlobe user folders.
 
     Ensure user config and data is mocked during all local testing to avoid
@@ -23,11 +25,19 @@ def mock_brainglobe_user_folders(monkeypatch):
     directory. It is not sufficient to mock the home path in the tests, as this
     will leave later imports in other modules unaffected.
 
+    Session-scoped so that it is set up before session-scoped fixtures that
+    download atlases (e.g. `tests/atlasgen/conftest.py`); a function-scoped
+    mock would run too late and those would use the real home directory.
+
     Note
     ----
     GitHub Actions workflow will test with default user folders.
     """
-    if not os.getenv("GITHUB_ACTIONS"):
+    if os.getenv("GITHUB_ACTIONS"):
+        yield
+        return
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
         home_path = Path.home()  # actual home path
         mock_home_path = home_path / ".brainglobe-tests"
         if not mock_home_path.exists():
@@ -55,6 +65,7 @@ def mock_brainglobe_user_folders(monkeypatch):
             }
         }
         monkeypatch.setattr(config, "TEMPLATE_CONF_DICT", mock_default_dirs)
+        yield
 
 
 @pytest.fixture()
@@ -103,7 +114,7 @@ def temp_path():
     shutil.rmtree(path)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def atlas_path():
     """Provide the root directory path of the default atlas.
 
@@ -116,3 +127,69 @@ def atlas_path():
     update_atlas("example_mouse_100um")
 
     return BrainGlobeAtlas("example_mouse_100um").root_dir
+
+
+@pytest.fixture(scope="session")
+def mask_structures():
+    """Provide a nested 3-structure list used by 4D-mask tests.
+
+    The structure tree is::
+
+        root (999)
+        └── region_a (1)
+            └── leaf_b (2)
+
+    Post-order mapping (leaf first): leaf_b -> 0, region_a -> 1, root -> 2.
+
+    Returns
+    -------
+    list
+        Structure dictionaries with id, acronym, name, RGB triplet and
+        structure ID path.
+    """
+    return [
+        {
+            "id": 999,
+            "acronym": "root",
+            "name": "root",
+            "rgb_triplet": [255, 255, 255],
+            "structure_id_path": [999],
+        },
+        {
+            "id": 1,
+            "acronym": "region_a",
+            "name": "Region A",
+            "rgb_triplet": [100, 150, 200],
+            "structure_id_path": [999, 1],
+        },
+        {
+            "id": 2,
+            "acronym": "leaf_b",
+            "name": "Leaf B",
+            "rgb_triplet": [200, 100, 50],
+            "structure_id_path": [999, 1, 2],
+        },
+    ]
+
+
+@pytest.fixture(scope="session")
+def tetrahedron_mesh_file(tmp_path_factory):
+    """Write a minimal tetrahedron surface mesh as an .obj file.
+
+    The mesh content is independent of any structure ID; callers map whatever
+    IDs they need to the returned path when building a ``meshes_dict``.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the written .obj mesh.
+    """
+    mesh_path = tmp_path_factory.mktemp("meshes") / "tetrahedron.obj"
+    points = np.array(
+        [[0, 0, 0], [10, 0, 0], [0, 10, 0], [0, 0, 10]], dtype=float
+    )
+    cells = [
+        ("triangle", np.array([[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]))
+    ]
+    meshio.write(str(mesh_path), meshio.Mesh(points=points, cells=cells))
+    return mesh_path

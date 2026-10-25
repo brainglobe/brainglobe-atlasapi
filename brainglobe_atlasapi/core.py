@@ -1,32 +1,42 @@
 """Module containing the core Atlas class."""
 
+from __future__ import annotations
+
 import warnings
 from collections import UserDict, deque
 from pathlib import Path
 from typing import (
     Dict,
+    Generic,
     List,
+    Literal,
     Tuple,
+    TypeVar,
     Union,
+    cast,
+    overload,
 )
 
+import dask.array as da
 import ngff_zarr as nz
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import s3fs
+import zarr
 from brainglobe_space import AnatomicalSpace
 from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import (
-    ANNOTATION_DTYPE,
     ATLAS_ORIENTATION,
-    REFERENCE_DTYPE,
-    V2_ANNOTATION_NAME,
-    V2_HEMISPHERES_NAME,
-    V2_MESHES_DIRECTORY,
-    V2_TEMPLATE_NAME,
-    V2_TERMINOLOGY_NAME,
+    HEMISPHERES_DTYPE,
+    V3_ANNOTATION_MAP_NAME,
+    V3_ANNOTATION_MASKS_NAME,
+    V3_ANNOTATION_NAME,
+    V3_HEMISPHERES_NAME,
+    V3_MESHES_DIRECTORY,
+    V3_TEMPLATE_NAME,
+    V3_TERMINOLOGY_NAME,
     remote_url_s3,
 )
 from brainglobe_atlasapi.structure_class import StructuresDict
@@ -35,34 +45,92 @@ from brainglobe_atlasapi.utils import (
     read_json,
 )
 
+AtlasArray = TypeVar(
+    "AtlasArray", bound=Union[npt.NDArray[np.integer], da.Array]
+)
+
 
 def _determine_pyramid_level(
     multiscale: nz.Multiscales, resolution: Tuple[float, float, float]
-):
-    for metadata in multiscale.metadata.datasets:
-        scales = metadata.coordinateTransformations[0].scale
+) -> int:
+    """Return the pyramid level matching ``resolution``.
+
+    The scale of each level is read from ``NgffImage.scale``, which ngff-zarr
+    populates from the coordinate transformations of the corresponding
+    dataset. That mapping is keyed by dimension name and is the same whatever
+    OME-Zarr version the store is written in, so it avoids interpreting the
+    version-specific transformation metadata directly.
+
+    ``images`` and ``metadata.datasets`` are built in the same pass over the
+    stored datasets, so their indices refer to the same pyramid level.
+
+    Parameters
+    ----------
+    multiscale : nz.Multiscales
+        The multiscale image to search.
+    resolution : tuple of float
+        Requested resolution in microns, in ``(z, y, x)`` order.
+
+    Returns
+    -------
+    int
+        Index of the matching pyramid level.
+
+    Raises
+    ------
+    ValueError
+        If no pyramid level has the requested resolution.
+    """
+    for idx, image in enumerate(multiscale.images):
+        # Only check spatial scale against resolution
+        scales = [image.scale[dim] for dim in image.dims[-3:]]
         if all(
             np.isclose(res / 1000, scale)
             for res, scale in zip(resolution, scales)
         ):
-            return int(metadata.path)
+            return idx
 
     raise ValueError(f"Requested resolution {resolution} um is invalid.")
 
 
-class Atlas:
+class Atlas(Generic[AtlasArray]):
     """Base class to handle atlases in BrainGlobe.
 
     Parameters
     ----------
     path : str or Path object
         Path to folder containing data info.
+    dask : bool
+        If True, atlas array properties return dask arrays instead of loading
+        them into memory as numpy arrays.
     """
 
     left_hemisphere_value = 1
     right_hemisphere_value = 2
 
-    def __init__(self, path):
+    @overload
+    def __init__(
+        self: Atlas[npt.NDArray[np.integer]],
+        path: Union[str, Path],
+        dask: Literal[False] = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: Atlas[da.Array],
+        path: Union[str, Path],
+        dask: Literal[True] = True,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: Atlas[AtlasArray],
+        path: Union[str, Path],
+        dask: bool = False,
+    ) -> None: ...
+
+    def __init__(self, path: Union[str, Path], dask: bool = False):
+        self.dask = dask
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
         self.fs = s3fs.S3FileSystem(anon=True)
@@ -73,19 +141,19 @@ class Atlas:
         structures_path = (
             self.root_dir
             / self.metadata["terminology"]["location"][1:]
-            / V2_TERMINOLOGY_NAME
+            / V3_TERMINOLOGY_NAME
         )
         structures_list = load_structures_from_csv(structures_path)
         meshes_path = (
             self.root_dir
             / self.metadata["annotation_set"]["location"][1:]
-            / V2_MESHES_DIRECTORY
+            / V3_MESHES_DIRECTORY
         )
 
         template_location = self.metadata["annotation_set"]["template"][
             "location"
         ][1:]
-        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
+        template_path = self.root_dir / template_location / V3_TEMPLATE_NAME
 
         multiscale = nz.from_ngff_zarr(template_path)
         self._template_pyramid_level = _determine_pyramid_level(
@@ -93,19 +161,35 @@ class Atlas:
         )
         annotation_location = self.metadata["annotation_set"]["location"][1:]
         annotation_path = (
-            self.root_dir / annotation_location / V2_ANNOTATION_NAME
+            self.root_dir / annotation_location / V3_ANNOTATION_NAME
         )
         multiscale = nz.from_ngff_zarr(annotation_path)
         self._annotation_pyramid_level = _determine_pyramid_level(
             multiscale, self.resolution
         )
 
+        self._annotation_mapping = None
+        self._annotation_masks_pyramid_level = None
+        masks_path = self._annotation_masks_path
+        if masks_path.exists():
+            masks_multiscale = nz.from_ngff_zarr(masks_path)
+            self._annotation_masks_pyramid_level = _determine_pyramid_level(
+                masks_multiscale, self.resolution
+            )
+            root = zarr.open_group(str(masks_path), mode="r")
+            raw_mapping = root[V3_ANNOTATION_MAP_NAME][:]
+
+            self._annotation_mapping = {
+                int(annotation_id): array_ind
+                for array_ind, annotation_id in enumerate(raw_mapping)
+            }
+
         # keep to generate tree and dataframe views when necessary
         self.structures_list = structures_list
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = meshes_path / str(struct["id"])
+            struct["mesh_filename"] = meshes_path / f'{struct["id"]}'
 
         self.structures = StructuresDict(structures_list)
 
@@ -115,8 +199,6 @@ class Atlas:
             shape=self.shape,
             resolution=self.resolution,
         )
-
-        self._reference = None
 
         try:
             additional_references = self.metadata.get(
@@ -143,6 +225,11 @@ class Atlas:
     def resolution(self):
         """Make resolution more accessible from class."""
         return tuple(self.metadata["resolution"])
+
+    @property
+    def _annotation_masks_path(self) -> Path:
+        annotation_location = self.metadata["annotation_set"]["location"][1:]
+        return self.root_dir / annotation_location / V3_ANNOTATION_MASKS_NAME
 
     @property
     def orientation(self):
@@ -178,24 +265,27 @@ class Atlas:
         return self._lookup
 
     @property
-    def template(self) -> npt.NDArray[REFERENCE_DTYPE]:
+    def template(self) -> AtlasArray:
         """Return the template image data. Loads it if not already loaded."""
         if self._template is not None:
-            return self._template
+            return cast(AtlasArray, self._template)
 
         template_location = self.metadata["annotation_set"]["template"][
             "location"
         ][1:]
 
-        template_path = self.root_dir / template_location / V2_TEMPLATE_NAME
+        template_path = self.root_dir / template_location / V3_TEMPLATE_NAME
 
         multiscale = nz.from_ngff_zarr(template_path)
-        resolution_path = template_path / str(self._template_pyramid_level)
+        dataset_path = multiscale.metadata.datasets[
+            self._template_pyramid_level
+        ].path
+        resolution_path = template_path / dataset_path
 
         if not (resolution_path / "c").exists():
             print("Downloading template...")
             remote_path = remote_url_s3.format(
-                f"{template_location}/{V2_TEMPLATE_NAME}/{self._template_pyramid_level}/"
+                f"{template_location}/{V3_TEMPLATE_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -204,11 +294,10 @@ class Atlas:
                 callback=TqdmCallback(),
             )
 
-        self._template = multiscale.images[
-            self._template_pyramid_level
-        ].data.compute()
+        data = multiscale.images[self._template_pyramid_level].data
+        self._template = data if self.dask else data.compute()
 
-        return self._template
+        return cast(AtlasArray, self._template)
 
     @property
     def reference(self):
@@ -224,23 +313,26 @@ class Atlas:
         return self.template
 
     @property
-    def annotation(self) -> npt.NDArray[ANNOTATION_DTYPE]:
+    def annotation(self) -> AtlasArray:
         """Return the annotation image data. Loads it if not already loaded."""
         if self._annotation is not None:
-            return self._annotation
+            return cast(AtlasArray, self._annotation)
 
         annotation_location = self.metadata["annotation_set"]["location"][1:]
         annotation_path = (
-            self.root_dir / annotation_location / V2_ANNOTATION_NAME
+            self.root_dir / annotation_location / V3_ANNOTATION_NAME
         )
 
         multiscale = nz.from_ngff_zarr(annotation_path)
-        resolution_path = annotation_path / str(self._annotation_pyramid_level)
+        dataset_path = multiscale.metadata.datasets[
+            self._annotation_pyramid_level
+        ].path
+        resolution_path = annotation_path / dataset_path
 
         if not (resolution_path / "c").exists():
             print("Downloading annotations...")
             remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V2_ANNOTATION_NAME}/{self._annotation_pyramid_level}/"
+                f"{annotation_location}/{V3_ANNOTATION_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -249,14 +341,13 @@ class Atlas:
                 callback=TqdmCallback(),
             )
 
-        self._annotation = multiscale.images[
-            self._annotation_pyramid_level
-        ].data.compute()
+        data = multiscale.images[self._annotation_pyramid_level].data
+        self._annotation = data if self.dask else data.compute()
 
-        return self._annotation
+        return cast(AtlasArray, self._annotation)
 
     @property
-    def hemispheres(self):
+    def hemispheres(self) -> AtlasArray:
         """
         Returns a stack with the hemisphere information. 1 - left, 2 - right.
 
@@ -266,41 +357,61 @@ class Atlas:
         the middle plane is assigned to the left hemisphere.
         """
         if self._hemispheres is not None:
-            return self._hemispheres
+            return cast(AtlasArray, self._hemispheres)
 
         # If reference is symmetric generate hemispheres block:
         if self.metadata["symmetric"]:
-            # initialize empty stack:
-            stack = np.full(self.metadata["shape"], 2, dtype=np.uint8)
-
-            # Use bgspace description to fill out with hemisphere values:
+            shape = tuple(self.metadata["shape"])
             front_ax_idx = self.space.axes_order.index("frontal")
+            split = round(shape[front_ax_idx] / 2)
 
-            # Fill out with 2s the right hemisphere:
-            slices = [slice(None) for _ in range(3)]
-            slices[front_ax_idx] = slice(
-                round(stack.shape[front_ax_idx] / 2), None
-            )
-            stack[tuple(slices)] = 1
+            if self.dask:
+                right_shape = list(shape)
+                right_shape[front_ax_idx] = split
+                left_shape = list(shape)
+                left_shape[front_ax_idx] -= split
+                self._hemispheres = da.concatenate(
+                    [
+                        da.full(
+                            right_shape,
+                            self.right_hemisphere_value,
+                            dtype=HEMISPHERES_DTYPE,
+                        ),
+                        da.full(
+                            left_shape,
+                            self.left_hemisphere_value,
+                            dtype=HEMISPHERES_DTYPE,
+                        ),
+                    ],
+                    axis=front_ax_idx,
+                )
+            else:
+                stack = np.full(
+                    shape, self.right_hemisphere_value, dtype=HEMISPHERES_DTYPE
+                )
+                slices = [slice(None) for _ in range(3)]
+                slices[front_ax_idx] = slice(split, None)
+                stack[tuple(slices)] = self.left_hemisphere_value
 
-            self._hemispheres = stack
+                self._hemispheres = stack
         else:
             annotation_location = self.metadata["annotation_set"]["location"][
                 1:
             ]
             hemispheres_path = (
-                self.root_dir / annotation_location / V2_HEMISPHERES_NAME
+                self.root_dir / annotation_location / V3_HEMISPHERES_NAME
             )
 
             multiscale = nz.from_ngff_zarr(hemispheres_path)
-            resolution_path = hemispheres_path / str(
+            dataset_path = multiscale.metadata.datasets[
                 self._annotation_pyramid_level
-            )
+            ].path
+            resolution_path = hemispheres_path / dataset_path
 
             if not (resolution_path / "c").exists():
                 print("Downloading hemispheres...")
                 remote_path = remote_url_s3.format(
-                    f"{annotation_location}/{V2_HEMISPHERES_NAME}/{self._annotation_pyramid_level}/"
+                    f"{annotation_location}/{V3_HEMISPHERES_NAME}/{dataset_path}/"
                 )
                 self.fs.get(
                     remote_path,
@@ -309,11 +420,10 @@ class Atlas:
                     callback=TqdmCallback(),
                 )
 
-            self._hemispheres = multiscale.images[
-                self._annotation_pyramid_level
-            ].data.compute()
+            data = multiscale.images[self._annotation_pyramid_level].data
+            self._hemispheres = data if self.dask else data.compute()
 
-        return self._hemispheres
+        return cast(AtlasArray, self._hemispheres)
 
     def hemisphere_from_coords(
         self,
@@ -341,6 +451,8 @@ class Atlas:
 
         """
         hem = self.hemispheres[self._idx_from_coords(coords, microns)]
+        if self.dask:
+            hem = int(hem.compute())
         if as_string:
             hem = ["left", "right"][hem - 1]
         return hem
@@ -374,6 +486,8 @@ class Atlas:
             Structure containing the coordinates.
         """
         rid = self.annotation[self._idx_from_coords(coords, microns)]
+        if self.dask:
+            rid = int(rid.compute())
 
         # If we want to cut the result at some high level of the hierarchy:
         if hierarchy_lev is not None:
@@ -635,36 +749,75 @@ class Atlas:
             return [self.structures[sid]["acronym"] for sid in result]
         return result
 
-    def get_structure_mask(self, structure):
-        """
-        Return a stack with the mask for a specific structure (including all
-        sub-structures).
+    def get_structure_mask(self, structure) -> AtlasArray:
+        """Return binary uint8 mask for the given structure.
 
-        This function might take a few seconds for structures with many
-        children.
+        Reads directly from the pre-built 4D annotation masks array.
 
         Parameters
         ----------
         structure : str or int
-            Structure id or acronym
+            Structure acronym or id.
 
         Returns
         -------
-        np.array
-            stack containing the mask array.
+        np.ndarray
+            Binary uint8 array; 1 where the structure (or a descendant)
+            has a voxel, 0 elsewhere.
+
+        Raises
+        ------
+        FileNotFoundError
+            If this atlas does not have a 4D mask array on disk.
+        KeyError
+            If the structure is not present in the annotation mapping.
         """
+        if self._annotation_mapping is None:
+            raise FileNotFoundError(
+                "This atlas does not have a 4D mask array. "
+                "Re-download the atlas to get the latest version."
+            )
         structure_id = self.structures[structure]["id"]
-        descendants = self.get_structure_descendants(structure)
+        if structure_id not in self._annotation_mapping:
+            raise KeyError(
+                f"Structure {structure} (id={structure_id}) not found in "
+                "annotation mapping."
+            )
 
-        descendant_ids = [
-            self.structures[descendant]["id"] for descendant in descendants
+        index = self._annotation_mapping[structure_id]
+        masks_path = self._annotation_masks_path
+        multiscale = nz.from_ngff_zarr(masks_path)
+        dataset_path = multiscale.metadata.datasets[
+            self._annotation_masks_pyramid_level
+        ].path
+        # Check if the mask is cached locally. The presence of the
+        # directory for the specific index indicates that the mask is cached.
+        local_path = masks_path / dataset_path / "c" / str(index)
+        if not local_path.exists():
+            annotation_location = self.metadata["annotation_set"]["location"][
+                1:
+            ]
+            remote_path = remote_url_s3.format(
+                f"{annotation_location}/{V3_ANNOTATION_MASKS_NAME}"
+                f"/{dataset_path}/c/{index}/"
+            )
+            try:
+                self.fs.get(
+                    remote_path,
+                    local_path,
+                    recursive=True,
+                    callback=TqdmCallback(),
+                )
+            except FileNotFoundError as e:
+                raise FileNotFoundError(
+                    f"Mask for structure {structure} (id={structure_id}) "
+                    f"not found at {remote_path}"
+                ) from e
+
+        data = multiscale.images[self._annotation_masks_pyramid_level].data[
+            index
         ]
-        descendant_ids.append(structure_id)
-
-        mask_stack = np.zeros(self.shape, self.annotation.dtype)
-        mask_stack[np.isin(self.annotation, descendant_ids)] = structure_id
-
-        return mask_stack
+        return cast(AtlasArray, data if self.dask else data.compute())
 
 
 class AdditionalRefDict(UserDict):
@@ -726,7 +879,7 @@ class AdditionalRefDict(UserDict):
 
             additional_ref_location = additional_ref_data["location"][1:]
             local_path: Path = (
-                self.data_path / additional_ref_location / V2_TEMPLATE_NAME
+                self.data_path / additional_ref_location / V3_TEMPLATE_NAME
             )
 
             multiscale = nz.from_ngff_zarr(local_path)
@@ -734,12 +887,13 @@ class AdditionalRefDict(UserDict):
                 multiscale, self.resolution
             )
 
-            resolution_path = local_path / str(pyramid_level)
+            dataset_path = multiscale.metadata.datasets[pyramid_level].path
+            resolution_path = local_path / dataset_path
 
             if not (resolution_path / "c").exists():
                 print("Downloading template...")
                 remote_path = remote_url_s3.format(
-                    f"{additional_ref_location}/{V2_TEMPLATE_NAME}/{pyramid_level}/"
+                    f"{additional_ref_location}/{V3_TEMPLATE_NAME}/{dataset_path}/"
                 )
                 fs = s3fs.S3FileSystem(anon=True)
                 fs.get(

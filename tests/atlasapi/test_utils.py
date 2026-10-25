@@ -5,19 +5,16 @@ import sys
 from typing import Callable
 from unittest import mock
 
+import numpy as np
 import pytest
 import requests
 import rich.panel
-from requests import HTTPError
 
 from brainglobe_atlasapi import descriptors, utils
 
 METADATA = descriptors.METADATA_TEMPLATE
 
-test_url = "https://gin.g-node.org/BrainGlobe/atlases/raw/master/example_mouse_100um_v1.2.tar.gz"
-conf_url = (
-    "https://gin.g-node.org/BrainGlobe/atlases/raw/master/last_versions.conf"
-)
+conf_url = descriptors.remote_url_s3_http.format("atlases/last_versions.conf")
 
 
 def test_http_check():
@@ -32,113 +29,6 @@ def test_http_check():
     assert not utils.check_internet_connection(
         url="http://asd", raise_error=False
     )
-
-
-def test_get_download_size_bad_url():
-    """Test getting download size with a bad URL."""
-    with pytest.raises(IndexError):
-        utils.get_download_size(url="http://asd")
-
-
-def test_get_download_size_no_size_url():
-    """Test getting download size when content-length header is missing."""
-    with pytest.raises(ValueError):
-        utils.get_download_size(
-            "https://gin.g-node.org/BrainGlobe/atlases/src/5ee75365555e3b4665c685b65a488bca3461ac94/last_versions.conf"
-        )
-
-
-@pytest.mark.parametrize(
-    "url, real_size",
-    [
-        (
-            "https://gin.g-node.org/BrainGlobe/atlases/raw/master/example_mouse_100um_v1.2.tar.gz",
-            7.3,
-        ),
-        (
-            "https://gin.g-node.org/BrainGlobe/atlases/raw/master/allen_mouse_100um_v1.2.tar.gz",
-            61,
-        ),
-        (
-            "https://gin.g-node.org/BrainGlobe/atlases/raw/master/admba_3d_p56_mouse_25um_v1.0.tar.gz",
-            335,
-        ),
-        (
-            "https://gin.g-node.org/BrainGlobe/atlases/raw/master/osten_mouse_10um_v1.1.tar.gz",
-            3600,
-        ),
-    ],
-)
-def test_get_download_size(url, real_size):
-    """Test getting download size for various URLs.
-
-    Parameters
-    ----------
-    url : str
-        The URL to test.
-    real_size : float
-        The expected real size of the download in MB.
-    """
-    size = utils.get_download_size(url)
-
-    real_size = real_size * 1e6
-
-    assert size == real_size
-
-
-def test_get_download_size_kb():
-    """Test getting download size when content-length is in KB."""
-    with mock.patch("requests.get", autospec=True) as mock_request:
-        mock_response = mock.Mock(spec=requests.Response)
-        mock_response.status_code = 200
-        mock_response.content = b"asd 24.7 KB 123sd"
-        mock_request.return_value = mock_response
-
-        size = utils.get_download_size(test_url)
-
-        assert size == 24700
-
-
-def test_get_download_size_HTTPError():
-    """Test HTTPError handling when getting download size."""
-    with mock.patch("requests.get", autospec=True) as mock_request:
-        mock_request.side_effect = HTTPError()
-
-        with pytest.raises(HTTPError):
-            utils.get_download_size(test_url)
-
-
-def test_check_gin_status():
-    """Test checking GIN server status with a valid response."""
-    # Test with requests.get returning a valid response
-    with mock.patch("requests.get", autospec=True) as mock_request:
-        mock_response = mock.Mock(spec=requests.Response)
-        mock_response.status_code = 200
-        mock_request.return_value = mock_response
-
-        assert utils.check_gin_status()
-
-
-def test_check_gin_status_down():
-    """Test checking GIN server status when it's down (ConnectionError)."""
-    # Test with requests.get returning a 404 response
-    with mock.patch("requests.get", autospec=True) as mock_request:
-        mock_request.side_effect = requests.ConnectionError()
-
-        with pytest.raises(ConnectionError) as e:
-            utils.check_gin_status()
-            assert "GIN server is down" == e.value
-
-
-def test_check_gin_status_down_no_error():
-    """Test checking GIN server status when it's down but without raising
-    an error.
-    """
-    # Test with requests.get returning a 404 response
-    with mock.patch("requests.get", autospec=True) as mock_request:
-        mock_request.side_effect = requests.ConnectionError()
-
-        assert not utils.check_gin_status(raise_error=False)
 
 
 def test_conf_from_file(temp_path):
@@ -566,3 +456,25 @@ def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
     assert not mock_cache_path.exists()
     utils.conf_from_url(conf_url, cache_path=mock_cache_path)
     assert mock_cache_path.parent.exists()
+
+
+def test_load_structures_from_csv_parent_dtype(tmp_path):
+    """Test that the parent_identifier column in the structure dataframe
+    has the correct dtype.
+    """
+    high_value = np.iinfo(np.uint16).max + 10
+    minimal_structures_csv = tmp_path / "minimal_structures.csv"
+    with open(minimal_structures_csv, "w") as f:
+        f.write(
+            "identifier,parent_identifier,annotation_value,name,abbreviation,color_hex_triplet,root_identifier_path\n"
+            "997,,997,root,root,#FFFFFF,[997]\n"
+            f'{high_value},997,1,region_a,region_a,#6496C8,"[997,1]"\n'
+            f'50,{high_value},2,leaf_b,leaf_b,#C86432,"[997,1,2]"'
+        )
+
+    structures_list = utils.load_structures_from_csv(minimal_structures_csv)
+
+    assert len(structures_list) > 0
+    assert structures_list[2]["parent_structure_id"] is not None
+    assert isinstance(structures_list[2]["parent_structure_id"], int)
+    assert structures_list[2]["parent_structure_id"] == high_value

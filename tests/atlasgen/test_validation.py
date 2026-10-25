@@ -21,7 +21,7 @@ from brainglobe_atlasapi.atlas_generation.validate_atlases import (
     validate_image_dimensions,
     validate_mesh_matches_image_extents,
     validate_metadata,
-    validate_reference_image_pixels,
+    validate_template_image_pixels,
     validate_unique_acronyms,
 )
 from brainglobe_atlasapi.config import get_brainglobe_dir
@@ -259,10 +259,6 @@ def test_assert_close_negative():
         _assert_close(99.5, 30, 2)
 
 
-@pytest.mark.xfail(
-    reason="This test is currently failing as the validation functions "
-    "have not been updated to work with the new atlas structure."
-)
 def test_catch_missing_mesh_files():
     """Test `catch_missing_mesh_files` raises an error for missing mesh files.
 
@@ -359,17 +355,17 @@ def test_badly_scaled_reference_fails(mocker, atlas):
     atlas : BrainGlobeAtlas
         A BrainGlobeAtlas instance.
     """
-    invalid_reference = np.ones_like(atlas.reference)
+    invalid_reference = np.ones_like(atlas.template)
     mocker.patch(
-        "brainglobe_atlasapi.BrainGlobeAtlas.reference",
+        "brainglobe_atlasapi.BrainGlobeAtlas.template",
         new_callable=mocker.PropertyMock,
         return_value=invalid_reference,
     )
     with pytest.raises(
         AssertionError,
-        match=r"Reference image is likely wrongly rescaled to.",
+        match=r"Template image is likely wrongly rescaled to.",
     ):
-        validate_reference_image_pixels(atlas)
+        validate_template_image_pixels(atlas)
 
 
 def test_asymmetrical_annotation_fails(mocker, atlas):
@@ -396,6 +392,29 @@ def test_asymmetrical_annotation_fails(mocker, atlas):
         match=r"Annotation labels are asymmetric.",
     ):
         validate_annotation_symmetry(atlas)
+
+
+@pytest.mark.parametrize("width", ["odd", "even"])
+def test_odd_and_even_pass_atlas_symmetry(mocker, atlas, width):
+    """Ensure odd- and even-width atlases pass symmetry validation."""
+    # create a mirror image atlas of ascending and descending values
+    hemisphere = np.zeros((50, 50, 50))
+    hemisphere[:, :, :] = np.arange(50)
+    annotation = np.concatenate(
+        (hemisphere, hemisphere[:, :, ::-1]),
+        axis=2,
+    )
+
+    if width == "odd":
+        annotation = np.insert(annotation, 50, 0, axis=2)
+
+    mocker.patch(
+        "brainglobe_atlasapi.BrainGlobeAtlas.annotation",
+        new_callable=mocker.PropertyMock,
+        return_value=annotation,
+    )
+
+    validate_annotation_symmetry(atlas)
 
 
 @pytest.mark.parametrize(

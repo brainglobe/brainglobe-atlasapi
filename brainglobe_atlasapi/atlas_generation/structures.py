@@ -1,5 +1,7 @@
 """Handle structure information for atlas generation."""
 
+import numpy as np
+
 from brainglobe_atlasapi.descriptors import STRUCTURE_TEMPLATE as STEMPLATE
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
@@ -148,3 +150,34 @@ def get_structure_terminal_nodes(structures, region):
         return None
     else:
         return sub_region_ids
+
+
+def filter_structures_not_present_in_annotation(structures, annotation):
+    """
+    Filter out structures not present in the annotation volume.
+
+    Parameters
+    ----------
+    structures : list of dict
+    annotation : np.ndarray
+
+    Returns
+    -------
+    list of dict
+    """
+    present_ids = set(np.unique(annotation))
+    tree = get_structures_tree(structures)
+
+    def is_present(structure_id):
+        if structure_id in present_ids:
+            return True
+        for child_node in tree.children(structure_id):
+            if is_present(child_node.identifier):
+                return True
+        return False
+
+    removed = [s for s in structures if not is_present(s["id"])]
+    for r in removed:
+        print("Removed structure:", r["name"], "(ID:", r["id"], ")")
+
+    return [s for s in structures if is_present(s["id"])]

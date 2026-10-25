@@ -8,6 +8,7 @@ import warnings
 from collections import UserDict
 from pathlib import Path
 
+import DracoPy
 import meshio as mio
 import s3fs
 from fsspec.callbacks import TqdmCallback
@@ -58,31 +59,63 @@ class Structure(UserDict):
                 )
                 return None
             try:
-                self._check_mesh_cached(file_name)
-                self.data[item] = mio.read(
-                    file_name, file_format="neuroglancer"
-                )
-            except (TypeError, mio.ReadError, FileNotFoundError):
-                raise mio.ReadError(
-                    "No valid mesh for region: {}".format(self.data["acronym"])
-                )
+                if not file_name.exists():
+                    self._download_mesh(file_name)
+
+                self.data[item] = self._read_mesh(file_name)
+            except (
+                TypeError,
+                mio.ReadError,
+                FileNotFoundError,
+                DracoPy.FileTypeException,
+            ) as e:
+                raise RuntimeError(
+                    f"Failed to read mesh for region {self.data['acronym']} "
+                    f"from file {file_name}: {e}"
+                ) from e
 
         return self.data[item]
 
-    def _check_mesh_cached(self, file_name: Path):
-        """Check if the mesh is cached, and if not, attempt to load it."""
-        if file_name.exists():
-            return
-
-        root_path = "/".join(str(file_name).split(os.sep)[-5:])
+    def _download_mesh(self, file_name: Path) -> None:
+        """Download the mesh from the remote S3 bucket if it is not cached."""
+        root_path = "/".join(str(file_name).split(os.sep)[-6:])
         remote_mesh_path = remote_url_s3.format(root_path)
         fs = s3fs.S3FileSystem(anon=True)
+
         if not fs.exists(remote_mesh_path):
             raise FileNotFoundError(
                 f"Mesh file {file_name} not found locally or remotely."
             )
 
-        fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
+        try:
+            fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
+        except BaseException:
+            file_name.unlink(missing_ok=True)  # Removes corrupt file
+            raise
+
+    @staticmethod
+    def _read_mesh(mesh_path: Path) -> mio.Mesh:
+        """
+        Read one object back into (vertices, faces).
+
+        Re-orient from XYZ to ZYX and scale from nm to um.
+
+        Returns
+        -------
+        meshio.Mesh
+            The mesh object reoriented and scaled.
+        """
+        with open(mesh_path, "rb") as f:
+            mesh = DracoPy.decode(f.read())
+
+        points = mesh.points / 1000.0  # scale from nm to um
+        points = points[:, [2, 1, 0]]  # reorient from XYZ to ZYX
+        faces = mesh.faces[:, [2, 1, 0]]  # reorient from XYZ to ZYX
+
+        return mio.Mesh(
+            points=points,
+            cells=[("triangle", faces)],
+        )
 
 
 class StructuresDict(UserDict):

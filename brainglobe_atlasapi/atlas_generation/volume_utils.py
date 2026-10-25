@@ -6,6 +6,8 @@ extracting surfaces from volumetric data ....
 
 import numpy as np
 import zarr
+from numba import njit, prange
+from numba.typed import Dict
 
 
 def create_masked_array(volume, label, greater_than=False):
@@ -55,3 +57,39 @@ def create_masked_array(volume, label, greater_than=False):
         mask = volume > label
 
     return mask
+
+
+@njit(parallel=True, cache=True)
+def create_masked_array_numba(
+    flat_vol: np.ndarray, lut: np.ndarray, out: np.ndarray, mapping: Dict
+) -> None:
+    """
+    Create a binary masked array from a flattened volumetric dataset.
+
+    Given a flattened 1D NumPy array representing a volumetric dataset,
+    a lookup table (LUT), and a mapping dictionary, this function generates
+    a binary array. The output array will have values of 1 where the `flat_vol`
+    matches the LUT values based on the provided mapping, and 0 otherwise.
+
+    Parameters
+    ----------
+    flat_vol : np.ndarray
+        The input 1D NumPy array representing the flattened volumetric dataset.
+    lut : np.ndarray
+        The lookup table containing values to match against the `flat_vol`.
+    out : np.ndarray
+        The output 1D NumPy array where the binary mask will be stored.
+    mapping : Dict
+        A Numba typed dictionary mapping `flat_vol` values to indices in LUT.
+    """
+    n = lut.shape[0]
+    for i in prange(flat_vol.shape[0]):
+        v = flat_vol[i]
+        if v in mapping:
+            mapped_v = mapping[v]
+            # Excludes any mapped values that are out of bounds of the LUT
+            out[i] = mapped_v < n and lut[mapped_v]
+        else:
+            # Catch any values that are not in the mapping and set them to 0
+            # Mostly for background values (0)
+            out[i] = 0

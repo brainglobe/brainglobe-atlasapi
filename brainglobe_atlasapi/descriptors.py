@@ -1,9 +1,12 @@
 """Module containing property descriptors for brainglobe-atlasapi."""
 
-import numpy as np
+from pathlib import Path
+from typing import List, Tuple, TypeAlias
 
-# Base url of the gin repository:
-remote_url_base = "https://gin.g-node.org/brainglobe/atlases/raw/master/{}"
+import numpy as np
+import numpy.typing as npt
+
+# Base URL for the BrainGlobe atlas S3 bucket:
 remote_url_s3 = "s3://brainglobe/atlas/{}"
 remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
 
@@ -49,23 +52,109 @@ ANNOTATION_FILENAME = "annotation.tiff"
 HEMISPHERES_FILENAME = "hemispheres.tiff"
 MESHES_DIRNAME = "meshes"
 
-# V2 file names
-V2_ATLAS_ROOTDIR = "atlases"
-V2_ANNOTATION_ROOTDIR = "annotation-sets"
-V2_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
-V2_TEMPLATE_ROOTDIR = "templates"
-V2_TERMINOLOGY_ROOTDIR = "terminologies"
-V2_TERMINOLOGY_NAME = "terminology.csv"
-V2_MESHES_DIRECTORY = "annotation.precomputed"
-V2_TEMPLATE_NAME = "anatomical_template.ome.zarr"
-V2_ANNOTATION_NAME = "annotation.ome.zarr"
-V2_HEMISPHERES_NAME = "hemispheres.ome.zarr"
+# V3 file names
+V3_ATLAS_ROOTDIR = "atlases"
+V3_ANNOTATION_ROOTDIR = "annotation-sets"
+V3_COORDINATE_SPACE_ROOTDIR = "coordinate-spaces"
+V3_TEMPLATE_ROOTDIR = "templates"
+V3_TERMINOLOGY_ROOTDIR = "terminologies"
+V3_TERMINOLOGY_NAME = "terminology.csv"
+V3_MESHES_DIRECTORY = "annotations.precomputed/mesh"
+V3_TEMPLATE_NAME = "template.ome.zarr"
+V3_ANNOTATION_NAME = "annotations_compressed.ome.zarr"
+V3_ANNOTATION_MASKS_NAME = "annotations.ome.zarr"
+V3_ANNOTATION_MAP_NAME = "annotation_values"
+V3_HEMISPHERES_NAME = "hemispheres.ome.zarr"
 
 # Types for the atlas stacks:
 REFERENCE_DTYPE = np.uint16
 ANNOTATION_DTYPE = np.uint32
 HEMISPHERES_DTYPE = np.uint8
+ANNOTATION_MASKS_DTYPE = np.uint8
 
 # Standard orientation origin: Anterior, Superior, Right
 # (using brainglobe-space definition)
 ATLAS_ORIENTATION = "asr"
+
+# Type aliases
+ValidComponentData: TypeAlias = (
+    str | Path | npt.NDArray | List[str | Path | npt.NDArray]
+)
+Resolution: TypeAlias = Tuple[int | float, int | float, int | float]
+ResolutionList: TypeAlias = List[Resolution]
+
+
+def format_component_stub(
+    component_name: str,
+    component_version: str,
+    component_root_dir: str,
+    component_file_name: str,
+) -> str:
+    """
+    Format the component stub for a given component name, version,
+    root directory and file name.
+
+    Parameters
+    ----------
+    component_name : str
+        The name of the component (e.g., allen-mouse-adult-stpt-template).
+    component_version : str
+        The version of the component.
+    component_root_dir : str
+        The root directory of the component.
+    component_file_name : str
+        The name of the component file.
+
+    Returns
+    -------
+    str
+        The formatted component stub.
+    """
+    component_version = component_version.replace(".", "_")
+    stub = (
+        f"{component_root_dir}/{component_name}/"
+        f"{component_version}/{component_file_name}"
+    )
+    return stub
+
+
+def format_hemispheres_stub(annotation_name: str, version: str) -> str:
+    """
+    Format the hemispheres stub for a given hemispheres name and version.
+
+    Parameters
+    ----------
+    annotation_name : str
+        The name of the annotation (e.g., allen-adult-mouse-annotation).
+    version : str
+        The version of the annotation.
+
+    Returns
+    -------
+    str
+        The formatted hemispheres stub.
+    """
+    return format_component_stub(
+        annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_HEMISPHERES_NAME
+    )
+
+
+def format_meshes_stub(annotation_name: str, version: str) -> str:
+    """
+    Format the meshes stub for a given annotation name and version.
+
+    Parameters
+    ----------
+    annotation_name : str
+        The name of the annotation (e.g., allen-adult-mouse-annotation).
+    version : str
+        The version of the annotation.
+
+    Returns
+    -------
+    str
+        The formatted meshes stub.
+    """
+    return format_component_stub(
+        annotation_name, version, V3_ANNOTATION_ROOTDIR, V3_MESHES_DIRECTORY
+    )

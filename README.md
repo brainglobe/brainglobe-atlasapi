@@ -1,24 +1,18 @@
-# brainglobe-atlasapi
-
-[![Python Version](https://img.shields.io/pypi/pyversions/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
-[![PyPI](https://img.shields.io/pypi/v/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi/)
-[![Anaconda version](https://anaconda.org/conda-forge/brainglobe-atlasapi/badges/version.svg)](https://anaconda.org/conda-forge/brainglobe-atlasapi)
-[![Wheel](https://img.shields.io/pypi/wheel/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
-[![Development Status](https://img.shields.io/pypi/status/brainatlas-api.svg)](https://github.com/SainsburyWellcomeCentre/brainatlas-api)
-[![Downloads](https://pepy.tech/badge/brainglobe-atlasapi)](https://pepy.tech/project/brainglobe-atlasapi)
-[![Tests](https://img.shields.io/github/actions/workflow/status/brainglobe/brainglobe-atlasapi/test_and_deploy.yml?branch=main)](
-    https://github.com/brainglobe/brainglobe-atlasapi/actions)
-[![codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/branch/main/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
-[![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/format.json)](https://github.com/astral-sh/ruff)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.02668/status.svg)](https://doi.org/10.21105/joss.02668)
+[![Docs](https://img.shields.io/badge/Docs-brainglobe--atlasapi-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/index.html)
+[![Get in Touch](https://img.shields.io/badge/Get%20in%20Touch-BrainGlobe-blue)](https://brainglobe.info/contact.html)
+[![DOI](https://img.shields.io/badge/DOI-10.21105%2Fjoss.02668-green)](https://doi.org/10.21105/joss.02668)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-[![Contributions](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg)](https://docs.brainglobe.info/cellfinder/contributing)
-[![Website](https://img.shields.io/website?up_message=online&url=https%3A%2F%2Fbrainglobe.info)](https://brainglobe.info/documentation/brainglobe-atlasapi/index.html)
-[![image.sc forum](https://img.shields.io/badge/dynamic/json.svg?label=forum&url=https%3A%2F%2Fforum.image.sc%2Ftags%2Fbrainglobe.json&query=%24.topic_list.tags.0.topic_count&colorB=brightgreen&suffix=%20topics&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAABPklEQVR42m3SyyqFURTA8Y2BER0TDyExZ+aSPIKUlPIITFzKeQWXwhBlQrmFgUzMMFLKZeguBu5y+//17dP3nc5vuPdee6299gohUYYaDGOyyACq4JmQVoFujOMR77hNfOAGM+hBOQqB9TjHD36xhAa04RCuuXeKOvwHVWIKL9jCK2bRiV284QgL8MwEjAneeo9VNOEaBhzALGtoRy02cIcWhE34jj5YxgW+E5Z4iTPkMYpPLCNY3hdOYEfNbKYdmNngZ1jyEzw7h7AIb3fRTQ95OAZ6yQpGYHMMtOTgouktYwxuXsHgWLLl+4x++Kx1FJrjLTagA77bTPvYgw1rRqY56e+w7GNYsqX6JfPwi7aR+Y5SA+BXtKIRfkfJAYgj14tpOF6+I46c4/cAM3UhM3JxyKsxiOIhH0IO6SH/A1Kb1WBeUjbkAAAAAElFTkSuQmCC)](https://forum.image.sc/tag/brainglobe)
-[![Bluesky](https://img.shields.io/badge/Bluesky-0285FF?logo=bluesky&logoColor=fff)](https://bsky.app/profile/brainglobe.info)
-[![Mastodon](https://img.shields.io/badge/Mastodon-6364FF?logo=mastodon&logoColor=fff)](https://mastodon.online/@brainglobe)
+[![Tests](https://github.com/brainglobe/brainglobe-atlasapi/actions/workflows/test_and_deploy.yml/badge.svg)](https://github.com/brainglobe/brainglobe-atlasapi/actions/workflows/test_and_deploy.yml)
+[![Codecov](https://codecov.io/gh/brainglobe/brainglobe-atlasapi/graph/badge.svg?token=WTFPFW0TE4)](https://codecov.io/gh/brainglobe/brainglobe-atlasapi)
+[![Python Version](https://img.shields.io/pypi/pyversions/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
+[![PyPI](https://img.shields.io/pypi/v/brainglobe-atlasapi.svg)](https://pypi.org/project/brainglobe-atlasapi)
+[![Conda](https://anaconda.org/conda-forge/brainglobe-atlasapi/badges/version.svg)](https://anaconda.org/conda-forge/brainglobe-atlasapi)
+[![Downloads](https://static.pepy.tech/badge/brainglobe-atlasapi)](https://pepy.tech/project/brainglobe-atlasapi)
+[![Code Style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/format.json)](https://github.com/astral-sh/ruff)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-green?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-green.svg)](https://brainglobe.info/community/developers/index.html)
+
+# brainglobe-atlasapi
 
 The BrainGlobe Atlas API (`brainglobe-atlasapi`) provides a common interface for programmers to download and process brain atlas data from multiple sources.
 
@@ -35,11 +29,11 @@ A number of atlases are in development; those available currently are shown in t
 | [Max Planck Zebrafish Brain Atlas](http://fishatlas.neuro.mpg.de) | 1 micron | 6 dpf | FISH | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#max-planck-zebrafish-brain-atlas) |
 | [Enhanced and Unified Mouse Brain Atlas](https://kimlab.io/brain-map/atlas/) | 10, 25, 50, and 100 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#enhanced-and-unified-mouse-brain-atlas) |
 | [Enhanced and Unified Mouse Brain Atlas v2](https://figshare.com/articles/dataset/Unified_mouse_brain_atlas_v2/25750983) | 20 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#enhanced-and-unified-mouse-brain-atlas-v2) |
-| [Smoothed version of the Kim et al. mouse reference atlas](https://doi.org/10.1016/j.celrep.2014.12.014) | 10, 25, 50 and 100 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#smoothed-version-of-the-kim-et-al-mouse-reference-atlas) |
-| [Gubra's LSFM mouse brain atlas](https://doi.org/10.1007/s12021-020-09490-8) | 20 micron | 8 to 10 weeks post natal | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#gubras-lsfm-mouse-brain-atlas) |
-| [3D version of the Allen mouse spinal cord atlas](https://doi.org/10.1101/2021.05.06.443008) | 20 x 10 x 10 micron | Adult | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#d-version-of-the-allen-mouse-spinal-cord-atlas) |
+| [Smoothed version of the Kim et al. Mouse Reference Atlas](https://doi.org/10.1016/j.celrep.2014.12.014) | 10, 25, 50 and 100 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#smoothed-version-of-the-kim-et-al-mouse-reference-atlas) |
+| [Gubra's LSFM Mouse Brain Atlas](https://doi.org/10.1007/s12021-020-09490-8) | 20 micron | 8 to 10 weeks post natal | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#gubras-lsfm-mouse-brain-atlas) |
+| [3D version of the Allen Mouse Spinal Cord Atlas](https://doi.org/10.1101/2021.05.06.443008) | 20 x 10 x 10 micron | Adult | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#d-version-of-the-allen-mouse-spinal-cord-atlas) |
 | [AZBA: A 3D Adult Zebrafish Brain Atlas](https://doi.org/10.1101/2021.05.04.442625) | 4 micron | 15-16 weeks post natal | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#azba-a-3d-adult-zebrafish-brain-atlas) |
-| [Waxholm Space atlas of the Sprague Dawley rat brain](https://doi.org/10.1038/s41592-023-02034-3) | 39 micron | P80  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#waxholm-space-atlas-of-the-sprague-dawley-rat-brain) |
+| [Waxholm Space Atlas of the Sprague Dawley Rat Brain](https://doi.org/10.1038/s41592-023-02034-3) | 39 micron | P80  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#waxholm-space-atlas-of-the-sprague-dawley-rat-brain) |
 | [SWC Female Rat Brain Atlas](https://brainglobe.info/blog/swc-female-rat-atlas.html#native-female-rat-atlas) | 50 micron | 5–8 weeks old females | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#swc-female-rat-brain-atlas) |
 | [Waxholm-aligned SWC Female Rat Atlas](https://brainglobe.info/blog/swc-female-rat-atlas.html#waxholm-space-registered-female-rat-atlas) | 39 micron | 5–8 weeks old females (registered to Waxholm Space) | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#waxholm-aligned-swc-female-rat-atlas) |
 | [3D Edge-Aware Refined Atlases Derived from the Allen Developing Mouse Brain Atlases](https://doi.org/10.7554/eLife.61408) | 16, 16.75, and 25 micron | E13, E15, E18, P4, P14, P28 & P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#d-edge-aware-refined-atlases-derived-from-the-allen-developing-mouse-brain-atlases) |
@@ -47,24 +41,29 @@ A number of atlases are in development; those available currently are shown in t
 | [Kim Lab Developmental CCF v1.0](https://doi.org/10.6084/m9.figshare.26377171.v1) | 20, 31.5, 34, 37.5, 40, and 50 micron | E11.5, E13.5, E15.5, E18.5, P04, P14, P56 | LSFM and MRI (adc, dwi, fa, T2) | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kim-lab-developmental-ccf-v1-0) |
 | [Kim Lab Developmental CCF v001](https://data.mendeley.com/datasets/2svx788ddf/1) | 10 micron | P56  | STPT, LSFM (iDISCO) and MRI (a0, adc, dwo, fa, MTR, T2) | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kim-lab-developmental-ccf-v001-p56) |
 | [Blind Mexican Cavefish Brain Atlas](https://doi.org/10.7554/eLife.80777) | 2 micron | 6 dpf | IHC | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#blind-mexican-cavefish-brain-atlas) |
+| [Danionella cerebrum Brain Atlas](https://doi.org/10.64898/2026.03.09.710483) | 2.5 micron | Adult | Two-photon fluorescence, confocal reflectance | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#danionella-cerebrum-brain-atlas) |
 | [BlueBrain Barrel Cortex Atlas](https://doi.org/10.1162/imag_a_00209) | 10 and 25 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#bluebrain-barrel-cortex-atlas) |
 | [UNAM Axolotl Brain Atlas](https://doi.org/10.1038/s41598-021-89357-3) | 40 micron | ~ 3 months post hatching | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#unam-axolotl-brain-atlas) |
 | [Prairie Vole Brain Atlas](https://doi.org/10.7554/eLife.87029.3.sa0) | 25 micron | Unknown | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#prairie-vole-brain-atlas) |
-| [Gubra's stereotaxic MRI mouse brain atlas](https://doi.org/10.1007/s12021-023-09623-9) | 25 micron | 10 week old  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#gubras-mri-mouse-brain-atlas) |
-| [Gubra's LSFM mouse brain atlas v2](https://doi.org/10.1007/s12021-023-09623-9) | 25 micron | 10 week old  | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#gubras-lsfm-mouse-brain-atlas-v2) |
-| [MRI mouse lemur brain atlas](https://doi.org/10.1016/j.dib.2018.10.067) | 91 micron | 15–58 months  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#mri-mouse-lemur-brain-atlas) |
+| [Gubra's Stereotaxic MRI Mouse Brain Atlas](https://doi.org/10.1007/s12021-023-09623-9) | 25 micron | 10 week old  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#gubras-mri-mouse-brain-atlas) |
+| [Gubra's LSFM Mouse Brain Atlas v2](https://doi.org/10.1007/s12021-023-09623-9) | 25 micron | 10 week old  | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#gubras-lsfm-mouse-brain-atlas-v2) |
+| [MRI Mouse Lemur Brain Atlas](https://doi.org/10.1016/j.dib.2018.10.067) | 91 micron | 15–58 months  | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#mri-mouse-lemur-brain-atlas) |
 | [Australian Mouse Brain Atlas](https://doi.org/10.1016/j.ymeth.2015.01.005) | 15 micron | 12 week old | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#australian-mouse-brain-atlas) |
-| [Cat brain atlas](https://doi.org/10.1002/cne.24271) | 500 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#cat-brain-atlas) |
-| [Eurasian blackcap atlas](https://doi.org/10.1101/2025.03.04.641293) | 25 micron| Adult | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#eurasian-blackcap-atlas) |                                                         |
+| [Cat Brain Atlas](https://doi.org/10.1002/cne.24271) | 500 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#cat-brain-atlas) |
+| [Eurasian Blackcap Atlas](https://doi.org/10.1016/j.cub.2026.03.034) | 25 micron| Adult | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#eurasian-blackcap-atlas) |                                                         |
 | [BlueBrain CCFv3 Augmented](https://doi.org/10.1162/imag_a_00565) | 10 and 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#ccfv3-augmented-mouse-atlas) |
-| [Columbia cuttlefish atlas](https://doi.org/10.1016/j.cub.2023.06.007) | 50 micron | 6-7 months | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#columbia-cuttlefish-atlas) |
+| [Columbia Cuttlefish Atlas](https://doi.org/10.1016/j.cub.2023.06.007) | 50 micron | 6-7 months | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#columbia-cuttlefish-atlas) |
 | [Kocher Bumblebee Brain Atlas](https://doi.org/10.1016/j.cub.2022.04.066) | 2.542 x 1.2407 x 1.2407 micron | Adult Worker | Confocal | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#kocher-bumblebee-brain-atlas) |
-| Drosophila wing disc instar3 atlas| 2 micron | 3rd Instar Larvae | Confocal | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#Drosophila-wing-disc-instar3-atlas) |
+| Drosophila Wing Disc instar3 Atlas| 2 micron | 3rd Instar Larvae | Confocal | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#Drosophila-wing-disc-instar3-atlas) |
 | [DeMBA Developmental Mouse Brain Atlas](https://doi.org/10.1038/s41467-025-63177-9) | 10, 20, and 25 micron | every day from P04 to P56  | MRI, STPT, LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#demba-developmental-mouse-brain-atlas) |
-| Drosophila wing disc instar3 atlas| 2 micron | 3rd Instar Larvae | Confocal | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#drosophila-wing-disc-instar3-atlas) |
 | [Dorr MRI Mouse Atlas](https://doi.org/10.1016/j.neuroimage.2008.03.037) | 32 micron | 12 week old | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#dorr-mri-mouse-atlas) |
-| [CArea Mouse Atlas](https://doi.org/10.64898/2026.01.20.700446 ) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#carea-mouse-atlas)
-
+| [CArea Mouse Atlas](https://doi.org/10.64898/2026.01.20.700446 ) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#carea-mouse-atlas) |
+| [Allen CCFv2 Mouse Brain Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-mouse-brain-atlas) |
+| [Allen CCFv2 Mouse Fiber Tracts Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-mouse-fiber-tracts-atlas) |
+| [Allen CCFv2 Developmental Mouse Brain Atlas](https://doi.org/10.1038/nature13186) | 25 micron | P56 | Nissl | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-ccfv2-developmental-mouse-brain-atlas) |
+| [Duke Mouse Brain Atlas](https://doi.org/10.1126/sciadv.adq8089) | 15, 25, 50, 75, 100, and 150 micron | P90 ± 2 days | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#duke-mouse-brain-atlas) |
+| [Hoops Tawny Dragon Brain Atlas](https://doi.org/10.1007/s00429-021-02282-z) | 20 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#hoops-tawny-dragon-brain-atlas) |
+| [Duke Developmental Rat Brain Atlas](https://doi.org/10.1016/j.neuroimage.2013.01.017) | 25 micron | P0, P2, P4, P8, P12, P18, P24, P40 and P80 | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#duke-developmental-rat-brain-atlas) |
 <!-- END_ATLAS_TABLE -->
 
 **Acronyms:**
@@ -127,9 +126,9 @@ atlas = BrainGlobeAtlas("allen_mouse_25um")
 The various files associated with the atlas can then be accessed as attributes of the class:
 
 ```python
-# reference image
-reference_image = atlas.reference
-print(reference_image.shape)
+# template image
+template_image = atlas.template
+print(template_image.shape)
 # (528, 320, 456)
 
 # annotation image
@@ -142,6 +141,8 @@ hemispheres_image = atlas.hemispheres
 print(hemispheres_image.shape)
 # (528, 320, 456)
 ```
+
+Pass `dask=True` to `BrainGlobeAtlas` to return dask arrays for these images; index/slice them as usual, then call `.compute()` when you need the numpy result.
 
 #### Brain regions
 
@@ -160,7 +161,7 @@ atlas.lookup_df.head(8)
 # 7       FRP1         68          Frontal pole, layer 1
 ```
 
-Each brain region can also be access by the acronym, e.g. for primary visual cortex (VISp):
+Each brain region can also be accessed by the acronym, e.g. for primary visual cortex (VISp):
 
 ```python
 from pprint import pprint

@@ -235,6 +235,24 @@ def test_atlas_assets_hemispheres_are_synthesized():
     assert hemispheres.shape == tuple(atlas.shape)
     assert set(np.unique(hemispheres)) <= {1, 2}
 
+    # The frontal axis starts on the side its origin letter names.
+    front_ax_idx = atlas.space.axes_order.index("frontal")
+    first_side = atlas.space.origin[front_ax_idx]
+    expected = {
+        "l": atlas.left_hemisphere_value,
+        "r": atlas.right_hemisphere_value,
+    }[first_side]
+    assert (np.take(hemispheres, 0, axis=front_ax_idx) == expected).all()
+
+
+def test_atlas_assets_meshes_are_dequantized():
+    """An atlas-assets atlas flags its structures for dequantization."""
+    atlas = BrainGlobeAtlas(
+        ATLAS_ASSETS_NAME, resolution=100, check_latest=False
+    )
+    assert atlas.metadata["format"] == "atlas-assets"
+    assert all(s.dequantize_mesh for s in atlas.structures.values())
+
 
 def test_orientation_is_consistent_across_an_atlas_assets_atlas():
     """Every spatial asset of one atlas declares the same axis directions.
@@ -291,6 +309,7 @@ def test_atlas_assets_mesh_is_nanometres_in_xyz(tmp_path):
 
     struct = Structure(id=997, acronym="root", mesh_filename=mesh_file)
     struct.remote_root = descriptors.ATLAS_ASSETS_REMOTE_ROOT
+    struct.dequantize_mesh = True
     struct._download_mesh(mesh_file)
 
     points = DracoPy.decode(mesh_file.read_bytes()).points

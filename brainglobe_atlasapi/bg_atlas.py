@@ -270,7 +270,8 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     are reshaped: the first template and annotation set are promoted to
     singular keys, terminology is hoisted to the top level, and the
     fields the specification does not carry are derived from the zarr
-    metadata and the asset name, or set to None.
+    metadata and the asset name, or set to None. They are also tagged
+    ``"format": "atlas-assets"`` so their meshes are dequantized.
 
     Parameters
     ----------
@@ -332,6 +333,7 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     shape = annotation_group[dataset_path].shape
 
     return {
+        "format": "atlas-assets",
         "name": raw["name"],
         "version": raw["version"],
         "location": raw["location"],
@@ -517,13 +519,30 @@ class BrainGlobeAtlas(
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
         if remote_root is None and self.local_full_name is None:
-            # Not cached under the default root: find out which configured
-            # remote root actually holds this atlas before downloading, so
-            # it lands in (and is later found in) the matching per-root
-            # cache directory. Offline, keep the default root so an
-            # already-cached atlas under it still loads.
+            # Not cached under the default root. Prefer a copy cached under
+            # another configured root, in config order, so it loads offline
+            # and without S3 calls.
             roots = config.get_remote_roots(config_dir)
-            if check_s3_status(raise_error=False):
+            base_dir = self.brainglobe_dir.parent
+            for root_key, cached_root in roots.items():
+                atlas_dir = base_dir / root_key / V3_ATLAS_ROOTDIR / atlas_name
+                if not atlas_dir.is_dir():
+                    continue
+                self.brainglobe_dir = base_dir / root_key
+                self._local_full_name = None
+                if self.local_full_name is not None:
+                    self._root_key, self._remote_root = root_key, cached_root
+                    break
+            else:
+                self.brainglobe_dir = base_dir / self._root_key
+
+            # Not cached anywhere: find out which configured remote root
+            # actually holds this atlas before downloading, so it lands in
+            # (and is later found in) the matching per-root cache
+            # directory. Offline, the atlas name check below fails loudly.
+            if self.local_full_name is None and check_s3_status(
+                raise_error=False
+            ):
                 try:
                     root_key, resolved_root = _resolve_remote_root(
                         self.fs, atlas_name, roots

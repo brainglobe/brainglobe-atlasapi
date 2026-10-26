@@ -526,7 +526,9 @@ def test_atlas_assets_mesh_converted_on_download(tmp_path, monkeypatch):
     )
 
     struct_dict = StructuresDict(
-        structures_list, remote_root=ATLAS_ASSETS_ROOT
+        structures_list,
+        remote_root=ATLAS_ASSETS_ROOT,
+        dequantize_meshes=True,
     )
     struct_dict["root"]["mesh_filename"] = mesh_file
     mesh = struct_dict["root"]["mesh"]
@@ -558,18 +560,24 @@ def test_atlas_assets_conversion_writes_only_the_id_file(
     )
 
     struct_dict = StructuresDict(
-        structures_list, remote_root=ATLAS_ASSETS_ROOT
+        structures_list,
+        remote_root=ATLAS_ASSETS_ROOT,
+        dequantize_meshes=True,
     )
     struct_dict["root"]._download_mesh(mesh_file)
 
     assert [p.name for p in mesh_dir.iterdir()] == [ALLEN_ID]
 
 
-def test_brainglobe_mesh_downloads_without_dequantizing(tmp_path, monkeypatch):
+@pytest.mark.parametrize("remote_root", [None, "s3://brainglobe/atlas-rc2"])
+def test_brainglobe_mesh_downloads_without_dequantizing(
+    tmp_path, monkeypatch, remote_root
+):
     """A BrainGlobe mesh is fetched as-is: its Draco header is absolute.
 
     `cat_impl` is left unset, so the fake raises if the conversion branch
-    is taken for the default remote root.
+    is taken. The format, not the remote root, picks the branch, so a
+    BrainGlobe mirror on another root is fetched as-is too.
     """
     mesh_file = tmp_path / "997"
 
@@ -582,7 +590,7 @@ def test_brainglobe_mesh_downloads_without_dequantizing(tmp_path, monkeypatch):
         ),
     )
 
-    struct_dict = StructuresDict(structures_list)
+    struct_dict = StructuresDict(structures_list, remote_root=remote_root)
     struct_dict["root"]._download_mesh(mesh_file)
 
     assert mesh_file.read_bytes() == _draco_bytes()
@@ -614,7 +622,9 @@ def test_interrupted_conversion_removes_the_partial_file(
     )
 
     struct_dict = StructuresDict(
-        structures_list, remote_root=ATLAS_ASSETS_ROOT
+        structures_list,
+        remote_root=ATLAS_ASSETS_ROOT,
+        dequantize_meshes=True,
     )
 
     with pytest.raises(ConnectionError):

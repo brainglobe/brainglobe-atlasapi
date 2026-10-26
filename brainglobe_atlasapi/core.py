@@ -247,7 +247,9 @@ class Atlas(Generic[AtlasArray]):
             struct["mesh_filename"] = meshes_path / f'{struct["id"]}'
 
         self.structures = StructuresDict(
-            structures_list, remote_root=self._remote_root
+            structures_list,
+            remote_root=self._remote_root,
+            dequantize_meshes=self.metadata.get("format") == "atlas-assets",
         )
 
         # Instantiate SpaceConvention object describing the current atlas:
@@ -449,33 +451,40 @@ class Atlas(Generic[AtlasArray]):
             front_ax_idx = self.space.axes_order.index("frontal")
             split = round(shape[front_ax_idx] / 2)
 
+            # The frontal axis starts on the side its origin letter names,
+            # e.g. right for "asr" but left for atlas-assets' "asl".
+            first_value, second_value = (
+                self.right_hemisphere_value,
+                self.left_hemisphere_value,
+            )
+            if self.space.origin[front_ax_idx] == "l":
+                first_value, second_value = second_value, first_value
+
             if self.dask:
-                right_shape = list(shape)
-                right_shape[front_ax_idx] = split
-                left_shape = list(shape)
-                left_shape[front_ax_idx] -= split
+                first_shape = list(shape)
+                first_shape[front_ax_idx] = split
+                second_shape = list(shape)
+                second_shape[front_ax_idx] -= split
                 self._hemispheres = da.concatenate(
                     [
                         da.full(
-                            right_shape,
-                            self.right_hemisphere_value,
+                            first_shape,
+                            first_value,
                             dtype=HEMISPHERES_DTYPE,
                         ),
                         da.full(
-                            left_shape,
-                            self.left_hemisphere_value,
+                            second_shape,
+                            second_value,
                             dtype=HEMISPHERES_DTYPE,
                         ),
                     ],
                     axis=front_ax_idx,
                 )
             else:
-                stack = np.full(
-                    shape, self.right_hemisphere_value, dtype=HEMISPHERES_DTYPE
-                )
+                stack = np.full(shape, first_value, dtype=HEMISPHERES_DTYPE)
                 slices = [slice(None) for _ in range(3)]
                 slices[front_ax_idx] = slice(split, None)
-                stack[tuple(slices)] = self.left_hemisphere_value
+                stack[tuple(slices)] = second_value
 
                 self._hemispheres = stack
         else:

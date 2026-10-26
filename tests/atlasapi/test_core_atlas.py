@@ -9,6 +9,7 @@ import ngff_zarr as nz
 import numpy as np
 import pandas as pd
 import pytest
+from brainglobe_space import AnatomicalSpace
 
 from brainglobe_atlasapi import core
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
@@ -371,6 +372,24 @@ def test_even_hemisphere_size(atlas):
     assert atlas.hemispheres.shape == (132, 80, 114)
     assert (atlas.hemispheres[:, :, 56] == 2).all()
     assert (atlas.hemispheres[:, :, 57] == 1).all()
+
+
+def test_synthesized_hemispheres_follow_left_origin(atlas, monkeypatch):
+    """An "l" origin on the frontal axis puts the left half first.
+
+    atlas-assets atlases are "asl", so index 0 on the frontal axis is the
+    left side, unlike BrainGlobe's "asr".
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    monkeypatch : pytest.MonkeyPatch
+        Fixture used to swap in an "asl" space.
+    """
+    monkeypatch.setattr(atlas, "space", AnatomicalSpace("asl"))
+    assert (atlas.hemispheres[:, :, 56] == atlas.left_hemisphere_value).all()
+    assert (atlas.hemispheres[:, :, 57] == atlas.right_hemisphere_value).all()
 
 
 @pytest.mark.parametrize(

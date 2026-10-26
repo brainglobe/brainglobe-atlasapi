@@ -467,6 +467,47 @@ def test_resolve_non_default_root_switches_cache_dir(tmp_path, monkeypatch):
     assert (tmp_path / "allen").is_dir()
 
 
+def test_atlas_cached_under_other_root_loads_offline(tmp_path, monkeypatch):
+    """A copy cached under a non-default root is found without S3.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Empty temporary directory used as the brainglobe_dir.
+    monkeypatch : pytest.MonkeyPatch
+        Used to forbid S3 access and skip loading the stub atlas.
+    """
+    manifest = tmp_path / "allen" / "atlases" / "cached_atlas" / "1_0"
+    manifest.mkdir(parents=True)
+    (manifest / "manifest.json").write_text("{}")
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no network call should be made")
+
+    monkeypatch.setattr(bg_atlas, "check_s3_status", fail)
+    monkeypatch.setattr(bg_atlas, "_resolve_remote_root", fail)
+    monkeypatch.setattr(
+        bg_atlas.config,
+        "get_remote_roots",
+        lambda *_: {
+            "brainglobe-atlasapi": "s3://brainglobe/atlas",
+            "allen": "s3://other/prefix",
+        },
+    )
+    monkeypatch.setattr(bg_atlas, "_normalize_manifest", lambda *_: {})
+    monkeypatch.setattr(
+        bg_atlas.core.Atlas, "__init__", lambda self, *a, **k: None
+    )
+
+    atlas = BrainGlobeAtlas(
+        "cached_atlas", brainglobe_dir=tmp_path, check_latest=False
+    )
+
+    assert atlas._remote_root == "s3://other/prefix"
+    assert atlas.brainglobe_dir == tmp_path / "allen"
+    assert atlas.local_full_name == "atlases/cached_atlas/1_0/manifest.json"
+
+
 def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
     """An explicit remote_root takes full priority over configured roots.
 

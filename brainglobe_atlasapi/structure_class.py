@@ -161,9 +161,13 @@ class Structure(UserDict):
     remote_root : str
         Remote root the mesh is fetched from. Set per instance by
         `StructuresDict`; defaults to the BrainGlobe bucket.
+    dequantize_mesh : bool
+        Whether the remote mesh is in the atlas-assets form and must be
+        dequantized on download. Set per instance by `StructuresDict`.
     """
 
     remote_root = DEFAULT_REMOTE_ROOT
+    dequantize_mesh = False
 
     def __getitem__(self, item):
         """
@@ -222,7 +226,7 @@ class Structure(UserDict):
     def _download_mesh(self, file_name: Path) -> None:
         """Download the mesh from the remote S3 bucket if it is not cached.
 
-        Both buckets store `neuroglancer_multilod_draco`, but they quantize
+        Both formats store `neuroglancer_multilod_draco`, but they quantize
         differently: atlas-assets follows the specification and keeps the
         chunk in `<id>.index`, while BrainGlobe bakes absolute quantization
         into the Draco header so `<id>` decodes to coordinates on its own.
@@ -239,7 +243,7 @@ class Structure(UserDict):
             )
 
         try:
-            if self.remote_root == DEFAULT_REMOTE_ROOT:
+            if not self.dequantize_mesh:
                 fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
             else:
                 points, faces = _read_multilod_draco(fs, remote_mesh_path)
@@ -284,9 +288,14 @@ class StructuresDict(UserDict):
     remote_root : str or None
         Remote root the meshes are fetched from; defaults to the
         BrainGlobe bucket.
+    dequantize_meshes : bool
+        Whether the remote meshes are in the atlas-assets form and must be
+        dequantized on download, rather than fetched as-is.
     """
 
-    def __init__(self, structures_list, remote_root=None):
+    def __init__(
+        self, structures_list, remote_root=None, dequantize_meshes=False
+    ):
         super().__init__()
 
         # Acronym to id map:
@@ -298,6 +307,7 @@ class StructuresDict(UserDict):
             sid = struct["id"]
             structure = Structure(**struct, mesh=None)
             structure.remote_root = remote_root or DEFAULT_REMOTE_ROOT
+            structure.dequantize_mesh = dequantize_meshes
             self.data[sid] = structure
 
         self.tree = get_structures_tree(structures_list)

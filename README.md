@@ -64,6 +64,7 @@ A number of atlases are in development; those available currently are shown in t
 | [Duke Mouse Brain Atlas](https://doi.org/10.1126/sciadv.adq8089) | 15, 25, 50, 75, 100, and 150 micron | P90 ± 2 days | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#duke-mouse-brain-atlas) |
 | [Hoops Tawny Dragon Brain Atlas](https://doi.org/10.1007/s00429-021-02282-z) | 20 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#hoops-tawny-dragon-brain-atlas) |
 | [Duke Developmental Rat Brain Atlas](https://doi.org/10.1016/j.neuroimage.2013.01.017) | 25 micron | P0, P2, P4, P8, P12, P18, P24, P40 and P80 | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#duke-developmental-rat-brain-atlas) |
+| [LAMBADA Developmental Mouse Brain Atlas](https://doi.org/10.1016/j.cell.2026.03.013) | 25 micron | P3, P5, P7, P9, P12, P14 and P21 | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#lambada-developmental-mouse-brain-atlas) |
 <!-- END_ATLAS_TABLE -->
 
 **Acronyms:**

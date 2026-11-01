@@ -1,5 +1,6 @@
 """Test functions for listing and managing BrainGlobe atlases."""
 
+from collections import Counter
 from typing import get_args
 from unittest import mock
 
@@ -106,9 +107,28 @@ def test_atlas_name_matches_lastversions():
     last_versions = utils.conf_from_file(cache_path)["atlases"]
     last_version_names = list(last_versions.keys())
 
-    assert len(atlas_name_values) == len(set(atlas_name_values))
-    assert len(last_version_names) == len(set(last_version_names))
-    assert set(atlas_name_values).issuperset(set(last_version_names))
+    duplicate_atlas_names = sorted(
+        name for name, count in Counter(atlas_name_values).items() if count > 1
+    )
+    assert (
+        not duplicate_atlas_names
+    ), f"Duplicate names in AtlasName: {duplicate_atlas_names}"
+
+    duplicate_last_versions = sorted(
+        name
+        for name, count in Counter(last_version_names).items()
+        if count > 1
+    )
+    assert (
+        not duplicate_last_versions
+    ), f"Duplicate names in last_versions.conf: {duplicate_last_versions}"
+
+    missing_from_atlas_name = sorted(
+        set(last_version_names) - set(atlas_name_values)
+    )
+    assert (
+        not missing_from_atlas_name
+    ), f"Missing from AtlasName: {missing_from_atlas_name}"
 
 
 def test_get_all_atlases_custom_atlases(mocker):

@@ -11,7 +11,6 @@ from typing import (
     Generic,
     List,
     Literal,
-    Optional,
     Tuple,
     TypeVar,
     Union,
@@ -112,16 +111,13 @@ class Atlas(Generic[AtlasArray]):
 
     left_hemisphere_value = 1
     right_hemisphere_value = 2
-    # Class-level default so that an instance built without running
-    # ``__init__`` still has a handler to report to.
-    fn_update: Optional[Callable] = None
 
     @overload
     def __init__(
         self: Atlas[npt.NDArray[np.integer]],
         path: Union[str, Path],
         dask: Literal[False] = False,
-        fn_update: Optional[Callable] = None,
+        fn_update: Callable | None = None,
     ) -> None: ...
 
     @overload
@@ -129,7 +125,7 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[da.Array],
         path: Union[str, Path],
         dask: Literal[True] = True,
-        fn_update: Optional[Callable] = None,
+        fn_update: Callable | None = None,
     ) -> None: ...
 
     @overload
@@ -137,14 +133,14 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[AtlasArray],
         path: Union[str, Path],
         dask: bool = False,
-        fn_update: Optional[Callable] = None,
+        fn_update: Callable | None = None,
     ) -> None: ...
 
     def __init__(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         dask: bool = False,
-        fn_update: Optional[Callable] = None,
+        fn_update: Callable | None = None,
     ):
         self.dask = dask
         self.fn_update = fn_update
@@ -206,7 +202,7 @@ class Atlas(Generic[AtlasArray]):
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = meshes_path / f"{struct['id']}"
+            struct["mesh_filename"] = meshes_path / f'{struct["id"]}'
 
         self.structures = StructuresDict(structures_list)
 
@@ -759,7 +755,7 @@ class Atlas(Generic[AtlasArray]):
                 )
             except IndexError:
                 raise ValueError(
-                    f"Structure {self.structures[structure]['acronym']} "
+                    f'Structure {self.structures[structure]["acronym"]} '
                     f"has no descendants at hierarchy level {hierarchy_level}"
                 )
 
@@ -848,7 +844,7 @@ class AdditionalRefDict(UserDict):
         references_list: List[Dict[str, str]],
         data_path,
         resolution: Tuple[float, float, float],
-        fn_update: Optional[Callable] = None,
+        fn_update: Callable | None = None,
         *args,
         **kwargs,
     ):

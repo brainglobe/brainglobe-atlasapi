@@ -22,6 +22,7 @@ def _atlas(tmp_path, monkeypatch, data):
     """Build a minimal Atlas instance without running full init."""
     atlas = object.__new__(core.Atlas)
     atlas.dask = True
+    atlas.fn_update = None
     atlas.root_dir = tmp_path
     atlas.metadata = {
         "annotation_set": {

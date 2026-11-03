@@ -460,6 +460,28 @@ def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
 
 
 @pytest.mark.parametrize(
+    "version_str, expected",
+    [
+        ("3.0", (3, 0)),
+        ("3_0", (3, 0)),
+        ("2017", (2017,)),
+        ("2024-05", (2024, 5)),
+    ],
+)
+def test_version_tuple_from_str_separators(version_str, expected):
+    """Version strings parse across ``.``, ``_`` and ``-`` separators.
+
+    Parameters
+    ----------
+    version_str : str
+        Version string as stored in a manifest or folder name.
+    expected : tuple of int
+        Expected numeric tuple.
+    """
+    assert utils.version_tuple_from_str(version_str) == expected
+
+
+@pytest.mark.parametrize(
     "versions, expected",
     [
         (["3_0", "2_1"], "3_0"),

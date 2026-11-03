@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -215,7 +215,7 @@ def check_s3_status(
         _ = requests.head(url, timeout=timeout)
         return True
     except (requests.ConnectionError, requests.exceptions.Timeout) as e:
-        error_message = "S3 BrainGlobe bucket is not accessible."
+        error_message = f"S3 bucket {remote_root} is not accessible."
         if not raise_error:
             print(error_message)
         else:
@@ -354,6 +354,25 @@ def get_download_size(url: str) -> int:
         raise IndexError("Improperly formatted URL")
 
 
+def version_tuple_from_str(version_str: str) -> Tuple[int, ...]:
+    """Parse a version string into a numeric tuple for comparison.
+
+    Accepts ``.``, ``_`` and ``-`` as separators, so both BrainGlobe
+    (``3_0``) and atlas-assets (``2024-05``) version folder names parse.
+
+    Parameters
+    ----------
+    version_str : str
+        Version string, e.g. ``"3.0"``, ``"3_0"`` or ``"2024-05"``.
+
+    Returns
+    -------
+    tuple of int
+        Numeric components, in order.
+    """
+    return tuple(int(n) for n in re.split(r"[._-]", version_str))
+
+
 def get_latest_version(available_versions: List[str]) -> str:
     """
     Get the latest version from a list of version strings.
@@ -368,10 +387,7 @@ def get_latest_version(available_versions: List[str]) -> str:
     str
         The latest version string.
     """
-    available_versions.sort(
-        key=lambda v: tuple(int(x) for x in re.split(r"[_-]", v)),
-        reverse=True,
-    )
+    available_versions.sort(key=version_tuple_from_str, reverse=True)
     return available_versions[0]
 
 
@@ -531,7 +547,8 @@ def load_structures_from_csv(structures_path):
         },
         converters={
             "root_identifier_path": _parse_identifier_list,
-            # zfill: upstream CSVs sometimes drop the leading zero (#19399)
+            # zfill: upstream CSVs sometimes drop the leading zero, e.g.
+            # "#19399" for "#019399"
             "color_hex_triplet": lambda x: list(
                 bytes.fromhex(x.lstrip("#").zfill(6))
             ),

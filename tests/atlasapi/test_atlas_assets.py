@@ -81,6 +81,25 @@ def test_orientation_from_axes(ome_attrs):
     assert bg_atlas._orientation_from_axes(ome_attrs) == "asl"
 
 
+def test_origin_letter_is_where_each_axis_starts():
+    """Each direction's origin letter is the side it starts from."""
+    start_letter = {
+        "anterior": "a",
+        "rostral": "a",
+        "posterior": "p",
+        "caudal": "p",
+        "superior": "s",
+        "dorsal": "s",
+        "inferior": "i",
+        "ventral": "i",
+        "left": "l",
+        "right": "r",
+    }
+    for direction, letter in bg_atlas._ORIGIN_BY_AXIS_DIRECTION.items():
+        start = direction.split("-to-")[0]
+        assert letter == start_letter[start], direction
+
+
 def test_pyramid_level_from_attrs(ome_attrs):
     """Resolution in micrometres selects the matching dataset.
 
@@ -121,18 +140,26 @@ def test_brainglobe_manifest_passes_through():
     assert result == untouched
 
 
-def test_resolution_required_for_multi_scale(atlas_assets_manifest):
-    """Omitting resolution on a multi-scale atlas fails loudly.
+def test_resolution_defaults_to_finest_for_multi_scale(
+    atlas_assets_manifest, capsys
+):
+    """A multi-scale atlas with no resolution picks the finest, and says so.
+
+    As in the single-scale test below, there is no zarr store on disk, so
+    execution fails at the read that follows the resolution choice.
 
     Parameters
     ----------
     atlas_assets_manifest : dict
         atlas-assets manifest fixture.
+    capsys : pytest.CaptureFixture
+        Captures the printed note.
     """
-    with pytest.raises(ValueError) as error:
+    with pytest.raises(FileNotFoundError):
         bg_atlas._normalize_manifest(atlas_assets_manifest, None, Path("."))
-    assert "resolution=" in str(error.value)
-    assert "100" in str(error.value)
+    printed = capsys.readouterr().out
+    assert "finest, 10 um" in printed
+    assert "resolution=" in printed
 
 
 def test_resolution_defaulted_for_single_scale(atlas_assets_manifest):
@@ -141,10 +168,9 @@ def test_resolution_defaulted_for_single_scale(atlas_assets_manifest):
     The zarr read that follows resolution selection needs a real store
     on disk, which this test does not provide, so it can only exercise
     the scales-defaulting decision itself: a single-scale manifest with
-    resolution=None must not raise the "multiple resolutions"
-    ValueError, proving resolution was defaulted rather than left
-    unset. Execution then reaches the (missing) zarr store and fails
-    for that unrelated reason instead.
+    resolution=None must not raise, proving resolution was defaulted
+    rather than left unset. Execution then reaches the (missing) zarr
+    store and fails for that unrelated reason instead.
 
     Parameters
     ----------
@@ -307,9 +333,13 @@ def test_atlas_assets_mesh_is_nanometres_in_xyz(tmp_path):
     mesh_dir.mkdir(parents=True)
     mesh_file = mesh_dir / "997"
 
-    struct = Structure(id=997, acronym="root", mesh_filename=mesh_file)
-    struct.remote_root = descriptors.ATLAS_ASSETS_REMOTE_ROOT
-    struct.dequantize_mesh = True
+    struct = Structure(
+        id=997,
+        acronym="root",
+        mesh_filename=mesh_file,
+        remote_root=descriptors.ATLAS_ASSETS_REMOTE_ROOT,
+        dequantize_mesh=True,
+    )
     struct._download_mesh(mesh_file)
 
     points = DracoPy.decode(mesh_file.read_bytes()).points

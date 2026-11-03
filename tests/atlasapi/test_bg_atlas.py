@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, PropertyMock, patch
 import pytest
 
 import brainglobe_atlasapi
-from brainglobe_atlasapi import bg_atlas
+from brainglobe_atlasapi import bg_atlas, descriptors
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 
 
@@ -23,6 +23,8 @@ def test_remote_version_connection_error():
     ):
         atlas = object.__new__(BrainGlobeAtlas)
         atlas._remote_version = None
+        atlas._remote_root = bg_atlas.descriptors.DEFAULT_REMOTE_ROOT
+        atlas._reachable_roots = set()
         assert atlas.remote_version is None
 
 
@@ -42,6 +44,7 @@ def test_remote_version_missing_from_assumed_root_raises_file_not_found():
     atlas._remote_version = None
     atlas._requested_version = None
     atlas._remote_root = bg_atlas.descriptors.ATLAS_ASSETS_REMOTE_ROOT
+    atlas._reachable_roots = set()
     atlas.atlas_name = "not_actually_here"
     atlas.fs = SimpleNamespace(exists=lambda path: True, ls=lambda path: [])
 
@@ -67,6 +70,7 @@ def test_remote_version_carries_dashed_folder_string():
     atlas._remote_version_str = None
     atlas._requested_version = None
     atlas._remote_root = bg_atlas.descriptors.ATLAS_ASSETS_REMOTE_ROOT
+    atlas._reachable_roots = set()
     atlas.atlas_name = "allen-adult-mouse-ccf-atlas"
     atlas.fs = SimpleNamespace(
         exists=lambda path: True,
@@ -81,6 +85,25 @@ def test_remote_version_carries_dashed_folder_string():
     assert atlas._remote_version_str == "2024-05"
 
 
+def test_remote_version_ignores_non_version_entries():
+    """Stray files next to the version folders are not parsed as versions."""
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas._remote_version = None
+    atlas._remote_version_str = None
+    atlas._requested_version = None
+    atlas._remote_root = bg_atlas.descriptors.ATLAS_ASSETS_REMOTE_ROOT
+    atlas._reachable_roots = set()
+    atlas.atlas_name = "allen-adult-mouse-ccf-atlas"
+    atlas.fs = SimpleNamespace(
+        ls=lambda path: [f"{path}/2017", f"{path}/README.md", f"{path}/tmp"],
+    )
+
+    with patch.object(
+        brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
+    ):
+        assert atlas.remote_version == (2017,)
+
+
 def _atlas_for_remote_version(
     atlas_name, brainglobe_dir, local_full_name=None
 ):
@@ -88,6 +111,8 @@ def _atlas_for_remote_version(
     atlas = object.__new__(BrainGlobeAtlas)
     atlas.atlas_name = atlas_name
     atlas.brainglobe_dir = brainglobe_dir
+    atlas._remote_root = bg_atlas.descriptors.DEFAULT_REMOTE_ROOT
+    atlas._reachable_roots = set()
     atlas._remote_version = None
     atlas._requested_version = None
     atlas._local_full_name = local_full_name
@@ -189,6 +214,8 @@ def test_check_latest_version_local(local_version, remote_version, expected):
         mock_local_version.return_value = local_version
         mock_remote_version.return_value = remote_version
         atlas = object.__new__(BrainGlobeAtlas)
+        atlas._local_version_str = None
+        atlas._remote_version_str = None
         assert atlas.check_latest_version(print_warning=False) == expected
 
 
@@ -291,32 +318,9 @@ def test_local_full_name_matches_dashed_version_folders(tmp_path):
         (version_dir / "manifest.json").write_text("{}")
 
     assert atlas.local_full_name == (
-        f"{bg_atlas.V3_ATLAS_ROOTDIR}/{atlas.atlas_name}/"
-        f"2026-03/manifest.json"
+        f"{bg_atlas.V3_ATLAS_ROOTDIR}/{atlas.atlas_name}/2026-03/manifest.json"
     )
     assert atlas._local_version_str == "2026-03"
-
-
-@pytest.mark.parametrize(
-    "version_str, expected",
-    [
-        ("3.0", (3, 0)),
-        ("3_0", (3, 0)),
-        ("2017", (2017,)),
-        ("2024-05", (2024, 5)),
-    ],
-)
-def test_version_tuple_from_str_separators(version_str, expected):
-    """Version strings parse across ``.``, ``_`` and ``-`` separators.
-
-    Parameters
-    ----------
-    version_str : str
-        Version string as stored in a manifest or folder name.
-    expected : tuple of int
-        Expected numeric tuple.
-    """
-    assert bg_atlas._version_tuple_from_str(version_str) == expected
 
 
 @pytest.mark.parametrize(
@@ -360,8 +364,10 @@ class _FakeFS:
     def __init__(self, existing):
         self.existing = set(existing)
 
-    def exists(self, path):
-        return path in self.existing
+    def ls(self, path):
+        if path not in self.existing:
+            raise FileNotFoundError(path)
+        return [f"{path}/1_0"]
 
 
 def test_resolve_root_prefers_declaration_order():
@@ -376,9 +382,9 @@ def test_resolve_root_prefers_declaration_order():
             "s3://other/prefix/atlases/shared_name",
         ]
     )
-    assert bg_atlas._resolve_remote_root(fs, "shared_name", roots) == (
-        "brainglobe-atlasapi",
-        "s3://brainglobe/atlas-rc2",
+    assert (
+        bg_atlas._resolve_remote_root(fs, "shared_name", roots, lambda _: True)
+        == "s3://brainglobe/atlas-rc2"
     )
 
 
@@ -389,9 +395,12 @@ def test_resolve_root_falls_through_to_later_root():
         "allen": "s3://other/prefix",
     }
     fs = _FakeFS(["s3://other/prefix/atlases/allen-adult-mouse-ccf-atlas"])
-    assert bg_atlas._resolve_remote_root(
-        fs, "allen-adult-mouse-ccf-atlas", roots
-    ) == ("allen", "s3://other/prefix")
+    assert (
+        bg_atlas._resolve_remote_root(
+            fs, "allen-adult-mouse-ccf-atlas", roots, lambda _: True
+        )
+        == "s3://other/prefix"
+    )
 
 
 def test_resolve_root_unknown_name_lists_roots():
@@ -401,7 +410,9 @@ def test_resolve_root_unknown_name_lists_roots():
         "allen": "s3://other/prefix",
     }
     with pytest.raises(ValueError) as error:
-        bg_atlas._resolve_remote_root(_FakeFS([]), "nope", roots)
+        bg_atlas._resolve_remote_root(
+            _FakeFS([]), "nope", roots, lambda _: True
+        )
     message = str(error.value)
     assert "nope" in message
     assert "s3://brainglobe/atlas-rc2" in message
@@ -458,13 +469,13 @@ def test_resolve_non_default_root_switches_cache_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(
         bg_atlas,
         "_resolve_remote_root",
-        lambda fs, name, roots: ("allen", "s3://other/prefix"),
+        lambda fs, name, roots, is_reachable: "s3://other/prefix",
     )
 
     with pytest.raises(FileNotFoundError):
         BrainGlobeAtlas("not_cached_anywhere", brainglobe_dir=tmp_path)
 
-    assert (tmp_path / "allen").is_dir()
+    assert (tmp_path / "prefix").is_dir()
 
 
 def test_atlas_cached_under_other_root_loads_offline(tmp_path, monkeypatch):
@@ -477,7 +488,7 @@ def test_atlas_cached_under_other_root_loads_offline(tmp_path, monkeypatch):
     monkeypatch : pytest.MonkeyPatch
         Used to forbid S3 access and skip loading the stub atlas.
     """
-    manifest = tmp_path / "allen" / "atlases" / "cached_atlas" / "1_0"
+    manifest = tmp_path / "prefix" / "atlases" / "cached_atlas" / "1_0"
     manifest.mkdir(parents=True)
     (manifest / "manifest.json").write_text("{}")
 
@@ -504,8 +515,101 @@ def test_atlas_cached_under_other_root_loads_offline(tmp_path, monkeypatch):
     )
 
     assert atlas._remote_root == "s3://other/prefix"
-    assert atlas.brainglobe_dir == tmp_path / "allen"
+    assert atlas.brainglobe_dir == tmp_path / "prefix"
+    record = tmp_path / "prefix" / descriptors.REMOTE_ROOT_FILENAME
+    assert record.read_text() == "s3://other/prefix\n"
     assert atlas.local_full_name == "atlases/cached_atlas/1_0/manifest.json"
+
+
+def test_atlas_cached_under_unconfigured_root_loads_offline(
+    tmp_path, monkeypatch
+):
+    """A cache whose root is only recorded, not configured, is found.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Empty temporary directory used as the brainglobe_dir.
+    monkeypatch : pytest.MonkeyPatch
+        Used to forbid S3 access and skip loading the stub atlas.
+    """
+    cache = tmp_path / "custom"
+    manifest = cache / "atlases" / "cached_atlas" / "1_0"
+    manifest.mkdir(parents=True)
+    (manifest / "manifest.json").write_text("{}")
+    (cache / descriptors.REMOTE_ROOT_FILENAME).write_text(
+        "s3://bucket/custom\n"
+    )
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no network call should be made")
+
+    monkeypatch.setattr(bg_atlas, "check_s3_status", fail)
+    monkeypatch.setattr(bg_atlas, "_resolve_remote_root", fail)
+    monkeypatch.setattr(
+        bg_atlas.config,
+        "get_remote_roots",
+        lambda *_: {"brainglobe-atlasapi": "s3://brainglobe/atlas"},
+    )
+    monkeypatch.setattr(bg_atlas, "_normalize_manifest", lambda *_: {})
+    monkeypatch.setattr(
+        bg_atlas.core.Atlas, "__init__", lambda self, *a, **k: None
+    )
+
+    atlas = BrainGlobeAtlas(
+        "cached_atlas", brainglobe_dir=tmp_path, check_latest=False
+    )
+
+    assert atlas._remote_root == "s3://bucket/custom"
+    assert atlas.brainglobe_dir == cache
+
+
+def test_resolve_root_skips_unreachable_root():
+    """A root whose bucket is down does not stop the others being searched."""
+    roots = {
+        "brainglobe-atlasapi": "s3://brainglobe/atlas",
+        "allen": "s3://other/prefix",
+    }
+    fs = _FakeFS(
+        [
+            "s3://brainglobe/atlas/atlases/shared_name",
+            "s3://other/prefix/atlases/shared_name",
+        ]
+    )
+    assert (
+        bg_atlas._resolve_remote_root(
+            fs, "shared_name", roots, lambda r: r == "s3://other/prefix"
+        )
+        == "s3://other/prefix"
+    )
+
+
+def test_resolve_root_probes_lazily():
+    """Roots after the one holding the atlas are never probed."""
+    roots = {
+        "brainglobe-atlasapi": "s3://brainglobe/atlas",
+        "allen": "s3://other/prefix",
+    }
+    probed = []
+
+    def is_reachable(remote_root):
+        probed.append(remote_root)
+        return True
+
+    fs = _FakeFS(["s3://brainglobe/atlas/atlases/shared_name"])
+    bg_atlas._resolve_remote_root(fs, "shared_name", roots, is_reachable)
+    assert probed == ["s3://brainglobe/atlas"]
+
+
+def test_resolve_root_with_nothing_reachable_returns_none():
+    """Offline, resolution defers to the caller rather than raising."""
+    roots = {"brainglobe-atlasapi": "s3://brainglobe/atlas"}
+    assert (
+        bg_atlas._resolve_remote_root(
+            _FakeFS([]), "shared_name", roots, lambda _: False
+        )
+        is None
+    )
 
 
 def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
@@ -513,7 +617,7 @@ def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
 
     It must be the only root searched: the config/multi-root resolution
     is skipped entirely, and its local cache directory is named after the
-    bucket rather than any configured root key.
+    last URL segment rather than any configured root key.
 
     Parameters
     ----------
@@ -550,7 +654,106 @@ def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
 
     resolve_spy.assert_not_called()
     roots_spy.assert_not_called()
-    assert (tmp_path / "custom-bucket").is_dir()
+    assert (tmp_path / "prefix").is_dir()
+
+
+@pytest.mark.parametrize(
+    ["remote_root", "expected"],
+    [
+        ("s3://brainglobe/atlas", "brainglobe-atlasapi"),
+        ("s3://allen-atlas-assets", "allen-atlas-assets"),
+        (
+            "s3://aind-scratch-data/david.feng/allen-atlas-assets-rc11",
+            "allen-atlas-assets-rc11",
+        ),
+        ("s3://brainglobe/atlas-rc2", "atlas-rc2"),
+    ],
+)
+def test_cache_key_is_last_url_segment(remote_root, expected):
+    """Only the BrainGlobe root maps to brainglobe-atlasapi.
+
+    Parameters
+    ----------
+    remote_root : str
+        Remote root under test.
+    expected : str
+        Expected cache directory name.
+    """
+    assert bg_atlas._cache_key(remote_root) == expected
+
+
+def test_cache_key_refuses_the_default_directory():
+    """Another root ending in brainglobe-atlasapi cannot take its place."""
+    with pytest.raises(ValueError, match="reserved"):
+        bg_atlas._cache_key("s3://someone/brainglobe-atlasapi")
+
+
+def test_explicit_default_root_uses_default_cache(tmp_path, monkeypatch):
+    """Passing the BrainGlobe root explicitly reuses the default cache.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Empty temporary directory used as the brainglobe_dir.
+    monkeypatch : pytest.MonkeyPatch
+        Used to stub S3 access.
+    """
+
+    class _StubFS:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def ls(self, path):
+            raise FileNotFoundError(path)
+
+    monkeypatch.setattr(bg_atlas.s3fs, "S3FileSystem", _StubFS)
+    monkeypatch.setattr(bg_atlas, "check_s3_status", lambda **_: True)
+
+    with pytest.raises(FileNotFoundError):
+        BrainGlobeAtlas(
+            "not_cached_anywhere",
+            brainglobe_dir=tmp_path,
+            remote_root="s3://brainglobe/atlas/",
+        )
+
+    record = (
+        tmp_path / "brainglobe-atlasapi" / descriptors.REMOTE_ROOT_FILENAME
+    )
+    # A failed lookup must not claim the cache directory.
+    assert not record.exists()
+    assert [p.name for p in tmp_path.iterdir()] == ["brainglobe-atlasapi"]
+
+
+def test_cache_recording_another_root_raises(tmp_path, monkeypatch):
+    """A cache directory recording a different root is never reused.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Empty temporary directory used as the brainglobe_dir.
+    monkeypatch : pytest.MonkeyPatch
+        Used to forbid S3 access.
+    """
+    manifest = tmp_path / "prefix" / "atlases" / "cached_atlas" / "1_0"
+    manifest.mkdir(parents=True)
+    (manifest / "manifest.json").write_text("{}")
+    record = tmp_path / "prefix" / descriptors.REMOTE_ROOT_FILENAME
+    record.write_text("s3://somebody-else/prefix\n")
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no network call should be made")
+
+    monkeypatch.setattr(bg_atlas, "check_s3_status", fail)
+    monkeypatch.setattr(
+        bg_atlas.config,
+        "get_remote_roots",
+        lambda *_: {"allen": "s3://other/prefix"},
+    )
+
+    with pytest.raises(ValueError, match="s3://somebody-else/prefix"):
+        BrainGlobeAtlas(
+            "cached_atlas", brainglobe_dir=tmp_path, check_latest=False
+        )
 
 
 def test_check_latest_version_compares_folder_strings(atlas, monkeypatch):

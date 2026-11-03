@@ -15,7 +15,6 @@ from typing import (
     Union,
     overload,
 )
-from urllib.parse import urlparse
 
 import dask.array as da
 import numpy as np
@@ -44,65 +43,151 @@ from brainglobe_atlasapi.utils import (
     check_s3_status,
     get_latest_version,
     read_json,
+    version_tuple_from_str,
 )
 
-
-def _version_tuple_from_str(version_str: str) -> Tuple[int, ...]:
-    """Parse a version string into a numeric tuple for comparison.
-
-    Accepts ``.``, ``_`` and ``-`` as separators, so both BrainGlobe
-    (``3_0``) and atlas-assets (``2024-05``) version folder names parse.
-
-    Parameters
-    ----------
-    version_str : str
-        Version string, e.g. ``"3.0"``, ``"3_0"`` or ``"2024-05"``.
-
-    Returns
-    -------
-    tuple of int
-        Numeric components, in order.
-    """
-    return tuple(int(n) for n in re.split(r"[._-]", version_str))
+# Version folder names: BrainGlobe's "3_0"/"2017", atlas-assets' "2024-05".
+_VERSION_FOLDER_PATTERN = r"\d+(?:[_-]\d+)?"
 
 
 def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
     return "_".join(str(num) for num in version_tuple)
 
 
-def _resolve_remote_root(fs, atlas_name: str, roots) -> Tuple[str, str]:
-    """Find which configured root holds an atlas.
+def _cache_key(remote_root: str) -> str:
+    """Return the local cache directory name for a remote root.
 
-    Roots are searched in declaration order, so the first-declared root
-    wins when a name exists in more than one bucket.
+    The BrainGlobe root keeps its historical directory; every other root
+    is cached under the last segment of its URL, e.g.
+    ``s3://bucket/prefix/allen-atlas-assets-rc11`` under
+    ``allen-atlas-assets-rc11``.
 
     Parameters
     ----------
-    fs : s3fs.S3FileSystem
-        Filesystem used to test for the atlas directory.
-    atlas_name : str
-        Name of the atlas to locate.
-    roots : dict
-        Mapping of root key to remote root, in resolution order.
+    remote_root : str
+        Remote root, without a trailing slash.
 
     Returns
     -------
-    tuple of str
-        The winning ``(root_key, remote_root)``.
+    str
+        Directory name, relative to the brainglobe directory.
 
     Raises
     ------
     ValueError
-        If the atlas name is present in none of the roots.
+        If a non-default root would take the default root's directory.
     """
-    for root_key, remote_root in roots.items():
-        if fs.exists(f"{remote_root}/{V3_ATLAS_ROOTDIR}/{atlas_name}"):
-            return root_key, remote_root
+    if remote_root == descriptors.DEFAULT_REMOTE_ROOT:
+        return descriptors.DEFAULT_ROOT_KEY
+    key = remote_root.removeprefix("s3://").rsplit("/", 1)[-1]
+    if key == descriptors.DEFAULT_ROOT_KEY:
+        raise ValueError(
+            f"{remote_root} would share the cache directory reserved "
+            f"for {descriptors.DEFAULT_REMOTE_ROOT}."
+        )
+    return key
 
-    searched = ", ".join(roots.values())
+
+def _check_remote_root(cache_dir: Path, remote_root: str) -> None:
+    """Check a cache directory does not mirror a different remote root.
+
+    Two roots sharing a last URL segment map to the same directory; the
+    record written by ``_record_remote_root`` keeps them from mixing.
+
+    Parameters
+    ----------
+    cache_dir : Path
+        Local cache directory for ``remote_root``.
+    remote_root : str
+        Remote root, without a trailing slash.
+
+    Raises
+    ------
+    ValueError
+        If the directory already records a different remote root.
+    """
+    record = cache_dir / descriptors.REMOTE_ROOT_FILENAME
+    if record.exists():
+        recorded = record.read_text().strip()
+        if recorded != remote_root:
+            raise ValueError(
+                f"{cache_dir} holds atlases from {recorded}, not "
+                f"{remote_root}. Remote roots sharing a last URL segment "
+                "cannot share a cache directory."
+            )
+
+
+def _record_remote_root(cache_dir: Path, remote_root: str) -> None:
+    """Record which remote root a cache directory mirrors, if unrecorded.
+
+    Called only once the directory holds an atlas, so a failed lookup
+    (a typo'd root or atlas name) never claims the directory.
+
+    Parameters
+    ----------
+    cache_dir : Path
+        Local cache directory for ``remote_root``.
+    remote_root : str
+        Remote root, without a trailing slash.
+    """
+    record = cache_dir / descriptors.REMOTE_ROOT_FILENAME
+    if record.exists():
+        return
+    try:
+        record.write_text(f"{remote_root}\n")
+    except OSError:
+        # A read-only shared cache still loads; it just goes unrecorded.
+        pass
+
+
+def _resolve_remote_root(
+    fs, atlas_name: str, roots, is_reachable: Callable[[str], bool]
+) -> Optional[str]:
+    """Find which configured root holds an atlas.
+
+    Roots are searched in declaration order, so the first-declared root
+    wins when a name exists in more than one bucket. Each root is probed
+    for reachability only when its turn comes, and unreachable roots are
+    skipped, so finding an atlas on the first root costs two requests.
+
+    Parameters
+    ----------
+    fs : s3fs.S3FileSystem
+        Filesystem used to list the atlas directory.
+    atlas_name : str
+        Name of the atlas to locate.
+    roots : dict
+        Mapping of root key to remote root, in resolution order.
+    is_reachable : callable
+        Returns whether a remote root answers.
+
+    Returns
+    -------
+    str or None
+        The winning remote root, or None if no root is reachable.
+
+    Raises
+    ------
+    ValueError
+        If the atlas name is present in none of the reachable roots.
+    """
+    searched = []
+    for remote_root in roots.values():
+        if not is_reachable(remote_root):
+            continue
+        searched.append(remote_root)
+        try:
+            if fs.ls(f"{remote_root}/{V3_ATLAS_ROOTDIR}/{atlas_name}"):
+                return remote_root
+        except FileNotFoundError:
+            pass
+
+    if not searched:
+        return None
+
     raise ValueError(
         f"{atlas_name} is not a valid atlas name! "
-        f"Searched remote roots: {searched}"
+        f"Searched remote roots: {', '.join(searched)}"
     )
 
 
@@ -124,8 +209,8 @@ _ORIGIN_BY_AXIS_DIRECTION = {
     "ventral-to-dorsal": "i",
     "left-to-right": "l",
     "right-to-left": "r",
-    "caudal-to-rostral": "a",
-    "rostral-to-caudal": "p",
+    "caudal-to-rostral": "p",
+    "rostral-to-caudal": "a",
 }
 
 
@@ -278,11 +363,11 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     raw : dict
         Parsed atlas ``manifest.json``.
     resolution : float or None
-        Requested isotropic resolution, in micrometres. Required when
-        the manifest declares more than one scale; defaulted to the
-        sole scale when it declares exactly one; if the manifest has a
-        single fixed resolution instead (a BrainGlobe manifest), a
-        mismatching value raises.
+        Requested isotropic resolution, in micrometres. Defaults to the
+        finest declared scale, with a printed note when there is more
+        than one to choose from; if the manifest has a single fixed
+        resolution instead (a BrainGlobe manifest), a mismatching value
+        raises.
     root_dir : Path
         Local cache namespace directory holding the downloaded assets.
 
@@ -294,8 +379,7 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     Raises
     ------
     ValueError
-        If ``resolution`` is missing and the manifest declares more
-        than one scale, or does not match one of the declared scales.
+        If ``resolution`` does not match one of the declared scales.
     """
     if not isinstance(raw.get("templates"), list):
         if resolution is not None and not np.isclose(
@@ -312,12 +396,12 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     scales = annotation_set.get("scales", [])
 
     if resolution is None:
-        if len(scales) == 1:
-            resolution = scales[0]
-        else:
-            raise ValueError(
-                f"Atlas {raw['name']} provides multiple resolutions. "
-                f"Pass resolution= to choose one of: {scales}."
+        resolution = min(scales)
+        if len(scales) > 1:
+            print(
+                f"Atlas {raw['name']} provides resolutions {scales} um and "
+                f"none was requested, so using the finest, {resolution} um. "
+                "Pass resolution= to choose another."
             )
     if not any(np.isclose(resolution, scale) for scale in scales):
         raise ValueError(
@@ -399,28 +483,20 @@ class BrainGlobeAtlas(
         If True, atlas array properties return dask arrays instead of loading
         them into memory as numpy arrays.
     resolution : float (optional)
-        Requested isotropic resolution in micrometres. Required for
-        atlases that declare more than one scale; defaulted to the sole
-        scale for atlases that declare exactly one. For atlases with a
-        single fixed resolution, a value that disagrees with it raises.
+        Requested isotropic resolution in micrometres. Defaults to the
+        finest scale the atlas declares, printing a note when it declares
+        more than one. For atlases with a single fixed resolution, a value
+        that disagrees with it raises.
     remote_root : str (optional)
         An ``s3://bucket/prefix`` to fetch the atlas from. When given, it
         takes full priority: it is the only root searched, with no
         fallback to the configured BrainGlobe/Allen defaults if the atlas
         isn't found there. Its local cache subdirectory is named after
-        the bucket. If None (default), the historical BrainGlobe root is
+        the last segment of the URL (``brainglobe-atlasapi`` for the
+        BrainGlobe root). If None (default), the historical BrainGlobe root is
         assumed, falling back to the configured remote roots in
         declaration order.
     """
-
-    # Class-level fallback so a partially constructed instance (built via
-    # ``object.__new__``, as some existing tests do) still has a usable
-    # remote root before ``__init__`` sets the instance attribute.
-    _remote_root = descriptors.DEFAULT_REMOTE_ROOT
-    # Same rationale: resolved folder-name strings, set as a side effect
-    # of resolving ``remote_version``/``local_full_name``.
-    _remote_version_str: Optional[str] = None
-    _local_version_str: Optional[str] = None
 
     @overload
     def __init__(
@@ -481,11 +557,12 @@ class BrainGlobeAtlas(
         self._remote_version_str = None
         self._local_version_str = None
         self._local_full_name = None
+        self._reachable_roots: set = set()
         self._requested_version = (
             version.replace(".", "_") if version else None
         )
         self._local_version = (
-            _version_tuple_from_str(version.replace("_", "."))
+            version_tuple_from_str(version.replace("_", "."))
             if version
             else None
         )
@@ -497,66 +574,29 @@ class BrainGlobeAtlas(
         # Read BrainGlobe configuration file:
         conf = config.read_config(config_dir)
 
-        # A caller-supplied root is the only one searched. Otherwise assume
-        # the default root, so a locally cached atlas loads without any
-        # network call.
+        if remote_root is not None:
+            remote_root = remote_root.rstrip("/")
         self._remote_root = remote_root or descriptors.DEFAULT_REMOTE_ROOT
-        self._root_key = (
-            urlparse(remote_root).netloc
-            if remote_root
-            else descriptors.DEFAULT_ROOT_KEY
-        )
 
         # Use either input locations or locations from the config file,
         # and create directory if it does not exist:
         if brainglobe_dir is None:
-            self.brainglobe_dir = Path(conf["default_dirs"]["brainglobe_dir"])
+            base_dir = Path(conf["default_dirs"]["brainglobe_dir"])
         else:
-            self.brainglobe_dir = Path(brainglobe_dir)
+            base_dir = Path(brainglobe_dir)
 
-        self.brainglobe_dir = self.brainglobe_dir / self._root_key
+        self.brainglobe_dir = base_dir / _cache_key(self._remote_root)
 
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
         if remote_root is None and self.local_full_name is None:
-            # Not cached under the default root. Prefer a copy cached under
-            # another configured root, in config order, so it loads offline
-            # and without S3 calls.
-            roots = config.get_remote_roots(config_dir)
-            base_dir = self.brainglobe_dir.parent
-            for root_key, cached_root in roots.items():
-                atlas_dir = base_dir / root_key / V3_ATLAS_ROOTDIR / atlas_name
-                if not atlas_dir.is_dir():
-                    continue
-                self.brainglobe_dir = base_dir / root_key
-                self._local_full_name = None
-                if self.local_full_name is not None:
-                    self._root_key, self._remote_root = root_key, cached_root
-                    break
-            else:
-                self.brainglobe_dir = base_dir / self._root_key
+            self._remote_root = self._locate_remote_root(
+                base_dir, config.get_remote_roots(config_dir)
+            )
+            self.brainglobe_dir = base_dir / _cache_key(self._remote_root)
+            self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
-            # Not cached anywhere: find out which configured remote root
-            # actually holds this atlas before downloading, so it lands in
-            # (and is later found in) the matching per-root cache
-            # directory. Offline, the atlas name check below fails loudly.
-            if self.local_full_name is None and check_s3_status(
-                raise_error=False
-            ):
-                try:
-                    root_key, resolved_root = _resolve_remote_root(
-                        self.fs, atlas_name, roots
-                    )
-                except ValueError as error:
-                    # Preserve the historical exception type for an
-                    # invalid atlas name: BrainGlobeAtlas has always
-                    # raised FileNotFoundError here, and callers (e.g.
-                    # update_atlas) depend on that.
-                    raise FileNotFoundError(str(error)) from error
-
-                self._root_key, self._remote_root = root_key, resolved_root
-                self.brainglobe_dir = self.brainglobe_dir.parent / root_key
-                self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
+        _check_remote_root(self.brainglobe_dir, self._remote_root)
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
@@ -572,6 +612,8 @@ class BrainGlobeAtlas(
                     "download."
                 )
 
+        _record_remote_root(self.brainglobe_dir, self._remote_root)
+
         manifest_path = self.brainglobe_dir / self.local_full_name
         metadata = _normalize_manifest(
             read_json(manifest_path), self._resolution, self.brainglobe_dir
@@ -585,6 +627,83 @@ class BrainGlobeAtlas(
 
         if check_latest:
             self.check_latest_version()
+
+    def _locate_remote_root(self, base_dir: Path, roots: dict) -> str:
+        """Find the remote root for an atlas not cached under the default.
+
+        The local cache of each configured root is searched first, in
+        config order, then the cache of every other root recorded under
+        ``base_dir``, so a cached copy loads offline and without S3 calls
+        even if its root is not configured. Then each reachable configured
+        root is searched on S3, so the download lands in (and is later
+        found in) the matching cache.
+
+        Parameters
+        ----------
+        base_dir : Path
+            Directory holding one cache directory per remote root.
+        roots : dict
+            Mapping of root key to remote root, in resolution order.
+
+        Returns
+        -------
+        str
+            The remote root holding the atlas. When no root is reachable,
+            the default root, so the name check in ``__init__`` fails
+            loudly.
+
+        Raises
+        ------
+        FileNotFoundError
+            If no reachable root holds the atlas.
+        """
+        records = sorted(
+            base_dir.glob(f"*/{descriptors.REMOTE_ROOT_FILENAME}")
+        )
+        recorded_roots = [record.read_text().strip() for record in records]
+        # dict.fromkeys drops duplicates while keeping config order first.
+        for remote_root in dict.fromkeys([*roots.values(), *recorded_roots]):
+            self.brainglobe_dir = base_dir / _cache_key(remote_root)
+            atlas_dir = (
+                self.brainglobe_dir / V3_ATLAS_ROOTDIR / self.atlas_name
+            )
+            # local_full_name caches its result, so clear it per directory.
+            self._local_full_name = None
+            if atlas_dir.is_dir() and self.local_full_name is not None:
+                return remote_root
+
+        try:
+            resolved = _resolve_remote_root(
+                self.fs, self.atlas_name, roots, self._is_reachable
+            )
+        except ValueError as error:
+            # Preserve the historical exception type for an invalid atlas
+            # name: callers such as update_atlas depend on it.
+            raise FileNotFoundError(str(error)) from error
+
+        return resolved or descriptors.DEFAULT_REMOTE_ROOT
+
+    def _is_reachable(self, remote_root: str) -> bool:
+        """Check a remote root answers, probing each root at most once.
+
+        Only success is remembered, so a later check can still see a
+        connection that has come back.
+
+        Parameters
+        ----------
+        remote_root : str
+            Remote root to check.
+
+        Returns
+        -------
+        bool
+            Whether the remote root is reachable.
+        """
+        if remote_root not in self._reachable_roots and check_s3_status(
+            raise_error=False, remote_root=remote_root
+        ):
+            self._reachable_roots.add(remote_root)
+        return remote_root in self._reachable_roots
 
     @property
     def local_full_name(self):
@@ -611,7 +730,7 @@ class BrainGlobeAtlas(
         else:
             pattern = (
                 rf"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
-                rf"\d+(?:[_-]\d+)?/manifest.json"
+                rf"{_VERSION_FOLDER_PATTERN}/manifest.json"
             )
 
         glob_pattern = f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/*/manifest.json"
@@ -646,7 +765,7 @@ class BrainGlobeAtlas(
         version_str = self.metadata["version"]
         if self._local_version_str is None:
             self._local_version_str = version_str
-        self._local_version = _version_tuple_from_str(version_str)
+        self._local_version = version_tuple_from_str(version_str)
 
         return self._local_version
 
@@ -661,21 +780,24 @@ class BrainGlobeAtlas(
         if self._remote_version is not None:
             return self._remote_version
 
-        if not check_s3_status(
-            raise_error=False, remote_root=self._remote_root
-        ):
+        if not self._is_reachable(self._remote_root):
             return None
 
         bucket_path = (
             f"{self._remote_root}/{V3_ATLAS_ROOTDIR}/{self.atlas_name}"
         )
 
-        if self.fs.exists(bucket_path) is False:
+        try:
+            # One request when the atlas is there, where exists() costs
+            # two, and served from the s3fs cache when root resolution has
+            # just listed this path.
+            versions_path = self.fs.ls(bucket_path)
+        except FileNotFoundError:
             if self.local_full_name is not None:
                 return None
             raise FileNotFoundError(
                 f"{self.atlas_name} is not a valid atlas name!"
-            )
+            ) from None
 
         if self._requested_version is None:
             # last_versions.conf only lists atlases on the BrainGlobe bucket;
@@ -693,25 +815,25 @@ class BrainGlobeAtlas(
                 self._remote_version_str = str(
                     last_versions[self.atlas_name]
                 ).replace(".", "_")
-                self._remote_version = _version_tuple_from_str(
+                self._remote_version = version_tuple_from_str(
                     self._remote_version_str
                 )
             else:
-                versions_path = self.fs.ls(bucket_path)
-                if not versions_path:
-                    # Listing a nonexistent S3 prefix returns [] rather than
-                    # raising. This happens when resolution was skipped (atlas
-                    # found in the local cache) and the assumed root turns out
-                    # not to host this atlas name.
+                # Skip anything that isn't a version folder, e.g. a README.
+                available_versions: List[str] = [
+                    name
+                    for name in (p.split("/")[-1] for p in versions_path)
+                    if re.fullmatch(_VERSION_FOLDER_PATTERN, name)
+                ]
+                if not available_versions:
+                    # Without this, get_latest_version would fail with a
+                    # bare IndexError.
                     raise FileNotFoundError(
                         f"{self.atlas_name} is not a valid atlas name!"
                     )
-                available_versions: List[str] = [
-                    path_str.split("/")[-1] for path_str in versions_path
-                ]
                 latest_version = get_latest_version(available_versions)
                 self._remote_version_str = latest_version
-                self._remote_version = _version_tuple_from_str(latest_version)
+                self._remote_version = version_tuple_from_str(latest_version)
         else:
             requested_path = f"{bucket_path}/{self._requested_version}"
             if not self.fs.exists(requested_path):
@@ -721,7 +843,7 @@ class BrainGlobeAtlas(
                 )
 
             self._remote_version_str = self._requested_version
-            self._remote_version = _version_tuple_from_str(
+            self._remote_version = version_tuple_from_str(
                 self._requested_version
             )
 
@@ -733,7 +855,8 @@ class BrainGlobeAtlas(
         The manifest file is removed if any error occurs during the
         download to ensure that incomplete downloads are retried.
         """
-        check_s3_status(remote_root=self._remote_root)
+        if not self._is_reachable(self._remote_root):
+            check_s3_status(remote_root=self._remote_root)
 
         # Ensure remote_version has been resolved so the folder name is set.
         _ = self.remote_version

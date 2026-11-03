@@ -25,6 +25,7 @@ from brainglobe_atlasapi.utils import retrieve_over_http
 __version__ = 1
 
 ATLAS_NAME = "allen_mouse"
+ATLAS_PACKAGER = "BrainGlobe Developers, hello@brainglobe.info"
 CITATION = "Wang et al 2020, https://doi.org/10.1016/j.cell.2020.04.007"
 SPECIES = "Mus musculus"
 ATLAS_LINK = "http://www.brain-map.org"
@@ -314,6 +315,7 @@ if __name__ == "__main__":
     )
 
     output_filename = wrapup_atlas_from_data(
+        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

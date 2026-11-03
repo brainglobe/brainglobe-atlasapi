@@ -16,9 +16,9 @@ from brainglobe_atlasapi.atlas_generation.annotation_utils import (
 if __name__ == "__main__":
     # setup paths
     annotations_root = Path(
-        "/media/ceph-neuroinformatics/neuroinformatics/atlas-forge/BlackCap"
-        / "templates/template_sym_res-25um_n-18_average-trimean/for_atlas"
-        / "annotations-right-hemisphere/"
+        "/media/ceph-neuroinformatics/neuroinformatics/atlas-forge/BlackCap",
+        "templates/template_sym_res-25um_n-18_average-trimean/for_atlas",
+        "annotations-right-hemisphere/",
     )
     main_annotation_path = (
         annotations_root / "corrected_AnnotationsMainBrainAreas_SW.nii.gz"

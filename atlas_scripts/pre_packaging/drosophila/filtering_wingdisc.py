@@ -1,5 +1,5 @@
 """A one-off script to run a modal filter on some
-annotations from ITK snap inbetween manual
+annotations from ITK snap in between manual
 improvement iterations.
 """
 

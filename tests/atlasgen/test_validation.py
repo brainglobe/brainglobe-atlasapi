@@ -180,9 +180,9 @@ def test_valid_atlas_passes_all_validations(atlas):
     """
     validation_functions = get_all_validation_functions()
     for validation_function in validation_functions:
-        assert validation_function(
-            atlas
-        ), f"Function {validation_function.__name__} fails on valid atlas."
+        assert validation_function(atlas), (
+            f"Function {validation_function.__name__} fails on valid atlas."
+        )
 
 
 def test_validate_mesh_matches_image_extents_negative(mocker, atlas):
@@ -430,7 +430,7 @@ def test_odd_and_even_pass_atlas_symmetry(mocker, atlas, width):
             "contains_inv@lid_character_1um",
             False,
             "contains invalid characters.",
-            id="invalid charachter (@)",
+            id="invalid character (@)",
         ),
         pytest.param(
             "10um_atlas_name_does_not_end_with_resolution",

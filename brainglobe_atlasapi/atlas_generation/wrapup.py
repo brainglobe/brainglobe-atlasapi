@@ -23,9 +23,11 @@ from brainglobe_atlasapi import atlas_generation, descriptors
 from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
     AnnotationInfo,
     AtlasPackagingData,
+    ComponentInfoDict,
     CoordinateSpaceInfo,
     TemplateInfo,
     TerminologyInfo,
+    sanitise_volumetric_data,
 )
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     _label_bounding_boxes,
@@ -67,6 +69,13 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 # This should be changed every time we make changes in the atlas
 # structure:
 ATLAS_VERSION = atlas_generation.__version__
+
+
+def _stub_path(working_dir: Path, stub: str | None) -> Path:
+    """Return the local path of a component stub inside working_dir."""
+    if stub is None:
+        raise ValueError("Component stub has not been set.")
+    return working_dir / stub
 
 
 def _save_if_not_exists(
@@ -274,8 +283,8 @@ def _write_precomputed_annotations(
     prop_out = output_dir / "segment_properties"
     prop_out.mkdir()
 
-    terminology_path = (
-        packaging_data.working_dir / packaging_data.terminology_info.stub
+    terminology_path = _stub_path(
+        packaging_data.working_dir, packaging_data.terminology_info.stub
     )
     ontology = pd.read_csv(terminology_path)
 
@@ -369,14 +378,16 @@ def _save_template_data(
             save_template,
         )
         template_multiscale = nz.from_ngff_zarr(
-            packaging_data.working_dir / template_info.stub
+            _stub_path(packaging_data.working_dir, template_info.stub)
         )
     elif template_info.update_existing:
-        local_existing_path = (
-            packaging_data.working_dir / template_info.existing_stub
+        local_existing_path = _stub_path(
+            packaging_data.working_dir, template_info.existing_stub
         )
         multiscale = nz.from_ngff_zarr(local_existing_path)
-        local_target_path = packaging_data.working_dir / template_info.stub
+        local_target_path = _stub_path(
+            packaging_data.working_dir, template_info.stub
+        )
         _insert_into_multiscale(
             multiscale,
             transformations=transformations,
@@ -386,7 +397,7 @@ def _save_template_data(
         template_multiscale = nz.from_ngff_zarr(local_target_path)
     else:
         template_multiscale = nz.from_ngff_zarr(
-            packaging_data.working_dir / template_info.stub
+            _stub_path(packaging_data.working_dir, template_info.stub)
         )
 
     return template_multiscale
@@ -430,15 +441,18 @@ def _save_annotation_data(
                 f" skipping: {dest_dir_hemi}"
             )
         annotation_multiscale = nz.from_ngff_zarr(
-            packaging_data.working_dir / annotation_info.stub
+            _stub_path(packaging_data.working_dir, annotation_info.stub)
         )
         hemispheres_multiscale = nz.from_ngff_zarr(dest_dir_hemi)
     elif annotation_info.update_existing:
-        local_existing_path = (
-            packaging_data.working_dir / annotation_info.existing_stub
+        assert annotation_info.existing_version is not None
+        local_existing_path = _stub_path(
+            packaging_data.working_dir, annotation_info.existing_stub
         )
         annotation_multiscale = nz.from_ngff_zarr(local_existing_path)
-        local_target_path = packaging_data.working_dir / annotation_info.stub
+        local_target_path = _stub_path(
+            packaging_data.working_dir, annotation_info.stub
+        )
         _insert_into_multiscale(
             annotation_multiscale,
             transformations=transformations,
@@ -474,7 +488,7 @@ def _save_annotation_data(
             annotation_info.name, annotation_info.version
         )
         annotation_multiscale = nz.from_ngff_zarr(
-            packaging_data.working_dir / annotation_info.stub
+            _stub_path(packaging_data.working_dir, annotation_info.stub)
         )
         hemispheres_multiscale = nz.from_ngff_zarr(
             packaging_data.working_dir / hemispheres_stub
@@ -641,11 +655,14 @@ def _insert_into_4d_masks(
     """
     annotation_info = packaging_data.annotation_info
     existing_masks_path = (
-        packaging_data.working_dir
-        / Path(annotation_info.existing_stub).parent
+        _stub_path(
+            packaging_data.working_dir, annotation_info.existing_stub
+        ).parent
         / descriptors.V3_ANNOTATION_MASKS_NAME
     )
-    target_dir = packaging_data.working_dir / Path(annotation_info.stub).parent
+    target_dir = _stub_path(
+        packaging_data.working_dir, annotation_info.stub
+    ).parent
     target_masks_path = target_dir / descriptors.V3_ANNOTATION_MASKS_NAME
 
     if not existing_masks_path.exists():
@@ -739,11 +756,13 @@ def _save_additional_references(
                 save_template,
             )
         elif ref_info.update_existing:
-            local_existing_path = (
-                packaging_data.working_dir / ref_info.existing_stub
+            local_existing_path = _stub_path(
+                packaging_data.working_dir, ref_info.existing_stub
             )
             multiscale = nz.from_ngff_zarr(local_existing_path)
-            local_target_path = packaging_data.working_dir / ref_info.stub
+            local_target_path = _stub_path(
+                packaging_data.working_dir, ref_info.stub
+            )
             _insert_into_multiscale(
                 multiscale,
                 transformations=transformations,
@@ -852,22 +871,17 @@ def wrapup_atlas_from_data(
     structures_list: List[Dict],
     meshes_dict: Dict[int | str, str | Path],
     working_dir: str | Path,
-    atlas_packager=None,
-    hemispheres_stack=None,
-    template_info: Dict[str, str | bool] | None = None,
-    annotation_info: Dict[str, str | bool] | None = None,
-    terminology_info: Dict[str, str | bool] | None = None,
-    coordinate_space_info: Dict[str, str | bool] | None = None,
+    atlas_packager: str,
+    hemispheres_stack: ValidComponentData | None = None,
+    template_info: ComponentInfoDict | None = None,
+    annotation_info: ComponentInfoDict | None = None,
+    terminology_info: ComponentInfoDict | None = None,
+    coordinate_space_info: ComponentInfoDict | None = None,
     scale_meshes=False,
     resolution_mapping=None,
     additional_references: (
-        List[
-            Tuple[
-                Dict | str,
-                ValidComponentData,
-            ]
-        ]
-        | Dict[str, ValidComponentData]
+        list[tuple[ComponentInfoDict | str, ValidComponentData]]
+        | dict[str, ValidComponentData]
         | None
     ) = None,
     additional_metadata: dict | None = None,
@@ -915,7 +929,7 @@ def wrapup_atlas_from_data(
         {struct_id: meshpath}
     working_dir : str | Path
         Path where the atlas will be generated.
-    atlas_packager : str or None
+    atlas_packager : str
         Credit for those responsible for converting the atlas
         into the BrainGlobe format.
     hemispheres_stack : ValidComponentData | None, optional
@@ -1024,32 +1038,32 @@ def wrapup_atlas_from_data(
                 if not ref_metadata.endswith("-template"):
                     ref_metadata = f"{atlas_name}-{ref_metadata}-template"
 
-                ref_dict = {
+                ref_dict: ComponentInfoDict = {
                     "name": ref_metadata,
                     "version": atlas_version,
                 }
             else:
                 ref_dict = ref_metadata
 
-            component_info = TemplateInfo(**ref_dict)
-            additional_template_list.append((component_info, ref_tuple[1]))
+            ref_info = TemplateInfo(**ref_dict)
+            additional_template_list.append((ref_info, ref_tuple[1]))
 
-    template_info = TemplateInfo(**template_info)
-    terminology_info = TerminologyInfo(**terminology_info)
-    annotation_info = AnnotationInfo(
-        template=template_info, terminology=terminology_info, **annotation_info
+    template = TemplateInfo(**template_info)
+    terminology = TerminologyInfo(**terminology_info)
+    annotation = AnnotationInfo(
+        template=template, terminology=terminology, **annotation_info
     )
-    coordinate_space_info = CoordinateSpaceInfo(
-        template=template_info, **coordinate_space_info
+    coordinate_space = CoordinateSpaceInfo(
+        template=template, **coordinate_space_info
     )
 
     additional_metadata = additional_metadata or {}
 
     for component_info in [
-        template_info,
-        annotation_info,
-        terminology_info,
-        coordinate_space_info,
+        template,
+        annotation,
+        terminology,
+        coordinate_space,
         *[ref_info for ref_info, _ in additional_template_list],
     ]:
         component_dir = (
@@ -1070,32 +1084,44 @@ def wrapup_atlas_from_data(
                 "Try setting overwrite=True"
             )
 
+    volumes = sanitise_volumetric_data(
+        resolution=resolution,
+        orientation=orientation,
+        reference_stack=reference_stack,
+        annotation_stack=annotation_stack,
+        hemispheres_stack=hemispheres_stack,
+        additional_references=additional_template_list,
+    )
+
     packaging_data = AtlasPackagingData(
         atlas_name=atlas_name,
         atlas_version=atlas_version,
         citation=citation,
         atlas_link=atlas_link,
         species=species,
-        resolution=resolution,
+        resolution=volumes.resolution,
         orientation=orientation,
         root_id=root_id,
-        reference_stack=reference_stack,
-        annotation_stack=annotation_stack,
+        reference_stack=volumes.reference_stack,
+        annotation_stack=volumes.annotation_stack,
+        hemispheres_stack=volumes.hemispheres_stack,
+        symmetric=volumes.symmetric,
+        space_convention=volumes.space_convention,
         working_dir=working_dir,
-        template_info=template_info,
-        annotation_info=annotation_info,
-        terminology_info=terminology_info,
-        coordinate_space_info=coordinate_space_info,
+        template_info=template,
+        annotation_info=annotation,
+        terminology_info=terminology,
+        coordinate_space_info=coordinate_space,
         structures_list=structures_list,
         meshes_dict=meshes_dict,
         atlas_packager=atlas_packager,
-        hemispheres_stack=hemispheres_stack,
-        additional_references=additional_template_list,
+        additional_references=volumes.additional_references,
         additional_metadata=additional_metadata,
     )
 
+    resolutions = packaging_data.resolution
     transformations = _transformations_from_scales(
-        [[res / 1000 for res in t] for t in packaging_data.resolution]
+        [[res / 1000 for res in t] for t in resolutions]
     )
 
     template_multiscale = _save_template_data(
@@ -1105,29 +1131,31 @@ def wrapup_atlas_from_data(
 
     shapes = {}
 
-    for resolution in packaging_data.resolution:
+    for scale_resolution in resolutions:
         # Find the closest matching resolution in the template multiscale
         template_resolutions = [
             tuple(im.scale.values()) for im in template_multiscale.images
         ]
         closest_template_idx = np.argmin(
             [
-                np.linalg.norm(np.array(res) * 1000 - np.array(resolution))
+                np.linalg.norm(
+                    np.array(res) * 1000 - np.array(scale_resolution)
+                )
                 for res in template_resolutions
             ]
         )
         closest_template_shape = template_multiscale.images[
             closest_template_idx
         ].data.shape
-        shapes[resolution] = closest_template_shape
+        shapes[scale_resolution] = closest_template_shape
 
     _save_additional_references(
         packaging_data,
         transformations,
     )
 
-    if not terminology_info.use_existing:
-        terminology_dir = working_dir / terminology_info.stub
+    if not terminology.use_existing:
+        terminology_dir = _stub_path(working_dir, terminology.stub)
 
         terminology_dir.parent.mkdir(parents=True, exist_ok=True)
         _save_terminology_csv(
@@ -1135,12 +1163,12 @@ def wrapup_atlas_from_data(
             terminology_dir,
         )
 
-    if not coordinate_space_info.use_existing:
-        coordinate_space_path = working_dir / coordinate_space_info.stub
+    if not coordinate_space.use_existing:
+        coordinate_space_path = _stub_path(working_dir, coordinate_space.stub)
 
         coordinate_space_path.parent.mkdir(parents=True, exist_ok=True)
         _save_coordinate_space_manifest(
-            coordinate_space_info.metadata, coordinate_space_path
+            coordinate_space.metadata, coordinate_space_path
         )
 
     _save_annotation_data(
@@ -1155,10 +1183,10 @@ def wrapup_atlas_from_data(
         transformations,
     )
 
-    for resolution in packaging_data.resolution:
-        shape = shapes[resolution]
+    for scale_resolution in resolutions:
+        shape = shapes[scale_resolution]
         _finalize_atlas_at_resolution(
-            resolution=resolution,
+            resolution=scale_resolution,
             shape=shape,
             packaging_data=packaging_data,
             overwrite=overwrite,

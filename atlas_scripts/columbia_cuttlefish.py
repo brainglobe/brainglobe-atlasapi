@@ -288,9 +288,9 @@ def create_atlas(working_dir, resolution):
                 if region["name"] == right_region_name
             ]
             right_region = right_region[0] if right_region else None
-            assert (
-                right_region
-            ), f"No right region found for left region {region['name']}"
+            assert right_region, (
+                f"No right region found for left region {region['name']}"
+            )
             left_region_id = region["id"]
             right_region_id = right_region["id"]
             annotations[annotations == right_region_id] = left_region_id

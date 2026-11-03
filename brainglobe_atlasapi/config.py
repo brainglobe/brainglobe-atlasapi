@@ -176,10 +176,12 @@ def get_remote_roots(path=None):
     Returns
     -------
     dict
-        Mapping of root key to remote root, ordered as declared. The key is
-        also the local cache directory name.
+        Mapping of root key to remote root, ordered as declared, with any
+        trailing slash removed. The key is only a label.
     """
     conf = read_config(path)
-    if not conf.has_section("remote_roots"):
-        return dict(DEFAULT_REMOTE_ROOTS)
-    return dict(conf["remote_roots"])
+    if conf.has_section("remote_roots"):
+        roots = conf["remote_roots"]
+    else:
+        roots = DEFAULT_REMOTE_ROOTS
+    return {key: root.rstrip("/") for key, root in roots.items()}

@@ -8,11 +8,15 @@ import numpy.typing as npt
 
 # Default remote root: an "s3://bucket/prefix" with no trailing slash.
 DEFAULT_REMOTE_ROOT = "s3://brainglobe/atlas"
+# Cache directory reserved for DEFAULT_REMOTE_ROOT. Every other root is
+# cached under the last segment of its URL.
 DEFAULT_ROOT_KEY = "brainglobe-atlasapi"
 ATLAS_ASSETS_REMOTE_ROOT = "s3://allen-atlas-assets"
-# Matches the bucket name, so the default Allen fallback and an explicit
-# remote_root="s3://allen-atlas-assets" resolve to the same cache directory.
+# Config label for ATLAS_ASSETS_REMOTE_ROOT.
 ATLAS_ASSETS_ROOT_KEY = "allen-atlas-assets"
+# Written at the top of each cache directory, holding the full remote root
+# it mirrors.
+REMOTE_ROOT_FILENAME = "remote_root.txt"
 
 # Retained for backwards compatibility with existing imports:
 remote_url_s3 = DEFAULT_REMOTE_ROOT + "/{}"

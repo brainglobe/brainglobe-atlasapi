@@ -190,3 +190,22 @@ def test_remote_roots_reads_user_overrides(temp_path):
     roots = config.get_remote_roots(custom)
     assert list(roots) == ["brainglobe-atlasapi", "mine"]
     assert roots["mine"] == "s3://my-bucket/my-prefix"
+
+
+def test_remote_roots_strip_trailing_slash(temp_path):
+    """A trailing slash in the config does not change the root.
+
+    Parameters
+    ----------
+    temp_path : pathlib.Path
+        Temporary directory for the config file.
+    """
+    custom = temp_path / "custom.conf"
+    custom.write_text(
+        "[default_dirs]\n"
+        f"brainglobe_dir = {temp_path}\n"
+        "[remote_roots]\n"
+        "brainglobe-atlasapi = s3://brainglobe/atlas/\n"
+    )
+    roots = config.get_remote_roots(custom)
+    assert roots["brainglobe-atlasapi"] == descriptors.DEFAULT_REMOTE_ROOT

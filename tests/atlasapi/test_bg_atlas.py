@@ -184,38 +184,40 @@ def test_remote_version_unreleased_atlas_local(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "local_version, remote_version, expected",
+    "local_folder, remote_folder, expected",
     [
-        pytest.param((1, 0), (2, 0), False, id="local < remote"),
-        pytest.param((1, 0), (1, 0), True, id="local = remote"),
-        pytest.param((1, 0), None, None, id="no remote version"),
+        pytest.param("1_0", "2_0", False, id="local < remote"),
+        pytest.param("1_0", "1_0", True, id="local = remote"),
+        pytest.param("2024-05", "2024_05", False, id="separators differ"),
+        pytest.param("1_0", None, None, id="no remote version"),
     ],
 )
-def test_check_latest_version_local(local_version, remote_version, expected):
-    """Test `check_latest_version` method.
+def test_check_latest_version_local(local_folder, remote_folder, expected):
+    """Test `check_latest_version` compares version folder names exactly.
 
     Parameters
     ----------
-    local_version : tuple
-        The mock local version.
-    remote_version : tuple
-        The mock remote version.
+    local_folder : str
+        The local version folder name.
+    remote_folder : str or None
+        The remote version folder name, or None when offline.
     expected : bool or None
         The expected result of `check_latest_version`.
     """
-    with (
-        patch.object(
-            BrainGlobeAtlas, "local_version", new_callable=PropertyMock
-        ) as mock_local_version,
-        patch.object(
-            BrainGlobeAtlas, "remote_version", new_callable=PropertyMock
-        ) as mock_remote_version,
+    remote_version = (
+        None
+        if remote_folder is None
+        else bg_atlas.version_tuple_from_str(remote_folder)
+    )
+    with patch.object(
+        BrainGlobeAtlas,
+        "remote_version",
+        new_callable=PropertyMock,
+        return_value=remote_version,
     ):
-        mock_local_version.return_value = local_version
-        mock_remote_version.return_value = remote_version
         atlas = object.__new__(BrainGlobeAtlas)
-        atlas._local_version_str = None
-        atlas._remote_version_str = None
+        atlas._local_version_str = local_folder
+        atlas._remote_version_str = remote_folder
         assert atlas.check_latest_version(print_warning=False) == expected
 
 

@@ -18,7 +18,8 @@ ATLAS_ASSETS_ROOT_KEY = "allen-atlas-assets"
 # it mirrors.
 REMOTE_ROOT_FILENAME = "remote_root.txt"
 
-# Retained for backwards compatibility with existing imports:
+# Path templates on the BrainGlobe bucket only, for callers that never use
+# another root (atlas generation, last_versions.conf):
 remote_url_s3 = DEFAULT_REMOTE_ROOT + "/{}"
 remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
 

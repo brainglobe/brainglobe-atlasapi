@@ -436,25 +436,26 @@ def _normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     }
 
 
-def _component(manifest: dict, key: str) -> dict:
-    """Return a component entry from either manifest shape.
+def _annotation_set(manifest: dict) -> dict:
+    """Return the annotation set entry from either manifest shape.
+
+    Both shapes nest the annotation set's ``terminology`` and ``template``
+    inside it, which is where ``core.Atlas`` reads them from.
 
     Parameters
     ----------
     manifest : dict
         Parsed atlas manifest, in either shape.
-    key : str
-        Either ``"annotation_set"`` or ``"template"``.
 
     Returns
     -------
     dict
-        The component entry.
+        The annotation set entry.
     """
-    plural = {"annotation_set": "annotation_sets", "template": "templates"}
-    if isinstance(manifest.get(plural[key]), list):
-        return manifest[plural[key]][0]
-    return manifest[key]
+    annotation_sets = manifest.get("annotation_sets")
+    if isinstance(annotation_sets, list):
+        return annotation_sets[0]
+    return manifest["annotation_set"]
 
 
 class BrainGlobeAtlas(
@@ -762,10 +763,7 @@ class BrainGlobeAtlas(
         if self._local_version is not None:
             return self._local_version
 
-        version_str = self.metadata["version"]
-        if self._local_version_str is None:
-            self._local_version_str = version_str
-        self._local_version = version_tuple_from_str(version_str)
+        self._local_version = version_tuple_from_str(self.metadata["version"])
 
         return self._local_version
 
@@ -878,10 +876,10 @@ class BrainGlobeAtlas(
         self.metadata = read_json(local_path)
 
         try:
+            annotation_set = _annotation_set(self.metadata)
+
             # Download terminology file
-            terminology = _component(self.metadata, "annotation_set")[
-                "terminology"
-            ]
+            terminology = annotation_set["terminology"]
             terminology_location = terminology["location"][1:]
             local_terminology_path = self.brainglobe_dir / terminology_location
             if not local_terminology_path.exists():
@@ -920,7 +918,6 @@ class BrainGlobeAtlas(
                 )
 
             # Download annotation metadata files
-            annotation_set = _component(self.metadata, "annotation_set")
             annotation_location = annotation_set["location"][1:]
             local_annotation_path = self.brainglobe_dir / annotation_location
             if not local_annotation_path.exists():
@@ -997,7 +994,7 @@ class BrainGlobeAtlas(
                     )
 
             # Download template metadata files
-            template = _component(self.metadata, "template")
+            template = annotation_set["template"]
             template_location = template["location"][1:]
             local_template_path = self.brainglobe_dir / template_location
             if not local_template_path.exists():
@@ -1071,14 +1068,10 @@ class BrainGlobeAtlas(
         if remote_version is None:
             return None
 
-        # Resolve the local folder name before comparing.
-        local_version = self.local_version
-        local = self._local_version_str or _version_str_from_tuple(
-            local_version
-        )
-        online = self._remote_version_str or _version_str_from_tuple(
-            remote_version
-        )
+        # Compare version folder names exactly, so "2024-05" != "2024_05".
+        # local_full_name and remote_version have set both by now.
+        local = self._local_version_str
+        online = self._remote_version_str
 
         if local != online:
             if print_warning:

@@ -47,6 +47,8 @@ def _read_multilod_draco(fs, mesh_path: str) -> tuple[np.ndarray, np.ndarray]:
     ------
     NotImplementedError
         If the object declares more than one level of detail.
+    ValueError
+        If every fragment is empty.
     """
     header = fs.cat(f"{mesh_path}.index")
     chunk_shape = np.frombuffer(header, np.float32, count=3, offset=0)
@@ -108,6 +110,11 @@ def _read_multilod_draco(fs, mesh_path: str) -> tuple[np.ndarray, np.ndarray]:
         )
         vertex_count += quantized.shape[0]
 
+    if not fragment_points:
+        raise ValueError(
+            f"{mesh_path} holds no mesh data: every fragment is empty."
+        )
+
     points = np.concatenate(fragment_points, axis=0)
     faces = np.concatenate(fragment_faces, axis=0)
     points = points @ transform[:, :3].T + transform[:, 3]
@@ -156,18 +163,28 @@ class Structure(UserDict):
     """Class implementing the lazy loading of a mesh if the dictionary is
     queried for it.
 
-    Attributes
+    Parameters
     ----------
+    *args, **kwargs
+        The structure's fields, as for `dict`.
     remote_root : str
-        Remote root the mesh is fetched from. Set per instance by
-        `StructuresDict`; defaults to the BrainGlobe bucket.
+        Remote root the mesh is fetched from; defaults to the BrainGlobe
+        bucket.
     dequantize_mesh : bool
         Whether the remote mesh is in the atlas-assets form and must be
-        dequantized on download. Set per instance by `StructuresDict`.
+        dequantized on download.
     """
 
-    remote_root = DEFAULT_REMOTE_ROOT
-    dequantize_mesh = False
+    def __init__(
+        self,
+        *args,
+        remote_root=DEFAULT_REMOTE_ROOT,
+        dequantize_mesh=False,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.remote_root = remote_root
+        self.dequantize_mesh = dequantize_mesh
 
     def __getitem__(self, item):
         """
@@ -230,8 +247,10 @@ class Structure(UserDict):
         differently: atlas-assets follows the specification and keeps the
         chunk in `<id>.index`, while BrainGlobe bakes absolute quantization
         into the Draco header so `<id>` decodes to coordinates on its own.
-        The former is dequantized on the way in, so the local cache holds
-        BrainGlobe's form either way and `_read_mesh` stays uniform.
+        The former is dequantized on the way in, so the local cache holds a
+        single self-contained Draco fragment either way and `_read_mesh`
+        stays uniform. Vertex units and axis order are not converted: they
+        are whatever the bucket's `info` transform produces.
         """
         root_path = "/".join(str(file_name).split(os.sep)[-6:])
         remote_mesh_path = f"{self.remote_root}/{root_path}"
@@ -305,10 +324,12 @@ class StructuresDict(UserDict):
 
         for struct in structures_list:
             sid = struct["id"]
-            structure = Structure(**struct, mesh=None)
-            structure.remote_root = remote_root or DEFAULT_REMOTE_ROOT
-            structure.dequantize_mesh = dequantize_meshes
-            self.data[sid] = structure
+            self.data[sid] = Structure(
+                **struct,
+                mesh=None,
+                remote_root=remote_root or DEFAULT_REMOTE_ROOT,
+                dequantize_mesh=dequantize_meshes,
+            )
 
         self.tree = get_structures_tree(structures_list)
 

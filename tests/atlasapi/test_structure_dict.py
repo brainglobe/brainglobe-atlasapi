@@ -407,6 +407,16 @@ def test_read_multilod_draco_rejects_multiple_levels():
         structure_class._read_multilod_draco(fs, ALLEN_PATH)
 
 
+def test_read_multilod_draco_all_empty_fragments_raises():
+    """A mesh whose every fragment is empty says so, not a numpy error."""
+    fs = _FakeCat(
+        _mesh_contents(index=_index_bytes(fragment_sizes=[0]), payload=b"")
+    )
+
+    with pytest.raises(ValueError, match="no mesh data"):
+        structure_class._read_multilod_draco(fs, ALLEN_PATH)
+
+
 def test_read_multilod_draco_assembles_multiple_fragments():
     """Several lod-0 fragments are each placed, then concatenated.
 

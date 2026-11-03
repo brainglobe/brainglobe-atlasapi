@@ -133,10 +133,57 @@ def test_extra_top_level_structures_are_outvoted():
         }
     ]
 
-    tree = get_structures_tree(with_orphan)
+    with pytest.warns(UserWarning, match="1 structure.*: unassigned"):
+        tree = get_structures_tree(with_orphan)
 
     assert tree.root == 997
     assert 0 not in tree.nodes
+
+
+def test_majority_root_without_a_root_acronym():
+    """With no "root" and several top-level entries, the shared head wins."""
+    with_orphan = [dict(s) for s in STRUCTURES_LIST] + [
+        {
+            "acronym": "unassigned",
+            "id": 0,
+            "name": "unassigned",
+            "structure_id_path": [0],
+            "rgb_triplet": [0, 0, 0],
+        }
+    ]
+    with_orphan[0]["acronym"] = "NS"
+
+    with pytest.warns(UserWarning, match="unassigned"):
+        tree = get_structures_tree(with_orphan)
+
+    assert tree.root == 997
+
+
+def test_root_acronym_is_preferred_over_the_vote():
+    """A structure called "root" is the root even if outnumbered."""
+    structures = [
+        {"acronym": "root", "id": 1, "structure_id_path": [1]},
+        {"acronym": "big", "id": 2, "structure_id_path": [2]},
+        {"acronym": "a", "id": 3, "structure_id_path": [2, 3]},
+        {"acronym": "b", "id": 4, "structure_id_path": [2, 4]},
+    ]
+
+    with pytest.warns(UserWarning, match="3 structure"):
+        tree = get_structures_tree(structures)
+
+    assert tree.root == 1
+
+
+def test_complete_tree_does_not_warn(recwarn):
+    """Nothing is reported when every structure reaches the root.
+
+    Parameters
+    ----------
+    recwarn : pytest.WarningsRecorder
+        Records any warnings raised.
+    """
+    get_structures_tree(STRUCTURES_LIST)
+    assert not [w for w in recwarn if "hierarchy" in str(w.message)]
 
 
 def test_no_paths_raises():

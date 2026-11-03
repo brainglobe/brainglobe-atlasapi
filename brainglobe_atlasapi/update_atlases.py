@@ -11,7 +11,7 @@ from brainglobe_atlasapi.bg_atlas import (
 from brainglobe_atlasapi.list_atlases import get_downloaded_atlases
 
 
-def update_atlas(atlas_name, force=False, fn_update=None):
+def update_atlas(atlas_name, force=False, fn_update=None, remote_root=None):
     """Update a brainglobe_atlasapi atlas from the latest
     available version online.
 
@@ -24,9 +24,15 @@ def update_atlas(atlas_name, force=False, fn_update=None):
         and doesn't update if that's the case.
     fn_update : Callable, Optional
         A callback function to update progress during download.
+    remote_root : str, Optional
+        An ``s3://bucket/prefix`` to fetch the atlas from instead of
+        searching the configured remote roots.
     """
     atlas = BrainGlobeAtlas(
-        atlas_name=atlas_name, check_latest=False, fn_update=fn_update
+        atlas_name=atlas_name,
+        check_latest=False,
+        fn_update=fn_update,
+        remote_root=remote_root,
     )
 
     is_latest_version = atlas.check_latest_version(print_warning=False)
@@ -67,7 +73,7 @@ def update_atlas(atlas_name, force=False, fn_update=None):
     )
 
 
-def install_atlas(atlas_name, fn_update=None):
+def install_atlas(atlas_name, fn_update=None, remote_root=None):
     """Installs a BrainGlobe atlas from the latest
     available version online.
 
@@ -77,6 +83,9 @@ def install_atlas(atlas_name, fn_update=None):
         Name of the atlas to update.
     fn_update : Callable, Optional
         A callback function to update progress during download.
+    remote_root : str, Optional
+        An ``s3://bucket/prefix`` to fetch the atlas from instead of
+        searching the configured remote roots.
     """
     # Check input:
     if not isinstance(atlas_name, str):
@@ -95,4 +104,8 @@ def install_atlas(atlas_name, fn_update=None):
         return
 
     # Istantiate to download:
-    BrainGlobeAtlas(atlas_name, fn_update=fn_update)
+    BrainGlobeAtlas(
+        atlas_name,
+        fn_update=fn_update,
+        remote_root=remote_root,
+    )

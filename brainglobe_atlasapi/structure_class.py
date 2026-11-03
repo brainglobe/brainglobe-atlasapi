@@ -304,7 +304,7 @@ class StructuresDict(UserDict):
     ----------
     mesh_path : str or Path object
         path to folder containing all meshes .obj files
-    remote_root : str or None
+    remote_root : str
         Remote root the meshes are fetched from; defaults to the
         BrainGlobe bucket.
     dequantize_meshes : bool
@@ -313,7 +313,10 @@ class StructuresDict(UserDict):
     """
 
     def __init__(
-        self, structures_list, remote_root=None, dequantize_meshes=False
+        self,
+        structures_list,
+        remote_root=DEFAULT_REMOTE_ROOT,
+        dequantize_meshes=False,
     ):
         super().__init__()
 
@@ -327,7 +330,7 @@ class StructuresDict(UserDict):
             self.data[sid] = Structure(
                 **struct,
                 mesh=None,
-                remote_root=remote_root or DEFAULT_REMOTE_ROOT,
+                remote_root=remote_root,
                 dequantize_mesh=dequantize_meshes,
             )
 

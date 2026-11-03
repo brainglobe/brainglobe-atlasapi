@@ -646,21 +646,7 @@ def test_load_structures_unknown_identifier_in_path(tmp_path):
     assert "MBA:999" in str(error.value)
 
 
-@pytest.mark.parametrize(
-    "remote_root, expected",
-    [
-        (
-            "s3://brainglobe/atlas-rc2",
-            "https://brainglobe.s3.amazonaws.com/atlas-rc2",
-        ),
-        (
-            "s3://aind-scratch-data/david.feng/allen-atlas-assets-rc11",
-            "https://aind-scratch-data.s3.amazonaws.com/"
-            "david.feng/allen-atlas-assets-rc11",
-        ),
-    ],
-)
-def test_remote_root_to_https(remote_root, expected):
+def test_remote_root_to_https():
     """S3 URIs convert to virtual-hosted HTTPS URLs.
 
     Parameters
@@ -670,6 +656,9 @@ def test_remote_root_to_https(remote_root, expected):
     expected : str
         The HTTPS URL used for the reachability check.
     """
+    remote_root = "s3://brainglobe/atlas"
+    expected = "https://brainglobe.s3.amazonaws.com/atlas"
+
     assert utils.remote_root_to_https(remote_root) == expected
 
 

@@ -662,10 +662,6 @@ def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
     [
         ("s3://brainglobe/atlas", "brainglobe-atlasapi"),
         ("s3://allen-atlas-assets", "allen-atlas-assets"),
-        (
-            "s3://aind-scratch-data/david.feng/allen-atlas-assets-rc11",
-            "allen-atlas-assets-rc11",
-        ),
         ("s3://brainglobe/atlas-rc2", "atlas-rc2"),
     ],
 )

@@ -197,7 +197,6 @@ def pooch_init(download_dir_path: Path) -> pooch.Pooch:
     pooch.Pooch
         Initialized Pooch instance.
     """
-
     p = pooch.create(
         path=download_dir_path,
         base_url="",

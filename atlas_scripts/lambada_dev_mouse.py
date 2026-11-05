@@ -129,7 +129,27 @@ class LAMBADADownloader:
         self.chunk_size = chunk_size
 
     def __call__(self, url, output_file, pooch, check_only=False):
+        """
+        Download a file from a URL using the LAMBADA SSL context.
 
+        Parameters
+        ----------
+        url : str
+            The URL of the file to download.
+        output_file : str or file-like
+            Path where the downloaded file will be written.
+        pooch : pooch.Pooch
+            The Pooch instance calling the downloader (unused).
+        check_only : bool, optional
+            If True, only check that the URL is reachable without
+            downloading. Default is False.
+
+        Returns
+        -------
+        bool or None
+            True if ``check_only`` is True and the URL is reachable,
+            otherwise None.
+        """
         context = make_ssl_context()
 
         http = urllib3.PoolManager(ssl_context=context)

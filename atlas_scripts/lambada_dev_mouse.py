@@ -197,11 +197,6 @@ def pooch_init(download_dir_path: Path) -> pooch.Pooch:
     pooch.Pooch
         Initialized Pooch instance.
     """
-    keys = (
-        list(REFERENCE_SUFFIXES.values())
-        + list(ANNOTATION_SUFFIXES.values())
-        + [LABELS_FNAME]
-    )
 
     p = pooch.create(
         path=download_dir_path,

@@ -1053,3 +1053,34 @@ def test_atlas_manifest_additional_references(wrapup_dir, atlas_dir):
         manifest["additional_references"][0]["name"]
         == f"{ATLAS_NAME}-secondary-template"
     )
+
+
+def test_compute_4d_masks_for_scale_matches_full_volume_isin(tmp_path):
+    """Bounding-box cropped masks equal np.isin over the whole volume."""
+    annotation = np.zeros((20, 18, 16), dtype=np.uint32)
+    annotation[2:5, 3:9, 1:4] = 1
+    annotation[12:19, 0:2, 10:16] = 3
+    annotation[7, 17, 0] = 2
+    annotation[15:, 10:, :3] = 999
+    annotation[0, 0, 15] = 77  # value not in the structure tree
+    structures_list = [
+        {"id": 999, "structure_id_path": [999]},
+        {"id": 1, "structure_id_path": [999, 1]},
+        {"id": 2, "structure_id_path": [999, 2]},
+        {"id": 3, "structure_id_path": [999, 1, 3]},
+        {"id": 4, "structure_id_path": [999, 2, 4]},  # no voxels
+    ]
+    for s in structures_list:
+        s.update(acronym=str(s["id"]), name=str(s["id"]), rgb_triplet=[0] * 3)
+    structures_list[0]["acronym"] = "root"
+    tree = get_structures_tree(structures_list)
+    mapping = _generate_annotation_mapping(tree)
+
+    result = _compute_4d_masks_for_scale(
+        annotation, tree, mapping, tmp_path / "scratch.zarr"
+    ).compute()
+
+    for structure_id, index in mapping.items():
+        ids = list(tree.subtree(structure_id).nodes)
+        expected = np.isin(annotation, ids).astype(np.uint8)
+        np.testing.assert_array_equal(result[index], expected)

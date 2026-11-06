@@ -39,6 +39,7 @@ from brainglobe_atlasapi.descriptors import (
     V3_TEMPLATE_NAME,
     V3_TERMINOLOGY_NAME,
 )
+from brainglobe_atlasapi.manifest import normalize_manifest
 from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import (
     load_structures_from_csv,
@@ -48,42 +49,6 @@ from brainglobe_atlasapi.utils import (
 AtlasArray = TypeVar(
     "AtlasArray", bound=Union[npt.NDArray[np.integer], da.Array]
 )
-
-
-def _scale_from_transforms(transforms):
-    """Return the scale factors from a coordinate transformation list.
-
-    OME-Zarr 0.5 stores a flat ``[{scale}, {translation}]`` list, while 0.6
-    wraps them as ``[{"type": "sequence", "transformations": [...]}]``. Both
-    shapes are accepted, as raw dictionaries read from ``zarr.json``.
-
-    Parameters
-    ----------
-    transforms : sequence
-        Coordinate transformations for one multiscale dataset.
-
-    Returns
-    -------
-    sequence of float
-        The scale factors, one per axis.
-
-    Raises
-    ------
-    ValueError
-        If no scale transformation is present.
-    """
-    for transform in transforms:
-        scale = transform.get("scale")
-        if scale is not None:
-            return scale
-        for inner in transform.get("transformations", ()):
-            scale = inner.get("scale")
-            if scale is not None:
-                return scale
-
-    raise ValueError(
-        "No scale transformation found in coordinateTransformations."
-    )
 
 
 def _determine_pyramid_level(
@@ -136,8 +101,9 @@ class Atlas(Generic[AtlasArray]):
     ----------
     path : str or Path object
         Path to folder containing data info.
-    metadata : dict or None
-        Pre-built metadata dict; read from `path` when omitted.
+    resolution : float or None
+        Requested isotropic resolution, in micrometres. Defaults to the
+        finest declared scale for manifests offering several.
     remote_root : str
         Remote root to fetch data from; defaults to the BrainGlobe bucket.
     dask : bool
@@ -153,7 +119,7 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[npt.NDArray[np.integer]],
         path: Union[str, Path],
         dask: Literal[False] = False,
-        metadata: Optional[dict] = None,
+        resolution: Optional[float] = None,
         remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
     ) -> None: ...
 
@@ -162,7 +128,7 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[da.Array],
         path: Union[str, Path],
         dask: Literal[True] = True,
-        metadata: Optional[dict] = None,
+        resolution: Optional[float] = None,
         remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
     ) -> None: ...
 
@@ -171,7 +137,7 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[AtlasArray],
         path: Union[str, Path],
         dask: bool = False,
-        metadata: Optional[dict] = None,
+        resolution: Optional[float] = None,
         remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
     ) -> None: ...
 
@@ -179,7 +145,7 @@ class Atlas(Generic[AtlasArray]):
         self,
         path: Union[str, Path],
         dask: bool = False,
-        metadata: Optional[dict] = None,
+        resolution: Optional[float] = None,
         remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
     ):
         self.dask = dask
@@ -190,8 +156,8 @@ class Atlas(Generic[AtlasArray]):
 
         atlas_path = Path(path)
         self.root_dir = atlas_path.parents[3]
-        self.metadata = (
-            metadata if metadata is not None else read_json(atlas_path)
+        self.metadata = normalize_manifest(
+            read_json(atlas_path), resolution, self.root_dir
         )
         structures_path = (
             self.root_dir

@@ -507,7 +507,6 @@ def test_atlas_cached_under_other_root_loads_offline(tmp_path, monkeypatch):
             "allen": "s3://other/prefix",
         },
     )
-    monkeypatch.setattr(bg_atlas, "_normalize_manifest", lambda *_: {})
     monkeypatch.setattr(
         bg_atlas.core.Atlas, "__init__", lambda self, *a, **k: None
     )
@@ -553,7 +552,6 @@ def test_atlas_cached_under_unconfigured_root_loads_offline(
         "get_remote_roots",
         lambda *_: {"brainglobe-atlasapi": "s3://brainglobe/atlas"},
     )
-    monkeypatch.setattr(bg_atlas, "_normalize_manifest", lambda *_: {})
     monkeypatch.setattr(
         bg_atlas.core.Atlas, "__init__", lambda self, *a, **k: None
     )

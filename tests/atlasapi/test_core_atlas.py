@@ -621,33 +621,6 @@ def test_get_structure_mask_downloads_once_and_caches(atlas, monkeypatch):
             shutil.rmtree(chunk_dir)
 
 
-def test_scale_from_flat_transforms():
-    """OME 0.5 puts the scale at the top level of the list."""
-    transforms = [
-        {"type": "scale", "scale": [0.025, 0.025, 0.025]},
-        {"type": "translation", "translation": [0, 0, 0]},
-    ]
-    assert core._scale_from_transforms(transforms) == [0.025, 0.025, 0.025]
-
-
-def test_scale_from_sequence_transforms():
-    """OME 0.6 nests the scale inside a sequence transformation."""
-    transforms = [
-        {
-            "type": "sequence",
-            "transformations": [{"type": "scale", "scale": [0.1, 0.1, 0.1]}],
-        }
-    ]
-    assert core._scale_from_transforms(transforms) == [0.1, 0.1, 0.1]
-
-
-def test_scale_from_transforms_missing():
-    """A transform list with no scale fails loudly."""
-    with pytest.raises(ValueError) as error:
-        core._scale_from_transforms([{"type": "translation"}])
-    assert "scale" in str(error.value)
-
-
 def test_hemispheres_synthesized_when_asset_absent(atlas, monkeypatch):
     """An asymmetric atlas synthesizes when the bucket holds no asset.
 

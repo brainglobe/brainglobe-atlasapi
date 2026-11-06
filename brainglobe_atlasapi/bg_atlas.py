@@ -36,7 +36,10 @@ from brainglobe_atlasapi.descriptors import (
     V3_MESHES_DIRECTORY,
     V3_TEMPLATE_NAME,
 )
-from brainglobe_atlasapi.list_atlases import get_all_atlases_lastversions
+from brainglobe_atlasapi.list_atlases import (
+    folder_version_to_dotted,
+    get_all_atlases_lastversions,
+)
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
     check_internet_connection,
@@ -48,10 +51,6 @@ from brainglobe_atlasapi.utils import (
 
 # Version folder names: BrainGlobe's "3_0"/"2017", atlas-assets' "2024-05".
 _VERSION_FOLDER_PATTERN = r"\d+(?:[_-]\d+)?"
-
-
-def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
-    return "_".join(str(num) for num in version_tuple)
 
 
 def _cache_key(remote_root: str) -> str:
@@ -836,8 +835,9 @@ class BrainGlobeAtlas(
             requested_path = f"{bucket_path}/{self._requested_version}"
             if not self.fs.exists(requested_path):
                 raise FileNotFoundError(
-                    f"Requested version {self._requested_version} for atlas "
-                    f"{self.atlas_name} not found in remote."
+                    "Requested version "
+                    f"{folder_version_to_dotted(self._requested_version)} "
+                    f"for atlas {self.atlas_name} not found in remote."
                 )
 
             self._remote_version_str = self._requested_version
@@ -870,7 +870,7 @@ class BrainGlobeAtlas(
         local_path.parent.mkdir(parents=True, exist_ok=True)
         print(
             f"Downloading {self.atlas_name} atlas "
-            f"v{remote_version_str} manifest:"
+            f"v{folder_version_to_dotted(remote_version_str)} manifest:"
         )
         self.fs.get(remote_path, local_path, callback=TqdmCallback())
         self.metadata = read_json(local_path)
@@ -970,7 +970,7 @@ class BrainGlobeAtlas(
                     raise FileNotFoundError(
                         f"Annotation masks metadata not found for atlas "
                         f"{self.atlas_name} "
-                        f"v{remote_version_str}."
+                        f"v{folder_version_to_dotted(remote_version_str)}."
                     ) from e
 
                 hemispheres_remote = (
@@ -1078,9 +1078,9 @@ class BrainGlobeAtlas(
                 rprint(
                     "[b][magenta2]brainglobe_atlasapi[/b]: "
                     f"[b]{self.atlas_name}[/b] version "
-                    f"[b]{local}[/b] "
+                    f"[b]{folder_version_to_dotted(local)}[/b] "
                     f"is not the latest available "
-                    f"([b]{online}[/b]). "
+                    f"([b]{folder_version_to_dotted(online)}[/b]). "
                     "To update the atlas run in the terminal:[/magenta2]\n"
                     f" [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
                 )

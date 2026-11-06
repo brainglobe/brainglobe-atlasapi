@@ -62,8 +62,8 @@ def test_remote_version_carries_dashed_folder_string():
 
     Regression test: ``remote_version`` must record the resolved S3
     folder name in ``_remote_version_str`` as-is, not reconstruct it
-    from the parsed tuple. ``_version_str_from_tuple((2024, 5))`` would
-    yield ``"2024_5"``, which is not the real folder ``"2024-05"``.
+    from the parsed tuple: rebuilding it from ``(2024, 5)`` would yield
+    ``"2024_5"``, which is not the real folder ``"2024-05"``.
     """
     atlas = object.__new__(BrainGlobeAtlas)
     atlas._remote_version = None

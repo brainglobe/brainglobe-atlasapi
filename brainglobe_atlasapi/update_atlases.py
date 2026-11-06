@@ -4,11 +4,11 @@ import shutil
 
 from rich import print as rprint
 
-from brainglobe_atlasapi.bg_atlas import (
-    BrainGlobeAtlas,
-    _version_str_from_tuple,
+from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+from brainglobe_atlasapi.list_atlases import (
+    folder_version_to_dotted,
+    get_downloaded_atlases,
 )
-from brainglobe_atlasapi.list_atlases import get_downloaded_atlases
 
 
 def update_atlas(atlas_name, force=False, fn_update=None, remote_root=None):
@@ -51,7 +51,7 @@ def update_atlas(atlas_name, force=False, fn_update=None, remote_root=None):
         rprint(
             f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} "
             "is already updated "
-            f"(version: {_version_str_from_tuple(atlas.local_version)})"
+            f"(version: {folder_version_to_dotted(atlas._local_version_str)})"
             "[/b]"
         )
 
@@ -69,7 +69,7 @@ def update_atlas(atlas_name, force=False, fn_update=None, remote_root=None):
     rprint(
         "[b][magenta2]brainglobe_atlasapi: "
         f"{atlas.atlas_name} updated to version: "
-        f"{_version_str_from_tuple(atlas.remote_version)}[/magenta2][/b]"
+        f"{folder_version_to_dotted(atlas._remote_version_str)}[/magenta2][/b]"
     )
 
 

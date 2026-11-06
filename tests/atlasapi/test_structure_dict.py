@@ -1,12 +1,13 @@
 """Test the StructuresDict class for handling atlas structures."""
 
 import json
-from pathlib import Path
+from types import SimpleNamespace
 
 import DracoPy
 import meshio as mio
 import numpy as np
 import pytest
+import s3fs
 
 from brainglobe_atlasapi import descriptors, structure_class
 from brainglobe_atlasapi.structure_class import StructuresDict
@@ -209,11 +210,9 @@ ATLAS_ASSETS_ROOT = descriptors.ATLAS_ASSETS_REMOTE_ROOT
 # allen-adult-mouse-annotation/2017, the smallest mesh there that is also
 # labelled in the annotation volume, so its coordinates can be checked
 # against the atlas rather than against this module's own arithmetic.
-MESH_DIR = Path(__file__).parent / "data" / "allen_mesh"
+# Filled by `load_allen_mesh`.
+ALLEN = SimpleNamespace()
 ALLEN_ID = "332"
-ALLEN_FRAGMENT = (MESH_DIR / ALLEN_ID).read_bytes()
-ALLEN_INDEX = (MESH_DIR / f"{ALLEN_ID}.index").read_bytes()
-ALLEN_INFO = (MESH_DIR / "info").read_bytes()
 
 # Where structure 332 sits, in nanometres and the bucket's XYZ order.
 # Cross-checked against the 100 um annotation volume, whose label 332
@@ -222,12 +221,63 @@ ALLEN_BBOX_NM = (
     np.array([5200000.0, 6150000.0, 6120000.0]),
     np.array([6200000.0, 6300000.0, 6300000.0]),
 )
-ALLEN_VERTEX_COUNT = 134
-ALLEN_FACE_COUNT = 260
-
-# The chunk the fragment is quantized into, as its index declares it.
-ALLEN_CHUNK_SHAPE = np.frombuffer(ALLEN_INDEX, np.float32, count=3, offset=0)
+ALLEN_VERTEX_COUNT = 3088
+ALLEN_FACE_COUNT = 6168
 QUANTIZATION = float(2**16 - 1)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def load_allen_mesh(atlas_assets_atlas):
+    """Load the raw fragment, fetching it into the atlas cache if missing.
+
+    The atlas only caches a mesh once converted, and these tests exercise
+    that conversion, so the bucket's bytes are stored beside it. Autouse and
+    module-scoped so it runs before any test replaces `s3fs.S3FileSystem`.
+
+    Parameters
+    ----------
+    atlas_assets_atlas : BrainGlobeAtlas
+        Shared atlas-assets atlas fixture.
+    """
+    annotation = atlas_assets_atlas.metadata["annotation_set"]["location"][1:]
+    ALLEN.remote_dir = (
+        f"{ATLAS_ASSETS_ROOT}/{annotation}/{descriptors.V3_MESHES_DIRECTORY}"
+    )
+    ALLEN.local_dir = atlas_assets_atlas.root_dir / "test-raw-meshes"
+    ALLEN.file_names = (ALLEN_ID, f"{ALLEN_ID}.index", "info")
+
+    fs = s3fs.S3FileSystem(anon=True, skip_instance_cache=True)
+    ALLEN.local_dir.mkdir(exist_ok=True)
+    for name in ALLEN.file_names:
+        if not (ALLEN.local_dir / name).exists():
+            fs.get(f"{ALLEN.remote_dir}/{name}", ALLEN.local_dir / name)
+
+    ALLEN.fragment = (ALLEN.local_dir / ALLEN_ID).read_bytes()
+    ALLEN.index = (ALLEN.local_dir / f"{ALLEN_ID}.index").read_bytes()
+    ALLEN.info = (ALLEN.local_dir / "info").read_bytes()
+    # The chunk the fragment is quantized into, as its index declares it.
+    ALLEN.chunk_shape = np.frombuffer(
+        ALLEN.index, np.float32, count=3, offset=0
+    )
+
+
+def test_cached_raw_mesh_matches_remote():
+    """The cached fragment is what the bucket holds today.
+
+    Keeps the conversion tests below on the bucket's current mesh layout.
+    """
+    fs = s3fs.S3FileSystem(anon=True, skip_instance_cache=True)
+    stale = [
+        name
+        for name in ALLEN.file_names
+        if (ALLEN.local_dir / name).read_bytes()
+        != fs.cat_file(f"{ALLEN.remote_dir}/{name}")
+    ]
+
+    assert not stale, (
+        f"{ALLEN.remote_dir} changed in place. Delete {ALLEN.local_dir} "
+        f"(in CI, the atlas cache) to test against it. Differs: {stale}"
+    )
 
 
 def _index_bytes(
@@ -258,7 +308,7 @@ def _index_bytes(
         payload in a single fragment.
     """
     parts = [
-        ALLEN_INDEX[:24],  # chunk shape and grid origin, as shipped
+        ALLEN.index[:24],  # chunk shape and grid origin, as shipped
         np.uint32(num_lods).astype("<u4").tobytes(),
         np.ones(num_lods, dtype="<f4").tobytes(),
         np.tile(np.asarray(vertex_offsets, dtype="<f4"), num_lods).tobytes(),
@@ -279,7 +329,7 @@ def _index_bytes(
         else:
             sizes = np.zeros(count, dtype="<u4")
             if count == 1:
-                sizes[0] = len(ALLEN_FRAGMENT)
+                sizes[0] = len(ALLEN.fragment)
         parts.append(sizes.tobytes())
     return b"".join(parts)
 
@@ -287,7 +337,7 @@ def _index_bytes(
 def _info_bytes(transform=None, bits=16):
     """Serialise a `mesh/info` document."""
     if transform is None:
-        transform = json.loads(ALLEN_INFO)["transform"]
+        transform = json.loads(ALLEN.info)["transform"]
     return json.dumps(
         {
             "@type": "neuroglancer_multilod_draco",
@@ -313,10 +363,10 @@ def _mesh_contents(index=None, info=None, payload=None):
     """Bucket contents for one fragment: `<id>`, `<id>.index` and `info`."""
     return {
         f"root/mesh/{ALLEN_ID}": (
-            ALLEN_FRAGMENT if payload is None else payload
+            ALLEN.fragment if payload is None else payload
         ),
-        f"root/mesh/{ALLEN_ID}.index": ALLEN_INDEX if index is None else index,
-        "root/mesh/info": ALLEN_INFO if info is None else info,
+        f"root/mesh/{ALLEN_ID}.index": ALLEN.index if index is None else index,
+        "root/mesh/info": ALLEN.info if info is None else info,
     }
 
 
@@ -326,9 +376,9 @@ ALLEN_PATH = f"root/mesh/{ALLEN_ID}"
 def test_read_multilod_draco_recovers_allen_coordinates():
     """A real fragment lands where the annotation volume says it should.
 
-    The Draco payload alone decodes to grid integers spanning the whole
-    quantization range, so this is what separates a correct read from one
-    that skips the index.
+    The Draco payload alone decodes to 16-bit grid integers, far below these
+    coordinates, so this is what separates a correct read from one that skips
+    the index.
     """
     fs = _FakeCat(_mesh_contents())
 
@@ -341,9 +391,9 @@ def test_read_multilod_draco_recovers_allen_coordinates():
     np.testing.assert_allclose(points.min(axis=0), lower, atol=10000)
     np.testing.assert_allclose(points.max(axis=0), upper, atol=10000)
 
-    quantized = np.asarray(DracoPy.decode(ALLEN_FRAGMENT).points)
-    assert quantized.max() > 0.99 * QUANTIZATION, (
-        "fixture is no longer chunk-quantized; the test would pass "
+    quantized = np.asarray(DracoPy.decode(ALLEN.fragment).points)
+    assert quantized.max() <= QUANTIZATION < lower.min(), (
+        "fragment is no longer chunk-quantized; the test would pass "
         "even without the index"
     )
 
@@ -353,7 +403,7 @@ def test_read_multilod_draco_honours_offsets_and_fragment_position():
     offsets = (1.0, 2.0, 3.0)
     position = (1, 2, 3)
     base, _ = structure_class._read_multilod_draco(
-        _FakeCat(_mesh_contents()), ALLEN_PATH
+        _FakeCat(_mesh_contents(index=_index_bytes())), ALLEN_PATH
     )
     shifted, _ = structure_class._read_multilod_draco(
         _FakeCat(
@@ -366,9 +416,9 @@ def test_read_multilod_draco_honours_offsets_and_fragment_position():
         ALLEN_PATH,
     )
 
-    affine = np.asarray(json.loads(ALLEN_INFO)["transform"]).reshape(3, 4)
+    affine = np.asarray(json.loads(ALLEN.info)["transform"]).reshape(3, 4)
     expected_shift = (
-        np.asarray(offsets) + ALLEN_CHUNK_SHAPE * np.asarray(position)
+        np.asarray(offsets) + ALLEN.chunk_shape * np.asarray(position)
     ) @ affine[:, :3].T
 
     np.testing.assert_allclose(
@@ -380,7 +430,7 @@ def test_read_multilod_draco_honours_offsets_and_fragment_position():
 
 def test_read_multilod_draco_applies_the_info_transform():
     """`info`'s 3 x 4 affine is applied, translation column included."""
-    scaled = list(np.asarray(json.loads(ALLEN_INFO)["transform"]) * 2.0)
+    scaled = list(np.asarray(json.loads(ALLEN.info)["transform"]) * 2.0)
     scaled[3], scaled[7], scaled[11] = 5.0, 6.0, 7.0  # translation column
     base, _ = structure_class._read_multilod_draco(
         _FakeCat(_mesh_contents()), ALLEN_PATH
@@ -453,13 +503,13 @@ def test_read_multilod_draco_assembles_multiple_fragments():
         np.asarray(fragment_b.faces, dtype=np.uint32),
     )
 
-    info = json.loads(ALLEN_INFO)
+    info = json.loads(ALLEN.info)
     quantization = float(2 ** info["vertex_quantization_bits"] - 1)
-    grid_origin = np.frombuffer(ALLEN_INDEX, np.float32, count=3, offset=12)
+    grid_origin = np.frombuffer(ALLEN.index, np.float32, count=3, offset=12)
     transform = np.asarray(info["transform"]).reshape(3, 4)
 
     def _expected(quantized, position):
-        stored = grid_origin + ALLEN_CHUNK_SHAPE * (
+        stored = grid_origin + ALLEN.chunk_shape * (
             np.asarray(position) + np.asarray(quantized) / quantization
         )
         return stored @ transform[:, :3].T + transform[:, 3]

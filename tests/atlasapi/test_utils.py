@@ -2,7 +2,6 @@
 
 import os
 import sys
-from pathlib import Path
 from typing import Callable
 from unittest import mock
 
@@ -503,7 +502,22 @@ def test_get_latest_version_separators(versions, expected):
     assert utils.get_latest_version(versions) == expected
 
 
-DATA_DIR = Path(__file__).parent / "data"
+def _terminology_csv(atlas):
+    """Return the path of an atlas's cached terminology.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Atlas whose terminology to locate.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the terminology CSV.
+    """
+    location = atlas.metadata["terminology"]["location"][1:]
+    return atlas.root_dir / location / descriptors.V3_TERMINOLOGY_NAME
+
 
 BRAINGLOBE_EXPECTED = [
     {
@@ -536,28 +550,39 @@ BRAINGLOBE_EXPECTED = [
 ]
 
 
-def test_load_structures_brainglobe_dialect():
+def test_load_structures_brainglobe_dialect(atlas):
     """Integer-identifier terminology loads with unchanged output."""
-    result = utils.load_structures_from_csv(
-        DATA_DIR / "terminology_brainglobe.csv"
+    result = utils.load_structures_from_csv(_terminology_csv(atlas))
+    by_id = {row["id"]: row for row in result}
+    assert [by_id[row["id"]] for row in BRAINGLOBE_EXPECTED] == (
+        BRAINGLOBE_EXPECTED
     )
-    assert result == BRAINGLOBE_EXPECTED
 
 
-def test_load_structures_atlas_assets_dialect():
+def test_load_structures_atlas_assets_dialect(atlas_assets_atlas):
     """CURIE-identifier terminology maps onto annotation values."""
     result = utils.load_structures_from_csv(
-        DATA_DIR / "terminology_atlas_assets.csv"
+        _terminology_csv(atlas_assets_atlas)
     )
-    assert [r["id"] for r in result] == [997, 8, 614454277]
-    assert [r["parent_structure_id"] for r in result] == [None, 997, 8]
-    assert [r["structure_id_path"] for r in result] == [
-        [997],
-        [997, 8],
-        [997, 8, 614454277],
+    by_id = {row["id"]: row for row in result}
+    root, grey, deep = by_id[997], by_id[8], by_id[614454277]
+
+    assert root["parent_structure_id"] is None
+    assert root["structure_id_path"] == [997]
+    assert grey["parent_structure_id"] == 997
+    assert grey["structure_id_path"] == [997, 8]
+    assert deep["parent_structure_id"] == 795
+    assert deep["structure_id_path"] == [
+        997,
+        8,
+        343,
+        313,
+        323,
+        795,
+        614454277,
     ]
-    assert result[2]["acronym"] == "BVR"
-    assert result[2]["rgb_triplet"] == [176, 240, 255]
+    assert deep["acronym"] == "Su3"
+    assert deep["rgb_triplet"] == [255, 144, 255]
 
 
 def test_load_structures_short_hex_colour(tmp_path):
@@ -575,7 +600,7 @@ def test_load_structures_short_hex_colour(tmp_path):
     ]
 
 
-def test_load_structures_key_set_is_stable():
+def test_load_structures_key_set_is_stable(atlas, atlas_assets_atlas):
     """Both dialects produce the same key set, with no spec extras."""
     expected_keys = {
         "id",
@@ -586,26 +611,22 @@ def test_load_structures_key_set_is_stable():
         "rgb_triplet",
         "structure_id_path",
     }
-    for filename in (
-        "terminology_brainglobe.csv",
-        "terminology_atlas_assets.csv",
-    ):
-        rows = utils.load_structures_from_csv(DATA_DIR / filename)
+    for dialect in (atlas, atlas_assets_atlas):
+        rows = utils.load_structures_from_csv(_terminology_csv(dialect))
         assert all(set(row) == expected_keys for row in rows)
 
 
-def test_load_structures_types_are_plain_ints():
+def test_load_structures_types_are_plain_ints(atlas_assets_atlas):
     """Ids and paths are plain Python ints, usable as dict keys."""
-    rows = utils.load_structures_from_csv(
-        DATA_DIR / "terminology_atlas_assets.csv"
-    )
+    rows = utils.load_structures_from_csv(_terminology_csv(atlas_assets_atlas))
     assert all(isinstance(row["id"], int) for row in rows)
     assert all(
         isinstance(element, int)
         for row in rows
         for element in row["structure_id_path"]
     )
-    assert rows[0]["parent_structure_id"] is None
+    root = next(row for row in rows if row["id"] == 997)
+    assert root["parent_structure_id"] is None
 
 
 def test_load_structures_requires_root_identifier_path(tmp_path):

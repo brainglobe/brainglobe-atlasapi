@@ -263,14 +263,17 @@ def test_str(atlas, capsys):
     assert captured.err == ""
 
 
-def test_local_search(tmpdir):
+def test_local_search(tmpdir, atlas_path):
     """Test local atlas search and handling of multiple versions."""
     atlas_name = "example_mouse_100um"
     temp_brainglobe_dir = tmpdir.mkdir("brainglobe")
+    # The search is local, so start from the cache rather than downloading.
+    shutil.copytree(atlas_path, temp_brainglobe_dir / atlas_path.name)
 
     atlas = BrainGlobeAtlas(
         atlas_name,
         brainglobe_dir=temp_brainglobe_dir,
+        check_latest=False,
     )
 
     assert atlas.atlas_name in atlas.local_full_name
@@ -288,6 +291,7 @@ def test_local_search(tmpdir):
     atlas = BrainGlobeAtlas(
         atlas_name,
         brainglobe_dir=temp_brainglobe_dir,
+        check_latest=False,
     )
     assert atlas.local_full_name == f"{atlas_root}/{new_version}/manifest.json"
 

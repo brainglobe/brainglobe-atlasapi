@@ -45,7 +45,7 @@ def test_config_creation(conf_path):
             assert val == str(config.TEMPLATE_CONF_DICT[sectname][k])
 
 
-def test_config_edit(tmp_path):
+def test_config_edit(tmp_path, atlas_path):
     """Test editing configuration values via CLI and direct access.
 
     Ensures that modifying a configuration value (e.g., 'brainglobe_dir')
@@ -63,7 +63,8 @@ def test_config_edit(tmp_path):
     original_bg_folder = config_pre["default_dirs"]["brainglobe_dir"]
 
     new_atlas_dir = tmp_path / "new_brainglobe_dir"
-    new_atlas_dir.mkdir()
+    # Start from the cache: only the directory lookup is under test here.
+    shutil.copytree(atlas_path, new_atlas_dir / atlas_path.name)
     try:
         config.write_config_value("brainglobe_dir", str(new_atlas_dir))
         config_post = config.read_config()
@@ -72,7 +73,9 @@ def test_config_edit(tmp_path):
             new_atlas_dir
         )
 
-        atlas = bg_atlas.BrainGlobeAtlas(atlas_name="example_mouse_100um")
+        atlas = bg_atlas.BrainGlobeAtlas(
+            atlas_name="example_mouse_100um", check_latest=False
+        )
         assert atlas.root_dir == (new_atlas_dir / "brainglobe-atlasapi")
     finally:
         config.write_config_value("brainglobe_dir", original_bg_folder)

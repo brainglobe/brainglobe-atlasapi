@@ -1,38 +1,172 @@
-"""Tests for converting atlas manifests into ``core.Atlas`` metadata."""
+"""Tests for converting atlas manifests into ``core.Atlas`` metadata.
+
+Manifests and OME attributes are the real ones, read from the local atlas
+cache. ``test_cached_metadata_matches_remote`` keeps that cache honest, so a
+format change on a remote fails here rather than going unnoticed.
+"""
 
 import copy
-import json
 from pathlib import Path
 
 import pytest
+import s3fs
 
-from brainglobe_atlasapi import manifest
+from brainglobe_atlasapi import descriptors, manifest
+from brainglobe_atlasapi.utils import read_json
 
-DATA_DIR = Path(__file__).parent / "data"
 
+def _raw_manifest(atlas):
+    """Read an atlas's manifest from the cache, before normalisation.
 
-@pytest.fixture()
-def atlas_assets_manifest():
-    """Return a real atlas-assets atlas manifest.
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Atlas whose manifest to read.
 
     Returns
     -------
     dict
         Parsed manifest contents.
     """
-    return json.loads((DATA_DIR / "manifest_atlas_assets.json").read_text())
+    return read_json(atlas.brainglobe_dir / atlas.local_full_name)
 
 
-@pytest.fixture()
-def ome_attrs():
-    """Return the OME attributes block of an atlas-assets zarr.
+def _annotation_ome_attrs(atlas, raw_manifest):
+    """Read the OME attributes block of an atlas's cached annotation zarr.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Atlas whose annotation to read.
+    raw_manifest : dict
+        Parsed manifest of the atlas, in either shape.
 
     Returns
     -------
     dict
         Parsed ``attributes.ome`` contents.
     """
-    return json.loads((DATA_DIR / "ome_attrs_atlas_assets.json").read_text())
+    location = manifest.get_annotation_set(raw_manifest)["location"][1:]
+    zarr_json = (
+        atlas.root_dir
+        / location
+        / descriptors.V3_ANNOTATION_NAME
+        / "zarr.json"
+    )
+    return read_json(zarr_json)["attributes"]["ome"]
+
+
+@pytest.fixture()
+def atlas_assets_manifest(atlas_assets_atlas):
+    """Return a real atlas-assets atlas manifest.
+
+    Parameters
+    ----------
+    atlas_assets_atlas : BrainGlobeAtlas
+        Shared atlas-assets atlas fixture.
+
+    Returns
+    -------
+    dict
+        Parsed manifest contents.
+    """
+    return _raw_manifest(atlas_assets_atlas)
+
+
+@pytest.fixture()
+def brainglobe_manifest(atlas):
+    """Return a real BrainGlobe atlas manifest.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+
+    Returns
+    -------
+    dict
+        Parsed manifest contents.
+    """
+    return _raw_manifest(atlas)
+
+
+@pytest.fixture()
+def ome_attrs(atlas_assets_atlas, atlas_assets_manifest):
+    """Return the OME attributes block of a real atlas-assets zarr.
+
+    Parameters
+    ----------
+    atlas_assets_atlas : BrainGlobeAtlas
+        Shared atlas-assets atlas fixture.
+    atlas_assets_manifest : dict
+        atlas-assets manifest fixture.
+
+    Returns
+    -------
+    dict
+        Parsed ``attributes.ome`` contents.
+    """
+    return _annotation_ome_attrs(atlas_assets_atlas, atlas_assets_manifest)
+
+
+@pytest.fixture()
+def brainglobe_ome_attrs(atlas, brainglobe_manifest):
+    """Return the OME attributes block of a real BrainGlobe zarr.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    brainglobe_manifest : dict
+        BrainGlobe manifest fixture.
+
+    Returns
+    -------
+    dict
+        Parsed ``attributes.ome`` contents.
+    """
+    return _annotation_ome_attrs(atlas, brainglobe_manifest)
+
+
+@pytest.mark.parametrize("atlas_fixture", ["atlas", "atlas_assets_atlas"])
+def test_cached_metadata_matches_remote(request, atlas_fixture):
+    """The cached metadata tests rely on is what the bucket holds today.
+
+    Version folders can change in place, and a cached component is never
+    downloaded again, so without this a long-lived cache would hide a format
+    change on the remote. Costs a few small requests per test session.
+
+    Parameters
+    ----------
+    request : pytest.FixtureRequest
+        Used to look up the atlas fixture by name.
+    atlas_fixture : str
+        Name of the fixture providing the atlas to check.
+    """
+    atlas = request.getfixturevalue(atlas_fixture)
+    annotation_set = atlas.metadata["annotation_set"]
+    annotation = annotation_set["location"][1:]
+    template = annotation_set["template"]["location"][1:]
+    terminology = atlas.metadata["terminology"]["location"][1:]
+    cached_files = [
+        atlas.local_full_name,
+        f"{annotation}/{descriptors.V3_ANNOTATION_NAME}/zarr.json",
+        f"{template}/{descriptors.V3_TEMPLATE_NAME}/zarr.json",
+        f"{terminology}/{descriptors.V3_TERMINOLOGY_NAME}",
+    ]
+
+    fs = s3fs.S3FileSystem(anon=True, skip_instance_cache=True)
+    stale = [
+        path
+        for path in cached_files
+        if (atlas.root_dir / path).read_bytes()
+        != fs.cat_file(f"{atlas._remote_root}/{path}")
+    ]
+
+    assert not stale, (
+        f"{atlas._remote_root} changed in place. Delete {atlas.root_dir} "
+        f"(in CI, the atlas cache) to test against it. Differs: {stale}"
+    )
 
 
 @pytest.mark.parametrize(
@@ -73,6 +207,24 @@ def test_orientation_from_axes(ome_attrs):
         OME attributes block fixture.
     """
     assert manifest._orientation_from_axes(ome_attrs) == "asl"
+
+
+def test_orientation_from_flat_axes(brainglobe_ome_attrs, brainglobe_manifest):
+    """OME 0.5 axes on the multiscale give the manifest's orientation.
+
+    Parameters
+    ----------
+    brainglobe_ome_attrs : dict
+        OME 0.5 attributes block fixture.
+    brainglobe_manifest : dict
+        BrainGlobe manifest fixture.
+    """
+    multiscale = brainglobe_ome_attrs["multiscales"][0]
+    assert manifest._intrinsic_axes(multiscale) == multiscale["axes"]
+    assert (
+        manifest._orientation_from_axes(brainglobe_ome_attrs)
+        == brainglobe_manifest["orientation"]
+    )
 
 
 def test_origin_letter_is_where_each_axis_starts():
@@ -119,7 +271,7 @@ def test_pyramid_level_from_attrs_invalid(ome_attrs):
     assert "37" in str(error.value)
 
 
-def test_brainglobe_manifest_passes_through():
+def test_brainglobe_manifest_passes_through(brainglobe_manifest):
     """A BrainGlobe manifest is returned unchanged.
 
     ``normalize_manifest`` returns the same object for a BrainGlobe
@@ -127,10 +279,14 @@ def test_brainglobe_manifest_passes_through():
     ``raw`` after the call would pass even if the function mutated
     ``raw`` in place. Comparing against an untouched deep copy, taken
     before the call, actually exercises that guarantee.
+
+    Parameters
+    ----------
+    brainglobe_manifest : dict
+        BrainGlobe manifest fixture.
     """
-    raw = json.loads((DATA_DIR / "manifest_brainglobe.json").read_text())
-    untouched = copy.deepcopy(raw)
-    result = manifest.normalize_manifest(raw, None, Path("."))
+    untouched = copy.deepcopy(brainglobe_manifest)
+    result = manifest.normalize_manifest(brainglobe_manifest, None, Path("."))
     assert result == untouched
 
 
@@ -189,12 +345,17 @@ def test_resolution_must_be_an_available_scale(atlas_assets_manifest):
     assert "37" in str(error.value)
 
 
-def test_resolution_rejected_when_it_contradicts_manifest():
-    """A resolution disagreeing with a BrainGlobe manifest fails."""
-    raw = json.loads((DATA_DIR / "manifest_brainglobe.json").read_text())
+def test_resolution_rejected_when_it_contradicts_manifest(brainglobe_manifest):
+    """A resolution disagreeing with a BrainGlobe manifest fails.
+
+    Parameters
+    ----------
+    brainglobe_manifest : dict
+        BrainGlobe manifest fixture.
+    """
     with pytest.raises(ValueError) as error:
-        manifest.normalize_manifest(raw, 10, Path("."))
-    assert "25.0" in str(error.value)
+        manifest.normalize_manifest(brainglobe_manifest, 10, Path("."))
+    assert str(brainglobe_manifest["resolution"][0]) in str(error.value)
 
 
 def test_scale_from_flat_transforms():

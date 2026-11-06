@@ -3,10 +3,14 @@
 import json
 from pathlib import Path
 
+import meshio as mio
 import numpy as np
 import pooch
 import SimpleITK as sitk
 
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    extract_mesh_from_mask,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 
 ### Metadata
@@ -116,23 +120,13 @@ def download_resources():
     with open(term_info_response_path, encoding="utf-8") as f:
         response = json.load(f)
 
-    docs = response["response"]["docs"]
-    if not docs:
-        raise RuntimeError("No VFB term-info record found")
-
-    term_info = docs[0]["term_info"]
-    if isinstance(term_info, list):
-        term_info = term_info[0]
-    term_info = json.loads(term_info)
+    term_info = json.loads(response["response"]["docs"][0]["term_info"][0])
 
     reference_path = Path(
         source_pooch.fetch("jrc2018u_vnc_template.nrrd", progressbar=True)
     )
 
-    mesh_paths = {
-        ROOT_ID: Path(mesh_pooch.fetch(f"{ROOT_ID}.obj", progressbar=True))
-    }
-
+    mesh_paths = {}
     domain_names = {}
     roi_paths = {}
     domains = sorted(
@@ -168,12 +162,6 @@ def retrieve_reference_and_annotation(reference_path, roi_paths):
         roi_mask = sitk.GetArrayFromImage(
             sitk.ReadImage(str(roi_path))
         ).transpose(2, 1, 0)
-        if roi_mask.shape != reference.shape:
-            raise ValueError(
-                f"ROI {structure_id} has shape {roi_mask.shape}, "
-                f"but reference has shape {reference.shape}"
-            )
-
         roi_sizes.append((np.count_nonzero(roi_mask), structure_id))
 
     # Some VNC domains overlap. Write broad masks first so smaller domains
@@ -229,14 +217,37 @@ def retrieve_structure_information(domain_names, annotation):
     return structures
 
 
-def retrieve_or_construct_meshes(mesh_paths, structures):
-    """Return the downloaded VFB mesh paths."""
+def retrieve_or_construct_meshes(mesh_paths, structures, annotation):
+    """Keep VFB regional meshes and construct the root from the annotation."""
     structure_ids = {structure["id"] for structure in structures}
-    return {
+    meshes = {
         structure_id: mesh_path
         for structure_id, mesh_path in mesh_paths.items()
         if structure_id in structure_ids
     }
+
+    generated_meshes_dir = BG_ROOT_DIR / "meshes"
+    generated_meshes_dir.mkdir(exist_ok=True)
+    root_mesh_path = generated_meshes_dir / f"{ROOT_ID}.obj"
+
+    # VFB's template mesh does not span all annotated regions. Use their union
+    # for the root, retaining disconnected components and the original bounds.
+    extract_mesh_from_mask(
+        annotation > 0,
+        obj_filepath=root_mesh_path,
+        closing_n_iters=None,
+        decimate_fraction=0,
+        smooth=False,
+        extract_largest=False,
+    )
+
+    # Extracted vertices are in voxels; VFB's regional meshes use microns.
+    root_mesh = mio.read(root_mesh_path)
+    root_mesh.points = root_mesh.points * RESOLUTION
+    mio.write(root_mesh_path, root_mesh)
+    meshes[ROOT_ID] = root_mesh_path
+
+    return meshes
 
 
 def retrieve_additional_references():
@@ -254,9 +265,11 @@ if __name__ == "__main__":
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information(domain_names, annotated_volume)
-    meshes_dict = retrieve_or_construct_meshes(mesh_paths, structures)
+    meshes_dict = retrieve_or_construct_meshes(
+        mesh_paths, structures, annotated_volume
+    )
 
-    output_filename = wrapup_atlas_from_data(
+    atlas_dir = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,
@@ -275,4 +288,4 @@ if __name__ == "__main__":
         scale_meshes=False,
         additional_references=additional_references,
     )
-    print(f"Atlas packaged: {output_filename}")
+    print(f"Atlas packaged at: {atlas_dir}")

@@ -1,6 +1,6 @@
-jrc2018u_vnc_term_info_response.json 5ac8d30fcde612fa62cf31d6c660127b49ba02fd26011ca64515dbe138ed94cd https://solr.virtualflybrain.org/solr/vfb_json/select?q=id:VFB_00200000&fl=id,term_info&rows=1&wt=json
+# Omit Solr's per-request timing header to keep the metadata hash reproducible.
+jrc2018u_vnc_term_info_response.json 69febf126a8cc04fec6b44d6f064c481a3417d372412e4f0c8c5007b1faa633a https://solr.virtualflybrain.org/solr/vfb_json/select?q=id:VFB_00200000&fl=id,term_info&rows=1&wt=json&omitHeader=true
 jrc2018u_vnc_template.nrrd 48d6daa3d9c0f6bac01a12eb464344e5102233ecc2f833c6c3748eb5e30d617b https://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd
-999.obj 558fa380d74b1bb3b6f83c0a388d328276abf1ffcfaeb523d10030eda0af324a https://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj
 1.nrrd 467d47d4677b0dd0185dc8bfa176a5df19c30d43166190d921d53641f8f01966 https://www.virtualflybrain.org/data/VFB/i/0010/4633/VFB_00200000/volume.nrrd
 2.nrrd 7e6f26b2715f81f70e1e9085192759451c4bef9756c54434848c0c8e2acc47df https://www.virtualflybrain.org/data/VFB/i/0010/4634/VFB_00200000/volume.nrrd
 3.nrrd ae248267adc478bf85ad3af0dc715768fc1c04b874f0578d2025efd07c4edbaf https://www.virtualflybrain.org/data/VFB/i/0010/4635/VFB_00200000/volume.nrrd

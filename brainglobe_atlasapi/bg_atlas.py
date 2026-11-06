@@ -305,14 +305,14 @@ class BrainGlobeAtlas(
         remote_path = remote_url_s3.format(key_name)
 
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        print(
-            f"Downloading {self.atlas_name} atlas "
-            f"v{remote_version_str.replace('_', '.')} manifest:"
-        )
-        self.fs.get(remote_path, local_path, callback=TqdmCallback())
-        self.metadata = read_json(local_path)
-
         try:
+            print(
+                f"Downloading {self.atlas_name} atlas "
+                f"v{remote_version_str.replace('_', '.')} manifest:"
+            )
+            self.fs.get(remote_path, local_path, callback=TqdmCallback())
+            self.metadata = read_json(local_path)
+
             # Download terminology file
             terminology_location = self.metadata["terminology"]["location"][1:]
             local_terminology_path = self.brainglobe_dir / terminology_location
@@ -473,9 +473,11 @@ class BrainGlobeAtlas(
             # Reset local_full_name to ensure it is updated with new location
             self._local_full_name = None
 
-        except Exception:
+        except BaseException:
             # Remove the manifest so the next run detects the incomplete
             # download and retries rather than finding partial files.
+            # BaseException, so that interrupting the download with
+            # Ctrl+C (KeyboardInterrupt) cleans up as well.
             local_path.unlink(missing_ok=True)
             raise
 

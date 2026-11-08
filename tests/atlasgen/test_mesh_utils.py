@@ -67,7 +67,6 @@ def region_mesh_args(structures, tmp_path, request):
         Path(__file__).parent / "dummy_data" / "smoothed_annotations.npy"
     )
     labels = np.unique(smoothed_annotations).astype(np.int_)
-    root_id = 999
     closing_n_iters = 10
     decimate_fraction = 0.6
     smooth = True
@@ -78,11 +77,10 @@ def region_mesh_args(structures, tmp_path, request):
         tree,  # 2
         labels,  # 3
         smoothed_annotations,  # 4
-        root_id,  # 5
-        closing_n_iters,  # 6
-        decimate_fraction,  # 7
-        smooth,  # 8
-        verbosity,  # 9
+        closing_n_iters,  # 5
+        decimate_fraction,  # 6
+        smooth,  # 7
+        verbosity,  # 8
     )
 
 
@@ -455,10 +453,7 @@ def test_mesh_from_mask_only_zeros_or_ones(zeros_ones, mesh_from_mask):
     volume = np.full((100, 100, 100), zeros_ones, dtype=int)
     mesh_from_mask.update({"volume": volume})
     mesh = extract_mesh_from_mask(**mesh_from_mask)
-    if zeros_ones == 0:
-        assert np.isclose(mesh.area(), 0)
-    else:
-        assert mesh.area() > 0
+    assert np.isclose(mesh.area(), 0)
 
 
 @pytest.mark.parametrize(
@@ -553,7 +548,6 @@ def test_construct_meshes_cropped_matches_full_volume(
                 tree,
                 labels,
                 annotations,
-                tree.root,
                 closing_n_iters,
                 0.2,
                 False,

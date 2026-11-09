@@ -229,7 +229,8 @@ def retrieve_structure_information(annotation):
         ]
         structures.append(
             {
-                # Some RCCF structure IDs are negative; we use uint32 IDs instead.
+                # Some RCCF structure IDs are negative;
+                # we use uint32 IDs instead.
                 "id": int(row.hashed_id),
                 "name": label_name,
                 "acronym": acronym,

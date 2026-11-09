@@ -1,13 +1,14 @@
-"""Package the Allen CCFv1 Mouse Brain Atlas.
+"""Package the FeBls Mouse Brain Atlas with Allen annotations.
 
-This script generates the Allen CCFv1 mouse brain atlas,
-based on data from the Allen Institute. It downloads the necessary
+This script generates the FeBls female mouse brain atlas with Allen annotations,
+based on data from NITRC and the Allen Institute. It downloads the necessary
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
 from pathlib import Path
 
+import json
 import numpy as np
 import pandas as pd
 import pooch
@@ -22,13 +23,13 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 ### Metadata ###
 __version__ = 0
-ATLAS_NAME = "ccfv1_mouse"
+ATLAS_NAME = "febls_allen_mouse"
 CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
 ATLAS_LINK = r"https://www.nitrc.org/frs/download.php/20440/FeBls_v1.3.zip//?i_agree=1&download_now=1"
 ORIENTATION = "rpi"
 ROOT_ID = 999
-RESOLUTION = 25
+RESOLUTION = 60
 ATLAS_PACKAGER = "Jung Woo Kim"
 
 SKIP_DOWNLOADS_IF_PRESENT = True
@@ -41,7 +42,7 @@ DSURQUE_REFERENCE_FNAME = "DSURQUE2FeBls_Warped.nii"
 TMBTA_REFERENCE_FNAME = "TMBTA2FeBls_Warped.nii"
 
 
-AMBA_ANNOTATION_FNAME = "AMBAlabels4FeBls.nii"
+ALLEN_ANNOTATION_FNAME = "AMBAlabels4FeBls.nii"
 DSURQUE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
 TMBTA_ANNOTATION_FNAME = "TMBTAlabels4FeBls.nii"
 
@@ -53,6 +54,25 @@ TMBTA_LABELS_FNAME = "TMBTAlabels4FeBls.txt"
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
+def hex_to_rgb(hex):
+    """Convert a hexadecimal color string to an RGB triplet.
+
+    Parameters
+    ----------
+    hex : str
+        The hexadecimal color string (e.g., "RRGGBB").
+
+    Returns
+    -------
+    list
+        A list of three integers representing the RGB color (0-255).
+    """
+    rgb = []
+    for i in (0, 2, 4):
+        decimal = int(hex[i : i + 2], 16)
+        rgb.append(decimal)
+
+    return rgb
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -106,7 +126,7 @@ def retrieve_reference_and_annotation():
         A tuple containing the reference volume and the annotation volume.
     """
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ALLEN_ANNOTATION_FNAME
 
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
     reference -= np.min(reference)
@@ -114,6 +134,7 @@ def retrieve_reference_and_annotation():
     reference = reference * 65535
     reference = reference.astype(np.uint16)
     annotation = load_any(annotation_path)
+    # TODO: Make sure the annotations are symmetrical
 
     return reference, annotation
 
@@ -161,78 +182,33 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    df = pd.read_csv(DOWNLOAD_DIR_PATH / LABELS_FNAME)
+    labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
 
-    df.rename(
-        columns={
-            "StructureName": "name",
-            "Abbreviation": "acronym",
-            "informaticsId": "id",
-        },
-        inplace=True,
-    )
-    df["name"] = df["name"].str.strip()
-    df["rgb_triplet"] = df[["red", "green", "blue"]].values.tolist()
-    df["structure_id_path"] = None
+    structures = []
+    # Open labels file to get structure information
+    with open(labels_path, "r") as f:
 
-    # Make "Brain" structure a child of root
-    df.at[0, "ParentStruct"] = "root"
-
-    root_row = pd.DataFrame(
-        [
-            {
-                "id": ROOT_ID,
-                "name": "root",
-                "acronym": "root",
-                "structure_id_path": [ROOT_ID],
-                "rgb_triplet": [255, 255, 255],
-            }
-        ]
-    )
-    df = pd.concat([df, root_row], axis=0, ignore_index=True)
-
-    ancestry = []
-    # Loop through structures to ensure all have structure_id_path
-    for _, row in df.iterrows():
-        if row["acronym"] == "root":
-            continue
-        ancestry.append(
-            (
-                row["id"],
-                df.loc[df["acronym"] == row["ParentStruct"], "id"].item(),
+        labels_data = json.load(f)
+        for structure in labels_data["msg"]:
+            id = structure["id"]
+            name = structure["name"]
+            acronym = structure["acronym"]
+            structure_id_path = list(
+                map(int, structure["structure_id_path"].strip("/").split("/"))
             )
-        )
+            rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
 
-    # Code to try and recursively find full hierarchy
-    parents = set()
-    children = {}
-    for child, parent in ancestry:
-        parents.add(parent)
-        children[child] = parent
+            structures.append(
+                {
+                    "id": id,
+                    "name": name,
+                    "acronym": acronym,
+                    "structure_id_path": structure_id_path,
+                    "rgb_triplet": rgb_triplet,
+                }
+            )
 
-    # Recursively determine parents until child has no parent
-    def ancestors(parent):
-        return (ancestors(children[parent]) if parent in children else []) + [
-            parent
-        ]
-
-    # For each structure find all its ancestors, and remove parent key
-    for index, row in df.iterrows():
-        df.at[index, "structure_id_path"] = ancestors(row["id"])
-
-    df.drop(
-        columns=[
-            "red",
-            "green",
-            "blue",
-            "StructureId",
-            "ParentStruct",
-        ],
-        inplace=True,
-    )
-
-    structures = df.to_dict("records")
-
+    structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures
 
 
@@ -305,4 +281,5 @@ if __name__ == "__main__":
         additional_references=None,
         atlas_packager=ATLAS_PACKAGER,
         scale_meshes=True,
+        overwrite=True, 
     )

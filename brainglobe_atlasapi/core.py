@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from collections import UserDict, deque
+from collections.abc import Callable
 from pathlib import Path
 from typing import (
     Dict,
@@ -25,8 +26,8 @@ import pandas as pd
 import s3fs
 import zarr
 from brainglobe_space import AnatomicalSpace
-from fsspec.callbacks import TqdmCallback
 
+from brainglobe_atlasapi.callback import AtlasCallback
 from brainglobe_atlasapi.descriptors import (
     ATLAS_ORIENTATION,
     HEMISPHERES_DTYPE,
@@ -103,6 +104,9 @@ class Atlas(Generic[AtlasArray]):
     dask : bool
         If True, atlas array properties return dask arrays instead of loading
         them into memory as numpy arrays.
+    fn_update : Callable, optional
+        Handler function to update during download. Takes the number of files
+        fetched so far and the total number of files to fetch.
     """
 
     left_hemisphere_value = 1
@@ -113,6 +117,7 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[npt.NDArray[np.integer]],
         path: Union[str, Path],
         dask: Literal[False] = False,
+        fn_update: Callable | None = None,
     ) -> None: ...
 
     @overload
@@ -120,6 +125,7 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[da.Array],
         path: Union[str, Path],
         dask: Literal[True] = True,
+        fn_update: Callable | None = None,
     ) -> None: ...
 
     @overload
@@ -127,10 +133,17 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[AtlasArray],
         path: Union[str, Path],
         dask: bool = False,
+        fn_update: Callable | None = None,
     ) -> None: ...
 
-    def __init__(self, path: Union[str, Path], dask: bool = False):
+    def __init__(
+        self,
+        path: str | Path,
+        dask: bool = False,
+        fn_update: Callable | None = None,
+    ):
         self.dask = dask
+        self.fn_update = fn_update
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
         self.fs = s3fs.S3FileSystem(anon=True)
@@ -208,6 +221,7 @@ class Atlas(Generic[AtlasArray]):
                 references_list=additional_references,
                 data_path=self.root_dir,
                 resolution=self.resolution,
+                fn_update=self.fn_update,
             )
         except KeyError:
             warnings.warn(
@@ -291,7 +305,7 @@ class Atlas(Generic[AtlasArray]):
                 remote_path,
                 resolution_path,
                 recursive=True,
-                callback=TqdmCallback(),
+                callback=AtlasCallback(self.fn_update),
             )
 
         data = multiscale.images[self._template_pyramid_level].data
@@ -338,7 +352,7 @@ class Atlas(Generic[AtlasArray]):
                 remote_path,
                 resolution_path,
                 recursive=True,
-                callback=TqdmCallback(),
+                callback=AtlasCallback(self.fn_update),
             )
 
         data = multiscale.images[self._annotation_pyramid_level].data
@@ -417,7 +431,7 @@ class Atlas(Generic[AtlasArray]):
                     remote_path,
                     resolution_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=AtlasCallback(self.fn_update),
                 )
 
             data = multiscale.images[self._annotation_pyramid_level].data
@@ -806,7 +820,7 @@ class Atlas(Generic[AtlasArray]):
                     remote_path,
                     local_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=AtlasCallback(self.fn_update),
                 )
             except FileNotFoundError as e:
                 raise FileNotFoundError(
@@ -830,6 +844,7 @@ class AdditionalRefDict(UserDict):
         references_list: List[Dict[str, str]],
         data_path,
         resolution: Tuple[float, float, float],
+        fn_update: Callable | None = None,
         *args,
         **kwargs,
     ):
@@ -837,6 +852,10 @@ class AdditionalRefDict(UserDict):
         self.references_names = [ref["name"] for ref in references_list]
         self.references_dict = {ref["name"]: ref for ref in references_list}
         self.resolution = resolution
+        # An additional reference is fetched lazily on first access, long after
+        # the owning `Atlas` was built, so the handler has to be carried here
+        # rather than read off the atlas at download time.
+        self.fn_update = fn_update
 
         super().__init__(*args, **kwargs)
 
@@ -900,7 +919,7 @@ class AdditionalRefDict(UserDict):
                     remote_path,
                     resolution_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=AtlasCallback(self.fn_update),
                 )
             self.data[key] = multiscale.images[pyramid_level].data.compute()
 

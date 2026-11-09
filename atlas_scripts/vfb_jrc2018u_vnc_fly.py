@@ -90,6 +90,11 @@ ACRONYM_OVERRIDES = {
 
 ATLAS_PACKAGER = "Amirreza Bahramani"
 
+TERM_INFO_URL = (
+    "https://solr.virtualflybrain.org/solr/vfb_json/select"
+    "?q=id:VFB_00200000&fl=id,term_info&rows=1&wt=json&omitHeader=true"
+)
+
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 SOURCE_DATA_DIR = BG_ROOT_DIR / "source_data"
 ROI_VOLUMES_DIR = SOURCE_DATA_DIR / "roi_volumes"
@@ -113,8 +118,12 @@ def download_resources():
     mesh_pooch = pooch_init(MESHES_DIR)
 
     term_info_response_path = Path(
-        source_pooch.fetch(
-            "jrc2018u_vnc_term_info_response.json", progressbar=True
+        pooch.retrieve(
+            TERM_INFO_URL,
+            known_hash=None,
+            fname="jrc2018u_vnc_term_info_response.json",
+            path=SOURCE_DATA_DIR,
+            progressbar=True,
         )
     )
     with open(term_info_response_path, encoding="utf-8") as f:

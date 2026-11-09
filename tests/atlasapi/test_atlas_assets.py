@@ -47,18 +47,18 @@ def test_atlas_assets_cache_is_namespaced(atlas_assets_atlas):
 def test_atlas_assets_hemispheres_are_synthesized(atlas_assets_atlas):
     """No hemispheres asset exists, so hemispheres are synthesized."""
     atlas = atlas_assets_atlas
-    hemispheres = atlas.hemispheres
-    assert hemispheres.shape == tuple(atlas.shape)
-    assert set(np.unique(hemispheres)) <= {1, 2}
+    # An "asl" frontal axis (the last one) runs left to right, so the first
+    # half of it is the left hemisphere and the second half the right.
+    assert atlas.orientation == "asl"
+    n = atlas.shape[2]
+    expected = np.where(
+        np.arange(n) < n / 2,
+        atlas.left_hemisphere_value,
+        atlas.right_hemisphere_value,
+    )
+    expected = np.broadcast_to(expected, atlas.shape)
 
-    # The frontal axis starts on the side its origin letter names.
-    front_ax_idx = atlas.space.axes_order.index("frontal")
-    first_side = atlas.space.origin[front_ax_idx]
-    expected = {
-        "l": atlas.left_hemisphere_value,
-        "r": atlas.right_hemisphere_value,
-    }[first_side]
-    assert (np.take(hemispheres, 0, axis=front_ax_idx) == expected).all()
+    np.testing.assert_array_equal(atlas.hemispheres, expected)
 
 
 def test_atlas_assets_meshes_are_dequantized(atlas_assets_atlas):

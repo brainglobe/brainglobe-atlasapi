@@ -570,7 +570,7 @@ def test_insert_into_4d_masks_raises_on_mapping_mismatch(update_masks_fixture):
         },
     ]
     packaging_data = SimpleNamespace(
-        annotation_stack=update_masks_fixture.annotation_stack,
+        volumes=update_masks_fixture.volumes,
         structures_list=different_structures,
         working_dir=update_masks_fixture.working_dir,
         annotation_info=update_masks_fixture.annotation_info,

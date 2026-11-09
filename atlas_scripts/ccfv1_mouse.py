@@ -34,9 +34,7 @@ ATLAS_PACKAGER = "Jung Woo Kim"
 SKIP_DOWNLOADS_IF_PRESENT = True
 
 REFERENCE_URL = "https://allen-atlas-assets.s3.us-west-2.amazonaws.com/templates/allen-adult-mouse-nissl-template/2008/template_25.nii"
-ANNOTATION_URL = (
-    "https://allen-atlas-assets.s3.us-west-2.amazonaws.com/annotation-sets/allen-adult-mouse-annotation/2008/annotation_25.nii"
-)
+ANNOTATION_URL = "https://allen-atlas-assets.s3.us-west-2.amazonaws.com/annotation-sets/allen-adult-mouse-annotation/2008/annotation_25.nii"
 LABELS_URL = "https://rgw.cscs.ch/ebrains:deepslice/ccfv1/brainstructures.csv"
 
 REFERENCE_FNAME = "template_25.nii"

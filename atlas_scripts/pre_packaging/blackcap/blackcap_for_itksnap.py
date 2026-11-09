@@ -51,12 +51,10 @@ def brainglobe_atlas_to_itksnap(atlas: BrainGlobeAtlas, path: Path):
 
 if __name__ == "__main__":
     working_dir = Path.home() / "brainglobe_workingdir/"
-    atlas_name = "eurasian_blackcap"
-    resolution = 25
     minor_version = 5
 
     atlas = BrainGlobeAtlas(
-        f"{atlas_name}_{resolution}um",
+        "eurasian_blackcap_25um",
         check_latest=False,
         brainglobe_dir=working_dir,
     )

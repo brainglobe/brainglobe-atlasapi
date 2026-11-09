@@ -7,7 +7,7 @@ from brainglobe_atlasapi import cli, config
 
 
 # This testing of the command line application does not really
-# cange anything in the filesystem, so the repo config will remain unchanged:
+# change anything in the filesystem, so the repo config will remain unchanged:
 def test_config_cli():
     """Test the configuration command line interface.
 

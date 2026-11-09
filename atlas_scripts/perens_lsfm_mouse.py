@@ -306,7 +306,7 @@ def create_atlas(working_dir, resolution):
     structures_with_mesh = []
     for s in structures:
         # Check if a mesh was created
-        mesh_path = meshes_dir_path / f'{s["id"]}.obj'
+        mesh_path = meshes_dir_path / f"{s['id']}.obj"
         if not mesh_path.exists():
             print(f"No mesh file exists for: {s}, ignoring it")
             continue

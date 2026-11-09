@@ -33,6 +33,8 @@ ATLAS_PACKAGER = "Jung Woo Kim"
 
 SKIP_DOWNLOADS_IF_PRESENT = True
 
+ATLAS_FNAME = "FeBls_v1.3.zip"
+
 REFERENCE_FNAME = "FeBlsTemplateBrain.nii"
 AMBA_REFERENCE_FNAME = "AMBA2FeBls_Warped.nii"
 DSURQUE_REFERENCE_FNAME = "DSURQUE2FeBls_Warped.nii"
@@ -43,7 +45,8 @@ AMBA_ANNOTATION_FNAME = "AMBAlabels4FeBls.nii"
 DSURQUE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
 TMBTA_ANNOTATION_FNAME = "TMBTAlabels4FeBls.nii"
 
-AMBA_LABELS_FNAME = ""
+ALLEN_LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
+ALLEN_LABELS_FNAME = "1.json"
 DSURQUE_LABELS_FNAME = "DSURQUElabels4FeBls.txt"
 TMBTA_LABELS_FNAME = "TMBTAlabels4FeBls.txt"
 
@@ -56,14 +59,12 @@ def download_resources():
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
-    labels_path = DOWNLOAD_DIR_PATH / LABELS_FNAME
+    atlas_path = DOWNLOAD_DIR_PATH / ATLAS_FNAME
+    allen_labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
 
     needs_download = (
-        (not reference_path.exists())
-        or (not annotation_path.exists())
-        or (not labels_path.exists())
+        (not atlas_path.exists())
+        or (not allen_labels_path.exists())
     )
     if needs_download:
         utils.check_internet_connection()
@@ -73,30 +74,22 @@ def download_resources():
             return True
         return not SKIP_DOWNLOADS_IF_PRESENT
 
-    if should_fetch(reference_path):
+    if should_fetch(atlas_path):
         pooch.retrieve(
-            url=REFERENCE_URL,
-            known_hash="76b036657134a1351a452903644a902d9aac98ec01a5eced5b622de0917ca2e5",
+            url=ATLAS_LINK,
+            known_hash=None,
             path=DOWNLOAD_DIR_PATH,
-            fname=REFERENCE_FNAME,
+            fname=ATLAS_FNAME,
             progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
         )
 
-    if should_fetch(annotation_path):
+    if should_fetch(allen_labels_path):
         pooch.retrieve(
-            url=ANNOTATION_URL,
-            known_hash="0827c3bf2e65603acb35e513c5b5c6cc35e6ca7b53e5b3947434866e45421aed",
+            url=ALLEN_LABELS_URL,
+            known_hash=None,
             path=DOWNLOAD_DIR_PATH,
-            fname=ANNOTATION_FNAME,
-            progressbar=True,
-        )
-
-    if should_fetch(labels_path):
-        pooch.retrieve(
-            url=LABELS_URL,
-            known_hash="eeacc44153660b46b9e8a606ca6abc094e5b1b37608416e6f850850043761ec7",
-            path=DOWNLOAD_DIR_PATH,
-            fname=LABELS_FNAME,
+            fname=ALLEN_LABELS_FNAME,
             progressbar=True,
         )
 

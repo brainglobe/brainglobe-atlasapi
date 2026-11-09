@@ -25,7 +25,7 @@ __version__ = 0
 ATLAS_NAME = "ccfv1_mouse"
 CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
-ATLAS_LINK = r"https://data-proxy.ebrains.eu/deepslice?prefix=ccfv1%2F"
+ATLAS_LINK = r"https://www.nitrc.org/frs/download.php/20440/FeBls_v1.3.zip//?i_agree=1&download_now=1"
 ORIENTATION = "rpi"
 ROOT_ID = 999
 RESOLUTION = 25
@@ -33,13 +33,19 @@ ATLAS_PACKAGER = "Jung Woo Kim"
 
 SKIP_DOWNLOADS_IF_PRESENT = True
 
-REFERENCE_URL = "https://allen-atlas-assets.s3.us-west-2.amazonaws.com/templates/allen-adult-mouse-nissl-template/2008/template_25.nii"
-ANNOTATION_URL = "https://allen-atlas-assets.s3.us-west-2.amazonaws.com/annotation-sets/allen-adult-mouse-annotation/2008/annotation_25.nii"
-LABELS_URL = "https://rgw.cscs.ch/ebrains:deepslice/ccfv1/brainstructures.csv"
+REFERENCE_FNAME = "FeBlsTemplateBrain.nii"
+AMBA_REFERENCE_FNAME = "AMBA2FeBls_Warped.nii"
+DSURQUE_REFERENCE_FNAME = "DSURQUE2FeBls_Warped.nii"
+TMBTA_REFERENCE_FNAME = "TMBTA2FeBls_Warped.nii"
 
-REFERENCE_FNAME = "template_25.nii"
-ANNOTATION_FNAME = "annotation_25.nii"
-LABELS_FNAME = "brainstructures.csv"
+
+AMBA_ANNOTATION_FNAME = "AMBAlabels4FeBls.nii"
+DSURQUE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
+TMBTA_ANNOTATION_FNAME = "TMBTAlabels4FeBls.nii"
+
+AMBA_LABELS_FNAME = ""
+DSURQUE_LABELS_FNAME = "DSURQUElabels4FeBls.txt"
+TMBTA_LABELS_FNAME = "TMBTAlabels4FeBls.txt"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"

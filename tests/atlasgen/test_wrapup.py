@@ -269,7 +269,7 @@ def mask_packaging_data(tmp_path, small_annotation, mask_structures):
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     return SimpleNamespace(
-        annotation_stack=[annotation],
+        volumes=SimpleNamespace(annotation_stack=[annotation]),
         structures_list=mask_structures,
         working_dir=tmp_path,
         annotation_info=annotation_info,
@@ -454,7 +454,7 @@ def update_masks_fixture(tmp_path, small_annotation, mask_structures):
     )
 
     return SimpleNamespace(
-        annotation_stack=[annotation_v2],
+        volumes=SimpleNamespace(annotation_stack=[annotation_v2]),
         structures_list=structures_list,
         working_dir=tmp_path,
         annotation_info=annotation_info,
@@ -537,7 +537,9 @@ def test_insert_into_4d_masks_raises_if_existing_zarr_absent(tmp_path):
         update_existing=True,
     )
     packaging_data = SimpleNamespace(
-        annotation_stack=[np.full((3, 3, 3), 999, dtype=np.uint32)],
+        volumes=SimpleNamespace(
+            annotation_stack=[np.full((3, 3, 3), 999, dtype=np.uint32)]
+        ),
         structures_list=structures_list,
         working_dir=tmp_path,
         annotation_info=annotation_info,

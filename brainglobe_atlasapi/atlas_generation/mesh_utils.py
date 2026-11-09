@@ -625,7 +625,7 @@ def write_mesh_info(
 def write_mesh(
     mesh: meshio.Mesh,
     mesh_dir: Path,
-    segment_id: int | str,
+    segment_id: int,
     vertex_quantization_bits: int = 16,
     compression_level: int = 0,
 ):

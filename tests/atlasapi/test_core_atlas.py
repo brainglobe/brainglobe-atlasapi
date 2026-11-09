@@ -505,7 +505,6 @@ def atlas_with_masks(tmp_path_factory, mask_structures, tetrahedron_mesh_file):
         structures_list=mask_structures,
         meshes_dict=meshes,
         working_dir=working_dir,
-        atlas_packager="Test Packager",
     )
 
     manifests = list(

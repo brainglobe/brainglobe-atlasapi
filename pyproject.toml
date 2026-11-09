@@ -123,6 +123,9 @@ convention = "numpy"
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["E501"]
 
+[tool.mypy]
+allow_redefinition = true
+
 [tool.codespell]
 skip = '.git'
 check-hidden = true

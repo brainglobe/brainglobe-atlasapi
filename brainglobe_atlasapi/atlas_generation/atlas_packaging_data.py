@@ -479,37 +479,26 @@ class AtlasPackagingData:
     pipeline. It collects all atlas data in one place to avoid threading
     individual arguments through many function signatures.
 
-    Volumetric data must already be normalised, see
-    `sanitise_volumetric_data`.
-
     Attributes
     ----------
     atlas_name : str
         Atlas name in the form author_species.
     atlas_version : str
-        Full version of the atlas.
+        Full version of the atlas, in the form
+        "<ATLAS_VERSION>.<atlas_minor_version>".
     citation : str
         Citation for the atlas, if unpublished specify "unpublished".
     atlas_link : str
         Valid URL for the atlas.
     species : str
         Species name formatted as "CommonName (Genus species)".
-    resolution : ResolutionList
-        One resolution tuple per scale, highest resolution first.
     root_id : int
         Id of the root element of the atlas.
     working_dir : Path
         Directory in which the atlas is generated.
-    reference_stack : list[npt.NDArray]
-        Reference stack per scale, in the BrainGlobe orientation.
-    annotation_stack : list[npt.NDArray]
-        Annotation stack per scale, in the BrainGlobe orientation.
-    hemispheres_stack : list[npt.NDArray]
-        Hemispheres stack per scale, in the BrainGlobe orientation.
-    symmetric : bool
-        Whether the atlas is symmetric across the midline.
-    space_convention : bgs.AnatomicalSpace
-        Anatomical space of the original data.
+    volumes : SanitisedVolumes
+        Volumetric data (stacks, resolution and space convention), already
+        normalised by `sanitise_volumetric_data`.
     structures_list : list[dict]
         List of valid dictionaries for structures.
     meshes_dict : dict[int | str, str | Path]
@@ -523,42 +512,32 @@ class AtlasPackagingData:
         Terminology component information.
     coordinate_space_info : CoordinateSpaceInfo
         Coordinate space component information.
-    atlas_packager : str
+    atlas_packager : str | None, optional
         Credit for those responsible for converting the atlas into the
         BrainGlobe format.
     orientation : str, optional
         Orientation of the original atlas (tuple describing origin for
         BGSpace).
-    additional_references : list[tuple[TemplateInfo, list[npt.NDArray]]], optional
-        Additional templates, each in the BrainGlobe orientation.
     additional_metadata : dict, optional
         Additional metadata to write to metadata.json.
-    """  # noqa: E501
+    """
 
     atlas_name: str
     atlas_version: str
     citation: str
     atlas_link: str
     species: str
-    resolution: ResolutionList
     root_id: int
     working_dir: Path
-    reference_stack: list[npt.NDArray]
-    annotation_stack: list[npt.NDArray]
-    hemispheres_stack: list[npt.NDArray]
-    symmetric: bool
-    space_convention: bgs.AnatomicalSpace
+    volumes: SanitisedVolumes
     structures_list: list[dict]
     meshes_dict: dict[int | str, str | Path]
     template_info: TemplateInfo
     annotation_info: AnnotationInfo
     terminology_info: TerminologyInfo
     coordinate_space_info: CoordinateSpaceInfo
-    atlas_packager: str
+    atlas_packager: str | None = None
     orientation: str = descriptors.ATLAS_ORIENTATION
-    additional_references: list[tuple[TemplateInfo, list[npt.NDArray]]] = (
-        field(default_factory=list)
-    )
     additional_metadata: dict = field(default_factory=dict)
     atlas_version_underscore: str = field(init=False)
 
@@ -570,7 +549,7 @@ class AtlasPackagingData:
         self.atlas_version_underscore = self.atlas_version.replace(".", "_")
 
         self.structures_list = filter_structures_not_present_in_annotation(
-            self.structures_list, self.annotation_stack[0]
+            self.structures_list, self.volumes.annotation_stack[0]
         )
 
         check_struct_consistency(self.structures_list)
@@ -580,7 +559,7 @@ class AtlasPackagingData:
         check_requested_component(self.terminology_info, self.working_dir)
         check_requested_component(self.coordinate_space_info, self.working_dir)
 
-        for template_info, _ in self.additional_references:
+        for template_info, _ in self.volumes.additional_references:
             check_requested_component(template_info, self.working_dir)
 
 

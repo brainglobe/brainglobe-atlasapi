@@ -839,15 +839,10 @@ def atlas_packaging_kwargs(
         "citation": "unpublished",
         "atlas_link": "https://example.com",
         "species": "Mouse (Mus musculus)",
-        "resolution": volumes.resolution,
         "orientation": "asr",
         "root_id": 0,
         "working_dir": tmp_path,
-        "reference_stack": volumes.reference_stack,
-        "annotation_stack": volumes.annotation_stack,
-        "hemispheres_stack": volumes.hemispheres_stack,
-        "symmetric": volumes.symmetric,
-        "space_convention": volumes.space_convention,
+        "volumes": volumes,
         "structures_list": [
             {
                 "id": 0,
@@ -888,7 +883,7 @@ def test_atlas_packaging_data_version_underscore(
 def test_atlas_packaging_data_stores_sanitised_volumes(
     mocker, atlas_packaging_kwargs
 ):
-    """Test AtlasPackagingData stores the sanitised volumes unchanged.
+    """Test AtlasPackagingData stores the SanitisedVolumes it is given.
 
     Parameters
     ----------
@@ -901,10 +896,9 @@ def test_atlas_packaging_data_stores_sanitised_volumes(
         "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
     )
     data = AtlasPackagingData(**atlas_packaging_kwargs)
-    assert data.reference_stack is atlas_packaging_kwargs["reference_stack"]
-    assert data.annotation_stack is atlas_packaging_kwargs["annotation_stack"]
-    assert data.resolution == [(25, 25, 25)]
-    assert data.symmetric is True
+    assert data.volumes is atlas_packaging_kwargs["volumes"]
+    assert data.volumes.resolution == [(25, 25, 25)]
+    assert data.volumes.symmetric is True
 
 
 def test_atlas_packaging_data_calls_check_requested_component(
@@ -944,8 +938,12 @@ def test_atlas_packaging_data_checks_additional_references(
         "brainglobe_atlasapi.atlas_generation.atlas_packaging_data.check_requested_component"
     )
     extra_ref = TemplateInfo(name="extra-template", version="1.0")
-    atlas_packaging_kwargs["additional_references"] = [
-        (extra_ref, [np.zeros((4, 4, 4), dtype=np.uint16)])
-    ]
+    atlas_packaging_kwargs["volumes"] = atlas_packaging_kwargs[
+        "volumes"
+    ]._replace(
+        additional_references=[
+            (extra_ref, [np.zeros((4, 4, 4), dtype=np.uint16)])
+        ]
+    )
     AtlasPackagingData(**atlas_packaging_kwargs)
     assert mock_check.call_count == 5

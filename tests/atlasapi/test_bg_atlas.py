@@ -22,13 +22,13 @@ def test_remote_version_connection_error():
         brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=False
     ):
         atlas = object.__new__(BrainGlobeAtlas)
-        atlas._remote_version = None
+        atlas._remote_version_str = None
         atlas._remote_root = bg_atlas.descriptors.DEFAULT_REMOTE_ROOT
         atlas._reachable_roots = set()
         assert atlas.remote_version is None
 
 
-def test_remote_version_missing_from_assumed_root_raises_file_not_found():
+def test_remote_version_missing_from_assumed_root():
     """A cached atlas whose assumed root doesn't host it fails cleanly.
 
     Regression test: root resolution is skipped when the atlas is already
@@ -36,25 +36,26 @@ def test_remote_version_missing_from_assumed_root_raises_file_not_found():
     was assumed (the default). If that root doesn't actually have this
     atlas name, ``fs.ls`` on the nonexistent S3 prefix returns ``[]``
     rather than raising, which previously fell through to
-    ``get_latest_version([])`` and raised a bare ``IndexError``. This must
-    surface as ``FileNotFoundError`` instead, since callers such as
-    ``update_atlas`` depend on that type.
+    ``get_latest_version([])`` and raised a bare ``IndexError``. There is
+    then no remote version, and resolving one for a download raises
+    ``FileNotFoundError``, which callers such as ``update_atlas`` depend on.
     """
     atlas = object.__new__(BrainGlobeAtlas)
-    atlas._remote_version = None
+    atlas._remote_version_str = None
     atlas._requested_version = None
     atlas._remote_root = bg_atlas.descriptors.ATLAS_ASSETS_REMOTE_ROOT
     atlas._reachable_roots = set()
     atlas.atlas_name = "not_actually_here"
-    atlas.fs = SimpleNamespace(exists=lambda path: True, ls=lambda path: [])
+    atlas.fs = SimpleNamespace(ls=lambda path: [])
 
     with patch.object(
         brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
     ):
+        assert atlas.remote_version is None
         with pytest.raises(
             FileNotFoundError, match="is not a valid atlas name!"
         ):
-            atlas.remote_version
+            atlas._resolve_remote_version()
 
 
 def test_remote_version_carries_dashed_folder_string():
@@ -66,14 +67,12 @@ def test_remote_version_carries_dashed_folder_string():
     ``"2024_5"``, which is not the real folder ``"2024-05"``.
     """
     atlas = object.__new__(BrainGlobeAtlas)
-    atlas._remote_version = None
     atlas._remote_version_str = None
     atlas._requested_version = None
     atlas._remote_root = bg_atlas.descriptors.ATLAS_ASSETS_REMOTE_ROOT
     atlas._reachable_roots = set()
     atlas.atlas_name = "allen-adult-mouse-ccf-atlas"
     atlas.fs = SimpleNamespace(
-        exists=lambda path: True,
         ls=lambda path: [f"{path}/2017", f"{path}/2024-05"],
     )
 
@@ -88,7 +87,6 @@ def test_remote_version_carries_dashed_folder_string():
 def test_remote_version_ignores_non_version_entries():
     """Stray files next to the version folders are not parsed as versions."""
     atlas = object.__new__(BrainGlobeAtlas)
-    atlas._remote_version = None
     atlas._remote_version_str = None
     atlas._requested_version = None
     atlas._remote_root = bg_atlas.descriptors.ATLAS_ASSETS_REMOTE_ROOT
@@ -113,11 +111,10 @@ def _atlas_for_remote_version(
     atlas.brainglobe_dir = brainglobe_dir
     atlas._remote_root = bg_atlas.descriptors.DEFAULT_REMOTE_ROOT
     atlas._reachable_roots = set()
-    atlas._remote_version = None
+    atlas._remote_version_str = None
     atlas._requested_version = None
     atlas._local_full_name = local_full_name
     atlas.fs = MagicMock()
-    atlas.fs.exists.return_value = True
     # An in-progress version is present on the remote
     atlas.fs.ls.return_value = [
         f"brainglobe/atlas/atlases/{atlas_name}/1_0",
@@ -144,31 +141,28 @@ def test_remote_version_uses_last_versions_conf(tmp_path):
         assert atlas.remote_version == (1, 0)
 
 
-def test_remote_version_unreleased_atlas(tmp_path):
-    """Test an atlas absent from last_versions.conf is not fetched."""
-    atlas = _atlas_for_remote_version("example_mouse_100um", tmp_path)
-    with (
-        patch.object(
-            brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
+@pytest.mark.parametrize(
+    "local_full_name",
+    [
+        pytest.param(None, id="not cached"),
+        pytest.param(
+            "atlases/example_mouse_100um/2_0/manifest.json", id="cached"
         ),
-        patch.object(
-            brainglobe_atlasapi.bg_atlas,
-            "get_all_atlases_lastversions",
-            return_value={},
-        ),
-    ):
-        with pytest.raises(FileNotFoundError, match="no released version"):
-            atlas.remote_version
+    ],
+)
+def test_remote_version_unreleased_atlas(tmp_path, local_full_name):
+    """Test an atlas absent from last_versions.conf has no remote version,
+    whether or not it is cached, and is not downloaded.
 
-
-def test_remote_version_unreleased_atlas_local(tmp_path):
-    """Test an atlas absent from last_versions.conf but available locally
-    returns no remote version.
+    Parameters
+    ----------
+    tmp_path : Path
+        Temporary brainglobe directory.
+    local_full_name : str or None
+        Local manifest path, or None when the atlas is not cached.
     """
     atlas = _atlas_for_remote_version(
-        "example_mouse_100um",
-        tmp_path,
-        local_full_name="atlases/example_mouse_100um/2_0/manifest.json",
+        "example_mouse_100um", tmp_path, local_full_name=local_full_name
     )
     with (
         patch.object(
@@ -181,6 +175,38 @@ def test_remote_version_unreleased_atlas_local(tmp_path):
         ),
     ):
         assert atlas.remote_version is None
+        with pytest.raises(FileNotFoundError, match="no released version"):
+            atlas._resolve_remote_version()
+
+
+@pytest.mark.parametrize(
+    "requested, expected",
+    [
+        pytest.param("2_0", (2, 0), id="on remote"),
+        pytest.param("3_0", None, id="not on remote"),
+    ],
+)
+def test_remote_version_requested(tmp_path, requested, expected):
+    """Test a requested version is taken from the remote folder listing.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Temporary brainglobe directory.
+    requested : str
+        Requested version folder name.
+    expected : tuple or None
+        The expected remote version.
+    """
+    atlas = _atlas_for_remote_version("example_mouse_100um", tmp_path)
+    atlas._requested_version = requested
+    with patch.object(
+        brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
+    ):
+        assert atlas.remote_version == expected
+        if expected is None:
+            with pytest.raises(FileNotFoundError, match="not found in remote"):
+                atlas._resolve_remote_version()
 
 
 @pytest.mark.parametrize(

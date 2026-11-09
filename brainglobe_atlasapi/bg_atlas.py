@@ -49,7 +49,6 @@ from brainglobe_atlasapi.remote_roots import (
 )
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
-    check_internet_connection,
     check_s3_status,
     get_latest_version,
     read_json,
@@ -157,7 +156,6 @@ class BrainGlobeAtlas(
         remote_root: Optional[str] = None,
     ):
         self._resolution = resolution
-        self._remote_version = None
         self._remote_version_str = None
         self._local_version_str = None
         self._local_full_name = None
@@ -204,17 +202,11 @@ class BrainGlobeAtlas(
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
-            if self.remote_version is None:
-                check_internet_connection(raise_error=True)
-
-                # If internet is up, then the atlas name was invalid
-                raise ValueError(f"{atlas_name} is not a valid atlas name!")
-            else:
-                self.download()
-                assert self.local_full_name is not None, (
-                    "Download failed: local atlas manifest not found after "
-                    "download."
-                )
+            self.download()
+            assert self.local_full_name is not None, (
+                "Download failed: local atlas manifest not found after "
+                "download."
+            )
 
         record_remote_root(self.brainglobe_dir, self._remote_root)
 
@@ -364,84 +356,77 @@ class BrainGlobeAtlas(
 
     @property
     def remote_version(self) -> Optional[tuple[int, ...]]:
-        """Reads remote version from s3 bucket.
+        """Remote version of the atlas, or None if offline or not on remote.
 
         Unless a version was requested, the latest version is the one listed
-        in the remote last_versions.conf.
-        If we are offline or using a custom atlas, return None.
+        in the remote last_versions.conf on the BrainGlobe bucket, or the
+        newest version folder on any other root.
         """
-        if self._remote_version is not None:
-            return self._remote_version
-
-        if not self._is_reachable(self._remote_root):
-            return None
-
-        bucket_path = (
-            f"{self._remote_root}/{V3_ATLAS_ROOTDIR}/{self.atlas_name}"
-        )
-
-        try:
-            # One request when the atlas is there, where exists() costs
-            # two, and served from the s3fs cache when root resolution has
-            # just listed this path.
-            versions_path = self.fs.ls(bucket_path)
-        except FileNotFoundError:
-            if self.local_full_name is not None:
+        if self._remote_version_str is None:
+            if not self._is_reachable(self._remote_root):
                 return None
+            try:
+                self._resolve_remote_version()
+            except FileNotFoundError:
+                return None
+        return version_tuple_from_str(self._remote_version_str)
+
+    def _resolve_remote_version(self) -> str:
+        """Find and cache the remote version folder name.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the remote root has no matching version of this atlas.
+        """
+        if self._remote_version_str is None:
+            self._remote_version_str = self._pick_remote_version(
+                self._remote_folders()
+            )
+        return self._remote_version_str
+
+    def _remote_folders(self) -> List[str]:
+        """List the names of the atlas's folders on the remote root."""
+        path = f"{self._remote_root}/{V3_ATLAS_ROOTDIR}/{self.atlas_name}"
+        try:
+            # One request, served from the s3fs cache when root resolution
+            # has just listed this path.
+            return [p.rsplit("/", 1)[-1] for p in self.fs.ls(path)]
+        except FileNotFoundError:
             raise FileNotFoundError(
                 f"{self.atlas_name} is not a valid atlas name!"
             ) from None
 
-        if self._requested_version is None:
-            # last_versions.conf only lists atlases on the BrainGlobe bucket;
-            # other roots take their newest version folder.
-            if self._remote_root == descriptors.DEFAULT_REMOTE_ROOT:
-                last_versions = get_all_atlases_lastversions()
-                if self.atlas_name not in last_versions:
-                    if self.local_full_name is not None:
-                        return None
-                    raise FileNotFoundError(
-                        f"{self.atlas_name} has no released version "
-                        "available. Specify a version explicitly to "
-                        "download it."
-                    )
-                self._remote_version_str = str(
-                    last_versions[self.atlas_name]
-                ).replace(".", "_")
-                self._remote_version = version_tuple_from_str(
-                    self._remote_version_str
-                )
-            else:
-                # Skip anything that isn't a version folder, e.g. a README.
-                available_versions: List[str] = [
-                    name
-                    for name in (p.split("/")[-1] for p in versions_path)
-                    if re.fullmatch(_VERSION_FOLDER_PATTERN, name)
-                ]
-                if not available_versions:
-                    # Without this, get_latest_version would fail with a
-                    # bare IndexError.
-                    raise FileNotFoundError(
-                        f"{self.atlas_name} is not a valid atlas name!"
-                    )
-                latest_version = get_latest_version(available_versions)
-                self._remote_version_str = latest_version
-                self._remote_version = version_tuple_from_str(latest_version)
-        else:
-            requested_path = f"{bucket_path}/{self._requested_version}"
-            if not self.fs.exists(requested_path):
+    def _pick_remote_version(self, folders: List[str]) -> str:
+        """Pick the requested, released or newest version folder."""
+        if self._requested_version is not None:
+            if self._requested_version not in folders:
                 raise FileNotFoundError(
                     "Requested version "
                     f"{folder_version_to_dotted(self._requested_version)} "
                     f"for atlas {self.atlas_name} not found in remote."
                 )
+            return self._requested_version
 
-            self._remote_version_str = self._requested_version
-            self._remote_version = version_tuple_from_str(
-                self._requested_version
+        if self._remote_root == descriptors.DEFAULT_REMOTE_ROOT:
+            # last_versions.conf only lists atlases on the BrainGlobe bucket.
+            released = get_all_atlases_lastversions().get(self.atlas_name)
+            if released is None:
+                raise FileNotFoundError(
+                    f"{self.atlas_name} has no released version available. "
+                    "Specify a version explicitly to download it."
+                )
+            return str(released).replace(".", "_")
+
+        # Skip anything that isn't a version folder, e.g. a README.
+        versions = [
+            f for f in folders if re.fullmatch(_VERSION_FOLDER_PATTERN, f)
+        ]
+        if not versions:
+            raise FileNotFoundError(
+                f"{self.atlas_name} is not a valid atlas name!"
             )
-
-        return self._remote_version
+        return get_latest_version(versions)
 
     def download(self):
         """Download and extract the atlas files from remote storage.
@@ -452,9 +437,7 @@ class BrainGlobeAtlas(
         if not self._is_reachable(self._remote_root):
             check_s3_status(remote_root=self._remote_root)
 
-        # Ensure remote_version has been resolved so the folder name is set.
-        _ = self.remote_version
-        remote_version_str = self._remote_version_str
+        remote_version_str = self._resolve_remote_version()
         key_name = (
             f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
             f"{remote_version_str}/manifest.json"
@@ -656,11 +639,11 @@ class BrainGlobeAtlas(
         -------
         Optional[bool]
             Returns False if the local version is not the latest,
-            True if it is, and None if we are offline.
+            True if it is, and None if offline or not on the remote.
         """
         # Cache remote version to avoid multiple requests
         remote_version = self.remote_version
-        # If we are offline, return None
+        # Offline, or the remote does not have this atlas
         if remote_version is None:
             return None
 

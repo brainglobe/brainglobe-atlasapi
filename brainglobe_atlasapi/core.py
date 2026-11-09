@@ -102,8 +102,9 @@ class Atlas(Generic[AtlasArray]):
     path : str or Path object
         Path to folder containing data info.
     resolution : float or None
-        Requested isotropic resolution, in micrometres. Defaults to the
-        finest declared scale for manifests offering several.
+        Requested resolution, in micrometres: the first axis of a
+        non-isotropic atlas, e.g. 16 for 16 x 16 x 20 um. Defaults to the
+        finest available for manifests offering several.
     remote_root : str
         Remote root to fetch data from; defaults to the BrainGlobe bucket.
     dask : bool

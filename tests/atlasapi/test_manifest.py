@@ -291,58 +291,83 @@ def test_brainglobe_manifest_passes_through(brainglobe_manifest):
 
 
 def test_resolution_defaults_to_finest_for_multi_scale(
-    atlas_assets_manifest, capsys
+    atlas_assets_atlas, atlas_assets_manifest, capsys
 ):
     """A multi-scale atlas with no resolution picks the finest, and says so.
 
-    As in the single-scale test below, there is no zarr store on disk, so
-    execution fails at the read that follows the resolution choice.
-
     Parameters
     ----------
+    atlas_assets_atlas : BrainGlobeAtlas
+        Shared atlas-assets atlas fixture.
     atlas_assets_manifest : dict
         atlas-assets manifest fixture.
     capsys : pytest.CaptureFixture
         Captures the printed note.
     """
-    with pytest.raises(FileNotFoundError):
-        manifest.normalize_manifest(atlas_assets_manifest, None, Path("."))
+    result = manifest.normalize_manifest(
+        atlas_assets_manifest, None, atlas_assets_atlas.root_dir
+    )
+    assert result["resolution"] == [10.0, 10.0, 10.0]
     printed = capsys.readouterr().out
     assert "finest, 10 um" in printed
     assert "resolution=" in printed
 
 
-def test_resolution_defaulted_for_single_scale(atlas_assets_manifest):
-    """A single-scale atlas-assets manifest defaults resolution.
-
-    The zarr read that follows resolution selection needs a real store
-    on disk, which this test does not provide, so it can only exercise
-    the scales-defaulting decision itself: a single-scale manifest with
-    resolution=None must not raise, proving resolution was defaulted
-    rather than left unset. Execution then reaches the (missing) zarr
-    store and fails for that unrelated reason instead.
+def test_resolution_defaulted_for_single_scale(anisotropic_atlas, capsys):
+    """A single-scale atlas defaults its resolution, with no note to print.
 
     Parameters
     ----------
-    atlas_assets_manifest : dict
-        atlas-assets manifest fixture.
+    anisotropic_atlas : BrainGlobeAtlas
+        Shared single-scale atlas fixture.
+    capsys : pytest.CaptureFixture
+        Captures any printed note.
     """
-    atlas_assets_manifest["annotation_sets"][0]["scales"] = [25]
-    with pytest.raises(FileNotFoundError):
-        manifest.normalize_manifest(atlas_assets_manifest, None, Path("."))
+    result = manifest.normalize_manifest(
+        _raw_manifest(anisotropic_atlas), None, anisotropic_atlas.root_dir
+    )
+    assert result["resolution"] == [16.0, 16.0, 20.0]
+    assert capsys.readouterr().out == ""
 
 
-def test_resolution_must_be_an_available_scale(atlas_assets_manifest):
-    """An unavailable resolution fails loudly.
+def test_resolution_must_be_an_available_scale(
+    atlas_assets_atlas, atlas_assets_manifest
+):
+    """An unavailable resolution fails loudly, listing the available ones.
 
     Parameters
     ----------
+    atlas_assets_atlas : BrainGlobeAtlas
+        Shared atlas-assets atlas fixture.
     atlas_assets_manifest : dict
         atlas-assets manifest fixture.
     """
     with pytest.raises(ValueError) as error:
-        manifest.normalize_manifest(atlas_assets_manifest, 37, Path("."))
+        manifest.normalize_manifest(
+            atlas_assets_manifest, 37, atlas_assets_atlas.root_dir
+        )
     assert "37" in str(error.value)
+    assert "10.0" in str(error.value)
+
+
+def test_anisotropic_resolution_is_the_first_axis(anisotropic_atlas):
+    """A 16 x 16 x 20 um atlas is the 16 um one, as on BrainGlobe atlases.
+
+    The manifest labels it 20, which is not accepted: BrainGlobe's own
+    ``admba_3d_e11_5_mouse_16um`` has these voxels and rejects 20 too.
+
+    Parameters
+    ----------
+    anisotropic_atlas : BrainGlobeAtlas
+        Shared non-isotropic atlas fixture.
+    """
+    assert anisotropic_atlas.resolution == (16.0, 16.0, 20.0)
+
+    raw = _raw_manifest(anisotropic_atlas)
+    result = manifest.normalize_manifest(raw, 16, anisotropic_atlas.root_dir)
+    assert result["resolution"] == [16.0, 16.0, 20.0]
+    with pytest.raises(ValueError, match="Available resolutions"):
+        manifest.normalize_manifest(raw, 20, anisotropic_atlas.root_dir)
 
 
 def test_resolution_rejected_when_it_contradicts_manifest(brainglobe_manifest):

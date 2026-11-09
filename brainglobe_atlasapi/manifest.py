@@ -134,17 +134,44 @@ def _orientation_from_axes(ome_attrs: dict) -> str:
     return "".join(letters)
 
 
+def _voxel_sizes(ome_attrs: dict) -> list:
+    """Return the voxel size of each pyramid level, in micrometres.
+
+    Parameters
+    ----------
+    ome_attrs : dict
+        The ``attributes.ome`` block of a zarr group.
+
+    Returns
+    -------
+    list of list of float
+        One ``[z, y, x]`` entry per level, in storage order.
+    """
+    return [
+        [
+            round(float(scale) * 1000, 6)
+            for scale in _scale_from_transforms(
+                dataset["coordinateTransformations"]
+            )[-3:]
+        ]
+        for dataset in ome_attrs["multiscales"][0]["datasets"]
+    ]
+
+
 def _pyramid_level_from_attrs(
     ome_attrs: dict, resolution: float
 ) -> Tuple[int, str]:
     """Find the pyramid level matching a resolution in micrometres.
+
+    As on BrainGlobe atlases, a level's resolution is its first axis: a
+    16 x 16 x 20 um level is the 16 um one.
 
     Parameters
     ----------
     ome_attrs : dict
         The ``attributes.ome`` block of a zarr group.
     resolution : float
-        Requested isotropic resolution, in micrometres.
+        Requested resolution, in micrometres.
 
     Returns
     -------
@@ -157,15 +184,14 @@ def _pyramid_level_from_attrs(
         If no level matches the requested resolution.
     """
     datasets = ome_attrs["multiscales"][0]["datasets"]
-    for index, dataset in enumerate(datasets):
-        scales = _scale_from_transforms(dataset["coordinateTransformations"])[
-            -3:
-        ]
-        if all(np.isclose(resolution / 1000, scale) for scale in scales):
-            return index, dataset["path"]
+    first_axes = [voxel_size[0] for voxel_size in _voxel_sizes(ome_attrs)]
+    for index, first_axis in enumerate(first_axes):
+        if np.isclose(resolution, first_axis):
+            return index, datasets[index]["path"]
 
     raise ValueError(
-        f"Requested resolution {resolution} um is invalid for this atlas."
+        f"Requested resolution {resolution} um is invalid for this atlas. "
+        f"Available resolutions: {first_axes}."
     )
 
 
@@ -216,8 +242,9 @@ def normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     raw : dict
         Parsed atlas ``manifest.json``.
     resolution : float or None
-        Requested isotropic resolution, in micrometres. Defaults to the
-        finest declared scale, with a printed note when there is more
+        Requested resolution, in micrometres: the first axis of a
+        non-isotropic atlas, e.g. 16 for 16 x 16 x 20 um. Defaults to the
+        finest available, with a printed note when there is more
         than one to choose from; if the manifest has a single fixed
         resolution instead (a BrainGlobe manifest), a mismatching value
         raises.
@@ -232,7 +259,7 @@ def normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     Raises
     ------
     ValueError
-        If ``resolution`` does not match one of the declared scales.
+        If ``resolution`` matches no available pyramid level.
     """
     if isinstance(raw.get("templates"), list):
         return _normalize_atlas_assets(raw, resolution, root_dir)
@@ -262,8 +289,8 @@ def _normalize_atlas_assets(raw: dict, resolution, root_dir: Path) -> dict:
     raw : dict
         Parsed atlas ``manifest.json``.
     resolution : float or None
-        Requested isotropic resolution, in micrometres, or None for the
-        finest declared scale.
+        Requested resolution, in micrometres, or None for the finest
+        available. Compared against the first axis of each pyramid level.
     root_dir : Path
         Local cache namespace directory holding the downloaded assets.
 
@@ -275,30 +302,26 @@ def _normalize_atlas_assets(raw: dict, resolution, root_dir: Path) -> dict:
     Raises
     ------
     ValueError
-        If ``resolution`` does not match one of the declared scales.
+        If ``resolution`` matches no available pyramid level.
     """
     annotation_set = raw["annotation_sets"][0]
-    scales = annotation_set.get("scales", [])
-
-    if resolution is None:
-        resolution = min(scales)
-        if len(scales) > 1:
-            print(
-                f"Atlas {raw['name']} provides resolutions {scales} um and "
-                f"none was requested, so using the finest, {resolution} um. "
-                "Pass resolution= to choose another."
-            )
-    if not any(np.isclose(resolution, scale) for scale in scales):
-        raise ValueError(
-            f"Resolution {resolution} um is not available for "
-            f"{raw['name']}. Available scales: {scales}."
-        )
-
     annotation_location = annotation_set["location"][1:]
     annotation_path = root_dir / annotation_location / V3_ANNOTATION_NAME
     annotation_group = zarr.open_group(str(annotation_path), mode="r")
     ome_attrs = annotation_group.attrs["ome"]
-    _, dataset_path = _pyramid_level_from_attrs(ome_attrs, resolution)
+    voxel_sizes = _voxel_sizes(ome_attrs)
+
+    if resolution is None:
+        first_axes = [voxel_size[0] for voxel_size in voxel_sizes]
+        resolution = min(first_axes)
+        if len(first_axes) > 1:
+            print(
+                f"Atlas {raw['name']} provides resolutions {first_axes} um "
+                f"and none was requested, so using the finest, "
+                f"{resolution:g} um. Pass resolution= to choose another."
+            )
+
+    level, dataset_path = _pyramid_level_from_attrs(ome_attrs, resolution)
     shape = annotation_group[dataset_path].shape
 
     return {
@@ -310,7 +333,7 @@ def _normalize_atlas_assets(raw: dict, resolution, root_dir: Path) -> dict:
         "atlas_link": None,
         "species": _species_from_name(raw["name"]),
         "symmetric": True,
-        "resolution": [float(resolution)] * 3,
+        "resolution": voxel_sizes[level],
         "orientation": _orientation_from_axes(ome_attrs),
         "shape": list(shape[-3:]),
         "additional_references": [],

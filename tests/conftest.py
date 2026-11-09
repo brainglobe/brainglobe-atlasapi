@@ -128,6 +128,21 @@ def atlas_assets_atlas():
     return _cached_atlas("allen-adult-mouse-ccf-atlas", resolution=100)
 
 
+@pytest.fixture(scope="session")
+def anisotropic_atlas():
+    """Provide a non-isotropic atlas, shared by the whole test session.
+
+    Tests must treat it as read-only.
+
+    Returns
+    -------
+    BrainGlobeAtlas
+        An instance of 'allen-dev-mouse-e11pt5-nissl-atlas', whose voxels
+        are 16 x 16 x 20 um.
+    """
+    return _cached_atlas("allen-dev-mouse-e11pt5-nissl-atlas")
+
+
 @pytest.fixture()
 def asymmetric_atlas():
     """Provide an asymmetric BrainGlobeAtlas instance.

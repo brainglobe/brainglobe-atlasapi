@@ -1,5 +1,6 @@
 """Test the BrainGlobeAtlas class."""
 
+import pathlib
 import shutil
 from unittest.mock import MagicMock, PropertyMock, patch
 
@@ -204,3 +205,73 @@ def test_local_search(tmpdir):
         brainglobe_dir=temp_brainglobe_dir,
     )
     assert atlas.local_full_name == f"{atlas_root}/{new_version}/manifest.json"
+
+
+def _atlas_to_download(tmp_path, fs_get):
+    """Create a bare BrainGlobeAtlas whose remote ``fs.get`` is ``fs_get``."""
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.atlas_name = "example_mouse_100um"
+    atlas.brainglobe_dir = tmp_path
+    atlas._remote_version = (1, 0)
+    atlas._requested_version = None
+    atlas._local_full_name = None
+    atlas.fs = MagicMock()
+    atlas.fs.get.side_effect = fs_get
+    return atlas
+
+
+def _fs_get_failing_on_call(n_call, error):
+    """Return a fake ``fs.get`` that writes files, but raises on call n."""
+    calls = []
+
+    def fs_get(remote, local, *args, **kwargs):
+        calls.append(local)
+        local = pathlib.Path(local)
+        local.parent.mkdir(parents=True, exist_ok=True)
+        local.write_text("{}")
+        if len(calls) == n_call:
+            raise error
+
+    return fs_get
+
+
+MANIFEST_METADATA = {
+    "terminology": {"location": "/atlases/terminology/1_0", "name": "terms"},
+}
+
+
+@pytest.mark.parametrize(
+    "n_call, error",
+    [
+        (1, KeyboardInterrupt()),  # interrupted while fetching the manifest
+        (2, KeyboardInterrupt()),  # interrupted while fetching other files
+        (2, ConnectionError("network dropped")),
+    ],
+    ids=["interrupt-manifest", "interrupt-files", "connection-error"],
+)
+def test_download_removes_manifest_when_interrupted_or_failed(
+    tmp_path, n_call, error
+):
+    """A failed or interrupted download must not leave a manifest behind.
+
+    The manifest is what marks an atlas as installed, so keeping it after an
+    incomplete download leaves a broken atlas that is never downloaded again.
+    This includes Ctrl+C, which raises KeyboardInterrupt.
+    """
+    atlas = _atlas_to_download(
+        tmp_path, _fs_get_failing_on_call(n_call, error)
+    )
+    manifest = tmp_path / "atlases/example_mouse_100um/1_0/manifest.json"
+
+    with (
+        patch.object(brainglobe_atlasapi.bg_atlas, "check_s3_status"),
+        patch.object(
+            brainglobe_atlasapi.bg_atlas,
+            "read_json",
+            return_value=MANIFEST_METADATA,
+        ),
+        pytest.raises(type(error)),
+    ):
+        atlas.download()
+
+    assert not manifest.exists()

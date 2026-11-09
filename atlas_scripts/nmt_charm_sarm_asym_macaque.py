@@ -1,4 +1,7 @@
-"""Atlas generation script for the asymmetric NMT CHARM and SARM atlases."""
+"""Atlas generation script for the asymmetric NMT CHARM and SARM atlases.
+
+The symmetric variants reuse this module via ``create_atlases("sym")``.
+"""
 
 import re
 from pathlib import Path
@@ -38,53 +41,60 @@ ROOT_ID = 9999
 RESOLUTION = 250  # microns
 ATLAS_PACKAGER = "Amirreza Bahramani"
 
-NMT_ASYM_URL = (
-    "https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/"
-    "NMT_v2.1_asym.tgz"
-)
-NMT_ASYM_HASH = (
-    "sha256:bc217d4c1b518f69b33149fd4637622dad5455ad8d69abd22dee1b36caeb9daf"
-)
-
-NMT_REFERENCE_FILENAME = "NMT_v2.1_asym_fh.nii.gz"
-NMT_SKULL_STRIPPED_FILENAME = "NMT_v2.1_asym_fh_SS.nii.gz"
-NMT_HEMISPHERE_MASK_FILENAME = "NMT_v2.1_asym_fh_LR_brainmask.nii.gz"
+NMT_BASE_URL = "https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/"
+NMT_HASHES = {
+    "asym": (
+        "sha256:"
+        "bc217d4c1b518f69b33149fd4637622dad5455ad8d69abd22dee1b36caeb9daf"
+    ),
+    "sym": (
+        "sha256:"
+        "35c8770f050403a8e77416521116131fddeead82c732f929fd70e1b0f0ddb51c"
+    ),
+}
 ATLAS_MESH_RE = re.compile(r"^(CHARM|SARM)_(\d+)\.(.+)\.k(\d+)\.gii$")
 HEMISPHERE_PREFIX_RE = re.compile(r"^(C[LR]|S[LR])_")
 
-# Both atlases use the full-head NMT v2.1 template already published with ARM.
-TEMPLATE_INFO = {
-    "name": "nmt_arm_asym_macaque-template",
-    "version": "3.0",
-    "use_existing": True,
-}
-SKULL_STRIPPED_TEMPLATE_INFO = {
-    "name": "nmt_arm_asym_macaque-skull_stripped-template",
-    "version": "3.0",
-    "use_existing": True,
-}
-COORDINATE_SPACE_INFO = {
-    "name": "nmt_arm_asym_macaque-space",
-    "version": "3.0",
-    "use_existing": True,
-}
+
+def published_component_info(variant: str, component: str) -> dict:
+    """Describe a component already published with the matching ARM atlas.
+
+    Both CHARM and SARM use the full-head NMT v2.1 template and coordinate
+    space already published with ARM for the same (a)symmetric variant.
+    """
+    return {
+        "name": f"nmt_arm_{variant}_macaque-{component}",
+        "version": "3.0",
+        "use_existing": True,
+    }
 
 
-def download_resources(working_dir: Path) -> Path:
-    """Download and extract the asymmetric NMT v2.1 dataset."""
+def full_head_dir(nmt_dir: Path) -> Path:
+    """Return the full-head template directory, e.g. ``NMT_v2.1_sym_fh``."""
+    return nmt_dir / f"{nmt_dir.name}_fh"
+
+
+def surfaces_dir(nmt_dir: Path) -> Path:
+    """Return the surfaces directory, e.g. ``NMT_v2.1_sym_surfaces``."""
+    return nmt_dir / f"{nmt_dir.name}_surfaces"
+
+
+def download_resources(working_dir: Path, variant: str = "asym") -> Path:
+    """Download and extract the asymmetric or symmetric NMT v2.1 dataset."""
     download_dir = working_dir / "downloads"
     download_dir.mkdir(parents=True, exist_ok=True)
+    dataset_name = f"NMT_v2.1_{variant}"
 
     pooch.retrieve(
-        url=NMT_ASYM_URL,
-        known_hash=NMT_ASYM_HASH,
+        url=f"{NMT_BASE_URL}{dataset_name}.tgz",
+        known_hash=NMT_HASHES[variant],
         path=download_dir,
-        fname="NMT_v2.1_asym.tgz",
-        processor=pooch.Untar(extract_dir="NMT_v2.1_asym"),
+        fname=f"{dataset_name}.tgz",
+        processor=pooch.Untar(extract_dir=dataset_name),
         progressbar=True,
     )
 
-    return download_dir / "NMT_v2.1_asym" / "NMT_v2.1_asym"
+    return download_dir / dataset_name / dataset_name
 
 
 def build_id_mappings(atlas_table: pd.DataFrame) -> dict[int, int]:
@@ -134,9 +144,9 @@ def retrieve_reference_and_annotation(
     nmt_dir: Path,
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Load the shared NMT reference and both merged finest annotations."""
-    full_head_dir = nmt_dir / "NMT_v2.1_asym_fh"
+    fh_dir = full_head_dir(nmt_dir)
     reference = load_nii(
-        full_head_dir / NMT_REFERENCE_FILENAME,
+        fh_dir / f"{fh_dir.name}.nii.gz",
         as_array=True,
     )
     reference = normalize_to_uint16(reference)
@@ -144,9 +154,9 @@ def retrieve_reference_and_annotation(
     annotations = {}
     for atlas_kind in ATLAS_KINDS:
         annotation = load_nii(
-            full_head_dir
+            fh_dir
             / f"supplemental_{atlas_kind}"
-            / f"{atlas_kind}_6_in_NMT_v2.1_asym_fh.nii.gz",
+            / f"{atlas_kind}_6_in_{fh_dir.name}.nii.gz",
             as_array=True,
         ).astype(np.uint32)
         atlas_table = pd.read_csv(
@@ -163,24 +173,27 @@ def retrieve_reference_and_annotation(
 
 def retrieve_additional_references(
     nmt_dir: Path,
+    variant: str = "asym",
 ) -> list[tuple[dict, np.ndarray]]:
     """Load the skull-stripped reference and reuse its published component."""
+    fh_dir = full_head_dir(nmt_dir)
     skull_stripped = load_nii(
-        nmt_dir / "NMT_v2.1_asym_fh" / NMT_SKULL_STRIPPED_FILENAME,
+        fh_dir / f"{fh_dir.name}_SS.nii.gz",
         as_array=True,
     )
     skull_stripped = normalize_to_uint16(skull_stripped)
+    template_info = published_component_info(
+        variant, "skull_stripped-template"
+    )
 
-    return [(SKULL_STRIPPED_TEMPLATE_INFO, skull_stripped)]
+    return [(template_info, skull_stripped)]
 
 
 def retrieve_hemisphere_map(nmt_dir: Path) -> np.ndarray:
     """Load the full-head left/right mask in BrainGlobe convention."""
+    fh_dir = full_head_dir(nmt_dir)
     source_hemispheres = load_nii(
-        nmt_dir
-        / "NMT_v2.1_asym_fh"
-        / "supplemental_masks"
-        / NMT_HEMISPHERE_MASK_FILENAME,
+        fh_dir / "supplemental_masks" / f"{fh_dir.name}_LR_brainmask.nii.gz",
         as_array=True,
     )
     hemispheres = np.zeros_like(source_hemispheres, dtype=np.uint8)
@@ -251,7 +264,7 @@ def retrieve_structure_information(
         }
     else:
         rgb_triplets = read_sarm_colours(
-            nmt_dir / "NMT_v2.1_asym_surfaces" / "atlases" / "SARM",
+            surfaces_dir(nmt_dir) / "atlases" / "SARM",
             source_to_canonical,
         )
 
@@ -388,8 +401,9 @@ def retrieve_or_construct_meshes(
     annotation_volume: np.ndarray,
 ) -> dict[int, Path]:
     """Construct the atlas root and convert supplied regional GIFTI meshes."""
-    reference_path = nmt_dir / "NMT_v2.1_asym_fh" / NMT_REFERENCE_FILENAME
-    surfaces_dir = nmt_dir / "NMT_v2.1_asym_surfaces"
+    fh_dir = full_head_dir(nmt_dir)
+    reference_path = fh_dir / f"{fh_dir.name}.nii.gz"
+    nmt_surfaces_dir = surfaces_dir(nmt_dir)
     output_mesh_dir = working_dir / "meshes"
     output_mesh_dir.mkdir(parents=True, exist_ok=True)
 
@@ -407,8 +421,8 @@ def retrieve_or_construct_meshes(
     root_mesh_path = output_mesh_dir / f"{ROOT_ID}.obj"
     if atlas_kind == "CHARM":
         cortex_surface_paths = [
-            surfaces_dir / "lh.gray_surface.rsl.gii",
-            surfaces_dir / "rh.gray_surface.rsl.gii",
+            nmt_surfaces_dir / "lh.gray_surface.rsl.gii",
+            nmt_surfaces_dir / "rh.gray_surface.rsl.gii",
         ]
         meshes_dict[ROOT_ID] = write_combined_gifti_mesh(
             mesh_paths=cortex_surface_paths,
@@ -428,7 +442,7 @@ def retrieve_or_construct_meshes(
 
     print(f"Converting {atlas_kind} GIFTI meshes to merged OBJ files")
     mesh_sources = collect_source_meshes(
-        surfaces_dir=surfaces_dir,
+        surfaces_dir=nmt_surfaces_dir,
         atlas_kind=atlas_kind,
         source_to_canonical=source_to_canonical,
         structure_ids=structure_ids,
@@ -444,21 +458,32 @@ def retrieve_or_construct_meshes(
     return meshes_dict
 
 
-if __name__ == "__main__":
+def create_atlases(variant: str = "asym", minor_version: int = __version__):
+    """Package the CHARM and SARM atlases for one NMT v2.1 variant.
+
+    ``variant`` is ``"asym"`` or ``"sym"``. Symmetric atlases are packaged
+    without a hemisphere map.
+    """
     bg_root_dir = (
-        Path.home() / "brainglobe_workingdir" / "nmt_charm_sarm_asym_macaque"
+        Path.home()
+        / "brainglobe_workingdir"
+        / f"nmt_charm_sarm_{variant}_macaque"
     )
     bg_root_dir.mkdir(parents=True, exist_ok=True)
 
-    nmt_dir = download_resources(bg_root_dir)
+    nmt_dir = download_resources(bg_root_dir, variant)
     reference_volume, annotation_volumes = retrieve_reference_and_annotation(
         nmt_dir
     )
-    additional_references = retrieve_additional_references(nmt_dir)
-    hemispheres_stack = retrieve_hemisphere_map(nmt_dir)
+    additional_references = retrieve_additional_references(nmt_dir, variant)
+    hemispheres_stack = (
+        retrieve_hemisphere_map(nmt_dir) if variant == "asym" else None
+    )
+    template_info = published_component_info(variant, "template")
+    coordinate_space_info = published_component_info(variant, "space")
 
     for atlas_kind in ATLAS_KINDS:
-        atlas_name = f"nmt_{atlas_kind.lower()}_asym_macaque"
+        atlas_name = f"nmt_{atlas_kind.lower()}_{variant}_macaque"
         mesh_working_dir = bg_root_dir / atlas_name
         annotation_volume = annotation_volumes[atlas_kind]
         structures = retrieve_structure_information(nmt_dir, atlas_kind)
@@ -475,7 +500,7 @@ if __name__ == "__main__":
 
         output_directory = wrapup_atlas_from_data(
             atlas_name=atlas_name,
-            atlas_minor_version=__version__,
+            atlas_minor_version=minor_version,
             citation=citation,
             atlas_link=ATLAS_LINK,
             species=SPECIES,
@@ -488,8 +513,8 @@ if __name__ == "__main__":
             meshes_dict=meshes_dict,
             working_dir=bg_root_dir,
             hemispheres_stack=hemispheres_stack,
-            template_info=TEMPLATE_INFO,
-            coordinate_space_info=COORDINATE_SPACE_INFO,
+            template_info=template_info,
+            coordinate_space_info=coordinate_space_info,
             scale_meshes=True,
             atlas_packager=ATLAS_PACKAGER,
             additional_references=additional_references,
@@ -497,3 +522,7 @@ if __name__ == "__main__":
         )
 
         print("Packaged atlas:", output_directory)
+
+
+if __name__ == "__main__":
+    create_atlases("asym")

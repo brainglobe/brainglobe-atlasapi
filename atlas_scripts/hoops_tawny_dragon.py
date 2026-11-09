@@ -20,7 +20,7 @@ from brainglobe_atlasapi.atlas_generation.mesh_utils import (
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-__version__ = 1
+__version__ = 2
 ATLAS_NAME = "hoops_tawny_dragon"
 CITATION = "https://doi.org/10.1007/s00429-021-02282-z"
 SPECIES = "Ctenophorus decresii"
@@ -28,7 +28,7 @@ ATLAS_LINK = "https://osf.io/ujenq"
 ATLAS_PACKAGER = "Jung Woo Kim"
 ORIENTATION = "ila"
 ROOT_ID = 999
-RESOLUTION = 50
+RESOLUTION = 20
 
 SKIP_DOWNLOADS_IF_PRESENT = True
 

@@ -1,7 +1,7 @@
 """Test the BrainGlobeAtlas class."""
 
 import shutil
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -21,6 +21,83 @@ def test_remote_version_connection_error():
     ):
         atlas = object.__new__(BrainGlobeAtlas)
         atlas._remote_version = None
+        assert atlas.remote_version is None
+
+
+def _atlas_for_remote_version(
+    atlas_name, brainglobe_dir, local_full_name=None
+):
+    """Create a bare BrainGlobeAtlas with a mocked filesystem."""
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas.atlas_name = atlas_name
+    atlas.brainglobe_dir = brainglobe_dir
+    atlas._remote_version = None
+    atlas._requested_version = None
+    atlas._local_full_name = local_full_name
+    atlas.fs = MagicMock()
+    atlas.fs.exists.return_value = True
+    # An in-progress version is present on the remote
+    atlas.fs.ls.return_value = [
+        f"brainglobe/atlas/atlases/{atlas_name}/1_0",
+        f"brainglobe/atlas/atlases/{atlas_name}/2_0",
+    ]
+    return atlas
+
+
+def test_remote_version_uses_last_versions_conf(tmp_path):
+    """Test the latest remote version comes from last_versions.conf,
+    ignoring newer versions on the remote that are not yet released.
+    """
+    atlas = _atlas_for_remote_version("example_mouse_100um", tmp_path)
+    with (
+        patch.object(
+            brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
+        ),
+        patch.object(
+            brainglobe_atlasapi.bg_atlas,
+            "get_all_atlases_lastversions",
+            return_value={"example_mouse_100um": "1.0"},
+        ),
+    ):
+        assert atlas.remote_version == (1, 0)
+
+
+def test_remote_version_unreleased_atlas(tmp_path):
+    """Test an atlas absent from last_versions.conf is not fetched."""
+    atlas = _atlas_for_remote_version("example_mouse_100um", tmp_path)
+    with (
+        patch.object(
+            brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
+        ),
+        patch.object(
+            brainglobe_atlasapi.bg_atlas,
+            "get_all_atlases_lastversions",
+            return_value={},
+        ),
+    ):
+        with pytest.raises(FileNotFoundError, match="no released version"):
+            atlas.remote_version
+
+
+def test_remote_version_unreleased_atlas_local(tmp_path):
+    """Test an atlas absent from last_versions.conf but available locally
+    returns no remote version.
+    """
+    atlas = _atlas_for_remote_version(
+        "example_mouse_100um",
+        tmp_path,
+        local_full_name="atlases/example_mouse_100um/2_0/manifest.json",
+    )
+    with (
+        patch.object(
+            brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
+        ),
+        patch.object(
+            brainglobe_atlasapi.bg_atlas,
+            "get_all_atlases_lastversions",
+            return_value={},
+        ),
+    ):
         assert atlas.remote_version is None
 
 

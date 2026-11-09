@@ -242,7 +242,6 @@ if __name__ == "__main__":
     )
 
     output_filename = wrapup_atlas_from_data(
-        atlas_packager=ATLAS_PACKAGER,
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,

@@ -6,11 +6,10 @@ annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
+import json
 from pathlib import Path
 
-import json
 import numpy as np
-import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_any
 
@@ -54,6 +53,7 @@ TMBTA_LABELS_FNAME = "TMBTAlabels4FeBls.txt"
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
+
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
 
@@ -74,6 +74,7 @@ def hex_to_rgb(hex):
 
     return rgb
 
+
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
@@ -82,9 +83,8 @@ def download_resources():
     atlas_path = DOWNLOAD_DIR_PATH / ATLAS_FNAME
     allen_labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
 
-    needs_download = (
-        (not atlas_path.exists())
-        or (not allen_labels_path.exists())
+    needs_download = (not atlas_path.exists()) or (
+        not allen_labels_path.exists()
     )
     if needs_download:
         utils.check_internet_connection()
@@ -281,5 +281,5 @@ if __name__ == "__main__":
         additional_references=None,
         atlas_packager=ATLAS_PACKAGER,
         scale_meshes=True,
-        overwrite=True, 
+        overwrite=True,
     )

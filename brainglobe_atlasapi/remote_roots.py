@@ -138,6 +138,7 @@ def resolve_remote_root(
             if fs.ls(f"{remote_root}/{V3_ATLAS_ROOTDIR}/{atlas_name}"):
                 return remote_root
         except FileNotFoundError:
+            # Not on this root (ls may raise or return []): try the next.
             pass
 
     if not searched:

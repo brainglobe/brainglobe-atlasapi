@@ -1,7 +1,5 @@
 """Test the command line interface for brainglobe_atlasapi."""
 
-from unittest.mock import MagicMock
-
 import pytest
 from click.testing import CliRunner
 
@@ -98,18 +96,17 @@ def test_cli_incorrect_command():
 
 
 @pytest.mark.parametrize("command", ["install", "update"])
-def test_remote_root_is_passed_on(command, monkeypatch):
+def test_remote_root_is_passed_on(command, mocker):
     """--remote_root reaches install_atlas/update_atlas unchanged.
 
     Parameters
     ----------
     command : str
         CLI command under test.
-    monkeypatch : pytest.MonkeyPatch
-        Used to replace the command's implementation with a spy.
+    mocker : pytest_mock.MockerFixture
+        Used to replace the command's implementation with a mock.
     """
-    spy = MagicMock()
-    monkeypatch.setattr(cli, f"{command}_atlas", spy)
+    mock = mocker.patch.object(cli, f"{command}_atlas")
 
     result = CliRunner().invoke(
         cli.bg_cli,
@@ -124,4 +121,5 @@ def test_remote_root_is_passed_on(command, monkeypatch):
     )
 
     assert result.exit_code == 0
-    assert spy.call_args.kwargs["remote_root"] == "s3://bucket/prefix"
+    mock.assert_called_once()
+    assert mock.call_args.kwargs["remote_root"] == "s3://bucket/prefix"

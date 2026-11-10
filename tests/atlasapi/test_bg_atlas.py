@@ -2,7 +2,7 @@
 
 import shutil
 from types import SimpleNamespace
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -28,7 +28,7 @@ def test_remote_version_connection_error():
         assert atlas.remote_version is None
 
 
-def test_remote_version_missing_from_assumed_root():
+def test_remote_version_missing_from_assumed_root(mocker):
     """A cached atlas whose assumed root doesn't host it fails cleanly.
 
     Regression test: root resolution is skipped when the atlas is already
@@ -48,17 +48,15 @@ def test_remote_version_missing_from_assumed_root():
     atlas.atlas_name = "not_actually_here"
     atlas.fs = SimpleNamespace(ls=lambda path: [])
 
-    with patch.object(
+    mocker.patch.object(
         brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
-    ):
-        assert atlas.remote_version is None
-        with pytest.raises(
-            FileNotFoundError, match="is not a valid atlas name!"
-        ):
-            atlas._resolve_remote_version()
+    )
+    assert atlas.remote_version is None
+    with pytest.raises(FileNotFoundError, match="is not a valid atlas name!"):
+        atlas._resolve_remote_version()
 
 
-def test_remote_version_carries_dashed_folder_string():
+def test_remote_version_carries_dashed_folder_string(mocker):
     """A dashed atlas-assets folder name is carried through verbatim.
 
     Regression test: ``remote_version`` must record the resolved S3
@@ -76,15 +74,14 @@ def test_remote_version_carries_dashed_folder_string():
         ls=lambda path: [f"{path}/2017", f"{path}/2024-05"],
     )
 
-    with patch.object(
+    mocker.patch.object(
         brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
-    ):
-        assert atlas.remote_version == (2024, 5)
-
+    )
+    assert atlas.remote_version == (2024, 5)
     assert atlas._remote_version_str == "2024-05"
 
 
-def test_remote_version_ignores_non_version_entries():
+def test_remote_version_ignores_non_version_entries(mocker):
     """Stray files next to the version folders are not parsed as versions."""
     atlas = object.__new__(BrainGlobeAtlas)
     atlas._remote_version_str = None
@@ -96,10 +93,10 @@ def test_remote_version_ignores_non_version_entries():
         ls=lambda path: [f"{path}/2017", f"{path}/README.md", f"{path}/tmp"],
     )
 
-    with patch.object(
+    mocker.patch.object(
         brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
-    ):
-        assert atlas.remote_version == (2017,)
+    )
+    assert atlas.remote_version == (2017,)
 
 
 def _atlas_for_remote_version(
@@ -186,7 +183,7 @@ def test_remote_version_unreleased_atlas(tmp_path, local_full_name):
         pytest.param("3_0", None, id="not on remote"),
     ],
 )
-def test_remote_version_requested(tmp_path, requested, expected):
+def test_remote_version_requested(tmp_path, requested, expected, mocker):
     """Test a requested version is taken from the remote folder listing.
 
     Parameters
@@ -197,16 +194,18 @@ def test_remote_version_requested(tmp_path, requested, expected):
         Requested version folder name.
     expected : tuple or None
         The expected remote version.
+    mocker : pytest_mock.MockerFixture
+        Used to stub the S3 status check.
     """
     atlas = _atlas_for_remote_version("example_mouse_100um", tmp_path)
     atlas._requested_version = requested
-    with patch.object(
+    mocker.patch.object(
         brainglobe_atlasapi.bg_atlas, "check_s3_status", return_value=True
-    ):
-        assert atlas.remote_version == expected
-        if expected is None:
-            with pytest.raises(FileNotFoundError, match="not found in remote"):
-                atlas._resolve_remote_version()
+    )
+    assert atlas.remote_version == expected
+    if expected is None:
+        with pytest.raises(FileNotFoundError, match="not found in remote"):
+            atlas._resolve_remote_version()
 
 
 @pytest.mark.parametrize(
@@ -218,7 +217,9 @@ def test_remote_version_requested(tmp_path, requested, expected):
         pytest.param("1_0", None, None, id="no remote version"),
     ],
 )
-def test_check_latest_version_local(local_folder, remote_folder, expected):
+def test_check_latest_version_local(
+    local_folder, remote_folder, expected, mocker
+):
     """Test `check_latest_version` compares version folder names exactly.
 
     Parameters
@@ -229,22 +230,24 @@ def test_check_latest_version_local(local_folder, remote_folder, expected):
         The remote version folder name, or None when offline.
     expected : bool or None
         The expected result of `check_latest_version`.
+    mocker : pytest_mock.MockerFixture
+        Used to stub the ``remote_version`` property.
     """
     remote_version = (
         None
         if remote_folder is None
         else bg_atlas.version_tuple_from_str(remote_folder)
     )
-    with patch.object(
+    mocker.patch.object(
         BrainGlobeAtlas,
         "remote_version",
-        new_callable=PropertyMock,
+        new_callable=mocker.PropertyMock,
         return_value=remote_version,
-    ):
-        atlas = object.__new__(BrainGlobeAtlas)
-        atlas._local_version_str = local_folder
-        atlas._remote_version_str = remote_folder
-        assert atlas.check_latest_version(print_warning=False) == expected
+    )
+    atlas = object.__new__(BrainGlobeAtlas)
+    atlas._local_version_str = local_folder
+    atlas._remote_version_str = remote_folder
+    assert atlas.check_latest_version(print_warning=False) == expected
 
 
 @pytest.mark.parametrize(
@@ -538,7 +541,9 @@ def test_atlas_cached_under_unconfigured_root_loads_offline(
     assert atlas.brainglobe_dir == cache
 
 
-def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
+def test_remote_root_override_skips_config_search(
+    tmp_path, monkeypatch, mocker
+):
     """An explicit remote_root takes full priority over configured roots.
 
     It must be the only root searched: the config/multi-root resolution
@@ -550,7 +555,9 @@ def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
     tmp_path : pathlib.Path
         Empty temporary directory used as the brainglobe_dir.
     monkeypatch : pytest.MonkeyPatch
-        Used to stub S3 access and spy on the config/resolution calls.
+        Used to stub S3 access.
+    mocker : pytest_mock.MockerFixture
+        Used to spy on the config/resolution calls.
     """
 
     class _StubFS:
@@ -563,13 +570,10 @@ def test_remote_root_override_skips_config_search(tmp_path, monkeypatch):
         def ls(self, path):
             raise FileNotFoundError(path)
 
-    resolve_spy = MagicMock()
-    roots_spy = MagicMock()
-
     monkeypatch.setattr(bg_atlas.s3fs, "S3FileSystem", _StubFS)
     monkeypatch.setattr(bg_atlas, "check_s3_status", lambda **_: True)
-    monkeypatch.setattr(bg_atlas, "resolve_remote_root", resolve_spy)
-    monkeypatch.setattr(bg_atlas.config, "get_remote_roots", roots_spy)
+    resolve_spy = mocker.patch.object(bg_atlas, "resolve_remote_root")
+    roots_spy = mocker.patch.object(bg_atlas.config, "get_remote_roots")
 
     with pytest.raises(FileNotFoundError):
         BrainGlobeAtlas(

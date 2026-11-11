@@ -74,12 +74,14 @@ def hex_to_rgb(hex):
 
     return rgb
 
+
 def normalize_to_uint16(image: np.ndarray) -> np.ndarray:
     """Scale image intensities to the full uint16 range."""
     image = image.astype(np.float32)
     image -= image.min()
     image /= image.max()
     return (image * np.iinfo(np.uint16).max).astype(np.uint16)
+
 
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
@@ -132,7 +134,9 @@ def retrieve_reference_and_annotation():
         A tuple containing the reference volume and the annotation volume.
     """
     reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / REFERENCE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / ALLEN_ANNOTATION_FNAME
+    annotation_path = (
+        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / ALLEN_ANNOTATION_FNAME
+    )
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
     reference = normalize_to_uint16(reference)
     annotation = load_any(annotation_path)
@@ -241,6 +245,7 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
     return meshes_dict, structures_with_mesh
 
+
 def retrieve_additional_references():
     """
     Return a dictionary of additional reference images.
@@ -254,24 +259,35 @@ def retrieve_additional_references():
     dict
         A dictionary mapping reference image names to their image stack data.
     """
-    
-    allen_reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / ALLEN_REFERENCE_FNAME
-    allen_reference = np.asarray(load_any(allen_reference_path), dtype=np.float64)
+    allen_reference_path = (
+        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / ALLEN_REFERENCE_FNAME
+    )
+    allen_reference = np.asarray(
+        load_any(allen_reference_path), dtype=np.float64
+    )
     allen_reference = normalize_to_uint16(allen_reference)
-    
-    dsurqe_reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_REFERENCE_FNAME
-    dsurqe_reference = np.asarray(load_any(dsurqe_reference_path), dtype=np.float64)
+
+    dsurqe_reference_path = (
+        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_REFERENCE_FNAME
+    )
+    dsurqe_reference = np.asarray(
+        load_any(dsurqe_reference_path), dtype=np.float64
+    )
     dsurqe_reference = normalize_to_uint16(dsurqe_reference)
 
-        
-    tmbta_reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / TMBTA_REFERENCE_FNAME
-    tmbta_reference = np.asarray(load_any(tmbta_reference_path), dtype=np.float64)
+    tmbta_reference_path = (
+        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / TMBTA_REFERENCE_FNAME
+    )
+    tmbta_reference = np.asarray(
+        load_any(tmbta_reference_path), dtype=np.float64
+    )
     tmbta_reference = normalize_to_uint16(tmbta_reference)
-    
-    additional_references = {"allen_template_warped_to_febls" : allen_reference,
-                             "dsurqe_template_warped_to_febls" : dsurqe_reference,
-                             "tmbta_template_warped_to_febls" : tmbta_reference,
-                             }
+
+    additional_references = {
+        "allen_template_warped_to_febls": allen_reference,
+        "dsurqe_template_warped_to_febls": dsurqe_reference,
+        "tmbta_template_warped_to_febls": tmbta_reference,
+    }
     return additional_references
 
 

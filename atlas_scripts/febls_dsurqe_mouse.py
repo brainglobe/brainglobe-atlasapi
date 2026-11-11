@@ -41,31 +41,12 @@ DSURQE_REFERENCE_FNAME = "DSURQUE2FeBls_Warped.nii"
 TMBTA_REFERENCE_FNAME = "TMBTA2FeBls_Warped.nii"
 
 DSURQE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
-DSURQE_LABELS_FNAME = "DSURQUElabels4FeBls.txt"
+
+DSURQE_LABELS_URL = "https://www.mouseimaging.ca/repo/DSURQE_40micron/Dorr_2008_Steadman_2013_Ullmann_2013_Richards_2011_Qiu_2016_Egan_2015_40micron/mappings/DSURQE_40micron_itksnap_mapping.txt"
+DSURQE_LABELS_FNAME = "DSURQE_40micron_itksnap_mapping.txt"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
-
-
-def hex_to_rgb(hex):
-    """Convert a hexadecimal color string to an RGB triplet.
-
-    Parameters
-    ----------
-    hex : str
-        The hexadecimal color string (e.g., "RRGGBB").
-
-    Returns
-    -------
-    list
-        A list of three integers representing the RGB color (0-255).
-    """
-    rgb = []
-    for i in (0, 2, 4):
-        decimal = int(hex[i : i + 2], 16)
-        rgb.append(decimal)
-
-    return rgb
 
 
 def normalize_to_uint16(image: np.ndarray) -> np.ndarray:
@@ -82,10 +63,10 @@ def download_resources():
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
     atlas_path = DOWNLOAD_DIR_PATH / ATLAS_FNAME
-    allen_labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
+    dsurqe_labels_path = DOWNLOAD_DIR_PATH / DSURQE_LABELS_FNAME
 
     needs_download = (not atlas_path.exists()) or (
-        not allen_labels_path.exists()
+        not dsurqe_labels_path.exists()
     )
     if needs_download:
         utils.check_internet_connection()
@@ -105,12 +86,12 @@ def download_resources():
             processor=pooch.Unzip(extract_dir=""),
         )
 
-    if should_fetch(allen_labels_path):
+    if should_fetch(dsurqe_labels_path):
         pooch.retrieve(
-            url=ALLEN_LABELS_URL,
-            known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
+            url=DSURQE_LABELS_URL,
+            known_hash=None,
             path=DOWNLOAD_DIR_PATH,
-            fname=ALLEN_LABELS_FNAME,
+            fname=DSURQE_LABELS_FNAME,
             progressbar=True,
         )
 
@@ -128,7 +109,7 @@ def retrieve_reference_and_annotation():
     """
     reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / REFERENCE_FNAME
     annotation_path = (
-        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / ALLEN_ANNOTATION_FNAME
+        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_ANNOTATION_FNAME
     )
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
     reference = normalize_to_uint16(reference)
@@ -180,14 +161,16 @@ def retrieve_structure_information():
         atlas structure.
     """
     
-    # TODO: Get colours from original publication, and use R hemisphere. 
-    
-    labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
+    labels_path = DOWNLOAD_DIR_PATH / DSURQE_LABELS_FNAME
 
     structures = []
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
-
+        for line in f: 
+            if line.startswith("#"):
+                continue
+            # TODO: Use regex to parse line
+        
         labels_data = json.load(f)
         for structure in labels_data["msg"]:
             id = structure["id"]

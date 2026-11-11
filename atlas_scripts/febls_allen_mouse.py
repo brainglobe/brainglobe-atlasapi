@@ -40,10 +40,7 @@ ALLEN_REFERENCE_FNAME = "AMBA2FeBls_Warped.nii"
 DSURQE_REFERENCE_FNAME = "DSURQUE2FeBls_Warped.nii"
 TMBTA_REFERENCE_FNAME = "TMBTA2FeBls_Warped.nii"
 
-
 ALLEN_ANNOTATION_FNAME = "AMBAlabels4FeBls.nii"
-DSURQE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
-TMBTA_ANNOTATION_FNAME = "TMBTAlabels4FeBls.nii"
 
 ALLEN_LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
 ALLEN_LABELS_FNAME = "1.json"

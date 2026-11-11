@@ -27,7 +27,7 @@ ATLAS_NAME = "febls_allen_mouse"
 CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
 ATLAS_LINK = r"https://www.nitrc.org/frs/download.php/20440/FeBls_v1.3.zip//?i_agree=1&download_now=1"
-ORIENTATION = "rpi"
+ORIENTATION = "lpi"
 ROOT_ID = 999
 RESOLUTION = 60
 ATLAS_PACKAGER = "Jung Woo Kim"
@@ -37,18 +37,18 @@ SKIP_DOWNLOADS_IF_PRESENT = True
 ATLAS_FNAME = "FeBls_v1.3.zip"
 
 REFERENCE_FNAME = "FeBlsTemplateBrain.nii"
-AMBA_REFERENCE_FNAME = "AMBA2FeBls_Warped.nii"
-DSURQUE_REFERENCE_FNAME = "DSURQUE2FeBls_Warped.nii"
+ALLEN_REFERENCE_FNAME = "AMBA2FeBls_Warped.nii"
+DSURQE_REFERENCE_FNAME = "DSURQUE2FeBls_Warped.nii"
 TMBTA_REFERENCE_FNAME = "TMBTA2FeBls_Warped.nii"
 
 
 ALLEN_ANNOTATION_FNAME = "AMBAlabels4FeBls.nii"
-DSURQUE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
+DSURQE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
 TMBTA_ANNOTATION_FNAME = "TMBTAlabels4FeBls.nii"
 
 ALLEN_LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
 ALLEN_LABELS_FNAME = "1.json"
-DSURQUE_LABELS_FNAME = "DSURQUElabels4FeBls.txt"
+DSURQE_LABELS_FNAME = "DSURQUElabels4FeBls.txt"
 TMBTA_LABELS_FNAME = "TMBTAlabels4FeBls.txt"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
@@ -74,6 +74,13 @@ def hex_to_rgb(hex):
 
     return rgb
 
+def normalize_to_uint16(image: np.ndarray) -> np.ndarray:
+    """Scale image intensities to the full uint16 range."""
+    image = image.astype(np.float32)
+    image -= image.min()
+    image /= image.max()
+    return (image * np.iinfo(np.uint16).max).astype(np.uint16)
+
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
@@ -97,7 +104,7 @@ def download_resources():
     if should_fetch(atlas_path):
         pooch.retrieve(
             url=ATLAS_LINK,
-            known_hash=None,
+            known_hash="8ec8c1562a66005ee66526d1e51f4ae0ce12c7a5b4a4e58cdf91db8d864db7ab",
             path=DOWNLOAD_DIR_PATH,
             fname=ATLAS_FNAME,
             progressbar=True,
@@ -107,7 +114,7 @@ def download_resources():
     if should_fetch(allen_labels_path):
         pooch.retrieve(
             url=ALLEN_LABELS_URL,
-            known_hash=None,
+            known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
             path=DOWNLOAD_DIR_PATH,
             fname=ALLEN_LABELS_FNAME,
             progressbar=True,
@@ -125,21 +132,16 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ALLEN_ANNOTATION_FNAME
-
+    reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / ALLEN_ANNOTATION_FNAME
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
-    reference -= np.min(reference)
-    reference = reference / np.max(reference)
-    reference = reference * 65535
-    reference = reference.astype(np.uint16)
+    reference = normalize_to_uint16(reference)
     annotation = load_any(annotation_path)
-    # TODO: Make sure the annotations are symmetrical
 
     return reference, annotation
 
 
-def retrieve_hemisphere_map(annotation_volume):
+def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
@@ -149,11 +151,10 @@ def retrieve_hemisphere_map(annotation_volume):
 
     Returns
     -------
-    hemispheres_stack: numpy.ndarray
-        A 3D array with the same shape as annotation, all values are 1 (L).
+    None
+        Returns None, as the atlas is symmetrical.
     """
-    hemispheres_stack = np.where(annotation_volume > 0, 1, 0).astype(np.uint8)
-    return hemispheres_stack
+    return None
 
 
 def retrieve_structure_information():
@@ -241,6 +242,39 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
     return meshes_dict, structures_with_mesh
 
+def retrieve_additional_references():
+    """
+    Return a dictionary of additional reference images.
+
+    This function should be edited only if the atlas includes additional
+    reference images. The dictionary should map the name of each additional
+    reference image to its corresponding image stack data.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping reference image names to their image stack data.
+    """
+    
+    allen_reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / ALLEN_REFERENCE_FNAME
+    allen_reference = np.asarray(load_any(allen_reference_path), dtype=np.float64)
+    allen_reference = normalize_to_uint16(allen_reference)
+    
+    dsurqe_reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_REFERENCE_FNAME
+    dsurqe_reference = np.asarray(load_any(dsurqe_reference_path), dtype=np.float64)
+    dsurqe_reference = normalize_to_uint16(dsurqe_reference)
+
+        
+    tmbta_reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / TMBTA_REFERENCE_FNAME
+    tmbta_reference = np.asarray(load_any(tmbta_reference_path), dtype=np.float64)
+    tmbta_reference = normalize_to_uint16(tmbta_reference)
+    
+    additional_references = {"allen_template_warped_to_febls" : allen_reference,
+                             "dsurqe_template_warped_to_febls" : dsurqe_reference,
+                             "tmbta_template_warped_to_febls" : tmbta_reference,
+                             }
+    return additional_references
+
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
@@ -255,7 +289,8 @@ if __name__ == "__main__":
         )
     download_resources()
     reference_volume, annotated_volume = retrieve_reference_and_annotation()
-    hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
+    additional_references = retrieve_additional_references()
+    hemispheres_stack = retrieve_hemisphere_map()
     structures = retrieve_structure_information()
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
@@ -278,7 +313,7 @@ if __name__ == "__main__":
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
-        additional_references=None,
+        additional_references=additional_references,
         atlas_packager=ATLAS_PACKAGER,
         scale_meshes=True,
         overwrite=True, 

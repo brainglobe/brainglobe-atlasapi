@@ -44,8 +44,6 @@ ALLEN_ANNOTATION_FNAME = "AMBAlabels4FeBls.nii"
 
 ALLEN_LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
 ALLEN_LABELS_FNAME = "1.json"
-DSURQE_LABELS_FNAME = "DSURQUElabels4FeBls.txt"
-TMBTA_LABELS_FNAME = "TMBTAlabels4FeBls.txt"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"

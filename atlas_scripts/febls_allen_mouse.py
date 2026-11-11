@@ -139,7 +139,7 @@ def retrieve_reference_and_annotation():
     )
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
     reference = normalize_to_uint16(reference)
-    annotation = load_any(annotation_path)
+    annotation = np.asarray(load_any(annotation_path), dtype=np.uint32)
 
     return reference, annotation
 
@@ -284,9 +284,9 @@ def retrieve_additional_references():
     tmbta_reference = normalize_to_uint16(tmbta_reference)
 
     additional_references = {
-        "allen_template_warped_to_febls": allen_reference,
-        "dsurqe_template_warped_to_febls": dsurqe_reference,
-        "tmbta_template_warped_to_febls": tmbta_reference,
+        "allen_template_warped": allen_reference,
+        "dsurqe_template_warped": dsurqe_reference,
+        "tmbta_template_warped": tmbta_reference,
     }
     return additional_references
 

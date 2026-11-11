@@ -1,6 +1,6 @@
 """Package the FeBls Mouse Brain Atlas with DSURQE annotations.
 
-This script generates the FeBls female mouse brain atlas with DSURQE 
+This script generates the FeBls female mouse brain atlas with DSURQE
 annotations, based on data from NITRC. It downloads the necessary
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
@@ -179,9 +179,8 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
-    # TODO: Get colours from original publication, and use R hemisphere. 
-    
+    # TODO: Get colours from original publication, and use R hemisphere.
+
     labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
 
     structures = []

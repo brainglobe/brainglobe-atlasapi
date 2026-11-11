@@ -160,17 +160,16 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
     labels_path = DOWNLOAD_DIR_PATH / DSURQE_LABELS_FNAME
 
     structures = []
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
-        for line in f: 
+        for line in f:
             if line.startswith("#"):
                 continue
             # TODO: Use regex to parse line
-        
+
         labels_data = json.load(f)
         for structure in labels_data["msg"]:
             id = structure["id"]

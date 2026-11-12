@@ -1,13 +1,12 @@
 """Package the FeBls Mouse Brain Atlas with TMBTA annotations.
 
 This script generates the FeBls female mouse brain atlas with TMBTA
-annotations, based on data from NITRC. It downloads the necessary 
+annotations, based on data from NITRC. It downloads the necessary
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
 import re
-import json
 from pathlib import Path
 
 import numpy as np
@@ -47,12 +46,14 @@ TMBTA_LABELS_FNAME = "TMBTAlabels4FeBls.txt"
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
+
 def generate_pseudorandom_rgbs(n_rgbs: int, seed: int = 0):
     """Generate a list of n_rgbs RGB triplets given a seed."""
     rng = np.random.default_rng(seed)
     # n_rgbs RGB values, each channel between 0 and 255 inclusive
     rgb_values = rng.integers(0, 256, size=(n_rgbs, 3)).tolist()
     return rgb_values
+
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -127,8 +128,8 @@ def retrieve_reference_and_annotation():
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
     reference = normalize_to_uint16(reference)
     annotation = np.asarray(load_any(annotation_path), dtype=np.uint32)
-    
-    # Convert all right hemisphere labels to left by adding 1 to all odd IDs. 
+
+    # Convert all right hemisphere labels to left by adding 1 to all odd IDs.
     annotation = np.where(annotation % 10 == 1, annotation + 1, annotation)
 
     return reference, annotation
@@ -191,7 +192,7 @@ def retrieve_structure_information():
     with open(labels_path, "r") as f:
         # .txt additional label file format:
         # id    Name
-    
+
         # Use regex parsing for consistency
         line_re = re.compile(r"(\d+)\s+(.+)\s*$")
         labels_data = f.read().splitlines()
@@ -213,7 +214,7 @@ def retrieve_structure_information():
             if name.endswith("Right"):
                 continue
             name = name.removesuffix(" Left")
-            
+
             structures_by_id[id] = {
                 "id": id,
                 "name": name,

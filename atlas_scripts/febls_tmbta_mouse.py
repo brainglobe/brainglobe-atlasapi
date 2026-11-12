@@ -131,7 +131,7 @@ def retrieve_reference_and_annotation():
     
     
     # Fix incorrect region ID; 6180 and 6181 should be 6181 and 6182 respectively. 
-    annotation = np.where(annotation == 6180 | annotation == 6181, annotation + 1, annotation)
+    annotation = np.where((annotation == 6180) | (annotation == 6181), annotation + 1, annotation)
 
     # Convert all right hemisphere labels to left by adding 1 to all odd IDs.
     annotation = np.where(annotation % 10 == 1, annotation + 1, annotation)

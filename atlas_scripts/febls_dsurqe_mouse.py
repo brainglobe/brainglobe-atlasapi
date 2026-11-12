@@ -7,7 +7,6 @@ and then wraps it up into the BrainGlobe atlas format.
 """
 
 import re
-import json
 from pathlib import Path
 
 import numpy as np
@@ -165,32 +164,35 @@ def retrieve_structure_information():
     list[int]
         A list of structure IDs corresponding to the left hemisphere
     """
-    
     # We use the DSURQE label files in order to get the original RGB values for each region
     labels_path = DOWNLOAD_DIR_PATH / DSURQE_LABELS_FNAME
-    
+
     # And use the provided .txt labels file to add missing regions
-    missing_labels_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_ADDITIONAL_LABELS_FNAME
+    missing_labels_path = (
+        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_ADDITIONAL_LABELS_FNAME
+    )
 
     structures_by_id: dict[int, dict] = {
-            ROOT_ID: {
-                "id": ROOT_ID,
-                "name": "root",
-                "acronym": "root",
-                "structure_id_path": [ROOT_ID],
-                "rgb_triplet": [255, 255, 255],
-            }
+        ROOT_ID: {
+            "id": ROOT_ID,
+            "name": "root",
+            "acronym": "root",
+            "structure_id_path": [ROOT_ID],
+            "rgb_triplet": [255, 255, 255],
         }
-    
+    }
+
     l2r_hemisphere_ids = {}
-    
+
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
         # .txt label file format:
         # id R G B A VIS IDX Name
-    
+
         # Use regex parsing for consistency
-        line_re = re.compile(r"^\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+).+\"(.+)\"\s*$")
+        line_re = re.compile(
+            r"^\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+).+\"(.+)\"\s*$"
+        )
         labels_data = f.read().splitlines()
         for label in labels_data:
             if not label.strip() or label.lstrip().startswith("#"):
@@ -205,23 +207,23 @@ def retrieve_structure_information():
             id = int(m.group(1))
             if id == 0:
                 continue
-            
+
             # Fix double spaces in names
             name = " ".join(m.group(5).split())
-            
+
             rgb_colour = [int(m.group(2)), int(m.group(3)), int(m.group(4))]
 
             structures_by_id[id] = {
-                    "id": id,
-                    "name": name,
-                    "acronym": name,
-                    "structure_id_path": [ROOT_ID, id],
-                    "rgb_triplet": rgb_colour,
-                }
+                "id": id,
+                "name": name,
+                "acronym": name,
+                "structure_id_path": [ROOT_ID, id],
+                "rgb_triplet": rgb_colour,
+            }
     with open(missing_labels_path, "r") as f:
         # .txt additional label file format:
         # id    Name
-    
+
         # Use regex parsing for consistency
         line_re = re.compile(r"(\d+)\s+(.+)\s*$")
         labels_data = f.read().splitlines()
@@ -237,22 +239,19 @@ def retrieve_structure_information():
             id = int(m.group(1))
             # Fix double spaces in names
             name = " ".join(m.group(2).split())
-            
+
             # Add missing right regions
-            if all(
-                s.get("name") != name
-                for s in structures_by_id.values()
-            ):
+            if all(s.get("name") != name for s in structures_by_id.values()):
                 structures_by_id[id] = {
                     "id": id,
                     "name": name,
                     "acronym": name,
                     "structure_id_path": [ROOT_ID, id],
                     "rgb_triplet": [255, 255, 255],
-                }                
-            
+                }
+
     # Create a mapping of left hemisphere IDs to corresponding right IDs
-    for id, structure in structures_by_id.items(): 
+    for id, structure in structures_by_id.items():
         if structure["name"].endswith("left"):
             right_id = 0
             for s in structures_by_id.values():
@@ -260,17 +259,18 @@ def retrieve_structure_information():
                     right_id = s["id"]
                     break
             l2r_hemisphere_ids[id] = right_id
-    
+
     # Remove all left hemisphere regions from structure list
     for i in l2r_hemisphere_ids.keys():
         structures_by_id.pop(i)
-        
+
     # Rename regions to remove "right" suffix
-    for id, structure in structures_by_id.items(): 
+    for id, structure in structures_by_id.items():
         structures_by_id[id]["name"] = structure["name"].removesuffix(" right")
-        structures_by_id[id]["acronym"] = structure["acronym"].removesuffix(" right")
-                
-    
+        structures_by_id[id]["acronym"] = structure["acronym"].removesuffix(
+            " right"
+        )
+
     structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures, l2r_hemisphere_ids
@@ -364,7 +364,9 @@ if __name__ == "__main__":
         )
     download_resources()
     structures, l2r_hemisphere_ids = retrieve_structure_information()
-    reference_volume, annotated_volume = retrieve_reference_and_annotation(l2r_hemisphere_ids)
+    reference_volume, annotated_volume = retrieve_reference_and_annotation(
+        l2r_hemisphere_ids
+    )
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(

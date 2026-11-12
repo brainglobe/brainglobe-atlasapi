@@ -72,7 +72,6 @@ def hex_to_rgb(hex):
 
 def normalize_to_uint16(image: np.ndarray) -> np.ndarray:
     """Scale image intensities to the full uint16 range."""
-    image = image.astype(np.float32)
     image -= image.min()
     image /= image.max()
     return (image * np.iinfo(np.uint16).max).astype(np.uint16)

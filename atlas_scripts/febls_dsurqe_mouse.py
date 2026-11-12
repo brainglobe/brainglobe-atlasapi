@@ -6,6 +6,7 @@ annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
+import re
 import json
 from pathlib import Path
 
@@ -44,6 +45,7 @@ DSURQE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
 
 DSURQE_LABELS_URL = "https://www.mouseimaging.ca/repo/DSURQE_40micron/Dorr_2008_Steadman_2013_Ullmann_2013_Richards_2011_Qiu_2016_Egan_2015_40micron/mappings/DSURQE_40micron_itksnap_mapping.txt"
 DSURQE_LABELS_FNAME = "DSURQE_40micron_itksnap_mapping.txt"
+DSURQE_ADDITIONAL_LABELS_FNAME = "DSURQUElabels4FeBls.txt"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
@@ -51,7 +53,6 @@ DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 def normalize_to_uint16(image: np.ndarray) -> np.ndarray:
     """Scale image intensities to the full uint16 range."""
-    image = image.astype(np.float32)
     image -= image.min()
     image /= image.max()
     return (image * np.iinfo(np.uint16).max).astype(np.uint16)
@@ -89,14 +90,14 @@ def download_resources():
     if should_fetch(dsurqe_labels_path):
         pooch.retrieve(
             url=DSURQE_LABELS_URL,
-            known_hash=None,
+            known_hash="c19eaf378a1adebb060b6739ecc817289efedadad34f7d1bd934d809dc46c4a4",
             path=DOWNLOAD_DIR_PATH,
             fname=DSURQE_LABELS_FNAME,
             progressbar=True,
         )
 
 
-def retrieve_reference_and_annotation():
+def retrieve_reference_and_annotation(left_hemisphere_ids):
     """
     Retrieve the reference and annotation volumes.
 
@@ -114,6 +115,8 @@ def retrieve_reference_and_annotation():
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
     reference = normalize_to_uint16(reference)
     annotation = np.asarray(load_any(annotation_path), dtype=np.uint32)
+    for k, v in left_hemisphere_ids.items():
+        annotation[annotation == k] = v
 
     return reference, annotation
 
@@ -129,7 +132,7 @@ def retrieve_hemisphere_map():
     Returns
     -------
     None
-        Returns None, as the atlas is symmetrical.
+        Returns None, as the atlas is midline-aligned.
     """
     return None
 
@@ -159,40 +162,118 @@ def retrieve_structure_information():
     list[dict]
         A list of dictionaries, each containing information for a single
         atlas structure.
+    list[int]
+        A list of structure IDs corresponding to the left hemisphere
     """
     
+    # We use the DSURQE label files in order to get the original RGB values for each region
     labels_path = DOWNLOAD_DIR_PATH / DSURQE_LABELS_FNAME
+    
+    # And use the provided .txt labels file to add missing regions
+    missing_labels_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_ADDITIONAL_LABELS_FNAME
 
-    structures = []
+    structures_by_id: dict[int, dict] = {
+            ROOT_ID: {
+                "id": ROOT_ID,
+                "name": "root",
+                "acronym": "root",
+                "structure_id_path": [ROOT_ID],
+                "rgb_triplet": [255, 255, 255],
+            }
+        }
+    
+    l2r_hemisphere_ids = {}
+    
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
-        for line in f: 
-            if line.startswith("#"):
+        # .txt label file format:
+        # id R G B A VIS IDX Name
+    
+        # Use regex parsing for consistency
+        line_re = re.compile(r"^\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+).+\"(.+)\"\s*$")
+        labels_data = f.read().splitlines()
+        for label in labels_data:
+            if not label.strip() or label.lstrip().startswith("#"):
                 continue
-            # TODO: Use regex to parse line
-        
-        labels_data = json.load(f)
-        for structure in labels_data["msg"]:
-            id = structure["id"]
-            name = structure["name"]
-            acronym = structure["acronym"]
-            structure_id_path = list(
-                map(int, structure["structure_id_path"].strip("/").split("/"))
-            )
-            rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
+            m = line_re.match(label)
 
-            structures.append(
-                {
+            # Skip malformed lines
+            if not m:
+                continue
+
+            # Skip background, root and hemisphere specific labels
+            id = int(m.group(1))
+            if id == 0:
+                continue
+            
+            # Fix double spaces in names
+            name = " ".join(m.group(5).split())
+            
+            rgb_colour = [int(m.group(2)), int(m.group(3)), int(m.group(4))]
+
+            structures_by_id[id] = {
                     "id": id,
                     "name": name,
-                    "acronym": acronym,
-                    "structure_id_path": structure_id_path,
-                    "rgb_triplet": rgb_triplet,
+                    "acronym": name,
+                    "structure_id_path": [ROOT_ID, id],
+                    "rgb_triplet": rgb_colour,
                 }
-            )
+    with open(missing_labels_path, "r") as f:
+        # .txt additional label file format:
+        # id    Name
+    
+        # Use regex parsing for consistency
+        line_re = re.compile(r"(\d+)\s+(.+)\s*$")
+        labels_data = f.read().splitlines()
+        for label in labels_data:
+            if not label.strip() or label.lstrip().startswith("#"):
+                continue
+            m = line_re.match(label)
 
+            # Skip malformed lines
+            if not m:
+                continue
+            # Skip background, root and hemisphere specific labels
+            id = int(m.group(1))
+            # Fix double spaces in names
+            name = " ".join(m.group(2).split())
+            
+            # Add missing right regions
+            if all(
+                s.get("name") != name
+                for s in structures_by_id.values()
+            ):
+                structures_by_id[id] = {
+                    "id": id,
+                    "name": name,
+                    "acronym": name,
+                    "structure_id_path": [ROOT_ID, id],
+                    "rgb_triplet": [255, 255, 255],
+                }                
+            
+    # Create a mapping of left hemisphere IDs to corresponding right IDs
+    for id, structure in structures_by_id.items(): 
+        if structure["name"].endswith("left"):
+            right_id = 0
+            for s in structures_by_id.values():
+                if s["name"] == structure["name"].replace("left", "right"):
+                    right_id = s["id"]
+                    break
+            l2r_hemisphere_ids[id] = right_id
+    
+    # Remove all left hemisphere regions from structure list
+    for i in l2r_hemisphere_ids.keys():
+        structures_by_id.pop(i)
+        
+    # Rename regions to remove "right" suffix
+    for id, structure in structures_by_id.items(): 
+        structures_by_id[id]["name"] = structure["name"].removesuffix(" right")
+        structures_by_id[id]["acronym"] = structure["acronym"].removesuffix(" right")
+                
+    
+    structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
-    return structures
+    return structures, l2r_hemisphere_ids
 
 
 def retrieve_or_construct_meshes(annotated_volume, structures):
@@ -282,10 +363,10 @@ if __name__ == "__main__":
             f"Atlas output already exists in {BG_ROOT_DIR}. "
         )
     download_resources()
-    reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    structures, l2r_hemisphere_ids = retrieve_structure_information()
+    reference_volume, annotated_volume = retrieve_reference_and_annotation(l2r_hemisphere_ids)
     additional_references = retrieve_additional_references()
     hemispheres_stack = retrieve_hemisphere_map()
-    structures = retrieve_structure_information()
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
     )

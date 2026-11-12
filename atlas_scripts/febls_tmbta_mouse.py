@@ -1,11 +1,12 @@
-"""Package the FeBls Mouse Brain Atlas with Allen annotations.
+"""Package the FeBls Mouse Brain Atlas with TMBTA annotations.
 
-This script generates the FeBls female mouse brain atlas with Allen annotations,
-based on data from NITRC and the Allen Institute. It downloads the necessary
+This script generates the FeBls female mouse brain atlas with TMBTA
+annotations, based on data from NITRC. It downloads the necessary 
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
+import re
 import json
 from pathlib import Path
 
@@ -22,7 +23,7 @@ from brainglobe_atlasapi.utils import atlas_name_from_repr
 
 ### Metadata ###
 __version__ = 0
-ATLAS_NAME = "febls_allen_mouse"
+ATLAS_NAME = "febls_tmbta_mouse"
 CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
 ATLAS_LINK = r"https://www.nitrc.org/frs/download.php/20440/FeBls_v1.3.zip//?i_agree=1&download_now=1"
@@ -40,19 +41,18 @@ ALLEN_REFERENCE_FNAME = "AMBA2FeBls_Warped.nii"
 DSURQE_REFERENCE_FNAME = "DSURQUE2FeBls_Warped.nii"
 TMBTA_REFERENCE_FNAME = "TMBTA2FeBls_Warped.nii"
 
-
-ALLEN_ANNOTATION_FNAME = "AMBAlabels4FeBls.nii"
-DSURQE_ANNOTATION_FNAME = "DSURQUElabels4FeBls.nii"
 TMBTA_ANNOTATION_FNAME = "TMBTAlabels4FeBls.nii"
-
-ALLEN_LABELS_URL = "https://atlas.brain-map.org/atlasviewer/ontologies/1.json"
-ALLEN_LABELS_FNAME = "1.json"
-DSURQE_LABELS_FNAME = "DSURQUElabels4FeBls.txt"
 TMBTA_LABELS_FNAME = "TMBTAlabels4FeBls.txt"
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
+def generate_pseudorandom_rgbs(n_rgbs: int, seed: int = 0):
+    """Generate a list of n_rgbs RGB triplets given a seed."""
+    rng = np.random.default_rng(seed)
+    # n_rgbs RGB values, each channel between 0 and 255 inclusive
+    rgb_values = rng.integers(0, 256, size=(n_rgbs, 3)).tolist()
+    return rgb_values
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -77,7 +77,6 @@ def hex_to_rgb(hex):
 
 def normalize_to_uint16(image: np.ndarray) -> np.ndarray:
     """Scale image intensities to the full uint16 range."""
-    image = image.astype(np.float32)
     image -= image.min()
     image /= image.max()
     return (image * np.iinfo(np.uint16).max).astype(np.uint16)
@@ -89,11 +88,8 @@ def download_resources():
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
     atlas_path = DOWNLOAD_DIR_PATH / ATLAS_FNAME
-    allen_labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
 
-    needs_download = (not atlas_path.exists()) or (
-        not allen_labels_path.exists()
-    )
+    needs_download = not atlas_path.exists()
     if needs_download:
         utils.check_internet_connection()
 
@@ -112,15 +108,6 @@ def download_resources():
             processor=pooch.Unzip(extract_dir=""),
         )
 
-    if should_fetch(allen_labels_path):
-        pooch.retrieve(
-            url=ALLEN_LABELS_URL,
-            known_hash="f0b41caa91f8794a6bc79a3ca81402c060978a74c7acd3d9d105d3d8db415b3d",
-            path=DOWNLOAD_DIR_PATH,
-            fname=ALLEN_LABELS_FNAME,
-            progressbar=True,
-        )
-
 
 def retrieve_reference_and_annotation():
     """
@@ -135,11 +122,14 @@ def retrieve_reference_and_annotation():
     """
     reference_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / REFERENCE_FNAME
     annotation_path = (
-        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / ALLEN_ANNOTATION_FNAME
+        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / TMBTA_ANNOTATION_FNAME
     )
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
     reference = normalize_to_uint16(reference)
     annotation = np.asarray(load_any(annotation_path), dtype=np.uint32)
+    
+    # Convert all right hemisphere labels to left by adding 1 to all odd IDs. 
+    annotation = np.where(annotation % 10 == 1, annotation + 1, annotation)
 
     return reference, annotation
 
@@ -155,7 +145,7 @@ def retrieve_hemisphere_map():
     Returns
     -------
     None
-        Returns None, as the atlas is symmetrical.
+        Returns None, as the atlas is aligned to the midline.
     """
     return None
 
@@ -186,32 +176,53 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
+    labels_path = DOWNLOAD_DIR_PATH / "v1.3" / "10x" / TMBTA_LABELS_FNAME
 
-    structures = []
+    structures_by_id: dict[int, dict] = {
+        ROOT_ID: {
+            "id": ROOT_ID,
+            "name": "root",
+            "acronym": "root",
+            "structure_id_path": [ROOT_ID],
+            "rgb_triplet": [255, 255, 255],
+        }
+    }
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
+        # .txt additional label file format:
+        # id    Name
+    
+        # Use regex parsing for consistency
+        line_re = re.compile(r"(\d+)\s+(.+)\s*$")
+        labels_data = f.read().splitlines()
+        rgbs = generate_pseudorandom_rgbs(len(labels_data), 42)
+        for i, label in enumerate(labels_data):
+            if not label.strip() or label.lstrip().startswith("#"):
+                continue
+            m = line_re.match(label)
 
-        labels_data = json.load(f)
-        for structure in labels_data["msg"]:
-            id = structure["id"]
-            name = structure["name"]
-            acronym = structure["acronym"]
-            structure_id_path = list(
-                map(int, structure["structure_id_path"].strip("/").split("/"))
-            )
-            rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
+            # Skip malformed lines
+            if not m:
+                continue
+            # Skip background, root and hemisphere specific labels
+            id = int(m.group(1))
+            if id == 0:
+                continue
+            # Fix double spaces in names
+            name = " ".join(m.group(2).split())
+            if name.endswith("Right"):
+                continue
+            name = name.removesuffix(" Left")
+            
+            structures_by_id[id] = {
+                "id": id,
+                "name": name,
+                "acronym": name,
+                "structure_id_path": [ROOT_ID, id],
+                "rgb_triplet": rgbs[i],
+            }
 
-            structures.append(
-                {
-                    "id": id,
-                    "name": name,
-                    "acronym": acronym,
-                    "structure_id_path": structure_id_path,
-                    "rgb_triplet": rgb_triplet,
-                }
-            )
-
+    structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures
 

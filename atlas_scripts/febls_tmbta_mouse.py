@@ -128,9 +128,14 @@ def retrieve_reference_and_annotation():
     reference = np.asarray(load_any(reference_path), dtype=np.float64)
     reference = normalize_to_uint16(reference)
     annotation = np.asarray(load_any(annotation_path), dtype=np.uint32)
+    
+    
+    # Fix incorrect region ID; 6180 and 6181 should be 6181 and 6182 respectively. 
+    annotation = np.where(annotation == 6180 | annotation == 6181, annotation + 1, annotation)
 
     # Convert all right hemisphere labels to left by adding 1 to all odd IDs.
     annotation = np.where(annotation % 10 == 1, annotation + 1, annotation)
+    
 
     return reference, annotation
 

@@ -1051,22 +1051,24 @@ def wrapup_atlas_from_data(
             ref_info = TemplateInfo(**ref_dict)
             additional_template_list.append((ref_info, ref_tuple[1]))
 
-    template_info = TemplateInfo(**template_info)
-    terminology_info = TerminologyInfo(**terminology_info)
-    annotation_info = AnnotationInfo(
-        template=template_info, terminology=terminology_info, **annotation_info
+    template_component = TemplateInfo(**template_info)
+    terminology_component = TerminologyInfo(**terminology_info)
+    annotation_component = AnnotationInfo(
+        template=template_component,
+        terminology=terminology_component,
+        **annotation_info,
     )
-    coordinate_space_info = CoordinateSpaceInfo(
-        template=template_info, **coordinate_space_info
+    coordinate_space_component = CoordinateSpaceInfo(
+        template=template_component, **coordinate_space_info
     )
 
     additional_metadata = additional_metadata or {}
 
     for component_info in [
-        template_info,
-        annotation_info,
-        terminology_info,
-        coordinate_space_info,
+        template_component,
+        annotation_component,
+        terminology_component,
+        coordinate_space_component,
         *[ref_info for ref_info, _ in additional_template_list],
     ]:
         component_dir = (
@@ -1106,10 +1108,10 @@ def wrapup_atlas_from_data(
         root_id=root_id,
         working_dir=working_dir,
         volumes=volumes,
-        template_info=template_info,
-        annotation_info=annotation_info,
-        terminology_info=terminology_info,
-        coordinate_space_info=coordinate_space_info,
+        template_info=template_component,
+        annotation_info=annotation_component,
+        terminology_info=terminology_component,
+        coordinate_space_info=coordinate_space_component,
         structures_list=structures_list,
         meshes_dict=meshes_dict,
         atlas_packager=atlas_packager,
@@ -1151,8 +1153,8 @@ def wrapup_atlas_from_data(
         transformations,
     )
 
-    if not terminology_info.use_existing:
-        terminology_dir = _stub_path(working_dir, terminology_info.stub)
+    if not terminology_component.use_existing:
+        terminology_dir = _stub_path(working_dir, terminology_component.stub)
 
         terminology_dir.parent.mkdir(parents=True, exist_ok=True)
         _save_terminology_csv(
@@ -1160,14 +1162,14 @@ def wrapup_atlas_from_data(
             terminology_dir,
         )
 
-    if not coordinate_space_info.use_existing:
+    if not coordinate_space_component.use_existing:
         coordinate_space_path = _stub_path(
-            working_dir, coordinate_space_info.stub
+            working_dir, coordinate_space_component.stub
         )
 
         coordinate_space_path.parent.mkdir(parents=True, exist_ok=True)
         _save_coordinate_space_manifest(
-            coordinate_space_info.metadata, coordinate_space_path
+            coordinate_space_component.metadata, coordinate_space_path
         )
 
     _save_annotation_data(

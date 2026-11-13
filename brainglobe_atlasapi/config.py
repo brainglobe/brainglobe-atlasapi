@@ -12,6 +12,8 @@ from pathlib import Path
 
 import click
 
+from brainglobe_atlasapi import descriptors
+
 CONFIG_FILENAME = "bg_config.conf"
 CONFIG_DEFAULT_DIR = Path.home() / ".config" / "brainglobe"
 CONFIG_DIR = Path(os.environ.get("BRAINGLOBE_CONFIG_DIR", CONFIG_DEFAULT_DIR))
@@ -19,11 +21,18 @@ CONFIG_PATH = CONFIG_DIR / CONFIG_FILENAME
 
 # 2 level dictionary for sections and values:
 DEFAULT_PATH = Path.home() / ".brainglobe"
+
+DEFAULT_REMOTES = {
+    descriptors.DEFAULT_REMOTE_KEY: descriptors.DEFAULT_REMOTE,
+    descriptors.ATLAS_ASSETS_REMOTE_KEY: descriptors.ATLAS_ASSETS_REMOTE,
+}
+
 TEMPLATE_CONF_DICT = {
     "default_dirs": {
         "brainglobe_dir": DEFAULT_PATH,
         "interm_download_dir": DEFAULT_PATH,
-    }
+    },
+    "remotes": DEFAULT_REMOTES,
 }
 
 DEFAULT_WORKDIR = Path.home() / "brainglobe_workingdir"
@@ -150,3 +159,29 @@ def _print_config():
             string += f"\t{k}: {val}\n"
 
     return string
+
+
+def get_remotes(path=None):
+    """Return the configured remotes, in resolution order.
+
+    Falls back to the built-in defaults when the section is absent, so a
+    configuration file written by an earlier version keeps working without
+    the user editing it. The file itself is never rewritten.
+
+    Parameters
+    ----------
+    path : Path object, optional
+        Path of the config file. Defaults to the standard location.
+
+    Returns
+    -------
+    dict
+        Mapping of remote key to remote, ordered as declared, with any
+        trailing slash removed. The key is only a label.
+    """
+    conf = read_config(path)
+    if conf.has_section("remotes"):
+        remotes = conf["remotes"]
+    else:
+        remotes = DEFAULT_REMOTES
+    return {key: remote.rstrip("/") for key, remote in remotes.items()}

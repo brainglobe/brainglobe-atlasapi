@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -60,9 +60,12 @@ def _rich_atlas_metadata(atlas_name, metadata):
             metadata["name"] + f" [{gray}](v{metadata['version']})"
         ),
     )
-    tb.add_row("species:", Text.from_markup(f"[i]{metadata['species']}"))
-    tb.add_row("citation:", Text.from_markup(f"{metadata['citation']}"))
-    tb.add_row("link:", Text.from_markup(metadata["atlas_link"]))
+    if metadata.get("species") is not None:
+        tb.add_row("species:", Text.from_markup(f"[i]{metadata['species']}"))
+    if metadata.get("citation") is not None:
+        tb.add_row("citation:", Text.from_markup(f"{metadata['citation']}"))
+    if metadata.get("atlas_link") is not None:
+        tb.add_row("link:", Text.from_markup(metadata["atlas_link"]))
     tb.add_row("")
     tb.add_row(
         "orientation:",
@@ -175,22 +178,44 @@ def check_internet_connection(
     return False
 
 
-def check_s3_status(timeout=5, raise_error=True):
+def remote_to_https(remote: str) -> str:
+    """Convert an ``s3://bucket/prefix`` remote to an HTTPS URL.
+
+    Parameters
+    ----------
+    remote : str
+        Remote, without a trailing slash.
+
+    Returns
+    -------
+    str
+        Virtual-hosted-style HTTPS URL for the same location.
     """
-    Check that the S3 BrainGlobe bucket is accessible.
+    without_scheme = remote.removeprefix("s3://")
+    bucket, _, prefix = without_scheme.partition("/")
+    return f"https://{bucket}.s3.amazonaws.com/{prefix}"
+
+
+def check_s3_status(
+    timeout=5, raise_error=True, remote=descriptors.DEFAULT_REMOTE
+):
+    """
+    Check that the remote S3 bucket is accessible.
 
     timeout : int
         timeout to wait for [in seconds] (Default value = 5).
     raise_error : bool
         if false, warning but no error.
+    remote : str
+        Remote to check. Defaults to the BrainGlobe bucket.
     """
-    url = descriptors.remote_url_s3_http.format("")
+    url = remote_to_https(remote)
 
     try:
         _ = requests.head(url, timeout=timeout)
         return True
     except (requests.ConnectionError, requests.exceptions.Timeout) as e:
-        error_message = "S3 BrainGlobe bucket is not accessible."
+        error_message = f"S3 bucket {remote} is not accessible."
         if not raise_error:
             print(error_message)
         else:
@@ -329,6 +354,25 @@ def get_download_size(url: str) -> int:
         raise IndexError("Improperly formatted URL")
 
 
+def version_tuple_from_str(version_str: str) -> Tuple[int, ...]:
+    """Parse a version string into a numeric tuple for comparison.
+
+    Accepts ``.``, ``_`` and ``-`` as separators, so both BrainGlobe
+    (``3_0``) and atlas-assets (``2024-05``) version folder names parse.
+
+    Parameters
+    ----------
+    version_str : str
+        Version string, e.g. ``"3.0"``, ``"3_0"`` or ``"2024-05"``.
+
+    Returns
+    -------
+    tuple of int
+        Numeric components, in order.
+    """
+    return tuple(int(n) for n in re.split(r"[._-]", version_str))
+
+
 def get_latest_version(available_versions: List[str]) -> str:
     """
     Get the latest version from a list of version strings.
@@ -343,9 +387,7 @@ def get_latest_version(available_versions: List[str]) -> str:
     str
         The latest version string.
     """
-    available_versions.sort(
-        key=lambda v: tuple(int(x) for x in v.split("_")), reverse=True
-    )
+    available_versions.sort(key=version_tuple_from_str, reverse=True)
     return available_versions[0]
 
 
@@ -457,6 +499,28 @@ def read_json(path: Union[str, Path]) -> Dict[str, Any]:
     return data
 
 
+def _parse_identifier_list(raw: str) -> List[str]:
+    """Parse a bracketed, comma-separated identifier list.
+
+    Handles both integer lists (``[997, 8]``) and quoted CURIE lists
+    (``['MBA:997', 'MBA:8']``), returning the elements as strings.
+
+    Parameters
+    ----------
+    raw : str
+        Raw cell contents from a terminology CSV.
+
+    Returns
+    -------
+    list of str
+        Identifier strings, in order.
+    """
+    inner = raw.strip().strip("[]").strip()
+    if not inner:
+        return []
+    return [item.strip().strip("'\"") for item in inner.split(",")]
+
+
 def load_structures_from_csv(structures_path):
     """
     Load structures information from a CSV file.
@@ -471,33 +535,69 @@ def load_structures_from_csv(structures_path):
     list of dict
         A list of dictionaries, where each dictionary contains information
         about a structure, such as its acronym, id, name, structure_id_path,
-        rgb_triplet, and mesh_filename.
+        rgb_triplet, and annotation_value, the integer value used in
+        annotation volumes.
     """
     structures_df = pd.read_csv(
         structures_path,
-        dtype={"parent_identifier": pd.UInt32Dtype()},
+        dtype={
+            "identifier": str,
+            "parent_identifier": str,
+            "annotation_value": "Int64",
+        },
         converters={
-            "root_identifier_path": lambda x: np.fromstring(
-                x.strip("[]"), sep=",", dtype=np.uint32
-            ).tolist(),
-            "color_hex_triplet": lambda x: [
-                int(x.strip("#")[i : i + 2], 16) for i in (0, 2, 4)
-            ],
+            "root_identifier_path": _parse_identifier_list,
+            # zfill: upstream CSVs sometimes drop the leading zero, e.g.
+            # "#19399" for "#019399"
+            "color_hex_triplet": lambda x: list(
+                bytes.fromhex(x.lstrip("#").zfill(6))
+            ),
         },
         keep_default_na=False,
         na_values=["", "NaN", "NULL", "nan", "N/A", "na", "null"],
     )
-    rename_dict = {
-        "identifier": "id",
-        "parent_identifier": "parent_structure_id",
-        "abbreviation": "acronym",
-        "root_identifier_path": "structure_id_path",
-        "color_hex_triplet": "rgb_triplet",
-    }
-    structures_df = structures_df.rename(columns=rename_dict)
-    structures_list = structures_df.to_dict(orient="records")
 
-    return structures_list
+    id_to_value = {
+        identifier: int(value)
+        for identifier, value in zip(
+            structures_df["identifier"], structures_df["annotation_value"]
+        )
+    }
+
+    def to_annotation_value(identifier: str) -> int:
+        try:
+            return id_to_value[identifier]
+        except KeyError as e:
+            raise KeyError(
+                f"Identifier {identifier!r} referenced in "
+                f"{structures_path} has no matching annotation_value."
+            ) from e
+
+    structures_df["id"] = structures_df["annotation_value"].astype(int)
+    structures_df["annotation_value"] = structures_df["id"]
+    structures_df["structure_id_path"] = structures_df[
+        "root_identifier_path"
+    ].apply(lambda path: [to_annotation_value(i) for i in path])
+    parent_values = [
+        None if pd.isna(identifier) else to_annotation_value(identifier)
+        for identifier in structures_df["parent_identifier"]
+    ]
+    structures_df["parent_structure_id"] = pd.Series(
+        parent_values, dtype=object, index=structures_df.index
+    )
+    structures_df["acronym"] = structures_df["abbreviation"]
+    structures_df["rgb_triplet"] = structures_df["color_hex_triplet"]
+
+    kept_columns = [
+        "id",
+        "parent_structure_id",
+        "annotation_value",
+        "name",
+        "acronym",
+        "rgb_triplet",
+        "structure_id_path",
+    ]
+    return structures_df[kept_columns].to_dict(orient="records")
 
 
 def read_tiff(path: Union[str, Path]) -> np.ndarray:

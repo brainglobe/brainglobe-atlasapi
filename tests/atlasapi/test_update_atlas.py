@@ -78,4 +78,59 @@ def test_install_atlas_istantiate_download(mocker):
         )
         update_atlases.install_atlas(atlas_name=name)
 
-    mock_BrainGlobeAtlas.assert_called_once_with(name, fn_update=None)
+    mock_BrainGlobeAtlas.assert_called_once_with(
+        name, fn_update=None, remote=None
+    )
+
+
+@pytest.mark.parametrize("function", ["install_atlas", "update_atlas"])
+def test_remote_reaches_the_atlas(function, mocker):
+    """Remote is forwarded to BrainGlobeAtlas.
+
+    Parameters
+    ----------
+    function : str
+        Name of the update_atlases function under test.
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.update_atlases.get_downloaded_atlases",
+        return_value=[],
+    )
+    mock_BrainGlobeAtlas = mocker.patch(
+        "brainglobe_atlasapi.update_atlases.BrainGlobeAtlas"
+    )
+    # update_atlas stops early when the atlas is already the latest.
+    mock_BrainGlobeAtlas.return_value.check_latest_version.return_value = True
+    mock_BrainGlobeAtlas.return_value.local_version = (1, 0)
+
+    getattr(update_atlases, function)(
+        "some-atlas", remote="s3://bucket/prefix"
+    )
+
+    kwargs = mock_BrainGlobeAtlas.call_args.kwargs
+    assert kwargs["remote"] == "s3://bucket/prefix"
+
+
+def test_install_atlas_remote_ignores_default_cache(mocker):
+    """An atlas in the default cache doesn't block an explicit remote.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.update_atlases.get_downloaded_atlases",
+        return_value=["some-atlas"],
+    )
+    mock_BrainGlobeAtlas = mocker.patch(
+        "brainglobe_atlasapi.update_atlases.BrainGlobeAtlas"
+    )
+
+    update_atlases.install_atlas("some-atlas", remote="s3://bucket/prefix")
+
+    mock_BrainGlobeAtlas.assert_called_once_with(
+        "some-atlas", fn_update=None, remote="s3://bucket/prefix"
+    )

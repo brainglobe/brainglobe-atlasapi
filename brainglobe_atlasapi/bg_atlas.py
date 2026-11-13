@@ -24,7 +24,7 @@ from fsspec.callbacks import TqdmCallback
 from rich import print as rprint
 from rich.console import Console
 
-from brainglobe_atlasapi import config, core
+from brainglobe_atlasapi import config, core, descriptors
 from brainglobe_atlasapi.atlas_name import AtlasName
 from brainglobe_atlasapi.descriptors import (
     V3_ANNOTATION_MAP_NAME,
@@ -34,24 +34,29 @@ from brainglobe_atlasapi.descriptors import (
     V3_HEMISPHERES_NAME,
     V3_MESHES_DIRECTORY,
     V3_TEMPLATE_NAME,
-    remote_url_s3,
 )
-from brainglobe_atlasapi.list_atlases import get_all_atlases_lastversions
+from brainglobe_atlasapi.list_atlases import (
+    folder_version_to_dotted,
+    get_all_atlases_lastversions,
+)
+from brainglobe_atlasapi.manifest import get_annotation_set
+from brainglobe_atlasapi.remotes import (
+    cache_key,
+    check_remote,
+    known_remotes,
+    record_remote,
+    resolve_remote,
+)
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
-    check_internet_connection,
     check_s3_status,
     get_latest_version,
     read_json,
+    version_tuple_from_str,
 )
 
-
-def _version_tuple_from_str(version_str):
-    return tuple([int(n) for n in version_str.split(".")])
-
-
-def _version_str_from_tuple(version_tuple: Tuple[int, ...]) -> str:
-    return "_".join(str(num) for num in version_tuple)
+# Version folder names: BrainGlobe's "3_0"/"2017", atlas-assets' "2024-05".
+_VERSION_FOLDER_PATTERN = r"\d+(?:[_-]\d+)?"
 
 
 class BrainGlobeAtlas(
@@ -79,6 +84,21 @@ class BrainGlobeAtlas(
     dask : bool
         If True, atlas array properties return dask arrays instead of loading
         them into memory as numpy arrays.
+    resolution : float (optional)
+        Requested resolution in micrometres: the first axis of a
+        non-isotropic atlas, e.g. 16 for 16 x 16 x 20 um. Defaults to the
+        finest available, printing a note when there is more than one.
+        For atlases with a single fixed resolution, a value that disagrees
+        with it raises.
+    remote : str (optional)
+        An ``s3://bucket/prefix`` to fetch the atlas from. When given, it
+        takes full priority: it is the only remote searched, with no
+        fallback to the configured BrainGlobe/Allen defaults if the atlas
+        isn't found there. Its local cache subdirectory is named after
+        the last segment of the URL (``brainglobe-atlasapi`` for the
+        BrainGlobe remote). If None (default), the historical BrainGlobe
+        remote is assumed, falling back to the configured remotes in
+        declaration order.
     """
 
     @overload
@@ -91,6 +111,8 @@ class BrainGlobeAtlas(
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
         dask: Literal[False] = False,
+        resolution: Optional[float] = None,
+        remote: Optional[str] = None,
     ) -> None: ...
 
     @overload
@@ -103,6 +125,8 @@ class BrainGlobeAtlas(
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
         dask: Literal[True] = True,
+        resolution: Optional[float] = None,
+        remote: Optional[str] = None,
     ) -> None: ...
 
     @overload
@@ -115,6 +139,8 @@ class BrainGlobeAtlas(
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
         dask: bool = False,
+        resolution: Optional[float] = None,
+        remote: Optional[str] = None,
     ) -> None: ...
 
     def __init__(
@@ -126,14 +152,19 @@ class BrainGlobeAtlas(
         config_dir: Optional[Union[str, Path]] = None,
         fn_update: Optional[Callable] = None,
         dask: bool = False,
+        resolution: Optional[float] = None,
+        remote: Optional[str] = None,
     ):
-        self._remote_version = None
+        self._resolution = resolution
+        self._remote_version_str = None
+        self._local_version_str = None
         self._local_full_name = None
+        self._reachable_remotes: set = set()
         self._requested_version = (
             version.replace(".", "_") if version else None
         )
         self._local_version = (
-            _version_tuple_from_str(version.replace("_", "."))
+            version_tuple_from_str(version.replace("_", "."))
             if version
             else None
         )
@@ -145,35 +176,122 @@ class BrainGlobeAtlas(
         # Read BrainGlobe configuration file:
         conf = config.read_config(config_dir)
 
+        if remote is not None:
+            remote = remote.rstrip("/")
+        self._remote = remote or descriptors.DEFAULT_REMOTE
+
         # Use either input locations or locations from the config file,
         # and create directory if it does not exist:
         if brainglobe_dir is None:
-            self.brainglobe_dir = Path(conf["default_dirs"]["brainglobe_dir"])
+            base_dir = Path(conf["default_dirs"]["brainglobe_dir"])
         else:
-            self.brainglobe_dir = Path(brainglobe_dir)
+            base_dir = Path(brainglobe_dir)
 
-        self.brainglobe_dir = self.brainglobe_dir / "brainglobe-atlasapi"
+        self.brainglobe_dir = base_dir / cache_key(self._remote)
 
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
+        if remote is None and self.local_full_name is None:
+            self._remote = self._locate_remote(
+                base_dir, config.get_remotes(config_dir)
+            )
+            self.brainglobe_dir = base_dir / cache_key(self._remote)
+            self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
+
+        check_remote(self.brainglobe_dir, self._remote)
+
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
-            if self.remote_version is None:
-                check_internet_connection(raise_error=True)
+            self.download()
+            assert self.local_full_name is not None, (
+                "Download failed: local atlas manifest not found after "
+                "download."
+            )
 
-                # If internet is up, then the atlas name was invalid
-                raise ValueError(f"{atlas_name} is not a valid atlas name!")
-            else:
-                self.download()
-                assert self.local_full_name is not None, (
-                    "Download failed: local atlas manifest not found after "
-                    "download."
-                )
+        record_remote(self.brainglobe_dir, self._remote)
 
-        super().__init__(self.brainglobe_dir / self.local_full_name, dask=dask)
+        manifest_path = self.brainglobe_dir / self.local_full_name
+        super().__init__(
+            manifest_path,
+            resolution=self._resolution,
+            remote=self._remote,
+            dask=dask,
+        )
 
         if check_latest:
             self.check_latest_version()
+
+    def _locate_remote(self, base_dir: Path, remotes: dict) -> str:
+        """Find the remote for an atlas not cached under the default.
+
+        The local cache of each configured remote is searched first, in
+        config order, then the cache of every other remote recorded under
+        ``base_dir``, so a cached copy loads offline and without S3 calls
+        even if its remote is not configured. Then each reachable configured
+        remote is searched on S3, so the download lands in (and is later
+        found in) the matching cache.
+
+        Parameters
+        ----------
+        base_dir : Path
+            Directory holding one cache directory per remote.
+        remotes : dict
+            Mapping of remote key to remote, in resolution order.
+
+        Returns
+        -------
+        str
+            The remote holding the atlas. When no remote is reachable,
+            the default remote, so the name check in ``__init__`` fails
+            loudly.
+
+        Raises
+        ------
+        FileNotFoundError
+            If no reachable remote holds the atlas.
+        """
+        for remote in known_remotes(base_dir, remotes):
+            self.brainglobe_dir = base_dir / cache_key(remote)
+            atlas_dir = (
+                self.brainglobe_dir / V3_ATLAS_ROOTDIR / self.atlas_name
+            )
+            # local_full_name caches its result, so clear it per directory.
+            self._local_full_name = None
+            if atlas_dir.is_dir() and self.local_full_name is not None:
+                return remote
+
+        try:
+            resolved = resolve_remote(
+                self.fs, self.atlas_name, remotes, self._is_reachable
+            )
+        except ValueError as error:
+            # Preserve the historical exception type for an invalid atlas
+            # name: callers such as update_atlas depend on it.
+            raise FileNotFoundError(str(error)) from error
+
+        return resolved or descriptors.DEFAULT_REMOTE
+
+    def _is_reachable(self, remote: str) -> bool:
+        """Check a remote answers, probing each remote at most once.
+
+        Only success is remembered, so a later check can still see a
+        connection that has come back.
+
+        Parameters
+        ----------
+        remote : str
+            Remote to check.
+
+        Returns
+        -------
+        bool
+            Whether the remote is reachable.
+        """
+        if remote not in self._reachable_remotes and check_s3_status(
+            raise_error=False, remote=remote
+        ):
+            self._reachable_remotes.add(remote)
+        return remote in self._reachable_remotes
 
     @property
     def local_full_name(self):
@@ -200,7 +318,7 @@ class BrainGlobeAtlas(
         else:
             pattern = (
                 rf"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
-                rf"\d+(?:_\d+)?/manifest.json"
+                rf"{_VERSION_FOLDER_PATTERN}/manifest.json"
             )
 
         glob_pattern = f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/*/manifest.json"
@@ -215,6 +333,7 @@ class BrainGlobeAtlas(
             return None
 
         latest_version = get_latest_version(available_versions)
+        self._local_version_str = latest_version
 
         self._local_full_name = (
             f"{V3_ATLAS_ROOTDIR}/"
@@ -231,61 +350,83 @@ class BrainGlobeAtlas(
         if self._local_version is not None:
             return self._local_version
 
-        version_str = self.metadata["version"]
-        self._local_version = _version_tuple_from_str(
-            version_str.replace("_", ".")
-        )
+        self._local_version = version_tuple_from_str(self.metadata["version"])
 
         return self._local_version
 
     @property
     def remote_version(self) -> Optional[tuple[int, ...]]:
-        """Reads remote version from s3 bucket.
+        """Remote version of the atlas, or None if offline or not on remote.
 
         Unless a version was requested, the latest version is the one listed
-        in the remote last_versions.conf.
-        If we are offline or using a custom atlas, return None.
+        in the remote last_versions.conf on the BrainGlobe bucket, or the
+        newest version folder on any other remote.
         """
-        if self._remote_version is not None:
-            return self._remote_version
-
-        if not check_s3_status(raise_error=False):
-            return None
-
-        bucket_path = remote_url_s3.format(f"atlases/{self.atlas_name}")
-
-        if self.fs.exists(bucket_path) is False:
-            if self.local_full_name is not None:
+        if self._remote_version_str is None:
+            if not self._is_reachable(self._remote):
                 return None
+            try:
+                self._resolve_remote_version()
+            except FileNotFoundError:
+                return None
+        return version_tuple_from_str(self._remote_version_str)
+
+    def _resolve_remote_version(self) -> str:
+        """Find and cache the remote version folder name.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the remote has no matching version of this atlas.
+        """
+        if self._remote_version_str is None:
+            self._remote_version_str = self._pick_remote_version(
+                self._remote_folders()
+            )
+        return self._remote_version_str
+
+    def _remote_folders(self) -> List[str]:
+        """List the names of the atlas's folders on the remote."""
+        path = f"{self._remote}/{V3_ATLAS_ROOTDIR}/{self.atlas_name}"
+        try:
+            # One request, served from the s3fs cache when remote resolution
+            # has just listed this path.
+            return [p.rsplit("/", 1)[-1] for p in self.fs.ls(path)]
+        except FileNotFoundError:
             raise FileNotFoundError(
                 f"{self.atlas_name} is not a valid atlas name!"
-            )
+            ) from None
 
-        if self._requested_version is None:
-            last_versions = get_all_atlases_lastversions()
-            if self.atlas_name not in last_versions:
-                if self.local_full_name is not None:
-                    return None
+    def _pick_remote_version(self, folders: List[str]) -> str:
+        """Pick the requested, released or newest version folder."""
+        if self._requested_version is not None:
+            if self._requested_version not in folders:
+                raise FileNotFoundError(
+                    "Requested version "
+                    f"{folder_version_to_dotted(self._requested_version)} "
+                    f"for atlas {self.atlas_name} not found in remote."
+                )
+            return self._requested_version
+
+        if self._remote == descriptors.DEFAULT_REMOTE:
+            # last_versions.conf only lists atlases on the BrainGlobe bucket.
+            released = get_all_atlases_lastversions().get(self.atlas_name)
+            if released is None:
                 raise FileNotFoundError(
                     f"{self.atlas_name} has no released version available. "
                     "Specify a version explicitly to download it."
                 )
-            self._remote_version = _version_tuple_from_str(
-                str(last_versions[self.atlas_name]).replace("_", ".")
-            )
-        else:
-            requested_path = f"{bucket_path}/{self._requested_version}"
-            if not self.fs.exists(requested_path):
-                raise FileNotFoundError(
-                    f"Requested version {self._requested_version} for atlas "
-                    f"{self.atlas_name} not found in remote."
-                )
+            return str(released).replace(".", "_")
 
-            self._remote_version = _version_tuple_from_str(
-                self._requested_version.replace("_", ".")
+        # Skip anything that isn't a version folder, e.g. a README.
+        versions = [
+            f for f in folders if re.fullmatch(_VERSION_FOLDER_PATTERN, f)
+        ]
+        if not versions:
+            raise FileNotFoundError(
+                f"{self.atlas_name} is not a valid atlas name!"
             )
-
-        return self._remote_version
+        return get_latest_version(versions)
 
     def download(self):
         """Download and extract the atlas files from remote storage.
@@ -293,36 +434,40 @@ class BrainGlobeAtlas(
         The manifest file is removed if any error occurs during the
         download to ensure that incomplete downloads are retried.
         """
-        check_s3_status()
+        if not self._is_reachable(self._remote):
+            check_s3_status(remote=self._remote)
 
-        remote_version_str = _version_str_from_tuple(self.remote_version)
+        remote_version_str = self._resolve_remote_version()
         key_name = (
             f"{V3_ATLAS_ROOTDIR}/{self.atlas_name}/"
             f"{remote_version_str}/manifest.json"
         )
 
         local_path = self.brainglobe_dir / key_name
-        remote_path = remote_url_s3.format(key_name)
+        remote_path = f"{self._remote}/{key_name}"
 
         local_path.parent.mkdir(parents=True, exist_ok=True)
         print(
             f"Downloading {self.atlas_name} atlas "
-            f"v{remote_version_str.replace('_', '.')} manifest:"
+            f"v{folder_version_to_dotted(remote_version_str)} manifest:"
         )
         self.fs.get(remote_path, local_path, callback=TqdmCallback())
         self.metadata = read_json(local_path)
 
         try:
+            annotation_set = get_annotation_set(self.metadata)
+
             # Download terminology file
-            terminology_location = self.metadata["terminology"]["location"][1:]
+            terminology = annotation_set["terminology"]
+            terminology_location = terminology["location"][1:]
             local_terminology_path = self.brainglobe_dir / terminology_location
             if not local_terminology_path.exists():
-                remote_terminology_path = remote_url_s3.format(
-                    terminology_location
+                remote_terminology_path = (
+                    f"{self._remote}/{terminology_location}"
                 )
                 print(
                     f"Downloading terminology metadata "
-                    f"for {self.metadata['terminology']['name']}:"
+                    f"for {terminology['name']}:"
                 )
                 self.fs.get(
                     remote_terminology_path,
@@ -337,8 +482,8 @@ class BrainGlobeAtlas(
             ][1:]
             local_coordspace_path = self.brainglobe_dir / coordspace_location
             if not local_coordspace_path.exists():
-                remote_coordspace_path = remote_url_s3.format(
-                    coordspace_location
+                remote_coordspace_path = (
+                    f"{self._remote}/{coordspace_location}"
                 )
                 print(
                     f"Downloading coordinate space metadata "
@@ -352,20 +497,18 @@ class BrainGlobeAtlas(
                 )
 
             # Download annotation metadata files
-            annotation_location = self.metadata["annotation_set"]["location"][
-                1:
-            ]
+            annotation_location = annotation_set["location"][1:]
             local_annotation_path = self.brainglobe_dir / annotation_location
             if not local_annotation_path.exists():
                 root_metadata_path = (
                     annotation_location + f"/{V3_ANNOTATION_NAME}/**/*.json"
                 )
-                remote_root_metadata_path = remote_url_s3.format(
-                    root_metadata_path
+                remote_root_metadata_path = (
+                    f"{self._remote}/{root_metadata_path}"
                 )
                 print(
                     f"Downloading annotation metadata "
-                    f"for {self.metadata['annotation_set']['name']}:"
+                    f"for {annotation_set['name']}:"
                 )
                 self.fs.get(
                     remote_root_metadata_path,
@@ -381,8 +524,8 @@ class BrainGlobeAtlas(
                         annotation_location
                         + f"/{V3_ANNOTATION_MASKS_NAME}/**/*.json"
                     )
-                    remote_masks_metadata = remote_url_s3.format(
-                        masks_metadata_glob
+                    remote_masks_metadata = (
+                        f"{self._remote}/{masks_metadata_glob}"
                     )
                     self.fs.get(
                         remote_masks_metadata,
@@ -393,8 +536,8 @@ class BrainGlobeAtlas(
                         annotation_location + f"/{V3_ANNOTATION_MASKS_NAME}"
                         f"/{V3_ANNOTATION_MAP_NAME}"
                     )
-                    remote_masks_annotation_values_path = remote_url_s3.format(
-                        masks_annotation_values_path
+                    remote_masks_annotation_values_path = (
+                        f"{self._remote}/{masks_annotation_values_path}"
                     )
                     self.fs.get(
                         remote_masks_annotation_values_path,
@@ -406,16 +549,22 @@ class BrainGlobeAtlas(
                     raise FileNotFoundError(
                         f"Annotation masks metadata not found for atlas "
                         f"{self.atlas_name} "
-                        f"v{remote_version_str.replace('_', '.')}."
+                        f"v{folder_version_to_dotted(remote_version_str)}."
                     ) from e
 
-                if not self.metadata["symmetric"]:
+                hemispheres_remote = (
+                    f"{self._remote}/{annotation_location}"
+                    f"/{V3_HEMISPHERES_NAME}"
+                )
+                if not self.metadata.get(
+                    "symmetric", False
+                ) and self.fs.exists(hemispheres_remote):
                     root_hemisphere_path = (
                         annotation_location
                         + f"/{V3_HEMISPHERES_NAME}/**/*.json"
                     )
-                    remote_root_hemisphere_path = remote_url_s3.format(
-                        root_hemisphere_path
+                    remote_root_hemisphere_path = (
+                        f"{self._remote}/{root_hemisphere_path}"
                     )
                     self.fs.get(
                         remote_root_hemisphere_path,
@@ -424,22 +573,18 @@ class BrainGlobeAtlas(
                     )
 
             # Download template metadata files
-            template_location = self.metadata["annotation_set"]["template"][
-                "location"
-            ][1:]
+            template = annotation_set["template"]
+            template_location = template["location"][1:]
             local_template_path = self.brainglobe_dir / template_location
             if not local_template_path.exists():
                 root_metadata_path = (
                     template_location + f"/{V3_TEMPLATE_NAME}/**/*.json"
                 )
-                remote_root_metadata_path = remote_url_s3.format(
-                    root_metadata_path
+                remote_root_metadata_path = (
+                    f"{self._remote}/{root_metadata_path}"
                 )
 
-                print(
-                    f"Downloading template metadata "
-                    f"for {self.metadata['template']['name']}:"
-                )
+                print(f"Downloading template metadata for {template['name']}:")
                 self.fs.get(
                     remote_root_metadata_path,
                     local_template_path / V3_TEMPLATE_NAME,
@@ -458,13 +603,10 @@ class BrainGlobeAtlas(
                     root_metadata_path = (
                         template_location + f"/{V3_TEMPLATE_NAME}/**/*.json"
                     )
-                    remote_root_metadata_path = remote_url_s3.format(
-                        root_metadata_path
+                    remote_root_metadata_path = (
+                        f"{self._remote}/{root_metadata_path}"
                     )
-                    print(
-                        f"Downloading template metadata "
-                        f"for {self.metadata['template']['name']}:"
-                    )
+                    print(f"Downloading template metadata for {ref['name']}:")
                     self.fs.get(
                         remote_root_metadata_path,
                         local_template_path / V3_TEMPLATE_NAME,
@@ -497,25 +639,27 @@ class BrainGlobeAtlas(
         -------
         Optional[bool]
             Returns False if the local version is not the latest,
-            True if it is, and None if we are offline.
+            True if it is, and None if offline or not on the remote.
         """
         # Cache remote version to avoid multiple requests
         remote_version = self.remote_version
-        # If we are offline, return None
+        # Offline, or the remote does not have this atlas
         if remote_version is None:
             return None
 
-        local = _version_str_from_tuple(self.local_version)
-        online = _version_str_from_tuple(remote_version)
+        # Compare version folder names exactly, so "2024-05" != "2024_05".
+        # local_full_name and remote_version have set both by now.
+        local = self._local_version_str
+        online = self._remote_version_str
 
         if local != online:
             if print_warning:
                 rprint(
                     "[b][magenta2]brainglobe_atlasapi[/b]: "
                     f"[b]{self.atlas_name}[/b] version "
-                    f"[b]{local.replace('_', '.')}[/b] "
+                    f"[b]{folder_version_to_dotted(local)}[/b] "
                     f"is not the latest available "
-                    f"([b]{online.replace('_', '.')}[/b]). "
+                    f"([b]{folder_version_to_dotted(online)}[/b]). "
                     "To update the atlas run in the terminal:[/magenta2]\n"
                     f" [gold1]brainglobe update -a {self.atlas_name}[/gold1]"
                 )
@@ -524,10 +668,13 @@ class BrainGlobeAtlas(
 
     def __repr__(self) -> str:
         """Fancy print providing atlas information."""
-        name_split = self.atlas_name.split("_")
-        res = f" (res. {name_split.pop()})"
-        pretty_name = f"{' '.join(name_split)} atlas{res}"
-        return pretty_name
+        if "_" in self.atlas_name:
+            name_split = self.atlas_name.split("_")
+            res = f" (res. {name_split.pop()})"
+            return f"{' '.join(name_split)} atlas{res}"
+
+        resolution = self.metadata["resolution"][0]
+        return f"{self.atlas_name} (res. {resolution}um)"
 
     def __str__(self) -> str:
         """

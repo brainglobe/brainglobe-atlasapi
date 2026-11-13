@@ -10,6 +10,7 @@ from typing import (
     Generic,
     List,
     Literal,
+    Optional,
     Tuple,
     TypeVar,
     Union,
@@ -27,8 +28,8 @@ import zarr
 from brainglobe_space import AnatomicalSpace
 from fsspec.callbacks import TqdmCallback
 
+from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.descriptors import (
-    ATLAS_ORIENTATION,
     HEMISPHERES_DTYPE,
     V3_ANNOTATION_MAP_NAME,
     V3_ANNOTATION_MASKS_NAME,
@@ -37,8 +38,8 @@ from brainglobe_atlasapi.descriptors import (
     V3_MESHES_DIRECTORY,
     V3_TEMPLATE_NAME,
     V3_TERMINOLOGY_NAME,
-    remote_url_s3,
 )
+from brainglobe_atlasapi.manifest import normalize_manifest
 from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import (
     load_structures_from_csv,
@@ -100,6 +101,12 @@ class Atlas(Generic[AtlasArray]):
     ----------
     path : str or Path object
         Path to folder containing data info.
+    resolution : float or None
+        Requested resolution, in micrometres: the first axis of a
+        non-isotropic atlas, e.g. 16 for 16 x 16 x 20 um. Defaults to the
+        finest available for manifests offering several.
+    remote : str
+        Remote to fetch data from; defaults to the BrainGlobe bucket.
     dask : bool
         If True, atlas array properties return dask arrays instead of loading
         them into memory as numpy arrays.
@@ -113,6 +120,8 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[npt.NDArray[np.integer]],
         path: Union[str, Path],
         dask: Literal[False] = False,
+        resolution: Optional[float] = None,
+        remote: str = descriptors.DEFAULT_REMOTE,
     ) -> None: ...
 
     @overload
@@ -120,6 +129,8 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[da.Array],
         path: Union[str, Path],
         dask: Literal[True] = True,
+        resolution: Optional[float] = None,
+        remote: str = descriptors.DEFAULT_REMOTE,
     ) -> None: ...
 
     @overload
@@ -127,17 +138,36 @@ class Atlas(Generic[AtlasArray]):
         self: Atlas[AtlasArray],
         path: Union[str, Path],
         dask: bool = False,
+        resolution: Optional[float] = None,
+        remote: str = descriptors.DEFAULT_REMOTE,
     ) -> None: ...
 
-    def __init__(self, path: Union[str, Path], dask: bool = False):
+    def __init__(
+        self,
+        path: Union[str, Path],
+        dask: bool = False,
+        resolution: Optional[float] = None,
+        remote: str = descriptors.DEFAULT_REMOTE,
+    ):
         self.dask = dask
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
         self.fs = s3fs.S3FileSystem(anon=True)
+        self._remote = remote
 
         atlas_path = Path(path)
         self.root_dir = atlas_path.parents[3]
-        self.metadata = read_json(atlas_path)
+        self.metadata = normalize_manifest(
+            read_json(atlas_path), resolution, self.root_dir
+        )
+        if self.orientation != descriptors.ATLAS_ORIENTATION:
+            warnings.warn(
+                f"{self.metadata['name']} is stored in '{self.orientation}' "
+                "orientation, not BrainGlobe's standard "
+                f"'{descriptors.ATLAS_ORIENTATION}'. It is returned as "
+                "stored; use brainglobe_space.AnatomicalSpace to map between "
+                "orientations."
+            )
         structures_path = (
             self.root_dir
             / self.metadata["terminology"]["location"][1:]
@@ -191,11 +221,15 @@ class Atlas(Generic[AtlasArray]):
         for struct in structures_list:
             struct["mesh_filename"] = meshes_path / f'{struct["id"]}'
 
-        self.structures = StructuresDict(structures_list)
+        self.structures = StructuresDict(
+            structures_list,
+            remote=self._remote,
+            dequantize_meshes=self.metadata.get("format") == "atlas-assets",
+        )
 
         # Instantiate SpaceConvention object describing the current atlas:
         self.space = AnatomicalSpace(
-            origin=ATLAS_ORIENTATION,
+            origin=self.orientation,
             shape=self.shape,
             resolution=self.resolution,
         )
@@ -208,6 +242,7 @@ class Atlas(Generic[AtlasArray]):
                 references_list=additional_references,
                 data_path=self.root_dir,
                 resolution=self.resolution,
+                remote=self._remote,
             )
         except KeyError:
             warnings.warn(
@@ -233,8 +268,8 @@ class Atlas(Generic[AtlasArray]):
 
     @property
     def orientation(self):
-        """Make orientation more accessible from class."""
-        return ATLAS_ORIENTATION
+        """Origin of the atlas axes, in brainglobe-space letters."""
+        return self.metadata["orientation"]
 
     @property
     def shape(self):
@@ -284,8 +319,9 @@ class Atlas(Generic[AtlasArray]):
 
         if not (resolution_path / "c").exists():
             print("Downloading template...")
-            remote_path = remote_url_s3.format(
-                f"{template_location}/{V3_TEMPLATE_NAME}/{dataset_path}/"
+            remote_path = (
+                f"{self._remote}/{template_location}"
+                f"/{V3_TEMPLATE_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -331,8 +367,9 @@ class Atlas(Generic[AtlasArray]):
 
         if not (resolution_path / "c").exists():
             print("Downloading annotations...")
-            remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V3_ANNOTATION_NAME}/{dataset_path}/"
+            remote_path = (
+                f"{self._remote}/{annotation_location}"
+                f"/{V3_ANNOTATION_NAME}/{dataset_path}/"
             )
             self.fs.get(
                 remote_path,
@@ -353,55 +390,82 @@ class Atlas(Generic[AtlasArray]):
 
         If a symmetric reference is used, the hemisphere information is
         generated by splitting the reference in half along the frontal axis.
-        If the reference has an odd number of voxels along the frontal axis,
-        the middle plane is assigned to the left hemisphere.
+        The first ``round(n / 2)`` planes go to the hemisphere the frontal
+        origin letter names (right for ``r``, left for ``l``), the rest to
+        the other. ``round`` rounds halves to even, so with an odd ``n`` the
+        middle plane goes to the first half for n = 7 but the second for
+        n = 5. Hemispheres are
+        also synthesized this way when the remote bucket holds no hemispheres
+        asset, rather than being downloaded.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the atlas is asymmetric and the bucket holds a hemispheres
+            asset that is missing from the local cache.
         """
         if self._hemispheres is not None:
             return cast(AtlasArray, self._hemispheres)
 
-        # If reference is symmetric generate hemispheres block:
-        if self.metadata["symmetric"]:
+        annotation_location = self.metadata["annotation_set"]["location"][1:]
+        hemispheres_path = (
+            self.root_dir / annotation_location / V3_HEMISPHERES_NAME
+        )
+
+        # Synthesize when the atlas is symmetric, or when the bucket holds
+        # no hemispheres asset. The atlas-assets specification defines no
+        # such asset, so those atlases always take this branch. The bucket
+        # is only consulted when the local asset is missing, so a complete
+        # cache still loads offline; a locally missing but remotely present
+        # asset means an incomplete cache and must fail loudly below.
+        if self.metadata["symmetric"] or not (
+            hemispheres_path.exists()
+            or self.fs.exists(
+                f"{self._remote}/{annotation_location}"
+                f"/{V3_HEMISPHERES_NAME}"
+            )
+        ):
             shape = tuple(self.metadata["shape"])
             front_ax_idx = self.space.axes_order.index("frontal")
             split = round(shape[front_ax_idx] / 2)
 
+            # The frontal axis starts on the side its origin letter names,
+            # e.g. right for "asr" but left for atlas-assets' "asl".
+            first_value, second_value = (
+                self.right_hemisphere_value,
+                self.left_hemisphere_value,
+            )
+            if self.space.origin[front_ax_idx] == "l":
+                first_value, second_value = second_value, first_value
+
             if self.dask:
-                right_shape = list(shape)
-                right_shape[front_ax_idx] = split
-                left_shape = list(shape)
-                left_shape[front_ax_idx] -= split
+                first_shape = list(shape)
+                first_shape[front_ax_idx] = split
+                second_shape = list(shape)
+                second_shape[front_ax_idx] -= split
                 self._hemispheres = da.concatenate(
                     [
                         da.full(
-                            right_shape,
-                            self.right_hemisphere_value,
+                            first_shape,
+                            first_value,
                             dtype=HEMISPHERES_DTYPE,
                         ),
                         da.full(
-                            left_shape,
-                            self.left_hemisphere_value,
+                            second_shape,
+                            second_value,
                             dtype=HEMISPHERES_DTYPE,
                         ),
                     ],
                     axis=front_ax_idx,
                 )
             else:
-                stack = np.full(
-                    shape, self.right_hemisphere_value, dtype=HEMISPHERES_DTYPE
-                )
+                stack = np.full(shape, first_value, dtype=HEMISPHERES_DTYPE)
                 slices = [slice(None) for _ in range(3)]
                 slices[front_ax_idx] = slice(split, None)
-                stack[tuple(slices)] = self.left_hemisphere_value
+                stack[tuple(slices)] = second_value
 
                 self._hemispheres = stack
         else:
-            annotation_location = self.metadata["annotation_set"]["location"][
-                1:
-            ]
-            hemispheres_path = (
-                self.root_dir / annotation_location / V3_HEMISPHERES_NAME
-            )
-
             multiscale = nz.from_ngff_zarr(hemispheres_path)
             dataset_path = multiscale.metadata.datasets[
                 self._annotation_pyramid_level
@@ -410,8 +474,9 @@ class Atlas(Generic[AtlasArray]):
 
             if not (resolution_path / "c").exists():
                 print("Downloading hemispheres...")
-                remote_path = remote_url_s3.format(
-                    f"{annotation_location}/{V3_HEMISPHERES_NAME}/{dataset_path}/"
+                remote_path = (
+                    f"{self._remote}/{annotation_location}"
+                    f"/{V3_HEMISPHERES_NAME}/{dataset_path}/"
                 )
                 self.fs.get(
                     remote_path,
@@ -570,7 +635,7 @@ class Atlas(Generic[AtlasArray]):
         -------
             The mesh data for the root structure.
         """
-        return self.mesh_from_structure("root")
+        return self.mesh_from_structure(self.structures.tree.root)
 
     def root_meshfile(self):
         """
@@ -580,7 +645,7 @@ class Atlas(Generic[AtlasArray]):
         -------
             str: The path to the mesh file for the root structure.
         """
-        return self.meshfile_from_structure("root")
+        return self.meshfile_from_structure(self.structures.tree.root)
 
     def _idx_from_coords(self, coords, microns):
         # If microns are passed, convert:
@@ -797,8 +862,9 @@ class Atlas(Generic[AtlasArray]):
             annotation_location = self.metadata["annotation_set"]["location"][
                 1:
             ]
-            remote_path = remote_url_s3.format(
-                f"{annotation_location}/{V3_ANNOTATION_MASKS_NAME}"
+            remote_path = (
+                f"{self._remote}/{annotation_location}"
+                f"/{V3_ANNOTATION_MASKS_NAME}"
                 f"/{dataset_path}/c/{index}/"
             )
             try:
@@ -830,6 +896,7 @@ class AdditionalRefDict(UserDict):
         references_list: List[Dict[str, str]],
         data_path,
         resolution: Tuple[float, float, float],
+        remote=descriptors.DEFAULT_REMOTE,
         *args,
         **kwargs,
     ):
@@ -837,6 +904,7 @@ class AdditionalRefDict(UserDict):
         self.references_names = [ref["name"] for ref in references_list]
         self.references_dict = {ref["name"]: ref for ref in references_list}
         self.resolution = resolution
+        self.remote = remote
 
         super().__init__(*args, **kwargs)
 
@@ -892,8 +960,9 @@ class AdditionalRefDict(UserDict):
 
             if not (resolution_path / "c").exists():
                 print("Downloading template...")
-                remote_path = remote_url_s3.format(
-                    f"{additional_ref_location}/{V3_TEMPLATE_NAME}/{dataset_path}/"
+                remote_path = (
+                    f"{self.remote}/{additional_ref_location}"
+                    f"/{V3_TEMPLATE_NAME}/{dataset_path}/"
                 )
                 fs = s3fs.S3FileSystem(anon=True)
                 fs.get(

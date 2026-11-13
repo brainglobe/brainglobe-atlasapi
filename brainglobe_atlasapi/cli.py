@@ -14,8 +14,15 @@ from brainglobe_atlasapi.update_atlases import install_atlas, update_atlas
 @click.option("-f", "--force", is_flag=True)
 @click.option("-k", "--key")
 @click.option("-v", "--value")
+@click.option("--remote")
 def bg_cli(
-    command, atlas_name=None, force=False, show=False, key=None, value=None
+    command,
+    atlas_name=None,
+    force=False,
+    show=False,
+    key=None,
+    value=None,
+    remote=None,
 ):
     """
     Command line dispatcher. Given a command line call to `brainglobe`
@@ -38,6 +45,9 @@ def bg_cli(
     force : bool, optional
         Used with `update`. If True it forces the update.
         Defaults to False.
+    remote : str, optional
+        Used with `update` and `install`, an ``s3://bucket/prefix`` to
+        fetch the atlas from instead of searching the configured remotes.
     """
     if command == "list":  # list atlases
         return show_atlases(show_local_path=show)
@@ -48,7 +58,10 @@ def bg_cli(
                 'No atlas named passed with command "install". Use the "-a"\
                                 argument to pass an atlas name'
             )
-        return install_atlas(atlas_name=atlas_name)
+        return install_atlas(
+            atlas_name=atlas_name,
+            remote=remote,
+        )
 
     elif command == "update":  # update installed atlas
         if atlas_name is None:
@@ -56,7 +69,11 @@ def bg_cli(
                 'No atlas named passed with command "update". Use the "-a"\
                                 argument to pass an atlas name'
             )
-        return update_atlas(atlas_name, force=force)
+        return update_atlas(
+            atlas_name,
+            force=force,
+            remote=remote,
+        )
 
     elif command == "config":  # update config
         return cli_modify_config(key=key, value=value, show=show)

@@ -1,5 +1,6 @@
 """Pytest fixtures for the brainglobe_atlasapi package."""
 
+import functools
 import os
 import shutil
 import tempfile
@@ -68,19 +69,78 @@ def mock_brainglobe_user_folders():
         yield
 
 
+@functools.cache
+def _update_once(atlas_name):
+    """Check an atlas is at its latest version, once per test session.
+
+    Parameters
+    ----------
+    atlas_name : str
+        Name of the atlas to check.
+    """
+    update_atlas(atlas_name)
+
+
+def _cached_atlas(atlas_name, **kwargs):
+    """Build an atlas from the local cache, downloading only what is missing.
+
+    Parameters
+    ----------
+    atlas_name : str
+        Name of the atlas to build.
+    **kwargs
+        Passed on to `BrainGlobeAtlas`.
+
+    Returns
+    -------
+    BrainGlobeAtlas
+        The requested atlas.
+    """
+    _update_once(atlas_name)
+    return BrainGlobeAtlas(atlas_name, check_latest=False, **kwargs)
+
+
 @pytest.fixture()
 def atlas():
     """Provide a default BrainGlobeAtlas instance.
+
+    A new instance per test, as tests modify it, built from the local cache.
 
     Returns
     -------
     BrainGlobeAtlas
         An instance of BrainGlobeAtlas for 'example_mouse_100um'.
     """
-    # Ensure atlas is updated to latest version for testing:
-    update_atlas("example_mouse_100um")
+    return _cached_atlas("example_mouse_100um")
 
-    return BrainGlobeAtlas("example_mouse_100um")
+
+@pytest.fixture(scope="session")
+def atlas_assets_atlas():
+    """Provide an atlas-assets atlas, shared by the whole test session.
+
+    Tests must treat it as read-only.
+
+    Returns
+    -------
+    BrainGlobeAtlas
+        An instance of 'allen-adult-mouse-ccf-atlas' at 100 um.
+    """
+    return _cached_atlas("allen-adult-mouse-ccf-atlas", resolution=100)
+
+
+@pytest.fixture(scope="session")
+def anisotropic_atlas():
+    """Provide a non-isotropic atlas, shared by the whole test session.
+
+    Tests must treat it as read-only.
+
+    Returns
+    -------
+    BrainGlobeAtlas
+        An instance of 'allen-dev-mouse-e11pt5-nissl-atlas', whose voxels
+        are 16 x 16 x 20 um.
+    """
+    return _cached_atlas("allen-dev-mouse-e11pt5-nissl-atlas")
 
 
 @pytest.fixture()
@@ -92,10 +152,7 @@ def asymmetric_atlas():
     BrainGlobeAtlas
         An instance of BrainGlobeAtlas for 'unam_axolotl_40um'.
     """
-    # Ensure atlas is updated to latest version for testing:
-    update_atlas("unam_axolotl_40um")
-
-    return BrainGlobeAtlas("unam_axolotl_40um")
+    return _cached_atlas("unam_axolotl_40um")
 
 
 @pytest.fixture()
@@ -123,10 +180,7 @@ def atlas_path():
     pathlib.Path
         The root directory path of the 'example_mouse_100um' atlas.
     """
-    # Ensure atlas is updated to latest version for testing:
-    update_atlas("example_mouse_100um")
-
-    return BrainGlobeAtlas("example_mouse_100um").root_dir
+    return _cached_atlas("example_mouse_100um").root_dir
 
 
 @pytest.fixture(scope="session")

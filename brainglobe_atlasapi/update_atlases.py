@@ -4,14 +4,14 @@ import shutil
 
 from rich import print as rprint
 
-from brainglobe_atlasapi.bg_atlas import (
-    BrainGlobeAtlas,
-    _version_str_from_tuple,
+from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+from brainglobe_atlasapi.list_atlases import (
+    folder_version_to_dotted,
+    get_downloaded_atlases,
 )
-from brainglobe_atlasapi.list_atlases import get_downloaded_atlases
 
 
-def update_atlas(atlas_name, force=False, fn_update=None):
+def update_atlas(atlas_name, force=False, fn_update=None, remote=None):
     """Update a brainglobe_atlasapi atlas from the latest
     available version online.
 
@@ -24,9 +24,15 @@ def update_atlas(atlas_name, force=False, fn_update=None):
         and doesn't update if that's the case.
     fn_update : Callable, Optional
         A callback function to update progress during download.
+    remote : str, Optional
+        An ``s3://bucket/prefix`` to fetch the atlas from instead of
+        searching the configured remotes.
     """
     atlas = BrainGlobeAtlas(
-        atlas_name=atlas_name, check_latest=False, fn_update=fn_update
+        atlas_name=atlas_name,
+        check_latest=False,
+        fn_update=fn_update,
+        remote=remote,
     )
 
     is_latest_version = atlas.check_latest_version(print_warning=False)
@@ -45,7 +51,7 @@ def update_atlas(atlas_name, force=False, fn_update=None):
         rprint(
             f"[b][magenta2]brainglobe_atlasapi: {atlas.atlas_name} "
             "is already updated "
-            f"(version: {_version_str_from_tuple(atlas.local_version)})"
+            f"(version: {folder_version_to_dotted(atlas._local_version_str)})"
             "[/b]"
         )
 
@@ -63,11 +69,11 @@ def update_atlas(atlas_name, force=False, fn_update=None):
     rprint(
         "[b][magenta2]brainglobe_atlasapi: "
         f"{atlas.atlas_name} updated to version: "
-        f"{_version_str_from_tuple(atlas.remote_version)}[/magenta2][/b]"
+        f"{folder_version_to_dotted(atlas._remote_version_str)}[/magenta2][/b]"
     )
 
 
-def install_atlas(atlas_name, fn_update=None):
+def install_atlas(atlas_name, fn_update=None, remote=None):
     """Installs a BrainGlobe atlas from the latest
     available version online.
 
@@ -77,6 +83,9 @@ def install_atlas(atlas_name, fn_update=None):
         Name of the atlas to update.
     fn_update : Callable, Optional
         A callback function to update progress during download.
+    remote : str, Optional
+        An ``s3://bucket/prefix`` to fetch the atlas from instead of
+        searching the configured remotes.
     """
     # Check input:
     if not isinstance(atlas_name, str):
@@ -85,9 +94,10 @@ def install_atlas(atlas_name, fn_update=None):
             f"{type(atlas_name).__name__}."
         )
 
-    # Check if already downloaded:
-    available_atlases = get_downloaded_atlases()
-    if atlas_name in available_atlases:
+    # Check if already downloaded. get_downloaded_atlases only sees the
+    # default cache; with an explicit remote, BrainGlobeAtlas checks that
+    # remote's cache itself.
+    if remote is None and atlas_name in get_downloaded_atlases():
         rprint(
             f"[b][magenta2]brainglobe_atlasapi: installing {atlas_name}: "
             "atlas already installed![/magenta2][/b]"
@@ -95,4 +105,8 @@ def install_atlas(atlas_name, fn_update=None):
         return
 
     # Istantiate to download:
-    BrainGlobeAtlas(atlas_name, fn_update=fn_update)
+    BrainGlobeAtlas(
+        atlas_name,
+        fn_update=fn_update,
+        remote=remote,
+    )

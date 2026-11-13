@@ -93,3 +93,33 @@ def test_cli_incorrect_command():
         match=f'Invalid command {command}. use "brainglobe -h for more info."',
     ):
         CliRunner().invoke(cli.bg_cli, [command], catch_exceptions=False)
+
+
+@pytest.mark.parametrize("command", ["install", "update"])
+def test_remote_is_passed_on(command, mocker):
+    """--remote reaches install_atlas/update_atlas unchanged.
+
+    Parameters
+    ----------
+    command : str
+        CLI command under test.
+    mocker : pytest_mock.MockerFixture
+        Used to replace the command's implementation with a mock.
+    """
+    mock = mocker.patch.object(cli, f"{command}_atlas")
+
+    result = CliRunner().invoke(
+        cli.bg_cli,
+        [
+            command,
+            "-a",
+            "some-atlas",
+            "--remote",
+            "s3://bucket/prefix",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    mock.assert_called_once()
+    assert mock.call_args.kwargs["remote"] == "s3://bucket/prefix"

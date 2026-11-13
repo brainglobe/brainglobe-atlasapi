@@ -94,9 +94,10 @@ def install_atlas(atlas_name, fn_update=None, remote=None):
             f"{type(atlas_name).__name__}."
         )
 
-    # Check if already downloaded:
-    available_atlases = get_downloaded_atlases()
-    if atlas_name in available_atlases:
+    # Check if already downloaded. get_downloaded_atlases only sees the
+    # default cache; with an explicit remote, BrainGlobeAtlas checks that
+    # remote's cache itself.
+    if remote is None and atlas_name in get_downloaded_atlases():
         rprint(
             f"[b][magenta2]brainglobe_atlasapi: installing {atlas_name}: "
             "atlas already installed![/magenta2][/b]"

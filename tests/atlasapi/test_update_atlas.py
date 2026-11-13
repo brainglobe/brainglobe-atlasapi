@@ -111,3 +111,26 @@ def test_remote_reaches_the_atlas(function, mocker):
 
     kwargs = mock_BrainGlobeAtlas.call_args.kwargs
     assert kwargs["remote"] == "s3://bucket/prefix"
+
+
+def test_install_atlas_remote_ignores_default_cache(mocker):
+    """An atlas in the default cache doesn't block an explicit remote.
+
+    Parameters
+    ----------
+    mocker : pytest_mock.plugin.MockerFixture
+        Mocker fixture for patching.
+    """
+    mocker.patch(
+        "brainglobe_atlasapi.update_atlases.get_downloaded_atlases",
+        return_value=["some-atlas"],
+    )
+    mock_BrainGlobeAtlas = mocker.patch(
+        "brainglobe_atlasapi.update_atlases.BrainGlobeAtlas"
+    )
+
+    update_atlases.install_atlas("some-atlas", remote="s3://bucket/prefix")
+
+    mock_BrainGlobeAtlas.assert_called_once_with(
+        "some-atlas", fn_update=None, remote="s3://bucket/prefix"
+    )

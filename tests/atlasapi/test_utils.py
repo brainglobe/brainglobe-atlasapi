@@ -667,20 +667,20 @@ def test_load_structures_unknown_identifier_in_path(tmp_path):
     assert "MBA:999" in str(error.value)
 
 
-def test_remote_root_to_https():
+def test_remote_to_https():
     """S3 URIs convert to virtual-hosted HTTPS URLs.
 
     Parameters
     ----------
-    remote_root : str
-        An ``s3://bucket/prefix`` remote root.
+    remote : str
+        An ``s3://bucket/prefix`` remote.
     expected : str
         The HTTPS URL used for the reachability check.
     """
-    remote_root = "s3://brainglobe/atlas"
+    remote = "s3://brainglobe/atlas"
     expected = "https://brainglobe.s3.amazonaws.com/atlas"
 
-    assert utils.remote_root_to_https(remote_root) == expected
+    assert utils.remote_to_https(remote) == expected
 
 
 def test_rich_metadata_omits_missing_fields():

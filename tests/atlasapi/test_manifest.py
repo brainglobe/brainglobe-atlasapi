@@ -56,7 +56,7 @@ def _annotation_ome_attrs(atlas, raw_manifest):
     return read_json(zarr_json)["attributes"]["ome"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def atlas_assets_manifest(atlas_assets_atlas):
     """Return a real atlas-assets atlas manifest.
 
@@ -73,7 +73,7 @@ def atlas_assets_manifest(atlas_assets_atlas):
     return _raw_manifest(atlas_assets_atlas)
 
 
-@pytest.fixture()
+@pytest.fixture
 def brainglobe_manifest(atlas):
     """Return a real BrainGlobe atlas manifest.
 
@@ -90,7 +90,7 @@ def brainglobe_manifest(atlas):
     return _raw_manifest(atlas)
 
 
-@pytest.fixture()
+@pytest.fixture
 def ome_attrs(atlas_assets_atlas, atlas_assets_manifest):
     """Return the OME attributes block of a real atlas-assets zarr.
 
@@ -109,7 +109,7 @@ def ome_attrs(atlas_assets_atlas, atlas_assets_manifest):
     return _annotation_ome_attrs(atlas_assets_atlas, atlas_assets_manifest)
 
 
-@pytest.fixture()
+@pytest.fixture
 def brainglobe_ome_attrs(atlas, brainglobe_manifest):
     """Return the OME attributes block of a real BrainGlobe zarr.
 
@@ -160,11 +160,11 @@ def test_cached_metadata_matches_remote(request, atlas_fixture):
         path
         for path in cached_files
         if (atlas.root_dir / path).read_bytes()
-        != fs.cat_file(f"{atlas._remote_root}/{path}")
+        != fs.cat_file(f"{atlas._remote}/{path}")
     ]
 
     assert not stale, (
-        f"{atlas._remote_root} changed in place. Delete {atlas.root_dir} "
+        f"{atlas._remote} changed in place. Delete {atlas.root_dir} "
         f"(in CI, the atlas cache) to test against it. Differs: {stale}"
     )
 

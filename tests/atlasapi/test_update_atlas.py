@@ -79,13 +79,13 @@ def test_install_atlas_istantiate_download(mocker):
         update_atlases.install_atlas(atlas_name=name)
 
     mock_BrainGlobeAtlas.assert_called_once_with(
-        name, fn_update=None, remote_root=None
+        name, fn_update=None, remote=None
     )
 
 
 @pytest.mark.parametrize("function", ["install_atlas", "update_atlas"])
-def test_remote_root_reaches_the_atlas(function, mocker):
-    """remote_root is forwarded to BrainGlobeAtlas.
+def test_remote_reaches_the_atlas(function, mocker):
+    """Remote is forwarded to BrainGlobeAtlas.
 
     Parameters
     ----------
@@ -106,8 +106,8 @@ def test_remote_root_reaches_the_atlas(function, mocker):
     mock_BrainGlobeAtlas.return_value.local_version = (1, 0)
 
     getattr(update_atlases, function)(
-        "some-atlas", remote_root="s3://bucket/prefix"
+        "some-atlas", remote="s3://bucket/prefix"
     )
 
     kwargs = mock_BrainGlobeAtlas.call_args.kwargs
-    assert kwargs["remote_root"] == "s3://bucket/prefix"
+    assert kwargs["remote"] == "s3://bucket/prefix"

@@ -2,6 +2,7 @@
 
 import contextlib
 import shutil
+import warnings
 from io import StringIO
 from unittest.mock import MagicMock
 
@@ -662,3 +663,33 @@ def test_orientation_read_from_metadata(atlas, monkeypatch):
     assert atlas.orientation == "asr"
     monkeypatch.setitem(atlas.metadata, "orientation", "asl")
     assert atlas.orientation == "asl"
+
+
+def test_non_asr_orientation_warns(atlas_assets_atlas):
+    """Loading an atlas not stored in 'asr' warns, naming its orientation.
+
+    Parameters
+    ----------
+    atlas_assets_atlas : BrainGlobeAtlas
+        Allen atlas-assets atlas, stored as 'asl'.
+    """
+    manifest = (
+        atlas_assets_atlas.brainglobe_dir / atlas_assets_atlas.local_full_name
+    )
+    with pytest.warns(UserWarning, match="stored in 'asl' orientation"):
+        core.Atlas(manifest, resolution=100)
+
+
+def test_asr_orientation_does_not_warn(atlas):
+    """Loading an atlas stored in 'asr' raises no orientation warning.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    """
+    manifest = atlas.brainglobe_dir / atlas.local_full_name
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        core.Atlas(manifest)
+    assert not [w for w in caught if "orientation" in str(w.message)]

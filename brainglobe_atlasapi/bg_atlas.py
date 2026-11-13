@@ -40,12 +40,12 @@ from brainglobe_atlasapi.list_atlases import (
     get_all_atlases_lastversions,
 )
 from brainglobe_atlasapi.manifest import get_annotation_set
-from brainglobe_atlasapi.remote_roots import (
+from brainglobe_atlasapi.remotes import (
     cache_key,
-    check_remote_root,
-    known_remote_roots,
-    record_remote_root,
-    resolve_remote_root,
+    check_remote,
+    known_remotes,
+    record_remote,
+    resolve_remote,
 )
 from brainglobe_atlasapi.utils import (
     _rich_atlas_metadata,
@@ -90,14 +90,14 @@ class BrainGlobeAtlas(
         finest available, printing a note when there is more than one.
         For atlases with a single fixed resolution, a value that disagrees
         with it raises.
-    remote_root : str (optional)
+    remote : str (optional)
         An ``s3://bucket/prefix`` to fetch the atlas from. When given, it
-        takes full priority: it is the only root searched, with no
+        takes full priority: it is the only remote searched, with no
         fallback to the configured BrainGlobe/Allen defaults if the atlas
         isn't found there. Its local cache subdirectory is named after
         the last segment of the URL (``brainglobe-atlasapi`` for the
-        BrainGlobe root). If None (default), the historical BrainGlobe root is
-        assumed, falling back to the configured remote roots in
+        BrainGlobe remote). If None (default), the historical BrainGlobe
+        remote is assumed, falling back to the configured remotes in
         declaration order.
     """
 
@@ -112,7 +112,7 @@ class BrainGlobeAtlas(
         fn_update: Optional[Callable] = None,
         dask: Literal[False] = False,
         resolution: Optional[float] = None,
-        remote_root: Optional[str] = None,
+        remote: Optional[str] = None,
     ) -> None: ...
 
     @overload
@@ -126,7 +126,7 @@ class BrainGlobeAtlas(
         fn_update: Optional[Callable] = None,
         dask: Literal[True] = True,
         resolution: Optional[float] = None,
-        remote_root: Optional[str] = None,
+        remote: Optional[str] = None,
     ) -> None: ...
 
     @overload
@@ -140,7 +140,7 @@ class BrainGlobeAtlas(
         fn_update: Optional[Callable] = None,
         dask: bool = False,
         resolution: Optional[float] = None,
-        remote_root: Optional[str] = None,
+        remote: Optional[str] = None,
     ) -> None: ...
 
     def __init__(
@@ -153,13 +153,13 @@ class BrainGlobeAtlas(
         fn_update: Optional[Callable] = None,
         dask: bool = False,
         resolution: Optional[float] = None,
-        remote_root: Optional[str] = None,
+        remote: Optional[str] = None,
     ):
         self._resolution = resolution
         self._remote_version_str = None
         self._local_version_str = None
         self._local_full_name = None
-        self._reachable_roots: set = set()
+        self._reachable_remotes: set = set()
         self._requested_version = (
             version.replace(".", "_") if version else None
         )
@@ -176,9 +176,9 @@ class BrainGlobeAtlas(
         # Read BrainGlobe configuration file:
         conf = config.read_config(config_dir)
 
-        if remote_root is not None:
-            remote_root = remote_root.rstrip("/")
-        self._remote_root = remote_root or descriptors.DEFAULT_REMOTE_ROOT
+        if remote is not None:
+            remote = remote.rstrip("/")
+        self._remote = remote or descriptors.DEFAULT_REMOTE
 
         # Use either input locations or locations from the config file,
         # and create directory if it does not exist:
@@ -187,18 +187,18 @@ class BrainGlobeAtlas(
         else:
             base_dir = Path(brainglobe_dir)
 
-        self.brainglobe_dir = base_dir / cache_key(self._remote_root)
+        self.brainglobe_dir = base_dir / cache_key(self._remote)
 
         self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
-        if remote_root is None and self.local_full_name is None:
-            self._remote_root = self._locate_remote_root(
-                base_dir, config.get_remote_roots(config_dir)
+        if remote is None and self.local_full_name is None:
+            self._remote = self._locate_remote(
+                base_dir, config.get_remotes(config_dir)
             )
-            self.brainglobe_dir = base_dir / cache_key(self._remote_root)
+            self.brainglobe_dir = base_dir / cache_key(self._remote)
             self.brainglobe_dir.mkdir(parents=True, exist_ok=True)
 
-        check_remote_root(self.brainglobe_dir, self._remote_root)
+        check_remote(self.brainglobe_dir, self._remote)
 
         # Look for this atlas in local brainglobe folder:
         if self.local_full_name is None:
@@ -208,90 +208,90 @@ class BrainGlobeAtlas(
                 "download."
             )
 
-        record_remote_root(self.brainglobe_dir, self._remote_root)
+        record_remote(self.brainglobe_dir, self._remote)
 
         manifest_path = self.brainglobe_dir / self.local_full_name
         super().__init__(
             manifest_path,
             resolution=self._resolution,
-            remote_root=self._remote_root,
+            remote=self._remote,
             dask=dask,
         )
 
         if check_latest:
             self.check_latest_version()
 
-    def _locate_remote_root(self, base_dir: Path, roots: dict) -> str:
-        """Find the remote root for an atlas not cached under the default.
+    def _locate_remote(self, base_dir: Path, remotes: dict) -> str:
+        """Find the remote for an atlas not cached under the default.
 
-        The local cache of each configured root is searched first, in
-        config order, then the cache of every other root recorded under
+        The local cache of each configured remote is searched first, in
+        config order, then the cache of every other remote recorded under
         ``base_dir``, so a cached copy loads offline and without S3 calls
-        even if its root is not configured. Then each reachable configured
-        root is searched on S3, so the download lands in (and is later
+        even if its remote is not configured. Then each reachable configured
+        remote is searched on S3, so the download lands in (and is later
         found in) the matching cache.
 
         Parameters
         ----------
         base_dir : Path
-            Directory holding one cache directory per remote root.
-        roots : dict
-            Mapping of root key to remote root, in resolution order.
+            Directory holding one cache directory per remote.
+        remotes : dict
+            Mapping of remote key to remote, in resolution order.
 
         Returns
         -------
         str
-            The remote root holding the atlas. When no root is reachable,
-            the default root, so the name check in ``__init__`` fails
+            The remote holding the atlas. When no remote is reachable,
+            the default remote, so the name check in ``__init__`` fails
             loudly.
 
         Raises
         ------
         FileNotFoundError
-            If no reachable root holds the atlas.
+            If no reachable remote holds the atlas.
         """
-        for remote_root in known_remote_roots(base_dir, roots):
-            self.brainglobe_dir = base_dir / cache_key(remote_root)
+        for remote in known_remotes(base_dir, remotes):
+            self.brainglobe_dir = base_dir / cache_key(remote)
             atlas_dir = (
                 self.brainglobe_dir / V3_ATLAS_ROOTDIR / self.atlas_name
             )
             # local_full_name caches its result, so clear it per directory.
             self._local_full_name = None
             if atlas_dir.is_dir() and self.local_full_name is not None:
-                return remote_root
+                return remote
 
         try:
-            resolved = resolve_remote_root(
-                self.fs, self.atlas_name, roots, self._is_reachable
+            resolved = resolve_remote(
+                self.fs, self.atlas_name, remotes, self._is_reachable
             )
         except ValueError as error:
             # Preserve the historical exception type for an invalid atlas
             # name: callers such as update_atlas depend on it.
             raise FileNotFoundError(str(error)) from error
 
-        return resolved or descriptors.DEFAULT_REMOTE_ROOT
+        return resolved or descriptors.DEFAULT_REMOTE
 
-    def _is_reachable(self, remote_root: str) -> bool:
-        """Check a remote root answers, probing each root at most once.
+    def _is_reachable(self, remote: str) -> bool:
+        """Check a remote answers, probing each remote at most once.
 
         Only success is remembered, so a later check can still see a
         connection that has come back.
 
         Parameters
         ----------
-        remote_root : str
-            Remote root to check.
+        remote : str
+            Remote to check.
 
         Returns
         -------
         bool
-            Whether the remote root is reachable.
+            Whether the remote is reachable.
         """
-        if remote_root not in self._reachable_roots and check_s3_status(
-            raise_error=False, remote_root=remote_root
+        if remote not in self._reachable_remotes and check_s3_status(
+            raise_error=False, remote=remote
         ):
-            self._reachable_roots.add(remote_root)
-        return remote_root in self._reachable_roots
+            self._reachable_remotes.add(remote)
+        return remote in self._reachable_remotes
 
     @property
     def local_full_name(self):
@@ -360,10 +360,10 @@ class BrainGlobeAtlas(
 
         Unless a version was requested, the latest version is the one listed
         in the remote last_versions.conf on the BrainGlobe bucket, or the
-        newest version folder on any other root.
+        newest version folder on any other remote.
         """
         if self._remote_version_str is None:
-            if not self._is_reachable(self._remote_root):
+            if not self._is_reachable(self._remote):
                 return None
             try:
                 self._resolve_remote_version()
@@ -377,7 +377,7 @@ class BrainGlobeAtlas(
         Raises
         ------
         FileNotFoundError
-            If the remote root has no matching version of this atlas.
+            If the remote has no matching version of this atlas.
         """
         if self._remote_version_str is None:
             self._remote_version_str = self._pick_remote_version(
@@ -386,10 +386,10 @@ class BrainGlobeAtlas(
         return self._remote_version_str
 
     def _remote_folders(self) -> List[str]:
-        """List the names of the atlas's folders on the remote root."""
-        path = f"{self._remote_root}/{V3_ATLAS_ROOTDIR}/{self.atlas_name}"
+        """List the names of the atlas's folders on the remote."""
+        path = f"{self._remote}/{V3_ATLAS_ROOTDIR}/{self.atlas_name}"
         try:
-            # One request, served from the s3fs cache when root resolution
+            # One request, served from the s3fs cache when remote resolution
             # has just listed this path.
             return [p.rsplit("/", 1)[-1] for p in self.fs.ls(path)]
         except FileNotFoundError:
@@ -408,7 +408,7 @@ class BrainGlobeAtlas(
                 )
             return self._requested_version
 
-        if self._remote_root == descriptors.DEFAULT_REMOTE_ROOT:
+        if self._remote == descriptors.DEFAULT_REMOTE:
             # last_versions.conf only lists atlases on the BrainGlobe bucket.
             released = get_all_atlases_lastversions().get(self.atlas_name)
             if released is None:
@@ -434,8 +434,8 @@ class BrainGlobeAtlas(
         The manifest file is removed if any error occurs during the
         download to ensure that incomplete downloads are retried.
         """
-        if not self._is_reachable(self._remote_root):
-            check_s3_status(remote_root=self._remote_root)
+        if not self._is_reachable(self._remote):
+            check_s3_status(remote=self._remote)
 
         remote_version_str = self._resolve_remote_version()
         key_name = (
@@ -444,7 +444,7 @@ class BrainGlobeAtlas(
         )
 
         local_path = self.brainglobe_dir / key_name
-        remote_path = f"{self._remote_root}/{key_name}"
+        remote_path = f"{self._remote}/{key_name}"
 
         local_path.parent.mkdir(parents=True, exist_ok=True)
         print(
@@ -463,7 +463,7 @@ class BrainGlobeAtlas(
             local_terminology_path = self.brainglobe_dir / terminology_location
             if not local_terminology_path.exists():
                 remote_terminology_path = (
-                    f"{self._remote_root}/{terminology_location}"
+                    f"{self._remote}/{terminology_location}"
                 )
                 print(
                     f"Downloading terminology metadata "
@@ -483,7 +483,7 @@ class BrainGlobeAtlas(
             local_coordspace_path = self.brainglobe_dir / coordspace_location
             if not local_coordspace_path.exists():
                 remote_coordspace_path = (
-                    f"{self._remote_root}/{coordspace_location}"
+                    f"{self._remote}/{coordspace_location}"
                 )
                 print(
                     f"Downloading coordinate space metadata "
@@ -504,7 +504,7 @@ class BrainGlobeAtlas(
                     annotation_location + f"/{V3_ANNOTATION_NAME}/**/*.json"
                 )
                 remote_root_metadata_path = (
-                    f"{self._remote_root}/{root_metadata_path}"
+                    f"{self._remote}/{root_metadata_path}"
                 )
                 print(
                     f"Downloading annotation metadata "
@@ -525,7 +525,7 @@ class BrainGlobeAtlas(
                         + f"/{V3_ANNOTATION_MASKS_NAME}/**/*.json"
                     )
                     remote_masks_metadata = (
-                        f"{self._remote_root}/{masks_metadata_glob}"
+                        f"{self._remote}/{masks_metadata_glob}"
                     )
                     self.fs.get(
                         remote_masks_metadata,
@@ -537,7 +537,7 @@ class BrainGlobeAtlas(
                         f"/{V3_ANNOTATION_MAP_NAME}"
                     )
                     remote_masks_annotation_values_path = (
-                        f"{self._remote_root}/{masks_annotation_values_path}"
+                        f"{self._remote}/{masks_annotation_values_path}"
                     )
                     self.fs.get(
                         remote_masks_annotation_values_path,
@@ -553,7 +553,7 @@ class BrainGlobeAtlas(
                     ) from e
 
                 hemispheres_remote = (
-                    f"{self._remote_root}/{annotation_location}"
+                    f"{self._remote}/{annotation_location}"
                     f"/{V3_HEMISPHERES_NAME}"
                 )
                 if not self.metadata.get(
@@ -564,7 +564,7 @@ class BrainGlobeAtlas(
                         + f"/{V3_HEMISPHERES_NAME}/**/*.json"
                     )
                     remote_root_hemisphere_path = (
-                        f"{self._remote_root}/{root_hemisphere_path}"
+                        f"{self._remote}/{root_hemisphere_path}"
                     )
                     self.fs.get(
                         remote_root_hemisphere_path,
@@ -581,7 +581,7 @@ class BrainGlobeAtlas(
                     template_location + f"/{V3_TEMPLATE_NAME}/**/*.json"
                 )
                 remote_root_metadata_path = (
-                    f"{self._remote_root}/{root_metadata_path}"
+                    f"{self._remote}/{root_metadata_path}"
                 )
 
                 print(f"Downloading template metadata for {template['name']}:")
@@ -604,7 +604,7 @@ class BrainGlobeAtlas(
                         template_location + f"/{V3_TEMPLATE_NAME}/**/*.json"
                     )
                     remote_root_metadata_path = (
-                        f"{self._remote_root}/{root_metadata_path}"
+                        f"{self._remote}/{root_metadata_path}"
                     )
                     print(f"Downloading template metadata for {ref['name']}:")
                     self.fs.get(

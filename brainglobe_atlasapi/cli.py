@@ -14,7 +14,7 @@ from brainglobe_atlasapi.update_atlases import install_atlas, update_atlas
 @click.option("-f", "--force", is_flag=True)
 @click.option("-k", "--key")
 @click.option("-v", "--value")
-@click.option("--remote_root")
+@click.option("--remote")
 def bg_cli(
     command,
     atlas_name=None,
@@ -22,7 +22,7 @@ def bg_cli(
     show=False,
     key=None,
     value=None,
-    remote_root=None,
+    remote=None,
 ):
     """
     Command line dispatcher. Given a command line call to `brainglobe`
@@ -45,9 +45,9 @@ def bg_cli(
     force : bool, optional
         Used with `update`. If True it forces the update.
         Defaults to False.
-    remote_root : str, optional
+    remote : str, optional
         Used with `update` and `install`, an ``s3://bucket/prefix`` to
-        fetch the atlas from instead of searching the configured roots.
+        fetch the atlas from instead of searching the configured remotes.
     """
     if command == "list":  # list atlases
         return show_atlases(show_local_path=show)
@@ -60,7 +60,7 @@ def bg_cli(
             )
         return install_atlas(
             atlas_name=atlas_name,
-            remote_root=remote_root,
+            remote=remote,
         )
 
     elif command == "update":  # update installed atlas
@@ -72,7 +72,7 @@ def bg_cli(
         return update_atlas(
             atlas_name,
             force=force,
-            remote_root=remote_root,
+            remote=remote,
         )
 
     elif command == "config":  # update config

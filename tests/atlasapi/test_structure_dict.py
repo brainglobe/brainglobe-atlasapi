@@ -204,7 +204,7 @@ def test_download_mesh_removes_corrupt_file_on_error(tmp_path, monkeypatch):
     assert not mesh_file.exists()
 
 
-ATLAS_ASSETS_ROOT = descriptors.ATLAS_ASSETS_REMOTE_ROOT
+ATLAS_ASSETS_ROOT = descriptors.ATLAS_ASSETS_REMOTE
 
 # A real fragment from the atlas-assets bucket: structure 332 of
 # allen-adult-mouse-annotation/2017, the smallest mesh there that is also
@@ -527,8 +527,9 @@ def test_read_multilod_draco_missing_index_raises():
     contents = _mesh_contents()
     del contents[f"root/mesh/{ALLEN_ID}.index"]
 
+    cat = _FakeCat(contents)
     with pytest.raises(FileNotFoundError):
-        structure_class._read_multilod_draco(_FakeCat(contents), ALLEN_PATH)
+        structure_class._read_multilod_draco(cat, ALLEN_PATH)
 
 
 def test_encode_draco_round_trips_within_quantization_error():
@@ -587,7 +588,7 @@ def test_atlas_assets_mesh_converted_on_download(tmp_path, monkeypatch):
 
     struct_dict = StructuresDict(
         structures_list,
-        remote_root=ATLAS_ASSETS_ROOT,
+        remote=ATLAS_ASSETS_ROOT,
         dequantize_meshes=True,
     )
     struct_dict["root"]["mesh_filename"] = mesh_file
@@ -621,7 +622,7 @@ def test_atlas_assets_conversion_writes_only_the_id_file(
 
     struct_dict = StructuresDict(
         structures_list,
-        remote_root=ATLAS_ASSETS_ROOT,
+        remote=ATLAS_ASSETS_ROOT,
         dequantize_meshes=True,
     )
     struct_dict["root"]._download_mesh(mesh_file)
@@ -629,15 +630,15 @@ def test_atlas_assets_conversion_writes_only_the_id_file(
     assert [p.name for p in mesh_dir.iterdir()] == [ALLEN_ID]
 
 
-@pytest.mark.parametrize("remote_root", [None, "s3://brainglobe/atlas-rc2"])
+@pytest.mark.parametrize("remote", [None, "s3://brainglobe/atlas-rc2"])
 def test_brainglobe_mesh_downloads_without_dequantizing(
-    tmp_path, monkeypatch, remote_root
+    tmp_path, monkeypatch, remote
 ):
     """A BrainGlobe mesh is fetched as-is: its Draco header is absolute.
 
     `cat_impl` is left unset, so the fake raises if the conversion branch
-    is taken. The format, not the remote root, picks the branch, so a
-    BrainGlobe mirror on another root is fetched as-is too.
+    is taken. The format, not the remote, picks the branch, so a
+    BrainGlobe mirror on another remote is fetched as-is too.
     """
     mesh_file = tmp_path / "997"
 
@@ -650,7 +651,7 @@ def test_brainglobe_mesh_downloads_without_dequantizing(
         ),
     )
 
-    struct_dict = StructuresDict(structures_list, remote_root=remote_root)
+    struct_dict = StructuresDict(structures_list, remote=remote)
     struct_dict["root"]._download_mesh(mesh_file)
 
     assert mesh_file.read_bytes() == _draco_bytes()
@@ -683,7 +684,7 @@ def test_interrupted_conversion_removes_the_partial_file(
 
     struct_dict = StructuresDict(
         structures_list,
-        remote_root=ATLAS_ASSETS_ROOT,
+        remote=ATLAS_ASSETS_ROOT,
         dequantize_meshes=True,
     )
 

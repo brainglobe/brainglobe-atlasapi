@@ -178,26 +178,26 @@ def check_internet_connection(
     return False
 
 
-def remote_root_to_https(remote_root: str) -> str:
-    """Convert an ``s3://bucket/prefix`` root to an HTTPS URL.
+def remote_to_https(remote: str) -> str:
+    """Convert an ``s3://bucket/prefix`` remote to an HTTPS URL.
 
     Parameters
     ----------
-    remote_root : str
-        Remote root, without a trailing slash.
+    remote : str
+        Remote, without a trailing slash.
 
     Returns
     -------
     str
         Virtual-hosted-style HTTPS URL for the same location.
     """
-    without_scheme = remote_root.removeprefix("s3://")
+    without_scheme = remote.removeprefix("s3://")
     bucket, _, prefix = without_scheme.partition("/")
     return f"https://{bucket}.s3.amazonaws.com/{prefix}"
 
 
 def check_s3_status(
-    timeout=5, raise_error=True, remote_root=descriptors.DEFAULT_REMOTE_ROOT
+    timeout=5, raise_error=True, remote=descriptors.DEFAULT_REMOTE
 ):
     """
     Check that the remote S3 bucket is accessible.
@@ -206,16 +206,16 @@ def check_s3_status(
         timeout to wait for [in seconds] (Default value = 5).
     raise_error : bool
         if false, warning but no error.
-    remote_root : str
-        Remote root to check. Defaults to the BrainGlobe bucket.
+    remote : str
+        Remote to check. Defaults to the BrainGlobe bucket.
     """
-    url = remote_root_to_https(remote_root)
+    url = remote_to_https(remote)
 
     try:
         _ = requests.head(url, timeout=timeout)
         return True
     except (requests.ConnectionError, requests.exceptions.Timeout) as e:
-        error_message = f"S3 bucket {remote_root} is not accessible."
+        error_message = f"S3 bucket {remote} is not accessible."
         if not raise_error:
             print(error_message)
         else:

@@ -36,7 +36,7 @@ def _atlas(tmp_path, monkeypatch, data):
         origin=("a", "s", "r"),
     )
     atlas.fs = MagicMock()
-    atlas._remote_root = "s3://bucket/atlas"
+    atlas._remote = "s3://bucket/atlas"
     atlas._template = None
     atlas._annotation = None
     atlas._hemispheres = None

@@ -50,7 +50,7 @@ def test_config_edit(tmp_path, atlas_path):
 
     Ensures that modifying a configuration value (e.g., 'brainglobe_dir')
     through the `config.write_config_value` function correctly updates the
-    configuration and affects how `BrainGlobeAtlas` locates its root
+    configuration and affects how `BrainGlobeAtlas` locates its remote
     directory.
     """
     runner = CliRunner()
@@ -142,21 +142,21 @@ def test_cli_modify_config(
     assert captured.out.startswith(expected_output)
 
 
-def test_default_config_has_remote_roots(conf_path):
-    """A freshly written config declares both remote roots.
+def test_default_config_has_remotes(conf_path):
+    """A freshly written config declares both remotes.
 
     Parameters
     ----------
     conf_path : pathlib.Path
         Path to a temporary configuration file.
     """
-    roots = config.get_remote_roots(conf_path)
-    assert list(roots) == ["brainglobe-atlasapi", "allen-atlas-assets"]
-    assert roots["brainglobe-atlasapi"] == descriptors.DEFAULT_REMOTE_ROOT
-    assert roots["allen-atlas-assets"] == descriptors.ATLAS_ASSETS_REMOTE_ROOT
+    remotes = config.get_remotes(conf_path)
+    assert list(remotes) == ["brainglobe-atlasapi", "allen-atlas-assets"]
+    assert remotes["brainglobe-atlasapi"] == descriptors.DEFAULT_REMOTE
+    assert remotes["allen-atlas-assets"] == descriptors.ATLAS_ASSETS_REMOTE
 
 
-def test_remote_roots_fallback_for_old_config(temp_path):
+def test_remotes_fallback_for_old_config(temp_path):
     """A config predating the section still yields the defaults.
 
     Parameters
@@ -170,12 +170,12 @@ def test_remote_roots_fallback_for_old_config(temp_path):
         f"brainglobe_dir = {temp_path}\n"
         f"interm_download_dir = {temp_path}\n"
     )
-    roots = config.get_remote_roots(old_config)
-    assert list(roots) == ["brainglobe-atlasapi", "allen-atlas-assets"]
+    remotes = config.get_remotes(old_config)
+    assert list(remotes) == ["brainglobe-atlasapi", "allen-atlas-assets"]
 
 
-def test_remote_roots_reads_user_overrides(temp_path):
-    """User-declared roots win, and declaration order is preserved.
+def test_remotes_reads_user_overrides(temp_path):
+    """User-declared remotes win, and declaration order is preserved.
 
     Parameters
     ----------
@@ -186,17 +186,17 @@ def test_remote_roots_reads_user_overrides(temp_path):
     custom.write_text(
         "[default_dirs]\n"
         f"brainglobe_dir = {temp_path}\n"
-        "[remote_roots]\n"
+        "[remotes]\n"
         "brainglobe-atlasapi = s3://brainglobe/atlas-rc2\n"
         "mine = s3://my-bucket/my-prefix\n"
     )
-    roots = config.get_remote_roots(custom)
-    assert list(roots) == ["brainglobe-atlasapi", "mine"]
-    assert roots["mine"] == "s3://my-bucket/my-prefix"
+    remotes = config.get_remotes(custom)
+    assert list(remotes) == ["brainglobe-atlasapi", "mine"]
+    assert remotes["mine"] == "s3://my-bucket/my-prefix"
 
 
-def test_remote_roots_strip_trailing_slash(temp_path):
-    """A trailing slash in the config does not change the root.
+def test_remotes_strip_trailing_slash(temp_path):
+    """A trailing slash in the config does not change the remote.
 
     Parameters
     ----------
@@ -207,8 +207,8 @@ def test_remote_roots_strip_trailing_slash(temp_path):
     custom.write_text(
         "[default_dirs]\n"
         f"brainglobe_dir = {temp_path}\n"
-        "[remote_roots]\n"
+        "[remotes]\n"
         "brainglobe-atlasapi = s3://brainglobe/atlas/\n"
     )
-    roots = config.get_remote_roots(custom)
-    assert roots["brainglobe-atlasapi"] == descriptors.DEFAULT_REMOTE_ROOT
+    remotes = config.get_remotes(custom)
+    assert remotes["brainglobe-atlasapi"] == descriptors.DEFAULT_REMOTE

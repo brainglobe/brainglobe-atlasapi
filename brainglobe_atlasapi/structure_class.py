@@ -15,7 +15,7 @@ import numpy as np
 import s3fs
 from fsspec.callbacks import TqdmCallback
 
-from brainglobe_atlasapi.descriptors import DEFAULT_REMOTE_ROOT
+from brainglobe_atlasapi.descriptors import DEFAULT_REMOTE
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
 
 
@@ -167,8 +167,8 @@ class Structure(UserDict):
     ----------
     *args, **kwargs
         The structure's fields, as for `dict`.
-    remote_root : str
-        Remote root the mesh is fetched from; defaults to the BrainGlobe
+    remote : str
+        Remote the mesh is fetched from; defaults to the BrainGlobe
         bucket.
     dequantize_mesh : bool
         Whether the remote mesh is in the atlas-assets form and must be
@@ -178,12 +178,12 @@ class Structure(UserDict):
     def __init__(
         self,
         *args,
-        remote_root=DEFAULT_REMOTE_ROOT,
+        remote=DEFAULT_REMOTE,
         dequantize_mesh=False,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.remote_root = remote_root
+        self.remote = remote
         self.dequantize_mesh = dequantize_mesh
 
     def __getitem__(self, item):
@@ -253,7 +253,7 @@ class Structure(UserDict):
         are whatever the bucket's `info` transform produces.
         """
         root_path = "/".join(str(file_name).split(os.sep)[-6:])
-        remote_mesh_path = f"{self.remote_root}/{root_path}"
+        remote_mesh_path = f"{self.remote}/{root_path}"
         fs = s3fs.S3FileSystem(anon=True)
 
         if not fs.exists(remote_mesh_path):
@@ -304,8 +304,8 @@ class StructuresDict(UserDict):
     ----------
     mesh_path : str or Path object
         path to folder containing all meshes .obj files
-    remote_root : str
-        Remote root the meshes are fetched from; defaults to the
+    remote : str
+        Remote the meshes are fetched from; defaults to the
         BrainGlobe bucket.
     dequantize_meshes : bool
         Whether the remote meshes are in the atlas-assets form and must be
@@ -315,7 +315,7 @@ class StructuresDict(UserDict):
     def __init__(
         self,
         structures_list,
-        remote_root=DEFAULT_REMOTE_ROOT,
+        remote=DEFAULT_REMOTE,
         dequantize_meshes=False,
     ):
         super().__init__()
@@ -330,7 +330,7 @@ class StructuresDict(UserDict):
             self.data[sid] = Structure(
                 **struct,
                 mesh=None,
-                remote_root=remote_root,
+                remote=remote,
                 dequantize_mesh=dequantize_meshes,
             )
 

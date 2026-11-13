@@ -1,4 +1,4 @@
-"""Tests that remote assets are read from the atlas' own remote root."""
+"""Tests that remote assets are read from the atlas' own remote."""
 
 import pytest
 
@@ -73,13 +73,13 @@ def _capture_mesh_url(monkeypatch, requested):
     monkeypatch.setattr(structure_class.s3fs, "S3FileSystem", FakeS3FileSystem)
 
 
-def test_mesh_download_uses_custom_remote_root(tmp_path, monkeypatch):
-    """A non-default remote root is used for the mesh download."""
+def test_mesh_download_uses_custom_remote(tmp_path, monkeypatch):
+    """A non-default remote is used for the mesh download."""
     requested = []
     _capture_mesh_url(monkeypatch, requested)
 
     struct_dict = StructuresDict(
-        structures_list, remote_root="s3://other-bucket/atlas-assets"
+        structures_list, remote="s3://other-bucket/atlas-assets"
     )
 
     with pytest.raises(FileNotFoundError):
@@ -88,8 +88,8 @@ def test_mesh_download_uses_custom_remote_root(tmp_path, monkeypatch):
     assert requested[0].startswith("s3://other-bucket/atlas-assets/")
 
 
-def test_mesh_download_defaults_to_brainglobe_root(tmp_path, monkeypatch):
-    """With no remote root supplied, the BrainGlobe bucket is used."""
+def test_mesh_download_defaults_to_brainglobe_remote(tmp_path, monkeypatch):
+    """With no remote supplied, the BrainGlobe bucket is used."""
     requested = []
     _capture_mesh_url(monkeypatch, requested)
 
@@ -98,4 +98,4 @@ def test_mesh_download_defaults_to_brainglobe_root(tmp_path, monkeypatch):
     with pytest.raises(FileNotFoundError):
         struct_dict["root"]._download_mesh(tmp_path / "997")
 
-    assert requested[0].startswith(f"{descriptors.DEFAULT_REMOTE_ROOT}/")
+    assert requested[0].startswith(f"{descriptors.DEFAULT_REMOTE}/")

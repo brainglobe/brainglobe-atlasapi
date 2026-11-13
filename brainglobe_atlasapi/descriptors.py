@@ -6,21 +6,21 @@ from typing import List, Tuple, TypeAlias
 import numpy as np
 import numpy.typing as npt
 
-# Default remote root: an "s3://bucket/prefix" with no trailing slash.
-DEFAULT_REMOTE_ROOT = "s3://brainglobe/atlas"
-# Cache directory reserved for DEFAULT_REMOTE_ROOT. Every other root is
+# Default remote: an "s3://bucket/prefix" with no trailing slash.
+DEFAULT_REMOTE = "s3://brainglobe/atlas"
+# Cache directory reserved for DEFAULT_REMOTE. Every other remote is
 # cached under the last segment of its URL.
-DEFAULT_ROOT_KEY = "brainglobe-atlasapi"
-ATLAS_ASSETS_REMOTE_ROOT = "s3://allen-atlas-assets"
-# Config label for ATLAS_ASSETS_REMOTE_ROOT.
-ATLAS_ASSETS_ROOT_KEY = "allen-atlas-assets"
-# Written at the top of each cache directory, holding the full remote root
+DEFAULT_REMOTE_KEY = "brainglobe-atlasapi"
+ATLAS_ASSETS_REMOTE = "s3://allen-atlas-assets"
+# Config label for ATLAS_ASSETS_REMOTE.
+ATLAS_ASSETS_REMOTE_KEY = "allen-atlas-assets"
+# Written at the top of each cache directory, holding the full remote
 # it mirrors.
-REMOTE_ROOT_FILENAME = "remote_root.txt"
+REMOTE_FILENAME = "remote.txt"
 
 # Path templates on the BrainGlobe bucket only, for callers that never use
-# another root (atlas generation, last_versions.conf):
-remote_url_s3 = DEFAULT_REMOTE_ROOT + "/{}"
+# another remote (atlas generation, last_versions.conf):
+remote_url_s3 = DEFAULT_REMOTE + "/{}"
 remote_url_s3_http = "https://brainglobe.s3.us-west-2.amazonaws.com/atlas/{}"
 
 # Major version of atlases used by current brainglobe-atlasapi release:

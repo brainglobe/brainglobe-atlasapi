@@ -96,8 +96,8 @@ def test_cli_incorrect_command():
 
 
 @pytest.mark.parametrize("command", ["install", "update"])
-def test_remote_root_is_passed_on(command, mocker):
-    """--remote_root reaches install_atlas/update_atlas unchanged.
+def test_remote_is_passed_on(command, mocker):
+    """--remote reaches install_atlas/update_atlas unchanged.
 
     Parameters
     ----------
@@ -114,7 +114,7 @@ def test_remote_root_is_passed_on(command, mocker):
             command,
             "-a",
             "some-atlas",
-            "--remote_root",
+            "--remote",
             "s3://bucket/prefix",
         ],
         catch_exceptions=False,
@@ -122,4 +122,4 @@ def test_remote_root_is_passed_on(command, mocker):
 
     assert result.exit_code == 0
     mock.assert_called_once()
-    assert mock.call_args.kwargs["remote_root"] == "s3://bucket/prefix"
+    assert mock.call_args.kwargs["remote"] == "s3://bucket/prefix"

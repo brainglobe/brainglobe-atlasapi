@@ -105,8 +105,8 @@ class Atlas(Generic[AtlasArray]):
         Requested resolution, in micrometres: the first axis of a
         non-isotropic atlas, e.g. 16 for 16 x 16 x 20 um. Defaults to the
         finest available for manifests offering several.
-    remote_root : str
-        Remote root to fetch data from; defaults to the BrainGlobe bucket.
+    remote : str
+        Remote to fetch data from; defaults to the BrainGlobe bucket.
     dask : bool
         If True, atlas array properties return dask arrays instead of loading
         them into memory as numpy arrays.
@@ -121,7 +121,7 @@ class Atlas(Generic[AtlasArray]):
         path: Union[str, Path],
         dask: Literal[False] = False,
         resolution: Optional[float] = None,
-        remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
+        remote: str = descriptors.DEFAULT_REMOTE,
     ) -> None: ...
 
     @overload
@@ -130,7 +130,7 @@ class Atlas(Generic[AtlasArray]):
         path: Union[str, Path],
         dask: Literal[True] = True,
         resolution: Optional[float] = None,
-        remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
+        remote: str = descriptors.DEFAULT_REMOTE,
     ) -> None: ...
 
     @overload
@@ -139,7 +139,7 @@ class Atlas(Generic[AtlasArray]):
         path: Union[str, Path],
         dask: bool = False,
         resolution: Optional[float] = None,
-        remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
+        remote: str = descriptors.DEFAULT_REMOTE,
     ) -> None: ...
 
     def __init__(
@@ -147,19 +147,27 @@ class Atlas(Generic[AtlasArray]):
         path: Union[str, Path],
         dask: bool = False,
         resolution: Optional[float] = None,
-        remote_root: str = descriptors.DEFAULT_REMOTE_ROOT,
+        remote: str = descriptors.DEFAULT_REMOTE,
     ):
         self.dask = dask
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
         self.fs = s3fs.S3FileSystem(anon=True)
-        self._remote_root = remote_root
+        self._remote = remote
 
         atlas_path = Path(path)
         self.root_dir = atlas_path.parents[3]
         self.metadata = normalize_manifest(
             read_json(atlas_path), resolution, self.root_dir
         )
+        if self.orientation != descriptors.ATLAS_ORIENTATION:
+            warnings.warn(
+                f"{self.metadata['name']} is stored in '{self.orientation}' "
+                "orientation, not BrainGlobe's standard "
+                f"'{descriptors.ATLAS_ORIENTATION}'. It is returned as "
+                "stored; use brainglobe_space.AnatomicalSpace to map between "
+                "orientations."
+            )
         structures_path = (
             self.root_dir
             / self.metadata["terminology"]["location"][1:]
@@ -215,7 +223,7 @@ class Atlas(Generic[AtlasArray]):
 
         self.structures = StructuresDict(
             structures_list,
-            remote_root=self._remote_root,
+            remote=self._remote,
             dequantize_meshes=self.metadata.get("format") == "atlas-assets",
         )
 
@@ -234,7 +242,7 @@ class Atlas(Generic[AtlasArray]):
                 references_list=additional_references,
                 data_path=self.root_dir,
                 resolution=self.resolution,
-                remote_root=self._remote_root,
+                remote=self._remote,
             )
         except KeyError:
             warnings.warn(
@@ -312,7 +320,7 @@ class Atlas(Generic[AtlasArray]):
         if not (resolution_path / "c").exists():
             print("Downloading template...")
             remote_path = (
-                f"{self._remote_root}/{template_location}"
+                f"{self._remote}/{template_location}"
                 f"/{V3_TEMPLATE_NAME}/{dataset_path}/"
             )
             self.fs.get(
@@ -360,7 +368,7 @@ class Atlas(Generic[AtlasArray]):
         if not (resolution_path / "c").exists():
             print("Downloading annotations...")
             remote_path = (
-                f"{self._remote_root}/{annotation_location}"
+                f"{self._remote}/{annotation_location}"
                 f"/{V3_ANNOTATION_NAME}/{dataset_path}/"
             )
             self.fs.get(
@@ -413,7 +421,7 @@ class Atlas(Generic[AtlasArray]):
         if self.metadata["symmetric"] or not (
             hemispheres_path.exists()
             or self.fs.exists(
-                f"{self._remote_root}/{annotation_location}"
+                f"{self._remote}/{annotation_location}"
                 f"/{V3_HEMISPHERES_NAME}"
             )
         ):
@@ -467,7 +475,7 @@ class Atlas(Generic[AtlasArray]):
             if not (resolution_path / "c").exists():
                 print("Downloading hemispheres...")
                 remote_path = (
-                    f"{self._remote_root}/{annotation_location}"
+                    f"{self._remote}/{annotation_location}"
                     f"/{V3_HEMISPHERES_NAME}/{dataset_path}/"
                 )
                 self.fs.get(
@@ -855,7 +863,7 @@ class Atlas(Generic[AtlasArray]):
                 1:
             ]
             remote_path = (
-                f"{self._remote_root}/{annotation_location}"
+                f"{self._remote}/{annotation_location}"
                 f"/{V3_ANNOTATION_MASKS_NAME}"
                 f"/{dataset_path}/c/{index}/"
             )
@@ -888,7 +896,7 @@ class AdditionalRefDict(UserDict):
         references_list: List[Dict[str, str]],
         data_path,
         resolution: Tuple[float, float, float],
-        remote_root=descriptors.DEFAULT_REMOTE_ROOT,
+        remote=descriptors.DEFAULT_REMOTE,
         *args,
         **kwargs,
     ):
@@ -896,7 +904,7 @@ class AdditionalRefDict(UserDict):
         self.references_names = [ref["name"] for ref in references_list]
         self.references_dict = {ref["name"]: ref for ref in references_list}
         self.resolution = resolution
-        self.remote_root = remote_root
+        self.remote = remote
 
         super().__init__(*args, **kwargs)
 
@@ -953,7 +961,7 @@ class AdditionalRefDict(UserDict):
             if not (resolution_path / "c").exists():
                 print("Downloading template...")
                 remote_path = (
-                    f"{self.remote_root}/{additional_ref_location}"
+                    f"{self.remote}/{additional_ref_location}"
                     f"/{V3_TEMPLATE_NAME}/{dataset_path}/"
                 )
                 fs = s3fs.S3FileSystem(anon=True)

@@ -22,9 +22,9 @@ CONFIG_PATH = CONFIG_DIR / CONFIG_FILENAME
 # 2 level dictionary for sections and values:
 DEFAULT_PATH = Path.home() / ".brainglobe"
 
-DEFAULT_REMOTE_ROOTS = {
-    descriptors.DEFAULT_ROOT_KEY: descriptors.DEFAULT_REMOTE_ROOT,
-    descriptors.ATLAS_ASSETS_ROOT_KEY: descriptors.ATLAS_ASSETS_REMOTE_ROOT,
+DEFAULT_REMOTES = {
+    descriptors.DEFAULT_REMOTE_KEY: descriptors.DEFAULT_REMOTE,
+    descriptors.ATLAS_ASSETS_REMOTE_KEY: descriptors.ATLAS_ASSETS_REMOTE,
 }
 
 TEMPLATE_CONF_DICT = {
@@ -32,7 +32,7 @@ TEMPLATE_CONF_DICT = {
         "brainglobe_dir": DEFAULT_PATH,
         "interm_download_dir": DEFAULT_PATH,
     },
-    "remote_roots": DEFAULT_REMOTE_ROOTS,
+    "remotes": DEFAULT_REMOTES,
 }
 
 DEFAULT_WORKDIR = Path.home() / "brainglobe_workingdir"
@@ -161,8 +161,8 @@ def _print_config():
     return string
 
 
-def get_remote_roots(path=None):
-    """Return the configured remote roots, in resolution order.
+def get_remotes(path=None):
+    """Return the configured remotes, in resolution order.
 
     Falls back to the built-in defaults when the section is absent, so a
     configuration file written by an earlier version keeps working without
@@ -176,12 +176,12 @@ def get_remote_roots(path=None):
     Returns
     -------
     dict
-        Mapping of root key to remote root, ordered as declared, with any
+        Mapping of remote key to remote, ordered as declared, with any
         trailing slash removed. The key is only a label.
     """
     conf = read_config(path)
-    if conf.has_section("remote_roots"):
-        roots = conf["remote_roots"]
+    if conf.has_section("remotes"):
+        remotes = conf["remotes"]
     else:
-        roots = DEFAULT_REMOTE_ROOTS
-    return {key: root.rstrip("/") for key, root in roots.items()}
+        remotes = DEFAULT_REMOTES
+    return {key: remote.rstrip("/") for key, remote in remotes.items()}

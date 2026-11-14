@@ -231,7 +231,9 @@ def _scale_from_transforms(transforms):
     )
 
 
-def normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
+def normalize_manifest(
+    raw: dict, resolution, root_dir: Path, quiet: bool = False
+) -> dict:
     """Return manifest metadata in the shape ``core.Atlas`` consumes.
 
     BrainGlobe manifests are returned unchanged. atlas-assets manifests
@@ -250,6 +252,8 @@ def normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
         raises.
     root_dir : Path
         Local cache namespace directory holding the downloaded assets.
+    quiet : bool
+        If True, do not print the note about the chosen resolution.
 
     Returns
     -------
@@ -262,7 +266,7 @@ def normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
         If ``resolution`` matches no available pyramid level.
     """
     if isinstance(raw.get("templates"), list):
-        return _normalize_atlas_assets(raw, resolution, root_dir)
+        return _normalize_atlas_assets(raw, resolution, root_dir, quiet)
 
     if resolution is not None and not np.isclose(
         resolution, raw["resolution"][0]
@@ -275,7 +279,9 @@ def normalize_manifest(raw: dict, resolution, root_dir: Path) -> dict:
     return raw
 
 
-def _normalize_atlas_assets(raw: dict, resolution, root_dir: Path) -> dict:
+def _normalize_atlas_assets(
+    raw: dict, resolution, root_dir: Path, quiet: bool = False
+) -> dict:
     """Reshape an atlas-assets manifest into BrainGlobe's metadata shape.
 
     The first template and annotation set are promoted to singular keys,
@@ -293,6 +299,8 @@ def _normalize_atlas_assets(raw: dict, resolution, root_dir: Path) -> dict:
         available. Compared against the first axis of each pyramid level.
     root_dir : Path
         Local cache namespace directory holding the downloaded assets.
+    quiet : bool
+        If True, do not print the note about the chosen resolution.
 
     Returns
     -------
@@ -314,7 +322,7 @@ def _normalize_atlas_assets(raw: dict, resolution, root_dir: Path) -> dict:
     if resolution is None:
         first_axes = [voxel_size[0] for voxel_size in voxel_sizes]
         resolution = min(first_axes)
-        if len(first_axes) > 1:
+        if len(first_axes) > 1 and not quiet:
             print(
                 f"Atlas {raw['name']} provides resolutions {first_axes} um "
                 f"and none was requested, so using the finest, "

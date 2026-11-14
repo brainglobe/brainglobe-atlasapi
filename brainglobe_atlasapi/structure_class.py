@@ -13,10 +13,10 @@ import DracoPy
 import meshio as mio
 import numpy as np
 import s3fs
-from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi.descriptors import DEFAULT_REMOTE
 from brainglobe_atlasapi.structure_tree_util import get_structures_tree
+from brainglobe_atlasapi.utils import progress_callback
 
 
 def _read_multilod_draco(fs, mesh_path: str) -> tuple[np.ndarray, np.ndarray]:
@@ -173,6 +173,8 @@ class Structure(UserDict):
     dequantize_mesh : bool
         Whether the remote mesh is in the atlas-assets form and must be
         dequantized on download.
+    quiet : bool
+        If True, do not show a progress bar when downloading the mesh.
     """
 
     def __init__(
@@ -180,11 +182,13 @@ class Structure(UserDict):
         *args,
         remote=DEFAULT_REMOTE,
         dequantize_mesh=False,
+        quiet=False,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.remote = remote
         self.dequantize_mesh = dequantize_mesh
+        self.quiet = quiet
 
     def __getitem__(self, item):
         """
@@ -263,7 +267,11 @@ class Structure(UserDict):
 
         try:
             if not self.dequantize_mesh:
-                fs.get(remote_mesh_path, file_name, callback=TqdmCallback())
+                fs.get(
+                    remote_mesh_path,
+                    file_name,
+                    callback=progress_callback(self.quiet),
+                )
             else:
                 points, faces = _read_multilod_draco(fs, remote_mesh_path)
                 file_name.parent.mkdir(parents=True, exist_ok=True)
@@ -310,6 +318,8 @@ class StructuresDict(UserDict):
     dequantize_meshes : bool
         Whether the remote meshes are in the atlas-assets form and must be
         dequantized on download, rather than fetched as-is.
+    quiet : bool
+        If True, do not show progress bars when downloading meshes.
     """
 
     def __init__(
@@ -317,6 +327,7 @@ class StructuresDict(UserDict):
         structures_list,
         remote=DEFAULT_REMOTE,
         dequantize_meshes=False,
+        quiet=False,
     ):
         super().__init__()
 
@@ -332,6 +343,7 @@ class StructuresDict(UserDict):
                 mesh=None,
                 remote=remote,
                 dequantize_mesh=dequantize_meshes,
+                quiet=quiet,
             )
 
         self.tree = get_structures_tree(structures_list)

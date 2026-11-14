@@ -26,7 +26,6 @@ import pandas as pd
 import s3fs
 import zarr
 from brainglobe_space import AnatomicalSpace
-from fsspec.callbacks import TqdmCallback
 
 from brainglobe_atlasapi import descriptors
 from brainglobe_atlasapi.descriptors import (
@@ -43,6 +42,7 @@ from brainglobe_atlasapi.manifest import normalize_manifest
 from brainglobe_atlasapi.structure_class import StructuresDict
 from brainglobe_atlasapi.utils import (
     load_structures_from_csv,
+    progress_callback,
     read_json,
 )
 
@@ -110,6 +110,9 @@ class Atlas(Generic[AtlasArray]):
     dask : bool
         If True, atlas array properties return dask arrays instead of loading
         them into memory as numpy arrays.
+    quiet : bool
+        If True, suppress progress bars and download messages, including
+        those of data downloaded lazily later on.
     """
 
     left_hemisphere_value = 1
@@ -122,6 +125,7 @@ class Atlas(Generic[AtlasArray]):
         dask: Literal[False] = False,
         resolution: Optional[float] = None,
         remote: str = descriptors.DEFAULT_REMOTE,
+        quiet: bool = False,
     ) -> None: ...
 
     @overload
@@ -131,6 +135,7 @@ class Atlas(Generic[AtlasArray]):
         dask: Literal[True] = True,
         resolution: Optional[float] = None,
         remote: str = descriptors.DEFAULT_REMOTE,
+        quiet: bool = False,
     ) -> None: ...
 
     @overload
@@ -140,6 +145,7 @@ class Atlas(Generic[AtlasArray]):
         dask: bool = False,
         resolution: Optional[float] = None,
         remote: str = descriptors.DEFAULT_REMOTE,
+        quiet: bool = False,
     ) -> None: ...
 
     def __init__(
@@ -148,7 +154,9 @@ class Atlas(Generic[AtlasArray]):
         dask: bool = False,
         resolution: Optional[float] = None,
         remote: str = descriptors.DEFAULT_REMOTE,
+        quiet: bool = False,
     ):
+        self.quiet = quiet
         self.dask = dask
         self._template_pyramid_level = 0
         self._annotation_pyramid_level = 0
@@ -158,7 +166,7 @@ class Atlas(Generic[AtlasArray]):
         atlas_path = Path(path)
         self.root_dir = atlas_path.parents[3]
         self.metadata = normalize_manifest(
-            read_json(atlas_path), resolution, self.root_dir
+            read_json(atlas_path), resolution, self.root_dir, quiet=quiet
         )
         if self.orientation != descriptors.ATLAS_ORIENTATION:
             warnings.warn(
@@ -225,6 +233,7 @@ class Atlas(Generic[AtlasArray]):
             structures_list,
             remote=self._remote,
             dequantize_meshes=self.metadata.get("format") == "atlas-assets",
+            quiet=quiet,
         )
 
         # Instantiate SpaceConvention object describing the current atlas:
@@ -243,6 +252,7 @@ class Atlas(Generic[AtlasArray]):
                 data_path=self.root_dir,
                 resolution=self.resolution,
                 remote=self._remote,
+                quiet=quiet,
             )
         except KeyError:
             warnings.warn(
@@ -255,6 +265,15 @@ class Atlas(Generic[AtlasArray]):
         self._template = None
         self._hemispheres = None
         self._lookup = None
+
+    def _print(self, *args, **kwargs):
+        """Print, unless the atlas was created with ``quiet=True``."""
+        if not getattr(self, "quiet", False):
+            print(*args, **kwargs)
+
+    def _progress_callback(self):
+        """Return a download progress callback honouring ``quiet``."""
+        return progress_callback(getattr(self, "quiet", False))
 
     @property
     def resolution(self):
@@ -318,7 +337,7 @@ class Atlas(Generic[AtlasArray]):
         resolution_path = template_path / dataset_path
 
         if not (resolution_path / "c").exists():
-            print("Downloading template...")
+            self._print("Downloading template...")
             remote_path = (
                 f"{self._remote}/{template_location}"
                 f"/{V3_TEMPLATE_NAME}/{dataset_path}/"
@@ -327,7 +346,7 @@ class Atlas(Generic[AtlasArray]):
                 remote_path,
                 resolution_path,
                 recursive=True,
-                callback=TqdmCallback(),
+                callback=self._progress_callback(),
             )
 
         data = multiscale.images[self._template_pyramid_level].data
@@ -366,7 +385,7 @@ class Atlas(Generic[AtlasArray]):
         resolution_path = annotation_path / dataset_path
 
         if not (resolution_path / "c").exists():
-            print("Downloading annotations...")
+            self._print("Downloading annotations...")
             remote_path = (
                 f"{self._remote}/{annotation_location}"
                 f"/{V3_ANNOTATION_NAME}/{dataset_path}/"
@@ -375,7 +394,7 @@ class Atlas(Generic[AtlasArray]):
                 remote_path,
                 resolution_path,
                 recursive=True,
-                callback=TqdmCallback(),
+                callback=self._progress_callback(),
             )
 
         data = multiscale.images[self._annotation_pyramid_level].data
@@ -473,7 +492,7 @@ class Atlas(Generic[AtlasArray]):
             resolution_path = hemispheres_path / dataset_path
 
             if not (resolution_path / "c").exists():
-                print("Downloading hemispheres...")
+                self._print("Downloading hemispheres...")
                 remote_path = (
                     f"{self._remote}/{annotation_location}"
                     f"/{V3_HEMISPHERES_NAME}/{dataset_path}/"
@@ -482,7 +501,7 @@ class Atlas(Generic[AtlasArray]):
                     remote_path,
                     resolution_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=self._progress_callback(),
                 )
 
             data = multiscale.images[self._annotation_pyramid_level].data
@@ -872,7 +891,7 @@ class Atlas(Generic[AtlasArray]):
                     remote_path,
                     local_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=self._progress_callback(),
                 )
             except FileNotFoundError as e:
                 raise FileNotFoundError(
@@ -897,10 +916,12 @@ class AdditionalRefDict(UserDict):
         data_path,
         resolution: Tuple[float, float, float],
         remote=descriptors.DEFAULT_REMOTE,
+        quiet: bool = False,
         *args,
         **kwargs,
     ):
         self.data_path = data_path
+        self.quiet = quiet
         self.references_names = [ref["name"] for ref in references_list]
         self.references_dict = {ref["name"]: ref for ref in references_list}
         self.resolution = resolution
@@ -959,7 +980,8 @@ class AdditionalRefDict(UserDict):
             resolution_path = local_path / dataset_path
 
             if not (resolution_path / "c").exists():
-                print("Downloading template...")
+                if not self.quiet:
+                    print("Downloading template...")
                 remote_path = (
                     f"{self.remote}/{additional_ref_location}"
                     f"/{V3_TEMPLATE_NAME}/{dataset_path}/"
@@ -969,7 +991,7 @@ class AdditionalRefDict(UserDict):
                     remote_path,
                     resolution_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=progress_callback(self.quiet),
                 )
             self.data[key] = multiscale.images[pyramid_level].data.compute()
 

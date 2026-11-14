@@ -135,9 +135,10 @@ def retrieve_hemisphere_map():
     """
     return None
 
+
 def left_to_right_ids(structures_by_id):
-    """Create a dictionary with key and value pairs corresponding to 
-    left and right hemisphere structure IDs respectively. 
+    """Create a dictionary with key and value pairs corresponding to
+    left and right hemisphere structure IDs respectively.
 
     Returns
     -------
@@ -157,16 +158,17 @@ def left_to_right_ids(structures_by_id):
             l2r_hemisphere_ids[id] = right_id
     return l2r_hemisphere_ids
 
+
 def add_missing_regions(structures_by_id):
     """
-    Return the structures_by_id after appending any missing data using 
+    Return the structures_by_id after appending any missing data using
     the ontology file provided by FeBls
 
     Returns
     -------
     structures_by_id: dict[int, dict]
-        An updated dictionary of structures keyed by ID, with missing 
-        regions added. 
+        An updated dictionary of structures keyed by ID, with missing
+        regions added.
     """
     # Use the FeBls provided labels file to add missing regions
     missing_labels_path = (
@@ -201,8 +203,9 @@ def add_missing_regions(structures_by_id):
                     "structure_id_path": [ROOT_ID, id],
                     "rgb_triplet": [255, 255, 255],
                 }
-    
+
     return structures_by_id
+
 
 def retrieve_structure_information():
     """
@@ -279,7 +282,7 @@ def retrieve_structure_information():
                 "structure_id_path": [ROOT_ID, id],
                 "rgb_triplet": rgb_colour,
             }
-            
+
     structures_by_id = add_missing_regions(structures_by_id)
     l2r_hemisphere_ids = left_to_right_ids(structures_by_id)
 

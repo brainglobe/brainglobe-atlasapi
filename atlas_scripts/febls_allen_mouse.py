@@ -183,7 +183,7 @@ def retrieve_structure_information():
     labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
 
     structures_by_id = {}
-    
+
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
 
@@ -199,21 +199,23 @@ def retrieve_structure_information():
             rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
 
             structures_by_id[id] = {
-                    "id": id,
-                    "graph_order": graph_order,
-                    "name": name,
-                    "acronym": acronym,
-                    "structure_id_path": structure_id_path,
-                    "rgb_triplet": rgb_triplet,
-                }
-    
+                "id": id,
+                "graph_order": graph_order,
+                "name": name,
+                "acronym": acronym,
+                "structure_id_path": structure_id_path,
+                "rgb_triplet": rgb_triplet,
+            }
+
     # Replace all IDs with the corresponding graph order IDs to match annotations
     for id, structure in structures_by_id.items():
         if structure["id"] == 0:
             structures_by_id[id]["id"] = ROOT_ID
             structures_by_id[id]["structure_id_path"] = [ROOT_ID]
         for i, element in enumerate(structure["structure_id_path"]):
-            structures_by_id[id]["structure_id_path"][i] = structures_by_id[element]["graph_order"]
+            structures_by_id[id]["structure_id_path"][i] = structures_by_id[
+                element
+            ]["graph_order"]
         structures_by_id[id]["id"] = structure["graph_order"]
         structures_by_id[id].pop("graph_order", None)
 

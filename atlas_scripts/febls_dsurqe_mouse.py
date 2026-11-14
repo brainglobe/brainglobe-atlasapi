@@ -135,6 +135,74 @@ def retrieve_hemisphere_map():
     """
     return None
 
+def left_to_right_ids(structures_by_id):
+    """Create a dictionary with key and value pairs corresponding to 
+    left and right hemisphere structure IDs respectively. 
+
+    Returns
+    -------
+    l2r_hemisphere_ids: dict[int, int]
+        A dictionary mapping left hemisphere structure IDs to their
+        corresponding right hemisphere structure IDs.
+    """
+    l2r_hemisphere_ids = {}
+    # Create a mapping of left hemisphere IDs to corresponding right IDs
+    for id, structure in structures_by_id.items():
+        if structure["name"].endswith("left"):
+            right_id = 0
+            for s in structures_by_id.values():
+                if s["name"] == structure["name"].replace("left", "right"):
+                    right_id = s["id"]
+                    break
+            l2r_hemisphere_ids[id] = right_id
+    return l2r_hemisphere_ids
+
+def add_missing_regions(structures_by_id):
+    """
+    Return the structures_by_id after appending any missing data using 
+    the ontology file provided by FeBls
+
+    Returns
+    -------
+    structures_by_id: dict[int, dict]
+        An updated dictionary of structures keyed by ID, with missing 
+        regions added. 
+    """
+    # Use the FeBls provided labels file to add missing regions
+    missing_labels_path = (
+        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_ADDITIONAL_LABELS_FNAME
+    )
+    with open(missing_labels_path, "r") as f:
+        # .txt additional label file format:
+        # id    Name
+
+        # Use regex parsing for consistency
+        line_re = re.compile(r"(\d+)\s+(.+)\s*$")
+        labels_data = f.read().splitlines()
+        for label in labels_data:
+            if not label.strip() or label.lstrip().startswith("#"):
+                continue
+            m = line_re.match(label)
+
+            # Skip malformed lines
+            if not m:
+                continue
+            # Skip background, root and hemisphere specific labels
+            id = int(m.group(1))
+            # Fix double spaces in names
+            name = " ".join(m.group(2).split())
+
+            # Add missing right regions
+            if all(s.get("name") != name for s in structures_by_id.values()):
+                structures_by_id[id] = {
+                    "id": id,
+                    "name": name,
+                    "acronym": name,
+                    "structure_id_path": [ROOT_ID, id],
+                    "rgb_triplet": [255, 255, 255],
+                }
+    
+    return structures_by_id
 
 def retrieve_structure_information():
     """
@@ -161,16 +229,9 @@ def retrieve_structure_information():
     list[dict]
         A list of dictionaries, each containing information for a single
         atlas structure.
-    list[int]
-        A list of structure IDs corresponding to the left hemisphere
     """
     # We use the DSURQE label files in order to get the original RGB values for each region
     labels_path = DOWNLOAD_DIR_PATH / DSURQE_LABELS_FNAME
-
-    # And use the provided .txt labels file to add missing regions
-    missing_labels_path = (
-        DOWNLOAD_DIR_PATH / "v1.3" / "10x" / DSURQE_ADDITIONAL_LABELS_FNAME
-    )
 
     structures_by_id: dict[int, dict] = {
         ROOT_ID: {
@@ -181,8 +242,6 @@ def retrieve_structure_information():
             "rgb_triplet": [255, 255, 255],
         }
     }
-
-    l2r_hemisphere_ids = {}
 
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
@@ -220,45 +279,9 @@ def retrieve_structure_information():
                 "structure_id_path": [ROOT_ID, id],
                 "rgb_triplet": rgb_colour,
             }
-    with open(missing_labels_path, "r") as f:
-        # .txt additional label file format:
-        # id    Name
-
-        # Use regex parsing for consistency
-        line_re = re.compile(r"(\d+)\s+(.+)\s*$")
-        labels_data = f.read().splitlines()
-        for label in labels_data:
-            if not label.strip() or label.lstrip().startswith("#"):
-                continue
-            m = line_re.match(label)
-
-            # Skip malformed lines
-            if not m:
-                continue
-            # Skip background, root and hemisphere specific labels
-            id = int(m.group(1))
-            # Fix double spaces in names
-            name = " ".join(m.group(2).split())
-
-            # Add missing right regions
-            if all(s.get("name") != name for s in structures_by_id.values()):
-                structures_by_id[id] = {
-                    "id": id,
-                    "name": name,
-                    "acronym": name,
-                    "structure_id_path": [ROOT_ID, id],
-                    "rgb_triplet": [255, 255, 255],
-                }
-
-    # Create a mapping of left hemisphere IDs to corresponding right IDs
-    for id, structure in structures_by_id.items():
-        if structure["name"].endswith("left"):
-            right_id = 0
-            for s in structures_by_id.values():
-                if s["name"] == structure["name"].replace("left", "right"):
-                    right_id = s["id"]
-                    break
-            l2r_hemisphere_ids[id] = right_id
+            
+    structures_by_id = add_missing_regions(structures_by_id)
+    l2r_hemisphere_ids = left_to_right_ids(structures_by_id)
 
     # Remove all left hemisphere regions from structure list
     for i in l2r_hemisphere_ids.keys():

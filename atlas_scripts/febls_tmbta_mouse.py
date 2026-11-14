@@ -1,6 +1,6 @@
-"""Package the FeBls Mouse Brain Atlas with TMBTA annotations.
+"""Package the FeBls Mouse Brain Atlas v1.3 with TMBTA annotations.
 
-This script generates the FeBls female mouse brain atlas with TMBTA
+This script generates the FeBls female mouse brain atlas v1.3 with TMBTA
 annotations, based on data from NITRC. It downloads the necessary
 annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.

@@ -191,6 +191,8 @@ def retrieve_structure_information():
         for structure in labels_data["msg"]:
             id = structure["id"]
             graph_order = structure["graph_order"]
+            if graph_order == 0:
+                graph_order = ROOT_ID
             name = structure["name"]
             acronym = structure["acronym"]
             structure_id_path = list(
@@ -209,12 +211,10 @@ def retrieve_structure_information():
     
     # Replace all IDs with the corresponding graph order IDs to match annotations
     for id, structure in structures_by_id.items():
-        if structure["id"] == 0:
-            structures_by_id[id]["id"] = ROOT_ID
-            structures_by_id[id]["structure_id_path"] = [ROOT_ID]
         for i, element in enumerate(structure["structure_id_path"]):
             structures_by_id[id]["structure_id_path"][i] = structures_by_id[element]["graph_order"]
         structures_by_id[id]["id"] = structure["graph_order"]
+    for id, structure in structures_by_id.items():
         structures_by_id[id].pop("graph_order", None)
 
     structures = list(structures_by_id.values())

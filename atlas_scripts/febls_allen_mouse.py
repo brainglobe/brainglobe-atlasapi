@@ -188,7 +188,7 @@ def retrieve_structure_information():
 
         labels_data = json.load(f)
         for structure in labels_data["msg"]:
-            id = structure["id"]
+            id = structure["graph_order"]
             name = structure["name"]
             acronym = structure["acronym"]
             structure_id_path = list(

@@ -27,7 +27,7 @@ CITATION = "https://doi.org/10.1038/nature05453"
 SPECIES = "Mus musculus"
 ATLAS_LINK = r"https://www.nitrc.org/frs/download.php/20440/FeBls_v1.3.zip//?i_agree=1&download_now=1"
 ORIENTATION = "lpi"
-ROOT_ID = 999
+ROOT_ID = 9999
 RESOLUTION = 60
 ATLAS_PACKAGER = "Jung Woo Kim"
 
@@ -182,13 +182,15 @@ def retrieve_structure_information():
     """
     labels_path = DOWNLOAD_DIR_PATH / ALLEN_LABELS_FNAME
 
-    structures = []
+    structures_by_id = {}
+    
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
 
         labels_data = json.load(f)
         for structure in labels_data["msg"]:
-            id = structure["graph_order"]
+            id = structure["id"]
+            graph_order = structure["graph_order"]
             name = structure["name"]
             acronym = structure["acronym"]
             structure_id_path = list(
@@ -196,16 +198,26 @@ def retrieve_structure_information():
             )
             rgb_triplet = hex_to_rgb(structure["color_hex_triplet"])
 
-            structures.append(
-                {
+            structures_by_id[id] = {
                     "id": id,
+                    "graph_order": graph_order,
                     "name": name,
                     "acronym": acronym,
                     "structure_id_path": structure_id_path,
                     "rgb_triplet": rgb_triplet,
                 }
-            )
+    
+    # Replace all IDs with the corresponding graph order IDs to match annotations
+    for id, structure in structures_by_id.items():
+        if structure["id"] == 0:
+            structures_by_id[id]["id"] = ROOT_ID
+            structures_by_id[id]["structure_id_path"] = [ROOT_ID]
+        for i, element in enumerate(structure["structure_id_path"]):
+            structures_by_id[id]["structure_id_path"][i] = structures_by_id[element]["graph_order"]
+        structures_by_id[id]["id"] = structure["graph_order"]
+        structures_by_id[id].pop("graph_order", None)
 
+    structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures
 

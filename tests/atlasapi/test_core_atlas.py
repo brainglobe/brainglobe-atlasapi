@@ -736,7 +736,7 @@ def test_lazy_downloads_respect_quiet(
         obj.quiet = quiet
         setattr(obj, f"_{stack}", None)
         getattr(obj, stack)
-    ref_dict["allen-adult-mouse-stpt-template"]
+    assert ref_dict["allen-adult-mouse-stpt-template"] is not None
 
     expected = NoOpCallback if quiet else TqdmCallback
     assert len(callbacks) == 4

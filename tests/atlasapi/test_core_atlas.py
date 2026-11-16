@@ -2,6 +2,7 @@
 
 import contextlib
 import shutil
+import warnings
 from io import StringIO
 from unittest.mock import MagicMock
 
@@ -9,11 +10,13 @@ import ngff_zarr as nz
 import numpy as np
 import pandas as pd
 import pytest
+from brainglobe_space import AnatomicalSpace
 
 from brainglobe_atlasapi import core
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import get_brainglobe_dir
 from brainglobe_atlasapi.core import AdditionalRefDict
+from brainglobe_atlasapi.structure_class import StructuresDict
 
 
 def test_initialization(atlas):
@@ -216,6 +219,32 @@ def test_meshfile_from_id(atlas):
     assert atlas.root_meshfile() == mesh_root_path / "997"
 
 
+def test_root_meshfile_without_a_root_acronym(atlas):
+    """The root mesh resolves by identity, not by the acronym "root".
+
+    Only one atlas-assets terminology names its root "root"; the others
+    use "brain", "mouse" or "NS".
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    """
+    expected = atlas.root_meshfile()
+
+    renamed = [
+        {k: v for k, v in structure.items() if k != "mesh"}
+        for structure in atlas.structures.values()
+    ]
+    for structure in renamed:
+        if structure["acronym"] == "root":
+            structure["acronym"] = "NS"
+    atlas.structures = StructuresDict(renamed)
+
+    assert "root" not in atlas.structures.acronym_to_id_map
+    assert atlas.root_meshfile() == expected
+
+
 def test_mesh_from_id(atlas):
     """Test loading mesh objects from structure IDs.
 
@@ -344,6 +373,24 @@ def test_even_hemisphere_size(atlas):
     assert atlas.hemispheres.shape == (132, 80, 114)
     assert (atlas.hemispheres[:, :, 56] == 2).all()
     assert (atlas.hemispheres[:, :, 57] == 1).all()
+
+
+def test_synthesized_hemispheres_follow_left_origin(atlas, monkeypatch):
+    """An "l" origin on the frontal axis puts the left half first.
+
+    atlas-assets atlases are "asl", so index 0 on the frontal axis is the
+    left side, unlike BrainGlobe's "asr".
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    monkeypatch : pytest.MonkeyPatch
+        Fixture used to swap in an "asl" space.
+    """
+    monkeypatch.setattr(atlas, "space", AnatomicalSpace("asl"))
+    assert (atlas.hemispheres[:, :, 56] == atlas.left_hemisphere_value).all()
+    assert (atlas.hemispheres[:, :, 57] == atlas.right_hemisphere_value).all()
 
 
 @pytest.mark.parametrize(
@@ -573,3 +620,76 @@ def test_get_structure_mask_downloads_once_and_caches(atlas, monkeypatch):
         # Remove the on-demand chunk we materialised; it re-downloads lazily.
         if chunk_dir.exists():
             shutil.rmtree(chunk_dir)
+
+
+def test_hemispheres_synthesized_when_asset_absent(atlas, monkeypatch):
+    """An asymmetric atlas synthesizes when the bucket holds no asset.
+
+    The example atlas has no cached hemispheres asset, so forcing the
+    bucket check to report absence exercises the synthesis branch.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    monkeypatch : pytest.MonkeyPatch
+        Fixture used to force the asymmetric, asset-free combination.
+    """
+    monkeypatch.setitem(atlas.metadata, "symmetric", False)
+    atlas._hemispheres = None
+
+    def fail(*args, **kwargs):
+        raise AssertionError("no remote fetch should be attempted")
+
+    monkeypatch.setattr(atlas.fs, "get", fail)
+    monkeypatch.setattr(atlas.fs, "exists", lambda path: False)
+
+    hemispheres = atlas.hemispheres
+
+    assert hemispheres.shape == tuple(atlas.metadata["shape"])
+    assert set(np.unique(hemispheres)) <= {1, 2}
+
+
+def test_orientation_read_from_metadata(atlas, monkeypatch):
+    """Orientation comes from metadata, not a hardcoded constant.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    monkeypatch : pytest.MonkeyPatch
+        Fixture used to set a non-default orientation.
+    """
+    assert atlas.orientation == "asr"
+    monkeypatch.setitem(atlas.metadata, "orientation", "asl")
+    assert atlas.orientation == "asl"
+
+
+def test_non_asr_orientation_warns(atlas_assets_atlas):
+    """Loading an atlas not stored in 'asr' warns, naming its orientation.
+
+    Parameters
+    ----------
+    atlas_assets_atlas : BrainGlobeAtlas
+        Allen atlas-assets atlas, stored as 'asl'.
+    """
+    manifest = (
+        atlas_assets_atlas.brainglobe_dir / atlas_assets_atlas.local_full_name
+    )
+    with pytest.warns(UserWarning, match="stored in 'asl' orientation"):
+        core.Atlas(manifest, resolution=100)
+
+
+def test_asr_orientation_does_not_warn(atlas):
+    """Loading an atlas stored in 'asr' raises no orientation warning.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Default test atlas fixture.
+    """
+    manifest = atlas.brainglobe_dir / atlas.local_full_name
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        core.Atlas(manifest)
+    assert not [w for w in caught if "orientation" in str(w.message)]

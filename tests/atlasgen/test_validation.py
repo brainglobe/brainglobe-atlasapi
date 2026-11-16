@@ -38,7 +38,9 @@ def atlas():
     BrainGlobeAtlas
         A BrainGlobeAtlas instance for testing.
     """
-    return BrainGlobeAtlas("kim_dev_mouse_e11-5_mri-adc_31.5um")
+    return BrainGlobeAtlas(
+        "kim_dev_mouse_e11-5_mri-adc_31.5um", check_latest=False
+    )
 
 
 @pytest.fixture
@@ -57,7 +59,7 @@ def atlas_with_bad_reference_file():
         get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference_bad.tiff"
     )
     os.rename(good_name, bad_name)
-    yield BrainGlobeAtlas("allen_mouse_100um")
+    yield BrainGlobeAtlas("allen_mouse_100um", check_latest=False)
     os.rename(bad_name, good_name)
 
 
@@ -72,7 +74,9 @@ def atlas_with_bad_reference_tiff_content():
     BrainGlobeAtlas
         An invalid BrainGlobeAtlas instance for testing.
     """
-    BrainGlobeAtlas("allen_mouse_100um")  # ensure atlas is locally downloaded
+    BrainGlobeAtlas(
+        "allen_mouse_100um", check_latest=False
+    )  # ensure atlas is locally downloaded
     actual_name = (
         get_brainglobe_dir() / "allen_mouse_100um_v1.2/reference.tiff"
     )
@@ -82,7 +86,7 @@ def atlas_with_bad_reference_tiff_content():
     os.rename(actual_name, backup_name)
     too_small_reference = np.ones((3, 3, 3), dtype=np.uint16)
     tifffile.imwrite(actual_name, too_small_reference)
-    yield BrainGlobeAtlas("allen_mouse_100um")
+    yield BrainGlobeAtlas("allen_mouse_100um", check_latest=False)
     os.remove(actual_name)
     os.rename(backup_name, actual_name)
 
@@ -96,11 +100,11 @@ def atlas_with_missing_structure():
     BrainGlobeAtlas
         A modified BrainGlobeAtlas instance with a missing structure.
     """
-    atlas = BrainGlobeAtlas("osten_mouse_100um")
+    atlas = BrainGlobeAtlas("osten_mouse_100um", check_latest=False)
     modified_structures = atlas.structures.copy()
     modified_structures.pop(688)
 
-    modified_atlas = BrainGlobeAtlas("osten_mouse_100um")
+    modified_atlas = BrainGlobeAtlas("osten_mouse_100um", check_latest=False)
     modified_atlas.structures = modified_structures
     return modified_atlas
 
@@ -120,7 +124,7 @@ def atlas_with_valid_additional_reference():
         A BrainGlobeAtlas instance with a valid additional reference.
     """
     allen_100 = BrainGlobeAtlas(
-        "allen_mouse_100um"
+        "allen_mouse_100um", check_latest=False
     )  # ensure atlas is locally downloaded
     additional_reference_name = (
         get_brainglobe_dir()
@@ -150,7 +154,7 @@ def atlas_with_reference_matching_additional_reference():
         reference.
     """
     allen_100 = BrainGlobeAtlas(
-        "allen_mouse_100um"
+        "allen_mouse_100um", check_latest=False
     )  # ensure atlas is locally downloaded
     additional_reference_name = (
         get_brainglobe_dir()
@@ -266,7 +270,9 @@ def test_catch_missing_mesh_files():
     For "allen_mouse_100um", structure 545 does not have an obj file,
     so this validation function should fail and raise an error.
     """
-    atlas_with_missing_mesh_file = BrainGlobeAtlas("allen_mouse_100um")
+    atlas_with_missing_mesh_file = BrainGlobeAtlas(
+        "allen_mouse_100um", check_latest=False
+    )
     with pytest.raises(
         AssertionError,
         match=r"Structures with IDs \[.*?\] are in the atlas, "

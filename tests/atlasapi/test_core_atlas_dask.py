@@ -32,9 +32,11 @@ def _atlas(tmp_path, monkeypatch, data):
         "symmetric": True,
     }
     atlas.space = SimpleNamespace(
-        axes_order=["superior", "anterior", "frontal"]
+        axes_order=["superior", "anterior", "frontal"],
+        origin=("a", "s", "r"),
     )
     atlas.fs = MagicMock()
+    atlas._remote = "s3://bucket/atlas"
     atlas._template = None
     atlas._annotation = None
     atlas._hemispheres = None
@@ -82,6 +84,20 @@ def test_dask_coord_lookups_return_scalars(tmp_path, monkeypatch):
     assert structure == 2
     assert atlas.structure_from_coords((0, 0, 0), as_acronym=True) == "leaf"
     assert atlas.hemisphere_from_coords((0, 0, 1), as_string=True) == "left"
+
+
+def test_dask_synthesized_hemispheres_follow_left_origin(
+    tmp_path, monkeypatch
+):
+    """An "l" origin on the frontal axis puts the left half first."""
+    data = da.from_array(np.full((2, 2, 2), 2, dtype=np.uint8))
+    atlas = _atlas(tmp_path, monkeypatch, data)
+    atlas.space.origin = ("a", "s", "l")
+
+    hemispheres = atlas.hemispheres.compute()
+
+    assert (hemispheres[:, :, 0] == atlas.left_hemisphere_value).all()
+    assert (hemispheres[:, :, 1] == atlas.right_hemisphere_value).all()
 
 
 def test_dask_get_structure_mask_returns_dask_array(tmp_path, monkeypatch):

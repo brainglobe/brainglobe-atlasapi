@@ -1,6 +1,7 @@
 """Utility functions for working with structure trees."""
 
-from collections import deque
+import warnings
+from collections import Counter, deque
 from collections.abc import Generator
 from typing import Dict, List
 
@@ -65,11 +66,12 @@ def get_structures_tree(structures_list: List[Dict]) -> Tree:
 
     # Create a Tree structure and initialise with root
     id_to_acronym_map = {s["id"]: s["acronym"] for s in structures_list}
-    acronym_to_id_map = {v: k for k, v in id_to_acronym_map.items()}
 
-    root = acronym_to_id_map["root"]
+    root = _find_root(structures_list)
+    root_acronym = id_to_acronym_map[root]
+
     tree = Tree()
-    tree.create_node(tag=f"root ({root})", identifier=root)
+    tree.create_node(tag=f"{root_acronym} ({root})", identifier=root)
 
     # Recursively iterate through hierarchy#
     for child in child_ids(root, structures_list):
@@ -77,7 +79,65 @@ def get_structures_tree(structures_list: List[Dict]) -> Tree:
             structures_list, id_to_acronym_map, tree, child, root
         )
 
+    dropped = [s["acronym"] for s in structures_list if s["id"] not in tree]
+    if dropped:
+        shown = ", ".join(dropped[:10])
+        more = f" and {len(dropped) - 10} more" if len(dropped) > 10 else ""
+        warnings.warn(
+            f"{len(dropped)} structure(s) have no path to the root "
+            f"{root_acronym} ({root}) and are left out of the hierarchy: "
+            f"{shown}{more}."
+        )
+
     return tree
+
+
+def _find_root(structures_list: List[Dict]) -> int:
+    """Return the id of the structure at the root of the hierarchy.
+
+    In order of preference: the structure with acronym "root" (BrainGlobe
+    terminologies); the only top-level structure (atlas-assets ones call
+    it "NS", "mouse" and so on); otherwise the head shared by most
+    structure paths, which outvotes stray top-level entries such as an
+    "unassigned" label.
+
+    Parameters
+    ----------
+    structures_list : list of dict
+        Structures, each with an ``id``, ``acronym`` and
+        ``structure_id_path``.
+
+    Returns
+    -------
+    int
+        Id of the root structure.
+
+    Raises
+    ------
+    ValueError
+        If no structure has a ``structure_id_path``.
+    """
+    named_root = [s["id"] for s in structures_list if s["acronym"] == "root"]
+    if len(named_root) == 1:
+        return named_root[0]
+
+    top_level = [
+        s["id"] for s in structures_list if len(s["structure_id_path"]) == 1
+    ]
+    if len(top_level) == 1:
+        return top_level[0]
+
+    root_counts = Counter(
+        s["structure_id_path"][0]
+        for s in structures_list
+        if s["structure_id_path"]
+    )
+    if not root_counts:
+        raise ValueError(
+            "Could not find a root structure: no structure in the list "
+            "has a structure_id_path."
+        )
+    return root_counts.most_common(1)[0][0]
 
 
 def preorder_depth_first_search(tree: Tree) -> Generator[Node, None, None]:

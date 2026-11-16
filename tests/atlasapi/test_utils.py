@@ -458,6 +458,253 @@ def test_conf_from_url_no_cache_path_parent(tmp_path, mocker):
     assert mock_cache_path.parent.exists()
 
 
+@pytest.mark.parametrize(
+    "version_str, expected",
+    [
+        ("3.0", (3, 0)),
+        ("3_0", (3, 0)),
+        ("2017", (2017,)),
+        ("2024-05", (2024, 5)),
+    ],
+)
+def test_version_tuple_from_str_separators(version_str, expected):
+    """Version strings parse across ``.``, ``_`` and ``-`` separators.
+
+    Parameters
+    ----------
+    version_str : str
+        Version string as stored in a manifest or folder name.
+    expected : tuple of int
+        Expected numeric tuple.
+    """
+    assert utils.version_tuple_from_str(version_str) == expected
+
+
+@pytest.mark.parametrize(
+    "versions, expected",
+    [
+        (["3_0", "2_1"], "3_0"),
+        (["2017", "2024-05", "2026-03"], "2026-03"),
+        (["2024-05", "2024-11"], "2024-11"),
+        (["2011", "2015", "2016", "2017"], "2017"),
+    ],
+)
+def test_get_latest_version_separators(versions, expected):
+    """Latest version resolves across ``_`` and ``-`` separators.
+
+    Parameters
+    ----------
+    versions : list of str
+        Version folder names as they appear in a bucket.
+    expected : str
+        The folder name expected to sort newest.
+    """
+    assert utils.get_latest_version(versions) == expected
+
+
+def _terminology_csv(atlas):
+    """Return the path of an atlas's cached terminology.
+
+    Parameters
+    ----------
+    atlas : BrainGlobeAtlas
+        Atlas whose terminology to locate.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the terminology CSV.
+    """
+    location = atlas.metadata["terminology"]["location"][1:]
+    return atlas.root_dir / location / descriptors.V3_TERMINOLOGY_NAME
+
+
+BRAINGLOBE_EXPECTED = [
+    {
+        "id": 997,
+        "parent_structure_id": None,
+        "annotation_value": 997,
+        "name": "root",
+        "acronym": "root",
+        "rgb_triplet": [255, 255, 255],
+        "structure_id_path": [997],
+    },
+    {
+        "id": 8,
+        "parent_structure_id": 997,
+        "annotation_value": 8,
+        "name": "Basic cell groups and regions",
+        "acronym": "grey",
+        "rgb_triplet": [191, 218, 227],
+        "structure_id_path": [997, 8],
+    },
+    {
+        "id": 567,
+        "parent_structure_id": 8,
+        "annotation_value": 567,
+        "name": "Cerebrum",
+        "acronym": "CH",
+        "rgb_triplet": [176, 240, 255],
+        "structure_id_path": [997, 8, 567],
+    },
+]
+
+
+def test_load_structures_brainglobe_dialect(atlas):
+    """Integer-identifier terminology loads with unchanged output."""
+    result = utils.load_structures_from_csv(_terminology_csv(atlas))
+    by_id = {row["id"]: row for row in result}
+    assert [by_id[row["id"]] for row in BRAINGLOBE_EXPECTED] == (
+        BRAINGLOBE_EXPECTED
+    )
+
+
+def test_load_structures_atlas_assets_dialect(atlas_assets_atlas):
+    """CURIE-identifier terminology maps onto annotation values."""
+    result = utils.load_structures_from_csv(
+        _terminology_csv(atlas_assets_atlas)
+    )
+    by_id = {row["id"]: row for row in result}
+    root, grey, deep = by_id[997], by_id[8], by_id[614454277]
+
+    assert root["parent_structure_id"] is None
+    assert root["structure_id_path"] == [997]
+    assert grey["parent_structure_id"] == 997
+    assert grey["structure_id_path"] == [997, 8]
+    assert deep["parent_structure_id"] == 795
+    assert deep["structure_id_path"] == [
+        997,
+        8,
+        343,
+        313,
+        323,
+        795,
+        614454277,
+    ]
+    assert deep["acronym"] == "Su3"
+    assert deep["rgb_triplet"] == [255, 144, 255]
+
+
+def test_load_structures_short_hex_colour(tmp_path):
+    """Hex triplets missing the leading zero parse to the right RGB."""
+    path = tmp_path / "terminology.csv"
+    path.write_text(
+        "identifier,annotation_value,parent_identifier,name,"
+        "abbreviation,color_hex_triplet,root_identifier_path\n"
+        "MBA:696,696,,root,AUDpo1,#19399,['MBA:696']\n"
+    )
+    assert utils.load_structures_from_csv(path)[0]["rgb_triplet"] == [
+        1,
+        147,
+        153,
+    ]
+
+
+def test_load_structures_key_set_is_stable(atlas, atlas_assets_atlas):
+    """Both dialects produce the same key set, with no spec extras."""
+    expected_keys = {
+        "id",
+        "parent_structure_id",
+        "annotation_value",
+        "name",
+        "acronym",
+        "rgb_triplet",
+        "structure_id_path",
+    }
+    for dialect in (atlas, atlas_assets_atlas):
+        rows = utils.load_structures_from_csv(_terminology_csv(dialect))
+        assert all(set(row) == expected_keys for row in rows)
+
+
+def test_load_structures_types_are_plain_ints(atlas_assets_atlas):
+    """Ids and paths are plain Python ints, usable as dict keys."""
+    rows = utils.load_structures_from_csv(_terminology_csv(atlas_assets_atlas))
+    assert all(isinstance(row["id"], int) for row in rows)
+    assert all(
+        isinstance(element, int)
+        for row in rows
+        for element in row["structure_id_path"]
+    )
+    root = next(row for row in rows if row["id"] == 997)
+    assert root["parent_structure_id"] is None
+
+
+def test_load_structures_requires_root_identifier_path(tmp_path):
+    """A terminology without the optional path column fails loudly.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Pytest-provided temporary directory.
+    """
+    path = tmp_path / "terminology.csv"
+    path.write_text(
+        "identifier,annotation_value,parent_identifier,name,"
+        "abbreviation,color_hex_triplet\n"
+        "997,997,,root,root,#FFFFFF\n"
+    )
+    with pytest.raises(KeyError) as error:
+        utils.load_structures_from_csv(path)
+    assert "root_identifier_path" in str(error.value)
+
+
+def test_load_structures_unknown_identifier_in_path(tmp_path):
+    """An unresolvable identifier in a path fails loudly.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Pytest-provided temporary directory.
+    """
+    path = tmp_path / "terminology.csv"
+    path.write_text(
+        "identifier,annotation_value,parent_identifier,name,"
+        "abbreviation,color_hex_triplet,root_identifier_path\n"
+        "MBA:8,8,,root,root,#FFFFFF,\"['MBA:999', 'MBA:8']\"\n"
+    )
+    with pytest.raises(KeyError) as error:
+        utils.load_structures_from_csv(path)
+    assert "MBA:999" in str(error.value)
+
+
+def test_remote_to_https():
+    """S3 URIs convert to virtual-hosted HTTPS URLs.
+
+    Parameters
+    ----------
+    remote : str
+        An ``s3://bucket/prefix`` remote.
+    expected : str
+        The HTTPS URL used for the reachability check.
+    """
+    remote = "s3://brainglobe/atlas"
+    expected = "https://brainglobe.s3.amazonaws.com/atlas"
+
+    assert utils.remote_to_https(remote) == expected
+
+
+def test_rich_metadata_omits_missing_fields():
+    """Rows whose value is None are dropped from the table."""
+    complete = dict(METADATA)
+    complete.update(
+        species="Mus musculus",
+        citation="Someone et al 2020",
+        atlas_link="http://www.example.com",
+        version="1.0",
+    )
+    sparse = dict(complete)
+    sparse.update(species=None, citation=None, atlas_link=None)
+
+    complete_panel = utils._rich_atlas_metadata("some-atlas", complete)
+    sparse_panel = utils._rich_atlas_metadata("some-atlas", sparse)
+
+    assert isinstance(sparse_panel, rich.panel.Panel)
+    assert (
+        sparse_panel.renderable.row_count
+        == complete_panel.renderable.row_count - 3
+    )
+
+
 def test_load_structures_from_csv_parent_dtype(tmp_path):
     """Test that the parent_identifier column in the structure dataframe
     has the correct dtype.
@@ -468,8 +715,8 @@ def test_load_structures_from_csv_parent_dtype(tmp_path):
         f.write(
             "identifier,parent_identifier,annotation_value,name,abbreviation,color_hex_triplet,root_identifier_path\n"
             "997,,997,root,root,#FFFFFF,[997]\n"
-            f'{high_value},997,1,region_a,region_a,#6496C8,"[997,1]"\n'
-            f'50,{high_value},2,leaf_b,leaf_b,#C86432,"[997,1,2]"'
+            f'{high_value},997,{high_value},region_a,region_a,#6496C8,"[997,{high_value}]"\n'
+            f'50,{high_value},50,leaf_b,leaf_b,#C86432,"[997,{high_value},50]"'
         )
 
     structures_list = utils.load_structures_from_csv(minimal_structures_csv)

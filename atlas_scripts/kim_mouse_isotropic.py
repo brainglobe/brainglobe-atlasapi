@@ -216,7 +216,7 @@ def get_path_to_root_id(
     List[int]
         A list of structure IDs starting from the root ID to `current_id`.
     """
-    path_to_root: list[int] = []
+    path_to_root = []
     while True:
         current_row = id_to_row.get(current_id)
         if current_row is None:

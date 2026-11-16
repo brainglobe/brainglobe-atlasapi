@@ -347,7 +347,7 @@ def collect_source_meshes(
     structure_ids: set[int],
 ) -> dict[int, dict]:
     """Collect CHARM/SARM GIFTI mesh paths by merged ARM structure ID."""
-    mesh_sources: dict[int, dict] = {}
+    mesh_sources = {}
     atlas_dirs = {
         "CHARM": surfaces_dir / "atlases" / "CHARM",
         "SARM": surfaces_dir / "atlases" / "SARM",

@@ -128,3 +128,8 @@ skip = '.git'
 check-hidden = true
 # Brain region acronyms, author names, URL fragments and short variable names
 ignore-words-list = "alls,anc,ect,fo,lod,ment,nd,onl,ot,portugues,struc,te"
+
+# Contributors shouldn't need type hints for empty containers in atlas scripts
+[[tool.mypy.overrides]]
+module = ["atlas_scripts.*"]
+disable_error_code = ["var-annotated"]

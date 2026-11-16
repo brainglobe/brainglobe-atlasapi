@@ -350,7 +350,7 @@ def collect_source_meshes(
     structure_ids: set[int],
 ) -> dict[int, dict]:
     """Collect GIFTI mesh paths by merged CHARM or SARM structure ID."""
-    mesh_sources: dict[int, dict] = {}
+    mesh_sources = {}
     atlas_dir = surfaces_dir / "atlases" / atlas_kind
 
     for level in range(1, 7):

@@ -31,7 +31,7 @@ CITATION = (
 ORIENTATION = "lpi"
 ROOT_ID = 999
 ATLAS_PACKAGER = "Saima Abdus, David Perez-Suarez, Alessandro Felder"
-ADDITIONAL_METADATA: dict = {}
+ADDITIONAL_METADATA = {}
 RESOLUTION = 40, 40, 40  # Resolution tuple
 
 

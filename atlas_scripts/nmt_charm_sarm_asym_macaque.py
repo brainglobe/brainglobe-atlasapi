@@ -11,9 +11,6 @@ import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_nii
 
-from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
-    ComponentInfoDict,
-)
 from brainglobe_atlasapi.atlas_generation.mesh_utils import (
     extract_mesh_from_mask,
 )
@@ -56,17 +53,17 @@ ATLAS_MESH_RE = re.compile(r"^(CHARM|SARM)_(\d+)\.(.+)\.k(\d+)\.gii$")
 HEMISPHERE_PREFIX_RE = re.compile(r"^(C[LR]|S[LR])_")
 
 # Both atlases use the full-head NMT v2.1 template already published with ARM.
-TEMPLATE_INFO: ComponentInfoDict = {
+TEMPLATE_INFO = {
     "name": "nmt_arm_asym_macaque-template",
     "version": "3.0",
     "use_existing": True,
 }
-SKULL_STRIPPED_TEMPLATE_INFO: ComponentInfoDict = {
+SKULL_STRIPPED_TEMPLATE_INFO = {
     "name": "nmt_arm_asym_macaque-skull_stripped-template",
     "version": "3.0",
     "use_existing": True,
 }
-COORDINATE_SPACE_INFO: ComponentInfoDict = {
+COORDINATE_SPACE_INFO = {
     "name": "nmt_arm_asym_macaque-space",
     "version": "3.0",
     "use_existing": True,
@@ -166,7 +163,7 @@ def retrieve_reference_and_annotation(
 
 def retrieve_additional_references(
     nmt_dir: Path,
-) -> list[tuple[ComponentInfoDict | str, np.ndarray]]:
+) -> list[tuple[dict, np.ndarray]]:
     """Load the skull-stripped reference and reuse its published component."""
     skull_stripped = load_nii(
         nmt_dir / "NMT_v2.1_asym_fh" / NMT_SKULL_STRIPPED_FILENAME,

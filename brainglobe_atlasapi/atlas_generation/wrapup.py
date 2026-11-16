@@ -3,7 +3,16 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 import brainglobe_space as bgs
 import dask.array as da
@@ -876,14 +885,21 @@ def wrapup_atlas_from_data(
     working_dir: str | Path,
     atlas_packager: str | None = None,
     hemispheres_stack: ValidComponentData | None = None,
-    template_info: ComponentInfoDict | None = None,
-    annotation_info: ComponentInfoDict | None = None,
-    terminology_info: ComponentInfoDict | None = None,
-    coordinate_space_info: ComponentInfoDict | None = None,
+    template_info: ComponentInfoDict | Mapping[str, Any] | None = None,
+    annotation_info: ComponentInfoDict | Mapping[str, Any] | None = None,
+    terminology_info: ComponentInfoDict | Mapping[str, Any] | None = None,
+    coordinate_space_info: (
+        ComponentInfoDict | Mapping[str, Any] | None
+    ) = None,
     scale_meshes=False,
     resolution_mapping=None,
     additional_references: (
-        list[tuple[ComponentInfoDict | str, ValidComponentData]]
+        Sequence[
+            tuple[
+                ComponentInfoDict | Mapping[str, Any] | str,
+                ValidComponentData,
+            ]
+        ]
         | dict[str, ValidComponentData]
         | None
     ) = None,
@@ -1041,7 +1057,7 @@ def wrapup_atlas_from_data(
                 if not ref_metadata.endswith("-template"):
                     ref_metadata = f"{atlas_name}-{ref_metadata}-template"
 
-                ref_dict: ComponentInfoDict = {
+                ref_dict: ComponentInfoDict | Mapping[str, Any] = {
                     "name": ref_metadata,
                     "version": atlas_version,
                 }

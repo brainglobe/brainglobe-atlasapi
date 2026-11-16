@@ -533,7 +533,7 @@ def _process_mesh(mesh: Mesh) -> Mesh:
 
 def extract_meshes_from_vtk(
     annotations_path: Path, working_dir: Path
-) -> dict[int | str, str | Path]:
+) -> dict[str, str]:
     """Extract individual meshes from the VTK file for each labeled region.
 
     Parameters
@@ -548,7 +548,7 @@ def extract_meshes_from_vtk(
     dict[str, str]
         Dictionary mapping region IDs to mesh file paths
     """
-    mesh_dict: dict[int | str, str | Path] = {}
+    mesh_dict = {}
     mesh_save_folder = working_dir / "meshes"
     mesh_save_folder.mkdir(parents=True, exist_ok=True)
 
@@ -624,7 +624,7 @@ def extract_meshes_from_vtk(
 
 def retrieve_or_construct_meshes(
     annotations_path: Path, working_dir: Path
-) -> dict[int | str, str | Path]:
+) -> dict[str, str]:
     """Return a mapping of region IDs to mesh file paths.
 
     Some atlases are packaged with mesh files; in these cases, use those files.

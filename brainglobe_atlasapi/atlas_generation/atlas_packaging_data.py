@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Required, TypedDict
+from typing import Dict, List, Mapping, NamedTuple, Required, TypedDict
 
 import brainglobe_space as bgs
 import numpy as np
@@ -501,7 +501,7 @@ class AtlasPackagingData:
         normalised by `sanitise_volumetric_data`.
     structures_list : list[dict]
         List of valid dictionaries for structures.
-    meshes_dict : dict[int | str, str | Path]
+    meshes_dict : Mapping[int | str, str | Path]
         Dict of meshio-compatible mesh file paths in the form
         {struct_id: meshpath}.
     template_info : TemplateInfo
@@ -531,7 +531,7 @@ class AtlasPackagingData:
     working_dir: Path
     volumes: SanitisedVolumes
     structures_list: list[dict]
-    meshes_dict: dict[int | str, str | Path]
+    meshes_dict: Mapping[int, str | Path] | Mapping[str, str | Path]
     template_info: TemplateInfo
     annotation_info: AnnotationInfo
     terminology_info: TerminologyInfo

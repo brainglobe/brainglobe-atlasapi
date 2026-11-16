@@ -171,7 +171,7 @@ def retrieve_or_construct_meshes(
     download_dir: Path,
     annotation: np.ndarray,
     structures: List[Dict[str, Any]],
-) -> dict[int | str, str | Path]:
+) -> Dict[int, Path]:
     """Retrieve or construct meshes for atlas structures.
 
     Parameters
@@ -185,7 +185,7 @@ def retrieve_or_construct_meshes(
 
     Returns
     -------
-    dict[int | str, str | Path]
+    Dict[int, Path]
         Mapping from structure ID to mesh file path.
     """
     meshes_dir = download_dir

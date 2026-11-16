@@ -388,7 +388,7 @@ def retrieve_or_construct_meshes(
     structures: list[dict],
     working_dir: Path,
     annotation_volume: np.ndarray,
-) -> dict[int | str, str | Path]:
+) -> dict[int, Path]:
     """Construct parent meshes and convert the supplied ARM GIFTI meshes."""
     full_head_dir = nmt_dir / "NMT_v2.1_sym_fh"
     reference_path = full_head_dir / NMT_REFERENCE_FILENAME
@@ -405,7 +405,7 @@ def retrieve_or_construct_meshes(
     reference_img = nib.load(str(reference_path))
     ras_mm_to_voxel = np.linalg.inv(reference_img.affine)
     structure_ids = {int(structure["id"]) for structure in structures}
-    meshes_dict: dict[int | str, str | Path] = {}
+    meshes_dict = {}
 
     print("Creating ARM root, cortex, and subcortex parent meshes")
 

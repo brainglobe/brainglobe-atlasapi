@@ -373,7 +373,7 @@ def retrieve_or_construct_meshes(
     structures: list[dict],
     working_dir: Path,
     annotation_volume: np.ndarray,
-) -> dict[int | str, str | Path]:
+) -> dict[int, Path]:
     """Construct the atlas root and convert supplied regional GIFTI meshes."""
     reference_path = nmt_dir / "NMT_v2.1_sym_fh" / NMT_REFERENCE_FILENAME
     surfaces_dir = nmt_dir / "NMT_v2.1_sym_surfaces"
@@ -388,7 +388,7 @@ def retrieve_or_construct_meshes(
     reference_img = nib.load(str(reference_path))
     ras_mm_to_voxel = np.linalg.inv(reference_img.affine)
     structure_ids = {int(structure["id"]) for structure in structures}
-    meshes_dict: dict[int | str, str | Path] = {}
+    meshes_dict = {}
 
     print(f"Creating {atlas_kind} root mesh")
     root_mesh_path = output_mesh_dir / f"{ROOT_ID}.obj"

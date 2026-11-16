@@ -324,7 +324,7 @@ def _write_precomputed_annotations(
 
 
 def _save_meshes(
-    meshes_dict: Dict[int | str, str | Path],
+    meshes_dict: Mapping[int, str | Path] | Mapping[str, str | Path],
     mesh_dest_dir: Path,
     space_convention: bgs.AnatomicalSpace,
     scale_meshes: bool,
@@ -881,7 +881,7 @@ def wrapup_atlas_from_data(
     reference_stack: ValidComponentData,
     annotation_stack: ValidComponentData,
     structures_list: List[Dict],
-    meshes_dict: Dict[int | str, str | Path],
+    meshes_dict: Mapping[int, str | Path] | Mapping[str, str | Path],
     working_dir: str | Path,
     atlas_packager: str | None = None,
     hemispheres_stack: ValidComponentData | None = None,
@@ -943,7 +943,7 @@ def wrapup_atlas_from_data(
         to lowest resolution.
     structures_list : List[Dict]
         List of valid dictionaries for structures.
-    meshes_dict : Dict[int | str, str | Path]
+    meshes_dict : Mapping[int | str, str | Path]
         dict of meshio-compatible mesh file paths in the form
         {struct_id: meshpath}
     working_dir : str | Path

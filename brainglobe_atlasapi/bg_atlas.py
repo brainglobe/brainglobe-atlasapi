@@ -11,7 +11,6 @@ from typing import (
     List,
     Literal,
     Optional,
-    Tuple,
     Union,
     overload,
 )
@@ -156,7 +155,7 @@ class BrainGlobeAtlas(
         remote: Optional[str] = None,
     ):
         self._resolution = resolution
-        self._remote_version_str = None
+        self._remote_version_str: Optional[str] = None
         self._local_version_str = None
         self._local_full_name = None
         self._reachable_remotes: set = set()
@@ -345,7 +344,7 @@ class BrainGlobeAtlas(
         return self._local_full_name
 
     @property
-    def local_version(self) -> Optional[Tuple[int, ...]]:
+    def local_version(self) -> tuple[int, ...]:
         """If atlas is local, return actual version of the downloaded files."""
         if self._local_version is not None:
             return self._local_version
@@ -369,7 +368,7 @@ class BrainGlobeAtlas(
                 self._resolve_remote_version()
             except FileNotFoundError:
                 return None
-        return version_tuple_from_str(self._remote_version_str)
+        return version_tuple_from_str(self._resolve_remote_version())
 
     def _resolve_remote_version(self) -> str:
         """Find and cache the remote version folder name.

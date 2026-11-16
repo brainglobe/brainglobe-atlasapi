@@ -8,6 +8,7 @@ and then wraps it up into the BrainGlobe atlas format.
 
 import re
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pooch
@@ -173,7 +174,7 @@ def fetch_ontology(pooch_: pooch.Pooch):
 
     # Use the name and acronym used within the label files,
     # and then change them back to "root" later
-    structures = [
+    structures: list[dict[str, Any]] = [
         {
             "id": ROOT_ID,
             "name": "root",

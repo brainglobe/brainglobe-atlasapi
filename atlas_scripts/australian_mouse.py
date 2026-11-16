@@ -4,7 +4,6 @@ This script downloads, preprocesses, and packages the Australian Mouse Brain
 Microatlas (AMBMC) into the BrainGlobe atlas format.
 """
 
-__version__ = "1"
 import os
 import tarfile
 import time
@@ -234,8 +233,7 @@ acronym_dict = {
         "Sub": "submedius thalamic nucleus",
         "SubB": "subbrachial nucleus",
         "SubG": (
-            "subgeniculate nucleus of the prethalamus "
-            "(ventrolateral nucleus)"
+            "subgeniculate nucleus of the prethalamus (ventrolateral nucleus)"
         ),
         "SuG": "superficial gray layer of the superior colliculus",
         "Te": "terete hypothalamic nucleus",
@@ -278,8 +276,7 @@ acronym_dict = {
         "ICjM": "Magna island of Calleja",
         "IEn": "Intermediate nucleus of the endopiriform claustrum",
         "IPAC": (
-            "Interstitial nucleus of the post limb of the anterior "
-            "commissure"
+            "Interstitial nucleus of the post limb of the anterior commissure"
         ),
         "LAcbSh": "Accumbens nucleus shell, lateral part",
         "LDB": "Lateral nucleus of the horizontal limb of the diagonal band",
@@ -334,7 +331,7 @@ acronym_dict = {
         "IntDL": "Interposed cerebellar nucleus, dorsolateral hump",
         "IntP": "Interposed cerebellar nucleus, posterior",
         "IntPPC": (
-            "Interposed cerebellar nucleus, " "posterior parvicellular part"
+            "Interposed cerebellar nucleus, posterior parvicellular part"
         ),
         "das": "Dorsal acoustic stria",
     },
@@ -612,7 +609,6 @@ def retrieve_reference_and_annotation():
     annotation = np.zeros((499, 1311, 679), dtype=np.uint32)
     new_vals = 1
     for region in REGION_IDS.keys():
-
         filename = (
             DOWNLOAD_DIR_PATH
             / TEMPLATE_STRING.format(region, "-nii")

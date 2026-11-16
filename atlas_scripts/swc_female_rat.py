@@ -75,7 +75,7 @@ def download_atlas_files(
     download_dir_path: Path,
     atlas_file_url: str,
     filename: str,
-    known_hash: str = None,
+    known_hash: str | None = None,
 ):
     """Download atlas files."""
     utils.check_internet_connection()
@@ -172,12 +172,12 @@ def create_atlas(
     working_dir: Path,
 ):
     """Package the swc_female_rat atlas."""
-    assert (
-        len(ORIENTATION) == 3
-    ), f"Orientation is not 3 characters, got {ORIENTATION}"
-    assert (
-        len(RESOLUTION) == 3
-    ), f"Resolution is not length 3, got {RESOLUTION}"
+    assert len(ORIENTATION) == 3, (
+        f"Orientation is not 3 characters, got {ORIENTATION}"
+    )
+    assert len(RESOLUTION) == 3, (
+        f"Resolution is not length 3, got {RESOLUTION}"
+    )
 
     working_dir.mkdir(exist_ok=True, parents=True)
 

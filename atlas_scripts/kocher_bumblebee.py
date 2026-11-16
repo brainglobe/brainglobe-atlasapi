@@ -377,15 +377,15 @@ def retrieve_reference_and_annotation(
     return reference, annotation
 
 
-def retrieve_hemisphere_map() -> None:
+def retrieve_hemisphere_map() -> np.ndarray | None:
     """Retrieve a hemisphere map for the atlas.
 
     The bumblebee atlas is symmetrical, so no hemisphere map is needed.
 
     Returns
     -------
-    None
-        No hemisphere map for this symmetrical atlas.
+    np.ndarray | None
+        None, as there is no hemisphere map for this symmetrical atlas.
     """
     return None
 

@@ -7,6 +7,9 @@ from allensdk.core.reference_space_cache import ReferenceSpaceCache
 from requests import exceptions
 from tqdm import tqdm
 
+from brainglobe_atlasapi.atlas_generation.atlas_packaging_data import (
+    ComponentInfoDict,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 
@@ -72,13 +75,13 @@ def retrieve_reference_and_annotation():
     annotation_hash = pooch.file_hash(
         download_dir_path / "annotation" / "ccf_2017" / "annotation_100.nrrd"
     )
-    assert (
-        reference_hash == expected_reference_hash
-    ), "The hash of the reference volume does not match the expected hash."
+    assert reference_hash == expected_reference_hash, (
+        "The hash of the reference volume does not match the expected hash."
+    )
 
-    assert (
-        annotation_hash == expected_annotation_hash
-    ), "The hash of the annotation volume does not match the expected hash."
+    assert annotation_hash == expected_annotation_hash, (
+        "The hash of the annotation volume does not match the expected hash."
+    )
     # Download annotated and template volumes
     return reference_volume, annotation_volume
 
@@ -180,20 +183,19 @@ hemispheres_stack = retrieve_hemisphere_map()
 structures = retrieve_structure_information()
 meshes_dict = retrieve_or_construct_meshes()
 
-template_info = {
+template_info: ComponentInfoDict = {
     "name": "allen-adult-mouse-stpt-template",
     "version": "2015",
     "use_existing": True,
 }
 
-coordinate_space_info = {
+coordinate_space_info: ComponentInfoDict = {
     "name": "allen-adult-mouse-ccf-space",
     "version": "2015",
     "use_existing": True,
 }
 
 if __name__ == "__main__":
-
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,

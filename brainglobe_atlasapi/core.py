@@ -219,7 +219,7 @@ class Atlas(Generic[AtlasArray]):
 
         # Add entry for file paths:
         for struct in structures_list:
-            struct["mesh_filename"] = meshes_path / f'{struct["id"]}'
+            struct["mesh_filename"] = meshes_path / f"{struct['id']}"
 
         self.structures = StructuresDict(
             structures_list,
@@ -421,8 +421,7 @@ class Atlas(Generic[AtlasArray]):
         if self.metadata["symmetric"] or not (
             hemispheres_path.exists()
             or self.fs.exists(
-                f"{self._remote}/{annotation_location}"
-                f"/{V3_HEMISPHERES_NAME}"
+                f"{self._remote}/{annotation_location}/{V3_HEMISPHERES_NAME}"
             )
         ):
             shape = tuple(self.metadata["shape"])
@@ -543,7 +542,7 @@ class Atlas(Generic[AtlasArray]):
             If outside atlas (structure gives key error),
             return "Outside atlas"
         hierarchy_lev : int or None
-            If specified, return parent node at thi hierarchy level.
+            If specified, return parent node at this hierarchy level.
 
         Returns
         -------
@@ -806,7 +805,7 @@ class Atlas(Generic[AtlasArray]):
                 )
             except IndexError:
                 raise ValueError(
-                    f'Structure {self.structures[structure]["acronym"]} '
+                    f"Structure {self.structures[structure]['acronym']} "
                     f"has no descendants at hierarchy level {hierarchy_level}"
                 )
 

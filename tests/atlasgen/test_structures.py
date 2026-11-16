@@ -280,5 +280,5 @@ def test_get_structure_terminal_nodes_without_leaves(capsys, structures):
         structures=structures, region=region
     )
     captured = capsys.readouterr()
-    assert "doesnt seem to contain any other regions" in captured.out
+    assert "doesn't seem to contain any other regions" in captured.out
     assert terminal_nodes is None

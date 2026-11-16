@@ -2,6 +2,7 @@
 
 import re
 from pathlib import Path
+from typing import Any
 
 import meshio as mio
 import nibabel as nib
@@ -39,8 +40,7 @@ RESOLUTION = 250  # microns
 ATLAS_PACKAGER = "Amirreza Bahramani"
 
 NMT_ASYM_URL = (
-    "https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/"
-    "NMT_v2.1_asym.tgz"
+    "https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/NMT_v2.1_asym.tgz"
 )
 NMT_ASYM_HASH = (
     "sha256:bc217d4c1b518f69b33149fd4637622dad5455ad8d69abd22dee1b36caeb9daf"
@@ -270,7 +270,7 @@ def retrieve_structure_information(
         parsed_by_id = {}
 
         for level in range(1, 7):
-            structure = {
+            structure: dict[str, Any] = {
                 "id": source_to_canonical[int(row[f"Level_{level}_index"])],
                 "name": HEMISPHERE_PREFIX_RE.sub(
                     "", str(row[f"Level_{level}"]).strip()
@@ -359,7 +359,9 @@ def collect_source_meshes(
         for mesh_path in sorted(
             level_dir.glob(f"{atlas_kind}_{level}.*.k*.gii")
         ):
-            _, _, _, region_id = ATLAS_MESH_RE.match(mesh_path.name).groups()
+            mesh_match = ATLAS_MESH_RE.match(mesh_path.name)
+            assert mesh_match is not None, mesh_path.name
+            _, _, _, region_id = mesh_match.groups()
             canonical_id = source_to_canonical[int(region_id)]
 
             if canonical_id not in structure_ids:

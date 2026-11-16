@@ -108,46 +108,46 @@ def test_generate_metadata_dict(metadata_input_template):
     for key in input_data:  # Iterate through keys expected based on input
         # Assert key presence
         output_key = key_map[key]
-        assert (
-            output_key in output
-        ), f"Expected key '{output_key}' missing in output"
+        assert output_key in output, (
+            f"Expected key '{output_key}' missing in output"
+        )
 
         # Assert value correctness, handling type conversions
         if key == "resolution":
             # Check if the output tuple matches the input list/tuple elements
-            assert output[output_key] == tuple(
-                input_data[key]
-            ), f"'{key}' value mismatch or type mismatch (expected tuple)"
+            assert output[output_key] == tuple(input_data[key]), (
+                f"'{key}' value mismatch or type mismatch (expected tuple)"
+            )
         elif key == "shape":
             # Check if the output tuple matches the input list/tuple elements
-            assert output[output_key] == tuple(
-                input_data[key]
-            ), f"'{key}' value mismatch or type mismatch (expected tuple)"
+            assert output[output_key] == tuple(input_data[key]), (
+                f"'{key}' value mismatch or type mismatch (expected tuple)"
+            )
         elif key == "orientation":
             # Ensure the output orientation is the standard 'asr'
-            assert (
-                output[output_key] == "asr"
-            ), f"'{key}' value mismatch (expected 'asr')"
+            assert output[output_key] == "asr", (
+                f"'{key}' value mismatch (expected 'asr')"
+            )
         elif key in [
             "coordinate_space",
             "terminology",
             "annotation_set",
             "template",
         ]:
-            assert (
-                output[output_key] == input_data[key].metadata
-            ), f"'{key}' metadata mismatch"
+            assert output[output_key] == input_data[key].metadata, (
+                f"'{key}' metadata mismatch"
+            )
         else:
             # Direct comparison for other keys (name, citation, species, etc.)
-            assert (
-                output[output_key] == input_data[key]
-            ), f"'{key}' value mismatch"
+            assert output[output_key] == input_data[key], (
+                f"'{key}' value mismatch"
+            )
 
     expected_keys = set(key_map.values())
     output_keys = set(output.keys())
-    assert (
-        output_keys == expected_keys
-    ), f"Output keys {output_keys} do not match expected keys {expected_keys}"
+    assert output_keys == expected_keys, (
+        f"Output keys {output_keys} do not match expected keys {expected_keys}"
+    )
 
 
 @pytest.mark.parametrize(

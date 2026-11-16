@@ -219,7 +219,6 @@ def create_atlas(working_dir, resolution):
     ]
     dict_to_add = []
     for d in matching_dicts:
-
         # Ignore parent-level SSp-bfd layers
         if d["acronym"] in structures_present:
             print("Skipping because already present:", d)
@@ -325,7 +324,6 @@ def create_atlas(working_dir, resolution):
         total=tree.size(),
         description="Creating meshes",
     ):
-
         # Check if mesh already exists
         file_name = meshes_dir / f"{node.identifier}.obj"
         if file_name.exists():
@@ -358,7 +356,6 @@ def create_atlas(working_dir, resolution):
     for mesh_id, meshfile in meshes_dict.items():
         # Check if mesh is barrel-related
         if mesh_id in [s["id"] for s in dict_to_add]:
-
             try:
                 mesh = mio.read(meshfile)
                 mesh.points *= resolution

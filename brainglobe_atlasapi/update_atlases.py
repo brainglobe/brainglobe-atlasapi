@@ -104,7 +104,7 @@ def install_atlas(atlas_name, fn_update=None, remote=None):
         )
         return
 
-    # Istantiate to download:
+    # Instantiate to download:
     BrainGlobeAtlas(
         atlas_name,
         fn_update=fn_update,

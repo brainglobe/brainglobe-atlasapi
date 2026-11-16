@@ -333,7 +333,6 @@ def retrieve_ontology():
     structures = []
     # Open labels file to get structure information
     with open(labels_path, "r") as f:
-
         labels_data = json.load(f)
         for structure in labels_data["msg"]:
             id = structure["id"]

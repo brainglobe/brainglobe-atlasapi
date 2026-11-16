@@ -108,7 +108,7 @@ def get_structure_children(structures, region, use_tree=False):
         ]
 
     if sub_region_ids == []:
-        print(f"{region['acronym']} doesnt seem to contain any other regions")
+        print(f"{region['acronym']} doesn't seem to contain any other regions")
         return None
     else:
         return sub_region_ids
@@ -146,7 +146,7 @@ def get_structure_terminal_nodes(structures, region):
     ]
 
     if not sub_region_ids:
-        print(f"{region['acronym']} doesnt seem to contain any other regions")
+        print(f"{region['acronym']} doesn't seem to contain any other regions")
         return None
     else:
         return sub_region_ids

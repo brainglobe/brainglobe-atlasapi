@@ -33,22 +33,33 @@ ATLAS_PACKAGER = "Jung Woo Kim"
 
 SKIP_DOWNLOADS_IF_PRESENT = True
 
-# Use T1W template as the base, and T2W as the additional. 
-# https://china.scidb.cn/download?fileId=a7dbf17665fbca3e765d43a5f770327c&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791 
-
 REFERENCE_URLS = {
-    150: "",
-    330: "",
+    150: "https://china.scidb.cn/download?fileId=a7dbf17665fbca3e765d43a5f770327c&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791",
+    330: "https://china.scidb.cn/download?fileId=37b0310cbe07dde9141341e559cb6da0&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791",
 }
 
 ANNOTATION_URLS = {
-    150: "",
-    330: "",
+    150: "https://china.scidb.cn/download?fileId=c9f1e8ef690b2e9a865f392a7ff4bc3f&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791",
+    330: "https://china.scidb.cn/download?fileId=aea285f6cedac782311c86cb9194caed&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791",
 }
 
-LABELS_URL = ""
+T2W_REFERENCE_URLS = {
+    150: "https://china.scidb.cn/download?fileId=2aa3a88857252c93bc439caacac1e317&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791",
+    330: "https://china.scidb.cn/download?fileId=ddf241764ff44990829d099e8cde18de&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791",
+}
 
-REFERENCE_FNAMES = "template_25.nii"
+LABELS_URL = "https://china.scidb.cn/download?fileId=f8ab5dc5cd6bd65e0d4b9396127a37bf&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791"
+
+REFERENCE_FNAMES = {
+    150: "tpl-RBTV1_res-015_T1w.nii.gz",
+    330: "tpl-RBTV1_res-033_T1w.nii.gz",
+}
+
+T2W_REFERENCE_FNAMES = {
+    150: "tpl-RBTV1_res-015_T2w.nii.gz",
+    330: "tpl-RBTV1_res-033_T2w.nii.gz",
+}
+
 ANNOTATION_FNAMES = "annotation_25.nii"
 LABELS_FNAMES = "brainstructures.csv"
 

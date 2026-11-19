@@ -8,8 +8,8 @@ brain regions.
 
 from pathlib import Path
 
+import requests
 import numpy as np
-import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_any
 
@@ -37,7 +37,7 @@ REFERENCE_URL = "https://api.mapzebrain.org/media/Brains/Standard_brain/standard
 
 ANNOTATION_URL = "https://api.mapzebrain.org/media/downloads/Regions/mapZebrain__regions__v2.0.1.zip"
 
-LABELS_URL = "https://china.scidb.cn/download?fileId=f8ab5dc5cd6bd65e0d4b9396127a37bf&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791"
+LABELS_URL = "https://api.mapzebrain.org/api/load_region_data_by_version/"
 
 REFERENCE_FNAME = "standard_brain_fixed_SYP_T_GAD1b.nrrd"
 
@@ -95,7 +95,7 @@ def download_resources():
     if should_fetch(reference_path):
         pooch.retrieve(
             url=REFERENCE_URL,
-            known_hash=None,
+            known_hash="7bd5cdffb256ffbae3dde807845ada1c8d713630f236028dbad6401821a42eca",
             path=DOWNLOAD_DIR_PATH,
             fname=REFERENCE_FNAME,
             progressbar=True,
@@ -104,7 +104,7 @@ def download_resources():
     if should_fetch(annotation_path):
         pooch.retrieve(
             url=ANNOTATION_URL,
-            known_hash=None,
+            known_hash="f10e87f0b82c461278d95c18b465dadd40631475a4364be6d0c66e8f80bc14e5",
             path=DOWNLOAD_DIR_PATH,
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
@@ -131,7 +131,7 @@ def retrieve_reference_and_annotation():
     reference = reference * 65535
     reference = reference.astype(np.uint16)
     
-    
+    # "retinal arborization field 10" does not exist in structures file. 
     annotation = load_any(annotation_path)
 
     return reference, annotation
@@ -190,9 +190,14 @@ def retrieve_structure_information():
         "User-Agent": "Mozilla/5.0",
     }
 
+    payload = {
+        "regionVersion": "2.0 (MECE, 2024)"
+    }
+
     response = requests.post(
         LABELS_URL,
         headers=headers,
+        json=payload,
         timeout=120
     )
 
@@ -211,6 +216,7 @@ def retrieve_structure_information():
         }
     }
     
+    # Create a new dictionary to remove unwanted information from original dictionary
     for region_id, region in regions_by_id.items():
         if region["version"]["number"] != "2.0":
             continue
@@ -218,27 +224,29 @@ def retrieve_structure_information():
         name = region["name"]
         acronym = region["short_name"]
         rgb_triplet = hex_to_rgb(region["version"]["color"].strip("#"))
-        parent = region["parent"]
-        structures_by_id[id]["id"] = id
-        structures_by_id[id]["name"] = name
-        structures_by_id[id]["acronym"] = acronym
-        structures_by_id[id]["rgb_triplet"] = rgb_triplet
-        structures_by_id[id]["parent"] = parent
+        parent = region["parent"] if region["parent"] != -1 else ROOT_ID
+        structures_by_id[id] = {
+            "id": id,
+            "name": name,
+            "acronym": acronym,
+            "rgb_triplet": rgb_triplet,
+            "parent": parent,
+        }
     
-    print(structures_by_id)
     ancestry = []
-    # Loop through structures to ensure all have structure_id_path
-    for _, row in df.iterrows():
-        if row["acronym"] == "root":
+    
+    # Loop through structures to add ancestry 
+    for structure_id, structure in structures_by_id.items():
+        if structure["acronym"] == "root":
             continue
         ancestry.append(
             (
-                row["id"],
-                df.loc[df["acronym"] == row["ParentStruct"], "id"].item(),
+                structure_id,
+                structure["parent"],
             )
         )
 
-    # Code to try and recursively find full hierarchy
+    # Code to recursively find full hierarchy
     parents = set()
     children = {}
     for child, parent in ancestry:
@@ -252,22 +260,15 @@ def retrieve_structure_information():
         ]
 
     # For each structure find all its ancestors, and remove parent key
-    for index, row in df.iterrows():
-        df.at[index, "structure_id_path"] = ancestors(row["id"])
+    for structure_id, structure in structures_by_id.items():
+        if structure["acronym"] == "root":
+            continue
+        structures_by_id[structure_id]["structure_id_path"] = ancestors(structure["id"])
+        structures_by_id[structure_id].pop("parent")
 
-    df.drop(
-        columns=[
-            "red",
-            "green",
-            "blue",
-            "StructureId",
-            "ParentStruct",
-        ],
-        inplace=True,
-    )
-
-    structures = df.to_dict("records")
-
+    structures = list(structures_by_id.values())
+    structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
+    
     return structures
 
 

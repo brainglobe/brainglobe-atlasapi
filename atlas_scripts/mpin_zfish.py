@@ -50,6 +50,8 @@ T2W_REFERENCE_FNAMES = {
     330: "tpl-RBTV1_res-033_T2w.nii.gz",
 }
 
+# TODO: Something is weird in the prosencephalon, figure out what's wrong
+
 ANNOTATION_DNAME = "mapZebrain__regions__v2.0.1"
 
 FNAME_TO_REGION = {
@@ -57,7 +59,6 @@ FNAME_TO_REGION = {
     "pituitary.tif": "pituitary (hypophysis)",
     "epiphysis.tif": "pineal complex (epiphysis)",
     "dorsal_telencephalon_(pallium).tif": "pallium (dorsal telencephalon)",
-    "stratum_fibrosum_et_griseum_superficiale.tif": "stratum fibrosum et griseum superficiale (SFGS)",
     "sac__spv.tif": "boundary zone between SAC and periventricular layer",
     "stratum_album_centrale.tif": "stratum album centrale (SAC)",
     "stratum_griseum_centrale.tif": "stratum griseum centrale (SGC)",
@@ -209,11 +210,10 @@ def retrieve_hemisphere_map(annotation_volume):
 
     Returns
     -------
-    hemispheres_stack: numpy.ndarray
-        A 3D array with the same shape as annotation, all values are 1 (L).
+    None
+        Returns None as atlas is aligned to the midline
     """
-    hemispheres_stack = np.where(annotation_volume > 0, 1, 0).astype(np.uint8)
-    return hemispheres_stack
+    return None
 
 
 def retrieve_structure_information():

@@ -6,13 +6,12 @@ along with a hierarchical structure tree and corresponding meshes for
 brain regions.
 """
 
+import os
 from pathlib import Path
 
-import json
-import os
-import requests
 import numpy as np
 import pooch
+import requests
 import SimpleITK as sitk
 from brainglobe_utils.IO.image import load_any
 
@@ -69,14 +68,15 @@ FNAME_TO_REGION = {
     "posterior_cholinergic_domain.tif": "posterior cholinergic domain of the nucleus isthmi",
     "gabaergic_domain.tif": "gabaergic domain of the nucleus isthmi",
     "anterior_cholinergic_domain.tif": "anterior cholinergic domain of the nucleus isthmi",
-    "sfgs__sgc.tif": "boundary zone between SFGS and SGC", 
+    "sfgs__sgc.tif": "boundary zone between SFGS and SGC",
     "nucleus_of_the_medial_longitudinal_fascicle_(pretectum,_basal_part).tif": "nucleus of the medial longitudinal fascicle",
     "posterior_tuberculum_(basal_part_of_prethalamus_and_thalamus).tif": "posterior tuberculum, posterior part (basal prosomere 2, dorsal posterior tuberculum)",
 }
-# Note: "retinal arborization field 10" does not exist in structures file. 
+# Note: "retinal arborization field 10" does not exist in structures file.
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
+
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -98,6 +98,7 @@ def hex_to_rgb(hex):
 
     return rgb
 
+
 def download_resources():
     """Download the necessary resources for the atlas with Pooch."""
     BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
@@ -106,9 +107,8 @@ def download_resources():
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_DNAME
 
-    needs_download = (
-        (not reference_path.exists())
-        or (not annotation_path.exists())
+    needs_download = (not reference_path.exists()) or (
+        not annotation_path.exists()
     )
     if needs_download:
         utils.check_internet_connection()
@@ -136,6 +136,7 @@ def download_resources():
             processor=pooch.Unzip(extract_dir=""),
         )
 
+
 def retrieve_reference_and_annotation(structures):
     """
     Retrieve the reference and annotation volumes.
@@ -147,7 +148,6 @@ def retrieve_reference_and_annotation(structures):
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    
     # Locate leaf nodes of structure tree, as only leaf structures need annotations
     parent_ids = {
         ancestor_id
@@ -155,48 +155,54 @@ def retrieve_reference_and_annotation(structures):
         for ancestor_id in structure["structure_id_path"][:-1]
     }
     leaf_structures = [
-        structure for structure in structures if structure["id"] not in parent_ids
+        structure
+        for structure in structures
+        if structure["id"] not in parent_ids
     ]
 
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_DNAME
-    
+
     reference_img = sitk.ReadImage(str(reference_path))
     reference = sitk.GetArrayFromImage(reference_img)
     reference -= np.min(reference)
     reference = reference / np.max(reference)
     reference = reference * 65535
     reference = reference.astype(np.uint16)
-    
+
     annotation = np.zeros_like(reference)
-    
+
     def find_id(structures, name):
-        for structure in structures: 
+        for structure in structures:
             if structure["name"] == name:
                 return int(structure["id"])
         # Return -1 if the given name cannot be found in structures
         return -1
-    
+
     for root, _, files in os.walk(annotation_path):
-        for filename in files: 
+        for filename in files:
             str_name = filename.removesuffix(".tif").replace("_", " ")
             if any(
                 structure["name"] == str_name for structure in leaf_structures
             ):
-                region_annotation = np.asarray(load_any(annotation_path / filename))
+                region_annotation = np.asarray(
+                    load_any(annotation_path / filename)
+                )
                 id = find_id(leaf_structures, str_name)
-                if id == -1: 
+                if id == -1:
                     continue
                 annotation = np.where(region_annotation > 0, id, annotation)
             elif FNAME_TO_REGION.get(filename, None):
                 str_name = FNAME_TO_REGION.get(filename)
-                region_annotation = np.asarray(load_any(annotation_path / filename))
+                region_annotation = np.asarray(
+                    load_any(annotation_path / filename)
+                )
                 id = find_id(leaf_structures, str_name)
-                if id == -1: 
+                if id == -1:
                     continue
                 annotation = np.where(region_annotation > 0, id, annotation)
-    
-    annotation = annotation.astype(np.uint32)    
+
+    annotation = annotation.astype(np.uint32)
     return reference, annotation
 
 
@@ -242,7 +248,6 @@ def retrieve_structure_information():
         A list of dictionaries, each containing information for a single
         atlas structure.
     """
-    
     # Use requests.post to retrieve structures .json file
     headers = {
         "Accept": "application/json, text/plain, */*",
@@ -252,32 +257,27 @@ def retrieve_structure_information():
         "User-Agent": "Mozilla/5.0",
     }
 
-    payload = {
-        "regionVersion": "2.0 (MECE, 2024)"
-    }
+    payload = {"regionVersion": "2.0 (MECE, 2024)"}
 
     response = requests.post(
-        LABELS_URL,
-        headers=headers,
-        json=payload,
-        timeout=120
+        LABELS_URL, headers=headers, json=payload, timeout=120
     )
 
     response.raise_for_status()
 
     data = response.json()
     regions_by_id = data["data"]["regions_dictionary"]
-    
+
     structures_by_id = {
         ROOT_ID: {
             "id": ROOT_ID,
             "name": "root",
             "acronym": "root",
-            "structure_id_path": [ROOT_ID], 
+            "structure_id_path": [ROOT_ID],
             "rgb_triplet": [255, 255, 255],
         }
     }
-    
+
     # Create a new dictionary to remove unwanted information from original dictionary
     for region_id, region in regions_by_id.items():
         if region["version"]["number"] != "2.0":
@@ -294,10 +294,10 @@ def retrieve_structure_information():
             "rgb_triplet": rgb_triplet,
             "parent": parent,
         }
-    
+
     ancestry = []
-    
-    # Loop through structures to add ancestry 
+
+    # Loop through structures to add ancestry
     for structure_id, structure in structures_by_id.items():
         if structure["acronym"] == "root":
             continue
@@ -325,12 +325,14 @@ def retrieve_structure_information():
     for structure_id, structure in structures_by_id.items():
         if structure["acronym"] == "root":
             continue
-        structures_by_id[structure_id]["structure_id_path"] = ancestors(structure["id"])
+        structures_by_id[structure_id]["structure_id_path"] = ancestors(
+            structure["id"]
+        )
         structures_by_id[structure_id].pop("parent")
 
     structures = list(structures_by_id.values())
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
-    
+
     return structures
 
 
@@ -377,7 +379,9 @@ if __name__ == "__main__":
         )
     download_resources()
     structures = retrieve_structure_information()
-    reference_volume, annotated_volume = retrieve_reference_and_annotation(structures)
+    reference_volume, annotated_volume = retrieve_reference_and_annotation(
+        structures
+    )
     hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures

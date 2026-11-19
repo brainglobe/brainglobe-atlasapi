@@ -15,7 +15,6 @@ import zipfile
 
 import numpy as np
 import requests
-from allensdk.core.structure_tree import StructureTree
 from scipy.ndimage import binary_dilation, binary_erosion, binary_fill_holes
 from tifffile import imread
 
@@ -25,6 +24,25 @@ from brainglobe_atlasapi.utils import retrieve_over_http
 
 BASE_URL = r"https://fishatlas.neuro.mpg.de"
 
+def hex_to_rgb(hex):
+    """Convert a hexadecimal color string to an RGB triplet.
+
+    Parameters
+    ----------
+    hex : str
+        The hexadecimal color string (e.g., "RRGGBB").
+
+    Returns
+    -------
+    list
+        A list of three integers representing the RGB color (0-255).
+    """
+    rgb = []
+    for i in (0, 2, 4):
+        decimal = int(hex[i : i + 2], 16)
+        rgb.append(decimal)
+
+    return rgb
 
 def download_line_stack(bg_root_dir, tg_line_name):
     """Download a transgenic line stack.
@@ -100,7 +118,7 @@ def collect_all_inplace(
             "name": node["name"],
             "acronym": node["name"],
             "id": node["id"],
-            "rgb_triplet": StructureTree.hex_to_rgb(node["color"]),
+            "rgb_triplet": hex_to_rgb(node["color"]),
             "structure_id_path": node["structure_id_path"],
         }
     )

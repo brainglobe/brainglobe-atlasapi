@@ -24,6 +24,10 @@ from brainglobe_atlasapi.utils import retrieve_over_http
 
 BASE_URL = r"https://api.mapzebrain.org"
 
+LINE_TO_FNAME = {
+    
+}
+
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
 
@@ -170,7 +174,7 @@ def create_atlas(working_dir, resolution):
 
     # Download reference:
     #####################
-    reference_stack = download_line_stack(working_dir, "HuCGCaMP5G")
+    reference_stack = download_line_stack(working_dir, "antiSynapsin12SYP")
 
     # Download accessory references:
     ################################

@@ -22,7 +22,7 @@ from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
 from brainglobe_atlasapi.config import DEFAULT_WORKDIR
 from brainglobe_atlasapi.utils import retrieve_over_http
 
-BASE_URL = r"https://fishatlas.neuro.mpg.de"
+BASE_URL = r"https://api.mapzebrain.org"
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -60,9 +60,9 @@ def download_line_stack(bg_root_dir, tg_line_name):
         The downloaded Tiff stack as a NumPy array.
     """
     reference_url = (
-        f"{BASE_URL}/media/brain_browser/Lines/"
-        f"{tg_line_name}/AverageData/Tiff_File/"
-        f"Average_{tg_line_name}.zip"
+        f"{BASE_URL}/media/Lines/"
+        f"{tg_line_name}/average_data/"
+        f"T_AVG_{tg_line_name}.zip"
     )
     out_file_path = bg_root_dir / f"{tg_line_name}.zip"
     retrieve_over_http(reference_url, out_file_path)
@@ -163,7 +163,7 @@ def create_atlas(working_dir, resolution):
     RES_UM = resolution
     ATLAS_NAME = "mpin_zfish"
     SPECIES = "Danio rerio"
-    ATLAS_LINK = "http://fishatlas.neuro.mpg.de"
+    ATLAS_LINK = "https://mapzebrain.org/"
     CITATION = "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034"
     ORIENTATION = "lai"
     ATLAS_PACKAGER = "Luigi Petrucco, luigi.petrucco@gmail.com"

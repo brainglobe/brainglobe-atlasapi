@@ -80,7 +80,7 @@ def download_line_stack(bg_root_dir, tg_line_name):
     with zipfile.ZipFile(out_file_path, "r") as zip_ref:
         zip_ref.extractall(bg_root_dir)
 
-    return imread(str(next(bg_root_dir.glob(f"*{tg_line_name}*.tif"))))
+    return imread(str(next(bg_root_dir.glob(f"*{LINE_TO_FNAME[tg_line_name]}*.tif"))))
 
 
 def add_path_inplace(parent):
@@ -250,7 +250,7 @@ def create_atlas(downloads_dir, resolution):
 
     # Download structures tree and meshes:
     ######################################
-    regions_url = f"{BASE_URL}/neurons/get_brain_regions"
+    regions_url = f"{BASE_URL}/media/downloads/Regions/mapZebrain__regions__v1.0.zip"
 
     meshes_dir_path = downloads_dir / "meshes_temp_download"
     meshes_dir_path.mkdir(exist_ok=True)

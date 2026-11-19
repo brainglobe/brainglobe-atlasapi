@@ -6,37 +6,51 @@ along with a hierarchical structure tree and corresponding meshes for
 brain regions.
 """
 
-__version__ = "1"
-__atlas__ = "mpin_zfish"
-
-import json
-import tarfile
-import warnings
-import zipfile
+from pathlib import Path
 
 import numpy as np
-import requests
-from scipy.ndimage import binary_dilation, binary_erosion, binary_fill_holes
-from tifffile import imread
+import pandas as pd
+import pooch
+from brainglobe_utils.IO.image import load_any
 
+from brainglobe_atlasapi import utils
+from brainglobe_atlasapi.atlas_generation.mesh_utils import (
+    construct_meshes_from_annotation,
+)
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
-from brainglobe_atlasapi.config import DEFAULT_WORKDIR
-from brainglobe_atlasapi.utils import retrieve_over_http
+from brainglobe_atlasapi.utils import atlas_name_from_repr
 
-BASE_URL = r"https://api.mapzebrain.org"
+### Metadata ###
+__version__ = 2
+ATLAS_NAME = "mpin_zfish"
+CITATION = "https://doi.org/10.1016/j.neuron.2019.04.034"
+SPECIES = "Danio rerio"
+ATLAS_LINK = r"https://mapzebrain.org"
+ORIENTATION = "rai"
+ROOT_ID = 9999
+RESOLUTION = 1
+ATLAS_PACKAGER = "Jung Woo Kim"
 
-BG_ROOT_DIR = DEFAULT_WORKDIR / __atlas__ 
-DOWNLOAD_DIR = BG_ROOT_DIR / "downloads"
+SKIP_DOWNLOADS_IF_PRESENT = True
 
-ADDITIONAL_LINES = ["HuCH2BGCaMP2tg", "gad1b-hcr"]
+REFERENCE_URL = "https://api.mapzebrain.org/media/Brains/Standard_brain/standard_brain_fixed_SYP_T_GAD1b.nrrd"
 
-LINE_TO_FNAME = {
-    "antiSynapsin12SYP": "antiSynapsin12SYP",
-    "HuCH2BGCaMP2tg": "HuCH2BGCaMP2-tg_ch0", 
-    "gad1b-hcr": "nns25Tg", 
+ANNOTATION_URL = "https://api.mapzebrain.org/media/downloads/Regions/mapZebrain__regions__v2.0.1.zip"
+
+LABELS_URL = "https://china.scidb.cn/download?fileId=f8ab5dc5cd6bd65e0d4b9396127a37bf&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791"
+
+REFERENCE_FNAME = "standard_brain_fixed_SYP_T_GAD1b.nrrd"
+
+# TODO
+T2W_REFERENCE_FNAMES = {
+    150: "tpl-RBTV1_res-015_T2w.nii.gz",
+    330: "tpl-RBTV1_res-033_T2w.nii.gz",
 }
 
-LABELS_URL = "https://api.mapzebrain.org/api/load_region_data_by_version/"
+ANNOTATION_FNAME = "mapZebrain__regions__v2.0.1"
+
+BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
+DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -58,201 +72,116 @@ def hex_to_rgb(hex):
 
     return rgb
 
-def download_line_stack(bg_root_dir, tg_line_name):
-    """Download a transgenic line stack.
+def download_resources():
+    """Download the necessary resources for the atlas with Pooch."""
+    BG_ROOT_DIR.mkdir(exist_ok=True, parents=True)
+    DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
-    Parameters
-    ----------
-    bg_root_dir : pathlib.Path
-        The root directory where the data should be downloaded.
-    tg_line_name : str
-        The name of the transgenic line to download.
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+
+    needs_download = (
+        (not reference_path.exists())
+        or (not annotation_path.exists())
+    )
+    if needs_download:
+        utils.check_internet_connection()
+
+    def should_fetch(path: Path) -> bool:
+        if not path.exists():
+            return True
+        return not SKIP_DOWNLOADS_IF_PRESENT
+
+    if should_fetch(reference_path):
+        pooch.retrieve(
+            url=REFERENCE_URL,
+            known_hash=None,
+            path=DOWNLOAD_DIR_PATH,
+            fname=REFERENCE_FNAME,
+            progressbar=True,
+        )
+
+    if should_fetch(annotation_path):
+        pooch.retrieve(
+            url=ANNOTATION_URL,
+            known_hash=None,
+            path=DOWNLOAD_DIR_PATH,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
+
+
+def retrieve_reference_and_annotation():
+    """
+    Retrieve the reference and annotation volumes.
+
+    If possible, use brainglobe_utils.IO.image.load_any for opening images.
 
     Returns
     -------
-    numpy.ndarray
-        The downloaded Tiff stack as a NumPy array.
+    tuple[numpy.ndarray, numpy.ndarray]
+        A tuple containing the reference volume and the annotation volume.
     """
-    reference_url = (
-        f"{BASE_URL}/media/Lines/"
-        f"{tg_line_name}/average_data/"
-        f"T_AVG_{LINE_TO_FNAME[tg_line_name]}.zip"
-    )
-    out_file_path = bg_root_dir / f"{tg_line_name}.zip"
-    retrieve_over_http(reference_url, out_file_path)
-    with zipfile.ZipFile(out_file_path, "r") as zip_ref:
-        zip_ref.extractall(bg_root_dir)
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
 
-    return imread(str(next(bg_root_dir.glob(f"*{LINE_TO_FNAME[tg_line_name]}*.tif"))))
+    reference = np.asarray(load_any(reference_path), dtype=np.float64)
+    reference -= np.min(reference)
+    reference = reference / np.max(reference)
+    reference = reference * 65535
+    reference = reference.astype(np.uint16)
+    
+    
+    annotation = load_any(annotation_path)
+
+    return reference, annotation
 
 
-def add_path_inplace(parent):
-    """Recursively traverse region hierarchy and append full path of
-    substructures.
-
-    Parameters
-    ----------
-    parent : dict
-        A node parsed from the fishatlas website, expected to contain
-        a "sub_regions" key.
+def retrieve_hemisphere_map(annotation_volume):
     """
-    for ch in parent["sub_regions"]:
-        new_root = parent["structure_id_path"] + [
-            ch["id"],
-        ]
+    Retrieve a hemisphere map for the atlas.
 
-        ch["structure_id_path"] = new_root
+    Use a hemisphere map if the atlas is asymmetrical. This map is an array
+    with the same shape as the template, where 1 marks the left hemisphere
+    and 2 marks the right.
 
-        add_path_inplace(ch)
-
-
-def collect_all_inplace(
-    node,
-    traversing_list,
-    download_path,
-    mesh_dict,
-):
-    """Recursively traverse a region hierarchy, download meshes, and
-    append regions to a list.
-
-    Parameters
-    ----------
-    node : dict
-        The current region node in the hierarchy.
-    traversing_list : list
-        The list to which collected region information will be appended.
-    download_path : pathlib.Path
-        The directory where meshes should be downloaded.
-    mesh_dict : dict
-        A dictionary to store paths to downloaded meshes, keyed by region ID.
+    Returns
+    -------
+    hemispheres_stack: numpy.ndarray
+        A 3D array with the same shape as annotation, all values are 1 (L).
     """
-    # Append clean dictionary with brainglobe standard info:
-    traversing_list.append(
+    hemispheres_stack = np.where(annotation_volume > 0, 1, 0).astype(np.uint8)
+    return hemispheres_stack
+
+
+def retrieve_structure_information():
+    """
+    Return a list of dictionaries with information about the atlas.
+
+    Returns a list of dictionaries, where each dictionary represents a
+    structure and contains its ID, name, acronym, hierarchical path,
+    and RGB triplet.
+
+    The expected format for each dictionary is:
+
+    .. code-block:: python
+
         {
-            "name": node["name"],
-            "acronym": node["name"],
-            "id": node["id"],
-            "rgb_triplet": hex_to_rgb(node["color"]),
-            "structure_id_path": node["structure_id_path"],
+            "id": int,
+            "name": str,
+            "acronym": str,
+            "structure_id_path": list[int],
+            "rgb_triplet": list[int, int, int],
         }
-    )
-
-    # Url for the mesh:
-    mesh_url = (
-        BASE_URL + node["files"]["file_3D"][:-4].replace("\\", "/") + ".stl"
-    )
-
-    # Try download, if mesh does not exist region is removed:
-    try:
-        filename = download_path / "{}.stl".format(node["id"])
-        retrieve_over_http(mesh_url, filename)
-
-        mesh_dict[node["id"]] = filename
-    except requests.exceptions.ConnectionError:
-        # Pop region from list:
-        message = "No mesh found for {}".format(traversing_list.pop()["name"])
-        warnings.warn(message)
-
-    for region in node["sub_regions"]:
-        collect_all_inplace(region, traversing_list, download_path, mesh_dict)
-
-
-def create_atlas(downloads_dir, resolution):
-    """Create the MPIN Z-Fish atlas.
-
-    Parameters
-    ----------
-    downloads_dir : pathlib.Path
-        The directory where all intermediate files will
-        be stored.
-    resolution : int
-        The resolution of the atlas in micrometers per voxel.
 
     Returns
     -------
-    str
-        The path to the generated atlas file.
+    list[dict]
+        A list of dictionaries, each containing information for a single
+        atlas structure.
     """
-    # Specify fixed information about the atlas:
-    RES_UM = resolution
-    ATLAS_NAME = "mpin_zfish"
-    SPECIES = "Danio rerio"
-    ATLAS_LINK = "https://mapzebrain.org/"
-    CITATION = "Kunst et al 2019, https://doi.org/10.1016/j.neuron.2019.04.034"
-    ORIENTATION = "lai"
-    ATLAS_PACKAGER = "Luigi Petrucco, luigi.petrucco@gmail.com"
-
-    # Download reference:
-    #####################
-    reference_stack = download_line_stack(downloads_dir, "antiSynapsin12SYP")
-
-    # Download accessory references:
-    ################################
-    additional_references = dict()
-    for line in ADDITIONAL_LINES:
-        additional_references[line] = download_line_stack(downloads_dir, line)
-
-    # Download annotation and hemispheres from GIN repo:
-    gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations_meshes.tar.gz"
-    compressed_zip_path = downloads_dir / "annotations.tar"
-    retrieve_over_http(gin_url, compressed_zip_path)
-
-    tar = tarfile.open(compressed_zip_path)
-    tar.extractall(path=downloads_dir)
-
-    extracted_dir = downloads_dir / "mpin_zfish_annotations"
-
-    annotation_stack = imread(str(extracted_dir / "mpin_zfish_annotation.tif"))
-
-    # Pad 1 voxel around the whole annotation:
-    annotation_stack[[0, -1], :, :] = 0
-    annotation_stack[:, [0, -1], :] = 0
-    annotation_stack[:, :, [0, -1]] = 0
-
-    hemispheres_stack = imread(
-        str(extracted_dir / "mpin_zfish_hemispheres.tif")
-    )
-
-    # meshes from the website and stacks do not have the same orientation.
-    # Therefore, flip axes of the stacks so that brainglobe-space
-    # reorientation is used on the meshes:
-    annotation_stack = annotation_stack.swapaxes(0, 2)
-    hemispheres_stack = hemispheres_stack.swapaxes(0, 2)
-    reference_stack = reference_stack.swapaxes(0, 2)
-    additional_references = {
-        k: v.swapaxes(0, 2) for k, v in additional_references.items()
-    }
-
-    # Improve the annotation by defining a region that encompasses
-    # the whole brain but not the eyes.
-    # This will be aside from the official hierarchy:
-    BRAIN_ID = 2  # add this as not defined in the source
-
-    # Ugly padding required not to have border
-    # artefacts in the binary operations:
-
-    shape_stack = list(annotation_stack.shape)
-    pad = 100
-    shape_stack[2] = shape_stack[2] + pad * 2
-    brain_mask = np.zeros(shape_stack, dtype=np.uint8)
-
-    # Exclude eyes from brain mask:
-    brain_mask[:, :, pad:-pad][
-        (annotation_stack > 0) & (annotation_stack != 808)
-    ] = 255
-
-    # Perform binary operations:
-    brain_mask = binary_dilation(brain_mask, iterations=50)
-    brain_mask = binary_erosion(brain_mask, iterations=50)
-    brain_mask = binary_fill_holes(brain_mask)
-
-    # Remove padding:
-    brain_mask = brain_mask[:, :, pad:-pad]
-
-    annotation_stack[(annotation_stack == 0) & (brain_mask > 0)] = BRAIN_ID
-
-    # Download structures tree and meshes:
-    ######################################
+    
+    # Use requests.post to retrieve structures .json file
     headers = {
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "application/json",
@@ -261,100 +190,154 @@ def create_atlas(downloads_dir, resolution):
         "User-Agent": "Mozilla/5.0",
     }
 
-    payload = {
-        "regionVersion": "1.0 (modified Kunst et al., 2019)"
-    }
-
     response = requests.post(
         LABELS_URL,
         headers=headers,
-        json=payload,
         timeout=120
     )
 
     response.raise_for_status()
 
     data = response.json()
-
-    print("Response type:", type(data))
-    print(json.dumps(data, indent=2)[:2000])
+    regions_by_id = data["data"]["regions_dictionary"]
     
-
-    meshes_dir_path = downloads_dir / "meshes_temp_download"
-    meshes_dir_path.mkdir(exist_ok=True)
-
-    # Download structures hierarchy:
-    structures = data["data"]["regions_dictionary"]
-
-    # Initiate dictionary with root info:
-    ROOT_ID = 1  # add this as not defined in the source
-    structures_dict = {
-        "name": "root",
-        "id": ROOT_ID,
-        "sub_regions": structures.copy(),
-        "structure_id_path": [ROOT_ID],
-        "acronym": "root",
-        "files": {
-            "file_3D": "/media/Neurons_database/Brain_and_regions"
-            "/Brains/Outline/Outline_new.txt"
-        },
-        "color": "#ffffff",
+    structures_by_id = {
+        ROOT_ID: {
+            "id": ROOT_ID,
+            "name": "root",
+            "acronym": "root",
+            "structure_id_path": [ROOT_ID], 
+            "rgb_triplet": [255, 255, 255],
+        }
     }
+    
+    for region_id, region in regions_by_id.items():
+        if region["version"]["number"] != "2.0":
+            continue
+        id = int(region["id"])
+        name = region["name"]
+        acronym = region["short_name"]
+        rgb_triplet = hex_to_rgb(region["version"]["color"].strip("#"))
+        parent = region["parent"]
+        structures_by_id[id]["id"] = id
+        structures_by_id[id]["name"] = name
+        structures_by_id[id]["acronym"] = acronym
+        structures_by_id[id]["rgb_triplet"] = rgb_triplet
+        structures_by_id[id]["parent"] = parent
+    
+    print(structures_by_id)
+    ancestry = []
+    # Loop through structures to ensure all have structure_id_path
+    for _, row in df.iterrows():
+        if row["acronym"] == "root":
+            continue
+        ancestry.append(
+            (
+                row["id"],
+                df.loc[df["acronym"] == row["ParentStruct"], "id"].item(),
+            )
+        )
 
-    # Go through the regions hierarchy and create the structure path entry:
-    add_path_inplace(structures_dict)
+    # Code to try and recursively find full hierarchy
+    parents = set()
+    children = {}
+    for child, parent in ancestry:
+        parents.add(parent)
+        children[child] = parent
 
-    # Create empty list and collect all regions
-    # traversing the regions hierarchy:
-    structures_list = []
-    meshes_dict = {}
-    collect_all_inplace(
-        structures_dict, structures_list, meshes_dir_path, meshes_dict
+    # Recursively determine parents until child has no parent
+    def ancestors(parent):
+        return (ancestors(children[parent]) if parent in children else []) + [
+            parent
+        ]
+
+    # For each structure find all its ancestors, and remove parent key
+    for index, row in df.iterrows():
+        df.at[index, "structure_id_path"] = ancestors(row["id"])
+
+    df.drop(
+        columns=[
+            "red",
+            "green",
+            "blue",
+            "StructureId",
+            "ParentStruct",
+        ],
+        inplace=True,
     )
 
-    # Artificially add entry for brain region:
-    brain_struct_entry = {
-        "name": "brain",
-        "id": BRAIN_ID,
-        "structure_id_path": [ROOT_ID, BRAIN_ID],
-        "acronym": "brain",
-        "rgb_triplet": [255, 255, 255],
-    }
-    structures_list.append(brain_struct_entry)
+    structures = df.to_dict("records")
 
-    # Use recalculated meshes that are smoothed
-    # with Blender and uploaded in G-Node:
-    for sid in [ROOT_ID, BRAIN_ID]:
-        meshes_dict[sid] = extracted_dir / f"{sid}.stl"
+    return structures
 
-    # Wrap up, compress, and remove file:0
-    print("Finalising atlas")
+
+def retrieve_or_construct_meshes(annotated_volume, structures):
+    """
+    Return a dictionary mapping structure IDs to paths of mesh files.
+
+    If the atlas is packaged with mesh files, download and use them. Otherwise,
+    construct the meshes using available helper functions.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are structure IDs and values are paths to the
+        corresponding mesh files.
+    """
+    meshes_dict = construct_meshes_from_annotation(
+        save_path=DOWNLOAD_DIR_PATH,
+        volume=annotated_volume,
+        structures_list=structures,
+        closing_n_iters=2,
+        decimate_fraction=0.2,
+        smooth=False,
+        parallel=True,
+        verbosity=0,
+        num_threads=-1,
+    )
+
+    structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
+
+    return meshes_dict, structures_with_mesh
+
+
+if __name__ == "__main__":
+    BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Fail early if any version of this atlas already exists
+    atlas_prefix = atlas_name_from_repr(ATLAS_NAME, RESOLUTION)
+    existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
+
+    if existing:
+        raise FileExistsError(
+            f"Atlas output already exists in {BG_ROOT_DIR}. "
+        )
+    download_resources()
+    structures = retrieve_structure_information()
+    reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
+    meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+        annotated_volume, structures
+    )
+
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
         atlas_minor_version=__version__,
         citation=CITATION,
         atlas_link=ATLAS_LINK,
         species=SPECIES,
-        resolution=(RES_UM,) * 3,
+        resolution=(RESOLUTION,) * 3,
         orientation=ORIENTATION,
-        root_id=1,
-        reference_stack=reference_stack,
-        annotation_stack=annotation_stack,
-        structures_list=structures_list,
+        root_id=ROOT_ID,
+        reference_stack=reference_volume,
+        annotation_stack=annotated_volume,
+        structures_list=structures_with_mesh,
         meshes_dict=meshes_dict,
         working_dir=BG_ROOT_DIR,
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
-        additional_references=additional_references,
+        additional_references=None,
         atlas_packager=ATLAS_PACKAGER,
+        scale_meshes=True,
     )
-
-    return output_filename
-
-
-if __name__ == "__main__":
-    # Generated atlas path:
-    DOWNLOAD_DIR.mkdir(exist_ok=True, parents=True)
-
-    create_atlas(DOWNLOAD_DIR, 1)

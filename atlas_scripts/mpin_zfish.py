@@ -24,8 +24,15 @@ from brainglobe_atlasapi.utils import retrieve_over_http
 
 BASE_URL = r"https://api.mapzebrain.org"
 
+BG_ROOT_DIR = DEFAULT_WORKDIR / __atlas__ 
+DOWNLOAD_DIR = BG_ROOT_DIR / "downloads"
+
+ADDITIONAL_LINES = ["HuCH2BGCaMP2tg", "gad1b-hcr"]
+
 LINE_TO_FNAME = {
-    
+    "antiSynapsin12SYP": "antiSynapsin12SYP",
+    "HuCH2BGCaMP2tg": "HuCH2BGCaMP2-tg_ch0", 
+    "gad1b-hcr": "nns25Tg", 
 }
 
 def hex_to_rgb(hex):
@@ -66,7 +73,7 @@ def download_line_stack(bg_root_dir, tg_line_name):
     reference_url = (
         f"{BASE_URL}/media/Lines/"
         f"{tg_line_name}/average_data/"
-        f"T_AVG_{tg_line_name}.zip"
+        f"T_AVG_{LINE_TO_FNAME[tg_line_name]}.zip"
     )
     out_file_path = bg_root_dir / f"{tg_line_name}.zip"
     retrieve_over_http(reference_url, out_file_path)
@@ -147,13 +154,13 @@ def collect_all_inplace(
         collect_all_inplace(region, traversing_list, download_path, mesh_dict)
 
 
-def create_atlas(working_dir, resolution):
+def create_atlas(downloads_dir, resolution):
     """Create the MPIN Z-Fish atlas.
 
     Parameters
     ----------
-    working_dir : pathlib.Path
-        The directory where all intermediate and final atlas files will
+    downloads_dir : pathlib.Path
+        The directory where all intermediate files will
         be stored.
     resolution : int
         The resolution of the atlas in micrometers per voxel.
@@ -174,23 +181,23 @@ def create_atlas(working_dir, resolution):
 
     # Download reference:
     #####################
-    reference_stack = download_line_stack(working_dir, "antiSynapsin12SYP")
+    reference_stack = download_line_stack(downloads_dir, "antiSynapsin12SYP")
 
     # Download accessory references:
     ################################
     additional_references = dict()
-    for line in ["H2BGCaMP", "GAD1b"]:
-        additional_references[line] = download_line_stack(working_dir, line)
+    for line in ADDITIONAL_LINES:
+        additional_references[line] = download_line_stack(downloads_dir, line)
 
     # Download annotation and hemispheres from GIN repo:
     gin_url = "https://gin.g-node.org/brainglobe/mpin_zfish/raw/master/mpin_zfish_annotations_meshes.tar.gz"
-    compressed_zip_path = working_dir / "annotations.tar"
+    compressed_zip_path = downloads_dir / "annotations.tar"
     retrieve_over_http(gin_url, compressed_zip_path)
 
     tar = tarfile.open(compressed_zip_path)
-    tar.extractall(path=working_dir)
+    tar.extractall(path=downloads_dir)
 
-    extracted_dir = working_dir / "mpin_zfish_annotations"
+    extracted_dir = downloads_dir / "mpin_zfish_annotations"
 
     annotation_stack = imread(str(extracted_dir / "mpin_zfish_annotation.tif"))
 
@@ -245,7 +252,7 @@ def create_atlas(working_dir, resolution):
     ######################################
     regions_url = f"{BASE_URL}/neurons/get_brain_regions"
 
-    meshes_dir_path = working_dir / "meshes_temp_download"
+    meshes_dir_path = downloads_dir / "meshes_temp_download"
     meshes_dir_path.mkdir(exist_ok=True)
 
     # Download structures hierarchy:
@@ -307,7 +314,7 @@ def create_atlas(working_dir, resolution):
         annotation_stack=annotation_stack,
         structures_list=structures_list,
         meshes_dict=meshes_dict,
-        working_dir=working_dir,
+        working_dir=BG_ROOT_DIR,
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
@@ -320,7 +327,6 @@ def create_atlas(working_dir, resolution):
 
 if __name__ == "__main__":
     # Generated atlas path:
-    bg_root_dir = DEFAULT_WORKDIR / __atlas__
-    bg_root_dir.mkdir(exist_ok=True, parents=True)
+    DOWNLOAD_DIR.mkdir(exist_ok=True, parents=True)
 
-    create_atlas(bg_root_dir, 1)
+    create_atlas(DOWNLOAD_DIR, 1)

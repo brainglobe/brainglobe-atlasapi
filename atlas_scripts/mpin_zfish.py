@@ -9,6 +9,7 @@ brain regions.
 __version__ = "1"
 __atlas__ = "mpin_zfish"
 
+import json
 import tarfile
 import warnings
 import zipfile
@@ -34,6 +35,8 @@ LINE_TO_FNAME = {
     "HuCH2BGCaMP2tg": "HuCH2BGCaMP2-tg_ch0", 
     "gad1b-hcr": "nns25Tg", 
 }
+
+LABELS_URL = "https://api.mapzebrain.org/api/load_region_data_by_version/"
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -250,13 +253,38 @@ def create_atlas(downloads_dir, resolution):
 
     # Download structures tree and meshes:
     ######################################
-    regions_url = f"{BASE_URL}/media/downloads/Regions/mapZebrain__regions__v1.0.zip"
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        "Origin": "https://mapzebrain.org",
+        "Referer": "https://mapzebrain.org/",
+        "User-Agent": "Mozilla/5.0",
+    }
+
+    payload = {
+        "regionVersion": "1.0 (modified Kunst et al., 2019)"
+    }
+
+    response = requests.post(
+        LABELS_URL,
+        headers=headers,
+        json=payload,
+        timeout=120
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    print("Response type:", type(data))
+    print(json.dumps(data, indent=2)[:2000])
+    
 
     meshes_dir_path = downloads_dir / "meshes_temp_download"
     meshes_dir_path.mkdir(exist_ok=True)
 
     # Download structures hierarchy:
-    structures = requests.get(regions_url).json()["brain_regions"]
+    structures = data["data"]["regions_dictionary"]
 
     # Initiate dictionary with root info:
     ROOT_ID = 1  # add this as not defined in the source

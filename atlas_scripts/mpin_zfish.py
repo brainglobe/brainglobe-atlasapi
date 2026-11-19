@@ -8,9 +8,12 @@ brain regions.
 
 from pathlib import Path
 
+import json
+import os
 import requests
 import numpy as np
 import pooch
+import SimpleITK as sitk
 from brainglobe_utils.IO.image import load_any
 
 from brainglobe_atlasapi import utils
@@ -26,7 +29,7 @@ ATLAS_NAME = "mpin_zfish"
 CITATION = "https://doi.org/10.1016/j.neuron.2019.04.034"
 SPECIES = "Danio rerio"
 ATLAS_LINK = r"https://mapzebrain.org"
-ORIENTATION = "rai"
+ORIENTATION = "ial"
 ROOT_ID = 9999
 RESOLUTION = 1
 ATLAS_PACKAGER = "Jung Woo Kim"
@@ -47,7 +50,29 @@ T2W_REFERENCE_FNAMES = {
     330: "tpl-RBTV1_res-033_T2w.nii.gz",
 }
 
-ANNOTATION_FNAME = "mapZebrain__regions__v2.0.1"
+ANNOTATION_DNAME = "mapZebrain__regions__v2.0.1"
+
+FNAME_TO_REGION = {
+    "ventral_telencephalon_(subpallium).tif": "subpallium (ventral telencephalon)",
+    "pituitary.tif": "pituitary (hypophysis)",
+    "epiphysis.tif": "pineal complex (epiphysis)",
+    "dorsal_telencephalon_(pallium).tif": "pallium (dorsal telencephalon)",
+    "stratum_fibrosum_et_griseum_superficiale.tif": "stratum fibrosum et griseum superficiale (SFGS)",
+    "sac__spv.tif": "boundary zone between SAC and periventricular layer",
+    "stratum_album_centrale.tif": "stratum album centrale (SAC)",
+    "stratum_griseum_centrale.tif": "stratum griseum centrale (SGC)",
+    "stratum_opticum.tif": "stratum opticum (SO)",
+    "stratum_fibrosum_et_griseum_superficiale.tif": "stratum fibrosum et griseum superficiale (SFGS)",
+    "stratum_marginale.tif": "stratum marginale (SM)",
+    "glutamatergic_domain.tif": "glutamatergic domain of the nucleus isthmi",
+    "posterior_cholinergic_domain.tif": "posterior cholinergic domain of the nucleus isthmi",
+    "gabaergic_domain.tif": "gabaergic domain of the nucleus isthmi",
+    "anterior_cholinergic_domain.tif": "anterior cholinergic domain of the nucleus isthmi",
+    "sfgs__sgc.tif": "boundary zone between SFGS and SGC", 
+    "nucleus_of_the_medial_longitudinal_fascicle_(pretectum,_basal_part).tif": "nucleus of the medial longitudinal fascicle",
+    "posterior_tuberculum_(basal_part_of_prethalamus_and_thalamus).tif": "posterior tuberculum, posterior part (basal prosomere 2, dorsal posterior tuberculum)",
+}
+# Note: "retinal arborization field 10" does not exist in structures file. 
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
@@ -78,7 +103,7 @@ def download_resources():
     DOWNLOAD_DIR_PATH.mkdir(exist_ok=True)
 
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_DNAME
 
     needs_download = (
         (not reference_path.exists())
@@ -110,8 +135,7 @@ def download_resources():
             processor=pooch.Unzip(extract_dir=""),
         )
 
-
-def retrieve_reference_and_annotation():
+def retrieve_reference_and_annotation(structures):
     """
     Retrieve the reference and annotation volumes.
 
@@ -122,18 +146,56 @@ def retrieve_reference_and_annotation():
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
-    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_FNAME
+    
+    # Locate leaf nodes of structure tree, as only leaf structures need annotations
+    parent_ids = {
+        ancestor_id
+        for structure in structures
+        for ancestor_id in structure["structure_id_path"][:-1]
+    }
+    leaf_structures = [
+        structure for structure in structures if structure["id"] not in parent_ids
+    ]
 
-    reference = np.asarray(load_any(reference_path), dtype=np.float64)
+    reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
+    annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_DNAME
+    
+    reference_img = sitk.ReadImage(str(reference_path))
+    reference = sitk.GetArrayFromImage(reference_img)
     reference -= np.min(reference)
     reference = reference / np.max(reference)
     reference = reference * 65535
     reference = reference.astype(np.uint16)
     
-    # "retinal arborization field 10" does not exist in structures file. 
-    annotation = load_any(annotation_path)
-
+    annotation = np.zeros_like(reference)
+    
+    def find_id(structures, name):
+        for structure in structures: 
+            if structure["name"] == name:
+                return int(structure["id"])
+        # Return -1 if the given name cannot be found in structures
+        return -1
+    
+    for root, _, files in os.walk(annotation_path):
+        for filename in files: 
+            str_name = filename.removesuffix(".tif").replace("_", " ")
+            if any(
+                structure["name"] == str_name for structure in leaf_structures
+            ):
+                region_annotation = np.asarray(load_any(annotation_path / filename))
+                id = find_id(leaf_structures, str_name)
+                if id == -1: 
+                    continue
+                annotation = np.where(region_annotation > 0, id, annotation)
+            elif FNAME_TO_REGION.get(filename, None):
+                str_name = FNAME_TO_REGION.get(filename)
+                region_annotation = np.asarray(load_any(annotation_path / filename))
+                id = find_id(leaf_structures, str_name)
+                if id == -1: 
+                    continue
+                annotation = np.where(region_annotation > 0, id, annotation)
+    
+    annotation = annotation.astype(np.uint32)    
     return reference, annotation
 
 
@@ -315,7 +377,7 @@ if __name__ == "__main__":
         )
     download_resources()
     structures = retrieve_structure_information()
-    reference_volume, annotated_volume = retrieve_reference_and_annotation()
+    reference_volume, annotated_volume = retrieve_reference_and_annotation(structures)
     hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures

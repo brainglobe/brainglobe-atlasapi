@@ -233,7 +233,7 @@ def retrieve_reference_and_annotation(structures):
         str_name = parent_structure.removesuffix(".tif").replace("_", " ")
         if any(structure["name"] == str_name for structure in structures):
             region_annotation = np.asarray(
-                load_any(annotation_path / filename)
+                load_any(annotation_path / parent_structure)
             )
             id = find_id(structures, str_name)
             if id == -1:
@@ -241,12 +241,12 @@ def retrieve_reference_and_annotation(structures):
             # Mask out any voxels in our annotation which already have values
             region_annotation[annotation != 0] = 0
             annotation = np.where(region_annotation > 0, id, annotation)
-        elif FNAME_TO_REGION.get(filename, None):
-            str_name = FNAME_TO_REGION.get(filename)
+        elif FNAME_TO_REGION.get(parent_structure, None):
+            str_name = FNAME_TO_REGION.get(parent_structure)
             region_annotation = np.asarray(
-                load_any(annotation_path / filename)
+                load_any(annotation_path / parent_structure)
             )
-            id = find_id(leaf_structures, str_name)
+            id = find_id(structures, str_name)
             if id == -1:
                 continue
             # Mask out any voxels in our annotation which already have values

@@ -28,7 +28,7 @@ ATLAS_NAME = "mpin_zfish"
 CITATION = "https://doi.org/10.1016/j.neuron.2019.04.034"
 SPECIES = "Danio rerio"
 ATLAS_LINK = r"https://mapzebrain.org"
-ORIENTATION = "ial"
+ORIENTATION = "iar"
 ROOT_ID = 9999
 RESOLUTION = 1
 ATLAS_PACKAGER = "Jung Woo Kim"
@@ -50,10 +50,21 @@ T2W_REFERENCE_FNAMES = {
 }
 
 # TODO: Something is weird in the prosencephalon, figure out what's wrong
+# Found out: Anything with retinal arborization fields has weird parent child relations
+# + any higher order regions also have some weird exclusion rules
+# Thalamus proper
+# pretectum
+# Prethalamus
+# prosencephalon itself
+# rhombencephalon itself
+# mesencephalon itself
+# peripheral nervous system itself
+
 
 ANNOTATION_DNAME = "mapZebrain__regions__v2.0.1"
 
 FNAME_TO_REGION = {
+    # Leaf structures
     "ventral_telencephalon_(subpallium).tif": "subpallium (ventral telencephalon)",
     "pituitary.tif": "pituitary (hypophysis)",
     "epiphysis.tif": "pineal complex (epiphysis)",
@@ -71,6 +82,7 @@ FNAME_TO_REGION = {
     "sfgs__sgc.tif": "boundary zone between SFGS and SGC",
     "nucleus_of_the_medial_longitudinal_fascicle_(pretectum,_basal_part).tif": "nucleus of the medial longitudinal fascicle",
     "posterior_tuberculum_(basal_part_of_prethalamus_and_thalamus).tif": "posterior tuberculum, posterior part (basal prosomere 2, dorsal posterior tuberculum)",
+    # 
 }
 # Note: "retinal arborization field 10" does not exist in structures file.
 
@@ -149,7 +161,22 @@ def retrieve_reference_and_annotation(structures):
         A tuple containing the reference volume and the annotation volume.
     """
     # Locate leaf nodes of structure tree, as only leaf structures need annotations
-    parent_ids = {
+    def find_most_child_nodes(tree):
+        parent_ids = {
+            ancestor_id
+            for structure in tree
+            for ancestor_id in structure["structure_id_path"][:-1]
+        }
+        leaf_structures = [
+            structure
+            for structure in tree
+            if structure["id"] not in parent_ids
+        ]
+        print(f"Set of leaf structures: {name for name in leaf_structures}")
+        if len(leaf_structures) == 1:
+            return None
+        find_most_child_nodes(leaf_structures)
+    """parent_ids = {
         ancestor_id
         for structure in structures
         for ancestor_id in structure["structure_id_path"][:-1]
@@ -158,7 +185,11 @@ def retrieve_reference_and_annotation(structures):
         structure
         for structure in structures
         if structure["id"] not in parent_ids
-    ]
+    ]"""
+    find_most_child_nodes(structures)
+    quit()
+    
+    
 
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_DNAME
@@ -206,7 +237,7 @@ def retrieve_reference_and_annotation(structures):
     return reference, annotation
 
 
-def retrieve_hemisphere_map(annotation_volume):
+def retrieve_hemisphere_map():
     """
     Retrieve a hemisphere map for the atlas.
 
@@ -382,7 +413,7 @@ if __name__ == "__main__":
     reference_volume, annotated_volume = retrieve_reference_and_annotation(
         structures
     )
-    hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
+    hemispheres_stack = retrieve_hemisphere_map()
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
     )

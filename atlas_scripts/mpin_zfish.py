@@ -82,9 +82,24 @@ FNAME_TO_REGION = {
     "sfgs__sgc.tif": "boundary zone between SFGS and SGC",
     "nucleus_of_the_medial_longitudinal_fascicle_(pretectum,_basal_part).tif": "nucleus of the medial longitudinal fascicle",
     "posterior_tuberculum_(basal_part_of_prethalamus_and_thalamus).tif": "posterior tuberculum, posterior part (basal prosomere 2, dorsal posterior tuberculum)",
-    # 
+    
+    # Stem structures
+    "thalamus_(dorsal_thalamus).tif": "thalamus (alar prosomere 2, dorsal thalamus)",
+    "pretectum.tif": "pretectum (alar prosomere 1)",
+    "prethalamus_(ventral_thalamus).tif": "prethalamus (alar prosomere 3, ventral thalamus)",
 }
 # Note: "retinal arborization field 10" does not exist in structures file.
+
+# Annotations to append to leaf node annotations to fill out gaps
+ADDITIONAL_STRUCTURE_FNAMES = [
+    "thalamus_(dorsal_thalamus).tif",
+    "pretectum.tif",
+    "prethalamus_(ventral_thalamus).tif",
+    "prosencephalon_(forebrain).tif",
+    "mesencephalon_(midbrain).tif", 
+    "rhombencephalon_(hindbrain).tif", 
+    "peripheral_nervous_system.tif",
+]
 
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
@@ -160,36 +175,6 @@ def retrieve_reference_and_annotation(structures):
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-    # Locate leaf nodes of structure tree, as only leaf structures need annotations
-    def find_most_child_nodes(tree):
-        parent_ids = {
-            ancestor_id
-            for structure in tree
-            for ancestor_id in structure["structure_id_path"][:-1]
-        }
-        leaf_structures = [
-            structure
-            for structure in tree
-            if structure["id"] not in parent_ids
-        ]
-        print(f"Set of leaf structures: {name for name in leaf_structures}")
-        if len(leaf_structures) == 1:
-            return None
-        find_most_child_nodes(leaf_structures)
-    """parent_ids = {
-        ancestor_id
-        for structure in structures
-        for ancestor_id in structure["structure_id_path"][:-1]
-    }
-    leaf_structures = [
-        structure
-        for structure in structures
-        if structure["id"] not in parent_ids
-    ]"""
-    find_most_child_nodes(structures)
-    quit()
-    
-    
 
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_DNAME
@@ -202,6 +187,18 @@ def retrieve_reference_and_annotation(structures):
     reference = reference.astype(np.uint16)
 
     annotation = np.zeros_like(reference)
+
+    # Locate leaf nodes of structure tree, as only leaf structures need annotations
+    parent_ids = {
+        ancestor_id
+        for structure in structures
+        for ancestor_id in structure["structure_id_path"][:-1]
+    }
+    leaf_structures = [
+        structure
+        for structure in structures
+        if structure["id"] not in parent_ids
+    ]
 
     def find_id(structures, name):
         for structure in structures:
@@ -232,6 +229,33 @@ def retrieve_reference_and_annotation(structures):
                 if id == -1:
                     continue
                 annotation = np.where(region_annotation > 0, id, annotation)
+    
+    # Append the parent structure annotations only if the voxel == 0
+    for parent_structure in ADDITIONAL_STRUCTURE_FNAMES:
+        str_name = parent_structure.removesuffix(".tif").replace("_", " ")
+        if any(
+            structure["name"] == str_name for structure in structures
+        ):
+            region_annotation = np.asarray(
+                load_any(annotation_path / filename)
+            )
+            id = find_id(structures, str_name)
+            if id == -1:
+                continue
+            # Mask out any voxels in our annotation which already have values
+            region_annotation[annotation != 0] = 0
+            annotation = np.where(region_annotation > 0, id, annotation)
+        elif FNAME_TO_REGION.get(filename, None):
+            str_name = FNAME_TO_REGION.get(filename)
+            region_annotation = np.asarray(
+                load_any(annotation_path / filename)
+            )
+            id = find_id(leaf_structures, str_name)
+            if id == -1:
+                continue
+            # Mask out any voxels in our annotation which already have values
+            region_annotation[annotation != 0] = 0
+            annotation = np.where(region_annotation > 0, id, annotation)
 
     annotation = annotation.astype(np.uint32)
     return reference, annotation

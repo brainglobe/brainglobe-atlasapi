@@ -410,6 +410,7 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
     return meshes_dict, structures_with_mesh
 
+
 def retrieve_additional_references():
     """
     Return a dictionary of additional reference images.
@@ -451,6 +452,7 @@ def retrieve_additional_references():
     averaged_reference = sitk.GetArrayFromImage(ave_ref_image)
     additional_references = {"Averaged reference": averaged_reference}
     return additional_references
+
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)

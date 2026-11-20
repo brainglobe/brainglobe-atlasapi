@@ -257,7 +257,7 @@ def retrieve_reference_and_annotation(structures):
     return reference, annotation
 
 
-def retrieve_hemisphere_map():
+def retrieve_hemisphere_map(annotation_volume):
     """
     Retrieve a hemisphere map for the atlas.
 
@@ -267,10 +267,14 @@ def retrieve_hemisphere_map():
 
     Returns
     -------
-    None
-        Returns None as atlas is aligned to the midline
+    numpy.ndarray
+        Returns an array based on a midline translated a few pixels to the side.
     """
-    return None
+    # Atlas is in IAR orientation, slice on 3rd dimension
+    hemispheres_map = np.full(annotation_volume.shape, 2, dtype=int)
+    # Fix midline misalignment
+    hemispheres_map[:, :, 285:] = 1
+    return hemispheres_map
 
 
 def retrieve_structure_information():
@@ -433,7 +437,7 @@ if __name__ == "__main__":
     reference_volume, annotated_volume = retrieve_reference_and_annotation(
         structures
     )
-    hemispheres_stack = retrieve_hemisphere_map()
+    hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
     )

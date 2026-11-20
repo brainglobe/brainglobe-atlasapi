@@ -19,7 +19,6 @@ import dask.array as da
 import numpy as np
 import numpy.typing as npt
 import s3fs
-from fsspec.callbacks import TqdmCallback
 from rich import print as rprint
 from rich.console import Console
 
@@ -98,6 +97,9 @@ class BrainGlobeAtlas(
         BrainGlobe remote). If None (default), the historical BrainGlobe
         remote is assumed, falling back to the configured remotes in
         declaration order.
+    quiet : bool (optional)
+        If True, suppress all progress bars and printed messages during
+        instantiation and later lazy downloads.
     """
 
     @overload
@@ -112,6 +114,7 @@ class BrainGlobeAtlas(
         dask: Literal[False] = False,
         resolution: Optional[float] = None,
         remote: Optional[str] = None,
+        quiet: bool = False,
     ) -> None: ...
 
     @overload
@@ -126,6 +129,7 @@ class BrainGlobeAtlas(
         dask: Literal[True] = True,
         resolution: Optional[float] = None,
         remote: Optional[str] = None,
+        quiet: bool = False,
     ) -> None: ...
 
     @overload
@@ -140,6 +144,7 @@ class BrainGlobeAtlas(
         dask: bool = False,
         resolution: Optional[float] = None,
         remote: Optional[str] = None,
+        quiet: bool = False,
     ) -> None: ...
 
     def __init__(
@@ -153,7 +158,10 @@ class BrainGlobeAtlas(
         dask: bool = False,
         resolution: Optional[float] = None,
         remote: Optional[str] = None,
+        quiet: bool = False,
     ):
+        # Set before downloading, as download() checks it.
+        self.quiet = quiet
         self._resolution = resolution
         self._remote_version_str: Optional[str] = None
         self._local_version_str = None
@@ -215,10 +223,11 @@ class BrainGlobeAtlas(
             resolution=self._resolution,
             remote=self._remote,
             dask=dask,
+            quiet=quiet,
         )
 
         if check_latest:
-            self.check_latest_version()
+            self.check_latest_version(print_warning=not quiet)
 
     def _locate_remote(self, base_dir: Path, remotes: dict) -> str:
         """Find the remote for an atlas not cached under the default.
@@ -446,11 +455,13 @@ class BrainGlobeAtlas(
         remote_path = f"{self._remote}/{key_name}"
 
         local_path.parent.mkdir(parents=True, exist_ok=True)
-        print(
+        self._print(
             f"Downloading {self.atlas_name} atlas "
             f"v{folder_version_to_dotted(remote_version_str)} manifest:"
         )
-        self.fs.get(remote_path, local_path, callback=TqdmCallback())
+        self.fs.get(
+            remote_path, local_path, callback=self._progress_callback()
+        )
         self.metadata = read_json(local_path)
 
         try:
@@ -464,7 +475,7 @@ class BrainGlobeAtlas(
                 remote_terminology_path = (
                     f"{self._remote}/{terminology_location}"
                 )
-                print(
+                self._print(
                     f"Downloading terminology metadata "
                     f"for {terminology['name']}:"
                 )
@@ -472,7 +483,7 @@ class BrainGlobeAtlas(
                     remote_terminology_path,
                     local_terminology_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=self._progress_callback(),
                 )
 
             # Download coordinate space files
@@ -484,7 +495,7 @@ class BrainGlobeAtlas(
                 remote_coordspace_path = (
                     f"{self._remote}/{coordspace_location}"
                 )
-                print(
+                self._print(
                     f"Downloading coordinate space metadata "
                     f"for {self.metadata['coordinate_space']['name']}:"
                 )
@@ -492,7 +503,7 @@ class BrainGlobeAtlas(
                     remote_coordspace_path,
                     local_coordspace_path,
                     recursive=True,
-                    callback=TqdmCallback(),
+                    callback=self._progress_callback(),
                 )
 
             # Download annotation metadata files
@@ -505,14 +516,14 @@ class BrainGlobeAtlas(
                 remote_root_metadata_path = (
                     f"{self._remote}/{root_metadata_path}"
                 )
-                print(
+                self._print(
                     f"Downloading annotation metadata "
                     f"for {annotation_set['name']}:"
                 )
                 self.fs.get(
                     remote_root_metadata_path,
                     local_annotation_path / V3_ANNOTATION_NAME,
-                    callback=TqdmCallback(),
+                    callback=self._progress_callback(),
                 )
                 mesh_path = local_annotation_path / V3_MESHES_DIRECTORY
                 mesh_path.mkdir(parents=True, exist_ok=True)
@@ -529,7 +540,7 @@ class BrainGlobeAtlas(
                     self.fs.get(
                         remote_masks_metadata,
                         str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
-                        callback=TqdmCallback(),
+                        callback=self._progress_callback(),
                     )
                     masks_annotation_values_path = (
                         annotation_location + f"/{V3_ANNOTATION_MASKS_NAME}"
@@ -541,7 +552,7 @@ class BrainGlobeAtlas(
                     self.fs.get(
                         remote_masks_annotation_values_path,
                         str(local_annotation_path / V3_ANNOTATION_MASKS_NAME),
-                        callback=TqdmCallback(),
+                        callback=self._progress_callback(),
                         recursive=True,
                     )
                 except FileNotFoundError as e:
@@ -568,7 +579,7 @@ class BrainGlobeAtlas(
                     self.fs.get(
                         remote_root_hemisphere_path,
                         local_annotation_path / V3_HEMISPHERES_NAME,
-                        callback=TqdmCallback(),
+                        callback=self._progress_callback(),
                     )
 
             # Download template metadata files
@@ -583,11 +594,13 @@ class BrainGlobeAtlas(
                     f"{self._remote}/{root_metadata_path}"
                 )
 
-                print(f"Downloading template metadata for {template['name']}:")
+                self._print(
+                    f"Downloading template metadata for {template['name']}:"
+                )
                 self.fs.get(
                     remote_root_metadata_path,
                     local_template_path / V3_TEMPLATE_NAME,
-                    callback=TqdmCallback(),
+                    callback=self._progress_callback(),
                 )
 
             additional_reference_names = self.metadata.get(
@@ -605,11 +618,13 @@ class BrainGlobeAtlas(
                     remote_root_metadata_path = (
                         f"{self._remote}/{root_metadata_path}"
                     )
-                    print(f"Downloading template metadata for {ref['name']}:")
+                    self._print(
+                        f"Downloading template metadata for {ref['name']}:"
+                    )
                     self.fs.get(
                         remote_root_metadata_path,
                         local_template_path / V3_TEMPLATE_NAME,
-                        callback=TqdmCallback(),
+                        callback=self._progress_callback(),
                     )
             # Reset local_full_name to ensure it is updated with new location
             self._local_full_name = None

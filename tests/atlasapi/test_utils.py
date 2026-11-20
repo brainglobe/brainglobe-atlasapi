@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 import requests
 import rich.panel
+from fsspec.callbacks import NoOpCallback, TqdmCallback
 
 from brainglobe_atlasapi import descriptors, utils
 
@@ -725,3 +726,12 @@ def test_load_structures_from_csv_parent_dtype(tmp_path):
     assert structures_list[2]["parent_structure_id"] is not None
     assert isinstance(structures_list[2]["parent_structure_id"], int)
     assert structures_list[2]["parent_structure_id"] == high_value
+
+
+@pytest.mark.parametrize(
+    "quiet, expected",
+    [(True, NoOpCallback), (False, TqdmCallback)],
+)
+def test_progress_callback(quiet, expected):
+    """quiet=True gives a silent callback, otherwise a tqdm progress bar."""
+    assert isinstance(utils.progress_callback(quiet), expected)

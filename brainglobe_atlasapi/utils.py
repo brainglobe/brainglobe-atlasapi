@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import requests
 import tifffile
+from fsspec.callbacks import NoOpCallback, TqdmCallback
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.progress import (
@@ -29,6 +30,22 @@ from rich.text import Text
 from brainglobe_atlasapi import descriptors
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+
+def progress_callback(quiet: bool = False):
+    """Return an fsspec callback: a tqdm progress bar, or a no-op if quiet.
+
+    Parameters
+    ----------
+    quiet : bool
+        If True, return a callback that displays nothing.
+
+    Returns
+    -------
+    fsspec.callbacks.Callback
+        Callback to pass to ``fs.get``.
+    """
+    return NoOpCallback() if quiet else TqdmCallback()
 
 
 def _rich_atlas_metadata(atlas_name, metadata):

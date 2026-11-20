@@ -4,6 +4,7 @@ import contextlib
 import shutil
 import warnings
 from io import StringIO
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import ngff_zarr as nz
@@ -11,6 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from brainglobe_space import AnatomicalSpace
+from fsspec.callbacks import NoOpCallback, TqdmCallback
 
 from brainglobe_atlasapi import core
 from brainglobe_atlasapi.atlas_generation.wrapup import wrapup_atlas_from_data
@@ -693,3 +695,50 @@ def test_asr_orientation_does_not_warn(atlas):
         warnings.simplefilter("always")
         core.Atlas(manifest)
     assert not [w for w in caught if "orientation" in str(w.message)]
+
+
+@pytest.mark.parametrize("quiet", [False, True])
+def test_lazy_downloads_respect_quiet(
+    atlas, asymmetric_atlas, monkeypatch, capsys, quiet
+):
+    """Lazy downloads print and show a progress bar only when not quiet."""
+    ref_dict = AdditionalRefDict(
+        [
+            {
+                "name": "allen-adult-mouse-stpt-template",
+                "location": "/templates/allen-adult-mouse-stpt-template/2015",
+            }
+        ],
+        get_brainglobe_dir() / "brainglobe-atlasapi",
+        resolution=(100.0, 100.0, 100.0),
+        quiet=quiet,
+    )
+    callbacks = []
+
+    def fake_get(*args, callback=None, **kwargs):
+        callbacks.append(callback)
+
+    monkeypatch.setattr(atlas.fs, "get", fake_get)
+    monkeypatch.setattr(asymmetric_atlas.fs, "get", fake_get)
+    monkeypatch.setattr(core.s3fs, "S3FileSystem", lambda **kw: atlas.fs)
+    # Make cached zarr chunks look missing, so data is downloaded again
+    exists = Path.exists
+    monkeypatch.setattr(
+        Path, "exists", lambda self: self.name != "c" and exists(self)
+    )
+    capsys.readouterr()
+
+    for obj, stack in [
+        (atlas, "template"),
+        (atlas, "annotation"),
+        (asymmetric_atlas, "hemispheres"),
+    ]:
+        obj.quiet = quiet
+        setattr(obj, f"_{stack}", None)
+        getattr(obj, stack)
+    assert ref_dict["allen-adult-mouse-stpt-template"] is not None
+
+    expected = NoOpCallback if quiet else TqdmCallback
+    assert len(callbacks) == 4
+    assert all(isinstance(callback, expected) for callback in callbacks)
+    assert ("Downloading" in capsys.readouterr().out) != quiet

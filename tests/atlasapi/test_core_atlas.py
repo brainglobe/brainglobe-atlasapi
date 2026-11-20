@@ -201,6 +201,37 @@ def test_data_from_coords_out_of_brain(
     )
 
 
+@pytest.mark.parametrize(
+    "coords, microns",
+    [
+        pytest.param((-1, 23, 52), False, id="negative voxel"),
+        pytest.param((60, 40, -1), False, id="negative voxel, last axis"),
+        pytest.param((6000, 4000, -50), True, id="negative microns"),
+        pytest.param((132, 23, 52), False, id="past the end"),
+    ],
+)
+def test_data_from_coords_outside_stack(atlas, coords, microns):
+    """Coordinates outside the stack raise rather than wrap around.
+
+    Negative voxel indices used to index from the end of the stack, and
+    negative coordinates closer than one voxel to the origin were
+    truncated to voxel 0, so both silently returned data from inside it.
+
+    Parameters
+    ----------
+    atlas : brainglobe_atlasapi.core.Atlas
+        The atlas fixture.
+    coords : tuple
+        Coordinates outside the (132, 80, 114) example atlas stack.
+    microns : bool
+        Whether ``coords`` are in microns.
+    """
+    with pytest.raises(IndexError, match="outside the atlas stack"):
+        atlas.structure_from_coords(coords, microns=microns)
+    with pytest.raises(IndexError, match="outside the atlas stack"):
+        atlas.hemisphere_from_coords(coords, microns=microns)
+
+
 def test_meshfile_from_id(atlas):
     """Test retrieving mesh file paths from structure IDs.
 

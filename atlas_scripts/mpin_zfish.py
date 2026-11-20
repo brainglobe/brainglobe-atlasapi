@@ -82,7 +82,6 @@ FNAME_TO_REGION = {
     "sfgs__sgc.tif": "boundary zone between SFGS and SGC",
     "nucleus_of_the_medial_longitudinal_fascicle_(pretectum,_basal_part).tif": "nucleus of the medial longitudinal fascicle",
     "posterior_tuberculum_(basal_part_of_prethalamus_and_thalamus).tif": "posterior tuberculum, posterior part (basal prosomere 2, dorsal posterior tuberculum)",
-    
     # Stem structures
     "thalamus_(dorsal_thalamus).tif": "thalamus (alar prosomere 2, dorsal thalamus)",
     "pretectum.tif": "pretectum (alar prosomere 1)",
@@ -96,8 +95,8 @@ ADDITIONAL_STRUCTURE_FNAMES = [
     "pretectum.tif",
     "prethalamus_(ventral_thalamus).tif",
     "prosencephalon_(forebrain).tif",
-    "mesencephalon_(midbrain).tif", 
-    "rhombencephalon_(hindbrain).tif", 
+    "mesencephalon_(midbrain).tif",
+    "rhombencephalon_(hindbrain).tif",
     "peripheral_nervous_system.tif",
 ]
 
@@ -175,7 +174,6 @@ def retrieve_reference_and_annotation(structures):
     tuple[numpy.ndarray, numpy.ndarray]
         A tuple containing the reference volume and the annotation volume.
     """
-
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_DNAME
 
@@ -229,13 +227,11 @@ def retrieve_reference_and_annotation(structures):
                 if id == -1:
                     continue
                 annotation = np.where(region_annotation > 0, id, annotation)
-    
+
     # Append the parent structure annotations only if the voxel == 0
     for parent_structure in ADDITIONAL_STRUCTURE_FNAMES:
         str_name = parent_structure.removesuffix(".tif").replace("_", " ")
-        if any(
-            structure["name"] == str_name for structure in structures
-        ):
+        if any(structure["name"] == str_name for structure in structures):
             region_annotation = np.asarray(
                 load_any(annotation_path / filename)
             )

@@ -513,6 +513,10 @@ class Atlas(Generic[AtlasArray]):
         int or string
             Hemisphere label.
 
+        Raises
+        ------
+        IndexError
+            If the coordinates fall outside the atlas stack.
         """
         hem = self.hemispheres[self._idx_from_coords(coords, microns)]
         if self.dask:
@@ -548,6 +552,11 @@ class Atlas(Generic[AtlasArray]):
         -------
         int or string
             Structure containing the coordinates.
+
+        Raises
+        ------
+        IndexError
+            If the coordinates fall outside the atlas stack.
         """
         rid = self.annotation[self._idx_from_coords(coords, microns)]
         if self.dask:
@@ -651,7 +660,20 @@ class Atlas(Generic[AtlasArray]):
         if microns:
             coords = [c / res for c, res in zip(coords, self.resolution)]
 
-        return tuple([int(c) for c in coords])
+        # Floor rather than truncate, so that e.g. -0.5 maps to voxel -1
+        # (outside the atlas) and not to voxel 0.
+        idx = tuple(int(np.floor(c)) for c in coords)
+
+        # Negative indices would otherwise wrap around to the opposite
+        # side of the stack instead of failing like indices past its end.
+        for i, size in zip(idx, self.shape):
+            if not 0 <= i < size:
+                raise IndexError(
+                    f"Voxel {idx} is outside the atlas stack of shape "
+                    f"{self.shape}."
+                )
+
+        return idx
 
     def get_structure_ancestors(self, structure: Union[str, int]) -> List[str]:
         """Return a list of acronyms for all ancestors of a given structure.

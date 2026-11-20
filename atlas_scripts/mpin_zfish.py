@@ -43,23 +43,13 @@ LABELS_URL = "https://api.mapzebrain.org/api/load_region_data_by_version/"
 
 REFERENCE_FNAME = "standard_brain_fixed_SYP_T_GAD1b.nrrd"
 
-# TODO
-T2W_REFERENCE_FNAMES = {
-    150: "tpl-RBTV1_res-015_T2w.nii.gz",
-    330: "tpl-RBTV1_res-033_T2w.nii.gz",
-}
-
-# TODO: Something is weird in the prosencephalon, figure out what's wrong
-# Found out: Anything with retinal arborization fields has weird parent child relations
-# + any higher order regions also have some weird exclusion rules
-# Thalamus proper
-# pretectum
-# Prethalamus
-# prosencephalon itself
-# rhombencephalon itself
-# mesencephalon itself
-# peripheral nervous system itself
-
+# Additional references:
+#  Pan-neuronal GCaMP expression
+HUC_GCAMP_REFERENCE_URL = "https://api.mapzebrain.org/media/Lines/HuCH2BGCaMP2tg/average_data/T_AVG_HuCH2BGCaMP2-tg_ch0.zip"
+HUC_GCAMP_REFERENCE_FNAME = "T_AVG_HuCH2BGCaMP2-tg_ch0.tif"
+#  In-situ
+GAD1B_REFERENCE_URL = "https://api.mapzebrain.org/media/Lines/gad1b-hcr/average_data/T_AVG_nns25Tg.zip"
+GAD1B_REFERENCE_FNAME = "T_AVG_nns25Tg.tif"
 
 ANNOTATION_DNAME = "mapZebrain__regions__v2.0.1"
 
@@ -420,6 +410,47 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
     return meshes_dict, structures_with_mesh
 
+def retrieve_additional_references():
+    """
+    Return a dictionary of additional reference images.
+
+    This function should be edited only if the atlas includes additional
+    reference images. The dictionary should map the name of each additional
+    reference image to its corresponding image stack data.
+
+    Returns
+    -------
+    dict
+        A dictionary mapping reference image names to their image stack data.
+    """
+    huc_gcamp_path = DOWNLOAD_DIR_PATH / HUC_GCAMP_REFERENCE_FNAME
+    gad1b_path = DOWNLOAD_DIR_PATH / GAD1B_REFERENCE_FNAME
+
+    needs_download = not averaged_reference_path.exists()
+    if needs_download:
+        utils.check_internet_connection()
+
+    def should_fetch(path: Path) -> bool:
+        if not path.exists():
+            return True
+        return not SKIP_DOWNLOADS_IF_PRESENT
+
+    if should_fetch(averaged_reference_path):
+        pooch.retrieve(
+            url=AVERAGED_REFERENCE_URL,
+            known_hash="f3476045fef475ce6c03dea20b38ec6afbb85d9110a6b468ac8259be4f8842ce",
+            path=DOWNLOAD_DIR_PATH,
+            fname=AVERAGED_REFERENCE_FNAME,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
+    averaged_reference_path = (
+        DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
+    )
+    ave_ref_image = sitk.ReadImage(averaged_reference_path)
+    averaged_reference = sitk.GetArrayFromImage(ave_ref_image)
+    additional_references = {"Averaged reference": averaged_reference}
+    return additional_references
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)

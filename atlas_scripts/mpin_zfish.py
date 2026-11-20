@@ -82,7 +82,7 @@ FNAME_TO_REGION = {
     "sfgs__sgc.tif": "boundary zone between SFGS and SGC",
     "nucleus_of_the_medial_longitudinal_fascicle_(pretectum,_basal_part).tif": "nucleus of the medial longitudinal fascicle",
     "posterior_tuberculum_(basal_part_of_prethalamus_and_thalamus).tif": "posterior tuberculum, posterior part (basal prosomere 2, dorsal posterior tuberculum)",
-    # 
+    #
 }
 # Note: "retinal arborization field 10" does not exist in structures file.
 
@@ -188,8 +188,8 @@ def retrieve_reference_and_annotation(structures):
     ]"""
     find_most_child_nodes(structures)
     quit()
-    
-    
+
+
 
     reference_path = DOWNLOAD_DIR_PATH / REFERENCE_FNAME
     annotation_path = DOWNLOAD_DIR_PATH / ANNOTATION_DNAME

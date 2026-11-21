@@ -93,6 +93,19 @@ ADDITIONAL_STRUCTURE_FNAMES = [
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
+def normalise_ref(reference: np.ndarray):
+    """Normalise a reference image to uint16
+
+    Returns
+    -------
+    np.ndarray
+        Reference volume normalised to uint16
+    """
+    reference -= np.min(reference)
+    reference = reference / np.max(reference)
+    reference = reference * 65535
+    reference = reference.astype(np.uint16)
+    return reference
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -169,10 +182,7 @@ def retrieve_reference_and_annotation(structures):
 
     reference_img = sitk.ReadImage(str(reference_path))
     reference = sitk.GetArrayFromImage(reference_img)
-    reference -= np.min(reference)
-    reference = reference / np.max(reference)
-    reference = reference * 65535
-    reference = reference.astype(np.uint16)
+    reference = normalise_ref(reference)
 
     annotation = np.zeros_like(reference)
 
@@ -426,7 +436,8 @@ def retrieve_additional_references():
     huc_gcamp_path = DOWNLOAD_DIR_PATH / HUC_GCAMP_REFERENCE_FNAME
     gad1b_path = DOWNLOAD_DIR_PATH / GAD1B_REFERENCE_FNAME
 
-    needs_download = not averaged_reference_path.exists()
+    needs_download = (not huc_gcamp_path.exists()) or (
+                     not gad1b_path.exists())
     if needs_download:
         utils.check_internet_connection()
 
@@ -435,21 +446,36 @@ def retrieve_additional_references():
             return True
         return not SKIP_DOWNLOADS_IF_PRESENT
 
-    if should_fetch(averaged_reference_path):
+    if should_fetch(huc_gcamp_path):
         pooch.retrieve(
-            url=AVERAGED_REFERENCE_URL,
-            known_hash="f3476045fef475ce6c03dea20b38ec6afbb85d9110a6b468ac8259be4f8842ce",
+            url=HUC_GCAMP_REFERENCE_URL,
+            known_hash=None,
             path=DOWNLOAD_DIR_PATH,
-            fname=AVERAGED_REFERENCE_FNAME,
+            fname=HUC_GCAMP_REFERENCE_FNAME,
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )
-    averaged_reference_path = (
-        DOWNLOAD_DIR_PATH / "averageTemplate/atlasVolume.mhd"
-    )
-    ave_ref_image = sitk.ReadImage(averaged_reference_path)
-    averaged_reference = sitk.GetArrayFromImage(ave_ref_image)
-    additional_references = {"Averaged reference": averaged_reference}
+        
+    if should_fetch(gad1b_path):
+        pooch.retrieve(
+            url=GAD1B_REFERENCE_URL,
+            known_hash=None,
+            path=DOWNLOAD_DIR_PATH,
+            fname=GAD1B_REFERENCE_FNAME,
+            progressbar=True,
+            processor=pooch.Unzip(extract_dir=""),
+        )
+        
+    huc_gcamp_reference = np.asarray(load_any(huc_gcamp_path))
+    huc_gcamp_reference = normalise_ref(huc_gcamp_reference)
+    
+    gad1b_reference = np.asarray(load_any(gad1b_path))
+    gad1b_reference = normalise_ref(gad1b_reference)
+    
+    additional_references = {
+        "HuCH2BGCaMP2tg": huc_gcamp_reference,
+        "GAD1b": gad1b_reference,
+        }
     return additional_references
 
 if __name__ == "__main__":
@@ -472,6 +498,7 @@ if __name__ == "__main__":
     meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
         annotated_volume, structures
     )
+    additional_references = retrieve_additional_references()
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,
@@ -490,7 +517,7 @@ if __name__ == "__main__":
         hemispheres_stack=hemispheres_stack,
         cleanup_files=False,
         compress=True,
-        additional_references=None,
+        additional_references=additional_references,
         atlas_packager=ATLAS_PACKAGER,
         scale_meshes=True,
     )

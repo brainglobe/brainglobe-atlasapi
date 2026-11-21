@@ -420,6 +420,7 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
 
     return meshes_dict, structures_with_mesh
 
+
 def retrieve_additional_references():
     """
     Return a dictionary of additional reference images.
@@ -477,6 +478,7 @@ def retrieve_additional_references():
         "GAD1b": gad1b_reference,
         }
     return additional_references
+
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)

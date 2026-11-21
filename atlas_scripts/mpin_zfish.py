@@ -93,6 +93,7 @@ ADDITIONAL_STRUCTURE_FNAMES = [
 BG_ROOT_DIR = Path.home() / "brainglobe_workingdir" / ATLAS_NAME
 DOWNLOAD_DIR_PATH = BG_ROOT_DIR / "downloads"
 
+
 def normalise_ref(reference: np.ndarray):
     """Normalise a reference image to uint16
 
@@ -106,6 +107,7 @@ def normalise_ref(reference: np.ndarray):
     reference = reference * 65535
     reference = reference.astype(np.uint16)
     return reference
+
 
 def hex_to_rgb(hex):
     """Convert a hexadecimal color string to an RGB triplet.
@@ -437,8 +439,7 @@ def retrieve_additional_references():
     huc_gcamp_path = DOWNLOAD_DIR_PATH / HUC_GCAMP_REFERENCE_FNAME
     gad1b_path = DOWNLOAD_DIR_PATH / GAD1B_REFERENCE_FNAME
 
-    needs_download = (not huc_gcamp_path.exists()) or (
-                     not gad1b_path.exists())
+    needs_download = (not huc_gcamp_path.exists()) or (not gad1b_path.exists())
     if needs_download:
         utils.check_internet_connection()
 
@@ -456,7 +457,7 @@ def retrieve_additional_references():
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )
-        
+
     if should_fetch(gad1b_path):
         pooch.retrieve(
             url=GAD1B_REFERENCE_URL,
@@ -466,17 +467,17 @@ def retrieve_additional_references():
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )
-        
+
     huc_gcamp_reference = np.asarray(load_any(huc_gcamp_path))
     huc_gcamp_reference = normalise_ref(huc_gcamp_reference)
-    
+
     gad1b_reference = np.asarray(load_any(gad1b_path))
     gad1b_reference = normalise_ref(gad1b_reference)
-    
+
     additional_references = {
         "HuCH2BGCaMP2tg": huc_gcamp_reference,
         "GAD1b": gad1b_reference,
-        }
+    }
     return additional_references
 
 

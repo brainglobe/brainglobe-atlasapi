@@ -450,9 +450,8 @@ def retrieve_additional_references():
     if should_fetch(huc_gcamp_path):
         pooch.retrieve(
             url=HUC_GCAMP_REFERENCE_URL,
-            known_hash=None,
+            known_hash="7334224ca183017ec369564b0777e273a6b46d90f478f4556d529bb44f9c19cf",
             path=DOWNLOAD_DIR_PATH,
-            fname=HUC_GCAMP_REFERENCE_FNAME,
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )
@@ -460,9 +459,8 @@ def retrieve_additional_references():
     if should_fetch(gad1b_path):
         pooch.retrieve(
             url=GAD1B_REFERENCE_URL,
-            known_hash=None,
+            known_hash="f601a3fca0fefaa0efea6d2cbe6c9bfa2ca51198f75ef725504e074f4b7ea143",
             path=DOWNLOAD_DIR_PATH,
-            fname=GAD1B_REFERENCE_FNAME,
             progressbar=True,
             processor=pooch.Unzip(extract_dir=""),
         )

@@ -33,6 +33,13 @@ repos:
           - types-setuptools
           - types-requests
 
+  - repo: https://github.com/facebook/pyrefly-pre-commit
+    rev: 1.5.0
+    hooks:
+      - id: pyrefly-check
+        name: Pyrefly (type checking)
+        pass_filenames: false
+
   - repo: https://github.com/mgedmin/check-manifest
     rev: "0.50"
     hooks:

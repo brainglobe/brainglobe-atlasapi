@@ -70,6 +70,7 @@ A number of atlases are in development; those available currently are shown in t
 | [LAMBADA Developmental Mouse Brain Atlas](https://doi.org/10.1016/j.cell.2026.03.013) | 25 micron | P3, P5, P7, P9, P12, P14 and P21 | LSFM | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#lambada-developmental-mouse-brain-atlas) |
 | [Allen MOmap Mouse Brain atlas](https://doi.org/10.1016/j.cell.2026.08.046) | 10 micron | P56 | STPT | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#allen-momap-mouse-brain-atlas) |
 | [African Mole-rat Brain Atlas](https://doi.org/10.64898/2026.10.04.756554) | 20 micron | Adult | LSFM, additional references for fUSI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#african-mole-rat-brain-atlas) |
+| [RBT Rabbit Brain Atlas](https://dx.doi.org/10.24272/j.issn.2095-8137.2026.045) | 150 and 330 micron | Adult | MRI | [![More info](https://img.shields.io/badge/More%20info-Click%20here-blue)](https://brainglobe.info/documentation/brainglobe-atlasapi/usage/atlas-details.html#rbt-rabbit-brain-atlas) |
 <!-- END_ATLAS_TABLE -->
 
 **Acronyms:**

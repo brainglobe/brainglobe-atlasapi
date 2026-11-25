@@ -326,10 +326,7 @@ def retrieve_additional_references(resolution):
     t2w_reference = t2w_reference * 65535
     t2w_reference = t2w_reference.astype(np.uint16)
 
-    additional_references = {
-        f"t2w_reference_{resolution}um": t2w_reference,
-    }
-    return additional_references
+    return t2w_reference
 
 
 if __name__ == "__main__":
@@ -338,7 +335,7 @@ if __name__ == "__main__":
     references = []
     annotations = []
     hemispheres = []
-    additional_refs = []
+    additional_ref_arrays = []
     
     for i, resolution in enumerate(RESOLUTIONS):
         # Fail early if any version of this atlas already exists
@@ -360,12 +357,20 @@ if __name__ == "__main__":
         hemispheres.append(hemispheres_stack)
         
         structures = retrieve_structure_information()
-        meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
-            annotated_volume, structures
-        )
+        if i == 0: 
+            meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
+                annotated_volume, structures
+            )
         
         additional_references = retrieve_additional_references(resolution)
-        additional_refs.append((additional_references,))
+        additional_ref_arrays.append(additional_references)
+    
+    additional_refs = [
+        (
+            "t2w_reference", additional_ref_arrays
+        )
+    ]
+    print(additional_refs)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

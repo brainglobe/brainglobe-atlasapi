@@ -370,7 +370,6 @@ if __name__ == "__main__":
             "t2w_reference", additional_ref_arrays
         )
     ]
-    print(additional_refs)
 
     output_filename = wrapup_atlas_from_data(
         atlas_name=ATLAS_NAME,

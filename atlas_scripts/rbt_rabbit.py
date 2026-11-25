@@ -339,7 +339,7 @@ if __name__ == "__main__":
     annotations = []
     hemispheres = []
     additional_refs = []
-    
+
     for i, resolution in enumerate(RESOLUTIONS):
         # Fail early if any version of this atlas already exists
         atlas_prefix = atlas_name_from_repr(ATLAS_NAME, resolution)
@@ -355,15 +355,15 @@ if __name__ == "__main__":
         )
         references.append(reference_volume)
         annotations.append(annotated_volume)
-        
+
         hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
         hemispheres.append(hemispheres_stack)
-        
+
         structures = retrieve_structure_information()
         meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
             annotated_volume, structures
         )
-        
+
         additional_references = retrieve_additional_references(resolution)
         additional_refs.append((additional_references,))
 

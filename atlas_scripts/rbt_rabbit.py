@@ -6,11 +6,10 @@ annotation and structure data, processes it to create an atlas,
 and then wraps it up into the BrainGlobe atlas format.
 """
 
+import re
 from pathlib import Path
 
-import re
 import numpy as np
-import pandas as pd
 import pooch
 from brainglobe_utils.IO.image import load_any
 
@@ -40,8 +39,8 @@ REFERENCE_URLS = {
 }
 
 REFERENCES_HASHES = {
-    150: "d2f2487f8d0ca765b71fa410ee9298cc8247db60ee9b5999de97e917483632c9", 
-    330: "a7d770357389f6034ac383e26aeb0015e48a4405497c7230059004c9bfb2f6bc", 
+    150: "d2f2487f8d0ca765b71fa410ee9298cc8247db60ee9b5999de97e917483632c9",
+    330: "a7d770357389f6034ac383e26aeb0015e48a4405497c7230059004c9bfb2f6bc",
 }
 
 ANNOTATION_URLS = {
@@ -50,8 +49,8 @@ ANNOTATION_URLS = {
 }
 
 ANNOTATION_HASHES = {
-    150: "d85473fa7d3a7411ca88d426a1c22af4e818bc47425485fba1bcac4567af774e", 
-    330: "985dfb7a442279b31dd33336700d100c51942869d930e2ae9314251548e880dc", 
+    150: "d85473fa7d3a7411ca88d426a1c22af4e818bc47425485fba1bcac4567af774e",
+    330: "985dfb7a442279b31dd33336700d100c51942869d930e2ae9314251548e880dc",
 }
 
 T2W_REFERENCE_URLS = {
@@ -60,8 +59,8 @@ T2W_REFERENCE_URLS = {
 }
 
 T2W_REFERENCE_HASHES = {
-    150: "6f7dea4b905ca6d74c204e57827acb37aba58dc811100a50b1f9ba854775a2a0", 
-    330: "53acf4867fa08a15e770259f5b102a1f73efc8e18efe5489d9597de9fef4c415", 
+    150: "6f7dea4b905ca6d74c204e57827acb37aba58dc811100a50b1f9ba854775a2a0",
+    330: "53acf4867fa08a15e770259f5b102a1f73efc8e18efe5489d9597de9fef4c415",
 }
 
 LABELS_URL = "https://china.scidb.cn/download?fileId=f8ab5dc5cd6bd65e0d4b9396127a37bf&traceId=3073c18b-cc1b-4c2a-bc13-67a25f824791"
@@ -257,6 +256,7 @@ def retrieve_structure_information():
     structures.sort(key=lambda s: (len(s["structure_id_path"]), s["id"]))
     return structures
 
+
 def retrieve_or_construct_meshes(annotated_volume, structures):
     """
     Return a dictionary mapping structure IDs to paths of mesh files.
@@ -285,6 +285,7 @@ def retrieve_or_construct_meshes(annotated_volume, structures):
     structures_with_mesh = [s for s in structures if s["id"] in meshes_dict]
 
     return meshes_dict, structures_with_mesh
+
 
 def retrieve_additional_references(resolution):
     """
@@ -324,11 +325,12 @@ def retrieve_additional_references(resolution):
     t2w_reference = t2w_reference / np.max(t2w_reference)
     t2w_reference = t2w_reference * 65535
     t2w_reference = t2w_reference.astype(np.uint16)
-    
+
     additional_references = {
         "t2w_reference": t2w_reference,
     }
     return additional_references
+
 
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
@@ -343,7 +345,9 @@ if __name__ == "__main__":
                 f"Atlas output already exists in {BG_ROOT_DIR}. "
             )
         download_resources(resolution)
-        reference_volume, annotated_volume = retrieve_reference_and_annotation(resolution)
+        reference_volume, annotated_volume = retrieve_reference_and_annotation(
+            resolution
+        )
         hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
         structures = retrieve_structure_information()
         meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(

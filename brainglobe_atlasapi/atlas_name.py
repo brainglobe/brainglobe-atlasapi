@@ -237,6 +237,8 @@ AtlasName: TypeAlias = Literal[
     "perens_stereotaxic_mri_mouse_25um",
     "prairie_vole_25um",
     "princeton_mouse_20um",
+    "rbt_rabbit_150um",
+    "rbt_rabbit_330um",
     "sigma_exvivo_rat_90um",
     "sigma_invivo_rat_150um",
     "sju_cavefish_2um",

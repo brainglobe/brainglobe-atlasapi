@@ -327,7 +327,7 @@ def retrieve_additional_references(resolution):
     t2w_reference = t2w_reference.astype(np.uint16)
 
     additional_references = {
-        "t2w_reference": t2w_reference,
+        f"t2w_reference_{resolution}um": t2w_reference,
     }
     return additional_references
 
@@ -335,7 +335,12 @@ def retrieve_additional_references(resolution):
 if __name__ == "__main__":
     BG_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
-    for resolution in RESOLUTIONS:
+    references = []
+    annotations = []
+    hemispheres = []
+    additional_refs = []
+    
+    for i, resolution in enumerate(RESOLUTIONS):
         # Fail early if any version of this atlas already exists
         atlas_prefix = atlas_name_from_repr(ATLAS_NAME, resolution)
         existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
@@ -348,29 +353,36 @@ if __name__ == "__main__":
         reference_volume, annotated_volume = retrieve_reference_and_annotation(
             resolution
         )
+        references.append(reference_volume)
+        annotations.append(annotated_volume)
+        
         hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
+        hemispheres.append(hemispheres_stack)
+        
         structures = retrieve_structure_information()
         meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
             annotated_volume, structures
         )
+        
         additional_references = retrieve_additional_references(resolution)
+        additional_refs.append((additional_references,))
 
-        output_filename = wrapup_atlas_from_data(
-            atlas_name=ATLAS_NAME,
-            atlas_minor_version=__version__,
-            citation=CITATION,
-            atlas_link=ATLAS_LINK,
-            species=SPECIES,
-            resolution=(resolution,) * 3,
-            orientation=ORIENTATION,
-            root_id=ROOT_ID,
-            reference_stack=reference_volume,
-            annotation_stack=annotated_volume,
-            structures_list=structures_with_mesh,
-            meshes_dict=meshes_dict,
-            working_dir=BG_ROOT_DIR,
-            hemispheres_stack=hemispheres_stack,
-            additional_references=additional_references,
-            atlas_packager=ATLAS_PACKAGER,
-            scale_meshes=True,
-        )
+    output_filename = wrapup_atlas_from_data(
+        atlas_name=ATLAS_NAME,
+        atlas_minor_version=__version__,
+        citation=CITATION,
+        atlas_link=ATLAS_LINK,
+        species=SPECIES,
+        resolution=[(res,) * 3 for res in RESOLUTIONS],
+        orientation=ORIENTATION,
+        root_id=ROOT_ID,
+        reference_stack=references,
+        annotation_stack=annotations,
+        structures_list=structures_with_mesh,
+        meshes_dict=meshes_dict,
+        working_dir=BG_ROOT_DIR,
+        hemispheres_stack=hemispheres,
+        additional_references=additional_refs,
+        atlas_packager=ATLAS_PACKAGER,
+        scale_meshes=True,
+    )

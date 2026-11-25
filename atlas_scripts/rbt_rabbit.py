@@ -366,8 +366,6 @@ if __name__ == "__main__":
             meshes_dict=meshes_dict,
             working_dir=BG_ROOT_DIR,
             hemispheres_stack=hemispheres_stack,
-            cleanup_files=False,
-            compress=True,
             additional_references=additional_references,
             atlas_packager=ATLAS_PACKAGER,
             scale_meshes=True,

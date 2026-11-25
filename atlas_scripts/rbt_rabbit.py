@@ -352,10 +352,10 @@ if __name__ == "__main__":
         )
         references.append(reference_volume)
         annotations.append(annotated_volume)
-        
+
         hemispheres_stack = retrieve_hemisphere_map(annotated_volume)
         hemispheres.append(hemispheres_stack)
-        
+
         structures = retrieve_structure_information()
         if i == 0: 
             meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(

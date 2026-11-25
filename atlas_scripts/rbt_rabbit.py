@@ -337,7 +337,7 @@ if __name__ == "__main__":
     hemispheres = []
     additional_ref_arrays = []
     
-    for i, resolution in enumerate(RESOLUTIONS):
+    for resolution in RESOLUTIONS:
         # Fail early if any version of this atlas already exists
         atlas_prefix = atlas_name_from_repr(ATLAS_NAME, resolution)
         existing = list(BG_ROOT_DIR.glob(f"{atlas_prefix}_v*"))
@@ -357,7 +357,7 @@ if __name__ == "__main__":
         hemispheres.append(hemispheres_stack)
 
         structures = retrieve_structure_information()
-        if i == 0: 
+        if resolution == 150: 
             meshes_dict, structures_with_mesh = retrieve_or_construct_meshes(
                 annotated_volume, structures
             )
